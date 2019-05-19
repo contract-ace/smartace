@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -80,9 +80,9 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A" << endl;
     oss_expect << "struct A_B;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A_B" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A" << endl;
     oss_expect << "M simpleModifier" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
@@ -133,8 +133,8 @@ BOOST_AUTO_TEST_CASE(simple_func)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
-    oss_expect << "F simpleFunc" << endl;
+    oss_expect << "Ctor_A" << endl;
+    oss_expect << "Method_A_simpleFunc" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -157,9 +157,9 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A" << endl;
     oss_expect << "struct A_B;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A_B" << endl;
     oss_expect << "struct A_B_a_submap1;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
@@ -188,11 +188,11 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A" << endl;
     oss_expect << "struct A_B;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A_B" << endl;
     oss_expect << "struct C;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_C" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -211,7 +211,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A" << endl;
     oss_expect << "struct A_a_submap1;" << endl;
     oss_expect << "struct A_a_submap2;" << endl;
 
@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(custom_ctor)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
-    oss_expect << "F " << endl;
+    oss_expect << "Ctor_A" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }

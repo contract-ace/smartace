@@ -82,7 +82,7 @@ bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
         _node.location(),
         epsilon,
         Declaration::Visibility::Public,
-        StateMutability::NonPayable,
+        StateMutability::Pure,
         true,
         epsilon,
         empty_param_list,
@@ -100,7 +100,16 @@ bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
 
 bool ASTForwardDeclVisitor::visit(FunctionDefinition const& _node)
 {
-    (*m_ostream) << "F " << _node.name() << endl;
+    (*m_ostream) << ((_node.isConstructor()) ? "Ctor" : "Method");
+    for (const auto scope : m_model_scope)
+    {
+        (*m_ostream) << "_" << scope;
+    }
+    if (!_node.isConstructor())
+    {
+        (*m_ostream) << "_" << _node.name();
+    }
+    (*m_ostream) << endl;
     return false;
 }
 
