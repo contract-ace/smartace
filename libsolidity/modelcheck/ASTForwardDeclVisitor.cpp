@@ -4,6 +4,7 @@
  */
 
 #include <libsolidity/modelcheck/ASTForwardDeclVisitor.h>
+#include <sstream>
 
 using namespace std;
 
@@ -100,16 +101,45 @@ bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
 
 bool ASTForwardDeclVisitor::visit(FunctionDefinition const& _node)
 {
-    (*m_ostream) << ((_node.isConstructor()) ? "Ctor" : "Method");
-    for (const auto scope : m_model_scope)
+    // Fully expands scope type.
+    stringstream owner_oss;
+    owner_oss << m_model_scope.front();
+    for (auto scope = ++m_model_scope.begin(); scope != m_model_scope.end(); ++scope)
     {
-        (*m_ostream) << "_" << scope;
+        owner_oss << "_" << (*scope);
     }
+
+    // Produces return type.
+    if (_node.isConstructor())
+    {
+        (*m_ostream) << "struct " << owner_oss.str();
+    }
+    else
+    {
+        auto ftype = _node.functionType(false);
+        if (ftype->returnParameterTypes().size() == 0)
+        {
+            (*m_ostream) << "void";
+        }
+        else
+        {
+            // TODO
+        }
+    }
+
+    (*m_ostream) << " ";
+
+    // Produces name of method.
+    (*m_ostream) << ((_node.isConstructor()) ? "Ctor" : "Method")
+                 << "_"
+                 << owner_oss.str();
     if (!_node.isConstructor())
     {
         (*m_ostream) << "_" << _node.name();
     }
+
     (*m_ostream) << endl;
+
     return false;
 }
 
