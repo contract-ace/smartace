@@ -22,52 +22,6 @@ namespace test
 
 BOOST_FIXTURE_TEST_SUITE(ModelCheckerForwardDecl, ::dev::solidity::test::AnalysisFramework);
 
-BOOST_AUTO_TEST_CASE(simple_map)
-{
-    char const* text = R"(
-        contract A {
-            mapping (uint => uint) a;
-        }
-    )";
-	ContractDefinition const* contract;
-    VariableDeclaration const* u2umap;
-	SourceUnit const* ast = parseAndAnalyse(text);
-    BOOST_REQUIRE((contract = retrieveContractByName(*ast, "A")) != nullptr);
-    BOOST_REQUIRE((u2umap = contract->stateVariables()[0]) != nullptr);
-
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*u2umap);
-    decl_visitor.print(oss_actual);
-
-    BOOST_CHECK_EQUAL(oss_actual.str(), "");
-}
-
-BOOST_AUTO_TEST_CASE(simple_struct)
-{
-    char const* text = R"(
-        contract A {
-            struct B {
-                uint a;
-                uint b;
-            }
-        }
-    )";
-	ContractDefinition const* contract;
-    StructDefinition const* struc;
-	SourceUnit const* ast = parseAndAnalyse(text);
-    BOOST_REQUIRE((contract = retrieveContractByName(*ast, "A")) != nullptr);
-    BOOST_REQUIRE((struc = contract->definedStructs()[0]) != nullptr);
-
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*struc);
-    decl_visitor.print(oss_actual);
-
-    ostringstream oss_expect;
-    oss_expect << "struct B;" << endl;
-
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
-}
-
 BOOST_AUTO_TEST_CASE(simple_contract)
 {
     char const* text = R"(
@@ -76,10 +30,9 @@ BOOST_AUTO_TEST_CASE(simple_contract)
             uint b;
 		}
 	)";
-	SourceUnit const* ast = parseAndAnalyse(text);
 
     ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*ast);
+    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
@@ -89,28 +42,98 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
 
-BOOST_AUTO_TEST_CASE(contract_nesting)
+BOOST_AUTO_TEST_CASE(simple_map)
 {
     char const* text = R"(
-		contract A {
+        contract A {
+            mapping (uint => uint) a;
+        }
+    )";
+
+    ostringstream oss_actual;
+    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
+    decl_visitor.print(oss_actual);
+
+    ostringstream oss_expect;
+    oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
+
+    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(simple_struct)
+{
+    char const* text = R"(
+        contract A {
 			uint a;
             uint b;
             struct B {
                 uint a;
                 uint b;
             }
-		}
-	)";
-	SourceUnit const* ast = parseAndAnalyse(text);
+        }
+    )";
 
     ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*ast);
+    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
     oss_expect << "F " << endl;
     oss_expect << "struct A_B;" << endl;
+
+    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(simple_modifier)
+{
+    char const* text = R"(
+        contract A {
+			uint a;
+            uint b;
+            modifier simpleModifier {
+                require(
+                    a >= 100,
+                    "Placeholder"
+                );
+                _;
+            }
+        }
+    )";
+
+    ostringstream oss_actual;
+    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
+    decl_visitor.print(oss_actual);
+
+    ostringstream oss_expect;
+    oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
+    oss_expect << "M simpleModifier" << endl;
+
+    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(simple_func)
+{
+    char const* text = R"(
+        contract A {
+			uint a;
+            uint b;
+            function simpleFunc(uint _in) public returns (uint _out) {
+                _out = _in;
+            }
+        }
+    )";
+
+    ostringstream oss_actual;
+    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
+    decl_visitor.print(oss_actual);
+
+    ostringstream oss_expect;
+    oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
+    oss_expect << "F simpleFunc" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -126,19 +149,16 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
             }
 		}
 	)";
-	ContractDefinition const* contract;
-    StructDefinition const* struc;
-	SourceUnit const* ast = parseAndAnalyse(text);
-    BOOST_REQUIRE((contract = retrieveContractByName(*ast, "A")) != nullptr);
-    BOOST_REQUIRE((struc = contract->definedStructs()[0]) != nullptr);
 
     ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*struc);
+    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
-    oss_expect << "struct B;" << endl;
-    oss_expect << "struct B_a_submap1;" << endl;
+    oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
+    oss_expect << "struct A_B;" << endl;
+    oss_expect << "struct A_B_a_submap1;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -181,19 +201,16 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 			mapping (uint => mapping (uint => mapping (uint => uint))) a;
 		}
 	)";
-	ContractDefinition const* contract;
-    VariableDeclaration const* u2umap;
-	SourceUnit const* ast = parseAndAnalyse(text);
-    BOOST_REQUIRE((contract = retrieveContractByName(*ast, "A")) != nullptr);
-    BOOST_REQUIRE((u2umap = contract->stateVariables()[0]) != nullptr);
 
     ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*u2umap);
+    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
-    oss_expect << "struct a_submap1;" << endl;
-    oss_expect << "struct a_submap2;" << endl;
+    oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
+    oss_expect << "struct A_a_submap1;" << endl;
+    oss_expect << "struct A_a_submap2;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
