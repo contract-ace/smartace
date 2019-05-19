@@ -1,0 +1,88 @@
+/**
+ * @date 2019
+ * First-pass visitor for converting Solidity AST's to models in C.
+ */
+
+#include <libsolidity/modelcheck/ASTForwardDeclVisitor.h>
+
+using namespace std;
+
+namespace dev
+{
+namespace solidity
+{
+namespace modelcheck
+{
+
+ASTForwardDeclVisitor::ASTForwardDeclVisitor(
+    ASTNode const& _ast
+): m_ast(&_ast)
+{
+}
+
+void ASTForwardDeclVisitor::print(ostream& _stream)
+{
+    m_ostream = &_stream;
+    m_ast->accept(*this);
+    m_ostream = nullptr;
+}
+
+bool ASTForwardDeclVisitor::visit(ContractDefinition const& _node)
+{
+    (*m_ostream) << "C " << _node.name() << endl;
+    return true;
+}
+
+bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
+{
+    (*m_ostream) << "S " << _node.name() << endl;
+    return true;
+}
+
+bool ASTForwardDeclVisitor::visit(FunctionDefinition const& _node)
+{
+    (*m_ostream) << "F " << _node.name() << endl;
+    return true;
+}
+
+bool ASTForwardDeclVisitor::visit(ModifierDefinition const& _node)
+{
+    (*m_ostream) << "M " << _node.name() << endl;
+    return true;
+}
+
+bool ASTForwardDeclVisitor::visit(Mapping const&)
+{
+    // TODO: This requires more state to get name.
+    (*m_ostream) << "A" << endl;
+    return true;
+}
+
+void ASTForwardDeclVisitor::endVisit(ContractDefinition const&)
+{
+    return;
+}
+
+void ASTForwardDeclVisitor::endVisit(StructDefinition const&)
+{
+    return;
+}
+
+void ASTForwardDeclVisitor::endVisit(FunctionDefinition const&)
+{
+    return;
+}
+
+void ASTForwardDeclVisitor::endVisit(ModifierDefinition const&)
+{
+    return;
+}
+
+void ASTForwardDeclVisitor::endVisit(Mapping const&)
+{
+    return;
+}
+
+}
+}
+}

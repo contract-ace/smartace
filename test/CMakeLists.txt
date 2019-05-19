@@ -19,6 +19,8 @@ file(GLOB libsolidity_sources "libsolidity/*.cpp")
 file(GLOB libsolidity_headers "libsolidity/*.h")
 file(GLOB libsolidity_util_sources "libsolidity/util/*.cpp")
 file(GLOB libsolidity_util_headers "libsolidity/util/*.h")
+file(GLOB libsolidity_modelcheck_sources "libsolidity/modelcheck/*.cpp")
+file(GLOB libsolidity_modelcheck_headers "libsolidity/modelcheck/*.h")
 
 add_executable(soltest ${sources} ${headers}
     ${contracts_sources} ${contracts_headers}
@@ -29,6 +31,7 @@ add_executable(soltest ${sources} ${headers}
     ${liblll_sources} ${liblll_headers}
     ${libsolidity_sources} ${libsolidity_headers}
     ${libsolidity_util_sources} ${libsolidity_util_headers}
+    ${libsolidity_modelcheck_sources} ${libsolidity_modelcheck_headers}
 )
 target_link_libraries(soltest PRIVATE libsolc yul solidity yulInterpreter evmasm devcore ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
 

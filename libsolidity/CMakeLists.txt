@@ -106,6 +106,8 @@ set(sources
 	interface/StandardCompiler.h
 	interface/Version.cpp
 	interface/Version.h
+	modelcheck/ASTForwardDeclVisitor.cpp
+	modelcheck/ASTForwardDeclVisitor.h
 	parsing/DocStringParser.cpp
 	parsing/DocStringParser.h
 	parsing/Parser.cpp
