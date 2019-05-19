@@ -84,6 +84,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -108,6 +109,7 @@ BOOST_AUTO_TEST_CASE(contract_nesting)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
     oss_expect << "struct A_B;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
@@ -164,8 +166,10 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
     oss_expect << "struct A_B;" << endl;
     oss_expect << "struct C;" << endl;
+    oss_expect << "F " << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -190,6 +194,29 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     ostringstream oss_expect;
     oss_expect << "struct a_submap1;" << endl;
     oss_expect << "struct a_submap2;" << endl;
+
+    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(custom_ctor)
+{
+    char const* text = R"(
+		contract A {
+            uint a;
+			constructor(uint _a) public {
+                a = _a;
+            }
+		}
+	)";
+	SourceUnit const* ast = parseAndAnalyse(text);
+
+    ostringstream oss_actual;
+    ASTForwardDeclVisitor decl_visitor(*ast);
+    decl_visitor.print(oss_actual);
+
+    ostringstream oss_expect;
+    oss_expect << "struct A;" << endl;
+    oss_expect << "F " << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
