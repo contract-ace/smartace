@@ -39,10 +39,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
     ASTForwardDeclVisitor decl_visitor(*u2umap);
     decl_visitor.print(oss_actual);
 
-    ostringstream oss_expect;
-    oss_expect << "A" << endl;
-
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    BOOST_CHECK_EQUAL(oss_actual.str(), "");
 }
 
 BOOST_AUTO_TEST_CASE(simple_struct)
@@ -123,7 +120,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 			uint a;
             uint b;
             struct B {
-                mapping (uint => uint) a;
+                mapping (uint => mapping (uint => uint)) a;
             }
 		}
 	)";
@@ -139,7 +136,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     ostringstream oss_expect;
     oss_expect << "struct B;" << endl;
-    oss_expect << "A" << endl;
+    oss_expect << "struct B_a_submap1;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -168,9 +165,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
     oss_expect << "struct A_B;" << endl;
-    oss_expect << "A" << endl;
     oss_expect << "struct C;" << endl;
-    oss_expect << "A" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -179,7 +174,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 {
     char const* text = R"(
 		contract A {
-			mapping (uint => mapping (uint => uint)) a;
+			mapping (uint => mapping (uint => mapping (uint => uint))) a;
 		}
 	)";
 	ContractDefinition const* contract;
@@ -193,8 +188,8 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
-    oss_expect << "A" << endl;
-    oss_expect << "A" << endl;
+    oss_expect << "struct a_submap1;" << endl;
+    oss_expect << "struct a_submap2;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }

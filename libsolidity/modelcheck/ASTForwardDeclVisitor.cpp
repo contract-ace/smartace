@@ -55,16 +55,36 @@ bool ASTForwardDeclVisitor::visit(ModifierDefinition const& _node)
     return false;
 }
 
+bool ASTForwardDeclVisitor::visit(VariableDeclaration const& _node)
+{
+    push_scope(_node.name());
+    return true;
+}
+
 bool ASTForwardDeclVisitor::visit(Mapping const&)
 {
-    // TODO: This requires more state to get name.
-    (*m_ostream) << "A" << endl;
+    if (m_map_depth > 0)
+    {
+        declare_struct_in_scope("submap" + to_string(m_map_depth));
+    }
+    // TODO: print helper methods.
+    ++m_map_depth;
     return true;
 }
 
 void ASTForwardDeclVisitor::endVisit(ContractDefinition const&)
 {
     pop_scope();
+}
+
+void ASTForwardDeclVisitor::endVisit(VariableDeclaration const&)
+{
+    pop_scope();
+}
+
+void ASTForwardDeclVisitor::endVisit(Mapping const&)
+{
+    --m_map_depth;
 }
 
 void ASTForwardDeclVisitor::endVisit(StructDefinition const&)

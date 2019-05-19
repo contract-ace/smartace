@@ -36,9 +36,12 @@ public:
 	bool visit(StructDefinition const& _node) override;
 	bool visit(FunctionDefinition const& _node) override;
 	bool visit(ModifierDefinition const& _node) override;
+	bool visit(VariableDeclaration const& _node) override;
 	bool visit(Mapping const& _node) override;
 
 	void endVisit(ContractDefinition const&) override;
+	void endVisit(VariableDeclaration const&) override;
+	void endVisit(Mapping const&) override;
 	void endVisit(StructDefinition const&) override;
 
 private:
@@ -46,6 +49,8 @@ private:
 	std::ostream* m_ostream = nullptr;
 
 	std::list<std::string> m_model_scope;
+
+	unsigned int m_map_depth{0};
 
 	// Utility to format local names with full model scope.
 	void declare_struct_in_scope(const std::string &name);
