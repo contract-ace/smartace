@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
-    oss_expect << "S B" << endl;
+    oss_expect << "struct B;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
-    oss_expect << "C A" << endl;
+    oss_expect << "struct A;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -110,8 +110,8 @@ BOOST_AUTO_TEST_CASE(contract_nesting)
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
-    oss_expect << "C A" << endl;
-    oss_expect << "S B" << endl;
+    oss_expect << "struct A;" << endl;
+    oss_expect << "struct A_B;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
-    oss_expect << "S B" << endl;
+    oss_expect << "struct B;" << endl;
     oss_expect << "A" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
@@ -166,10 +166,10 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     decl_visitor.print(oss_actual);
 
     ostringstream oss_expect;
-    oss_expect << "C A" << endl;
-    oss_expect << "S B" << endl;
+    oss_expect << "struct A;" << endl;
+    oss_expect << "struct A_B;" << endl;
     oss_expect << "A" << endl;
-    oss_expect << "C C" << endl;
+    oss_expect << "struct C;" << endl;
     oss_expect << "A" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());

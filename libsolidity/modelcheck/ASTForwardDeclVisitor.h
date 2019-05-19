@@ -6,7 +6,9 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <list>
 #include <ostream>
+#include <string>
 
 namespace dev
 {
@@ -38,13 +40,19 @@ public:
 
 	void endVisit(ContractDefinition const&) override;
 	void endVisit(StructDefinition const&) override;
-	void endVisit(FunctionDefinition const&) override;
-	void endVisit(ModifierDefinition const&) override;
-	void endVisit(Mapping const&) override;
 
 private:
 	ASTNode const* m_ast;
 	std::ostream* m_ostream = nullptr;
+
+	std::list<std::string> m_model_scope;
+
+	// Utility to format local names with full model scope.
+	void declare_struct_in_scope(const std::string &name);
+
+	// Used to push or pop the current name scope.
+	void push_scope(std::string scope);
+	void pop_scope();
 };
 
 }

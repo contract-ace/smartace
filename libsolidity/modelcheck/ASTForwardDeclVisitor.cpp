@@ -29,26 +29,30 @@ void ASTForwardDeclVisitor::print(ostream& _stream)
 
 bool ASTForwardDeclVisitor::visit(ContractDefinition const& _node)
 {
-    (*m_ostream) << "C " << _node.name() << endl;
+    string name = _node.name();
+    declare_struct_in_scope(name);
+    push_scope(std::move(name));
     return true;
 }
 
 bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
 {
-    (*m_ostream) << "S " << _node.name() << endl;
+    string name = _node.name();
+    declare_struct_in_scope(name);
+    push_scope(std::move(name));
     return true;
 }
 
 bool ASTForwardDeclVisitor::visit(FunctionDefinition const& _node)
 {
     (*m_ostream) << "F " << _node.name() << endl;
-    return true;
+    return false;
 }
 
 bool ASTForwardDeclVisitor::visit(ModifierDefinition const& _node)
 {
     (*m_ostream) << "M " << _node.name() << endl;
-    return true;
+    return false;
 }
 
 bool ASTForwardDeclVisitor::visit(Mapping const&)
@@ -60,27 +64,32 @@ bool ASTForwardDeclVisitor::visit(Mapping const&)
 
 void ASTForwardDeclVisitor::endVisit(ContractDefinition const&)
 {
-    return;
+    pop_scope();
 }
 
 void ASTForwardDeclVisitor::endVisit(StructDefinition const&)
 {
-    return;
+    pop_scope();
 }
 
-void ASTForwardDeclVisitor::endVisit(FunctionDefinition const&)
+void ASTForwardDeclVisitor::declare_struct_in_scope(const string &name)
 {
-    return;
+    (*m_ostream) << "struct ";
+    for (const auto scope : m_model_scope)
+    {
+        (*m_ostream) << scope << "_";
+    }
+    (*m_ostream) << name << ";" << endl;
 }
 
-void ASTForwardDeclVisitor::endVisit(ModifierDefinition const&)
+void ASTForwardDeclVisitor::push_scope(std::string scope)
 {
-    return;
+    m_model_scope.push_back(std::move(scope));
 }
 
-void ASTForwardDeclVisitor::endVisit(Mapping const&)
+void ASTForwardDeclVisitor::pop_scope()
 {
-    return;
+    m_model_scope.pop_back();
 }
 
 }
