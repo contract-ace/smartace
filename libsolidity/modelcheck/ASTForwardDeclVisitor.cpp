@@ -69,6 +69,32 @@ bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
     string name = _node.name();
     declare_struct_in_scope(name);
     push_scope(std::move(name));
+    // Generates the AST for for a struct's default constructor.
+    ASTPointer<ASTString> epsilon = make_shared<string>("");
+    ASTPointer<ParameterList> empty_param_list = make_shared<ParameterList>(
+        _node.location(),
+        vector<ASTPointer<VariableDeclaration>>{}
+    );
+    vector<ASTPointer<Statement>> initializations;
+    // TODO: populate body
+    // TODO: populate arg list
+    FunctionDefinition default_ctor_def(
+        _node.location(),
+        epsilon,
+        Declaration::Visibility::Public,
+        StateMutability::NonPayable,
+        true,
+        epsilon,
+        empty_param_list,
+        vector<ASTPointer<ModifierInvocation>>{},
+        empty_param_list,
+        make_shared<Block>(
+            _node.location(),
+            epsilon,
+            initializations
+        )
+    );
+    default_ctor_def.accept(*this);
     return true;
 }
 

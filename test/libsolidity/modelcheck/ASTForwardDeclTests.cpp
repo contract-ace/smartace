@@ -82,6 +82,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     oss_expect << "struct A;" << endl;
     oss_expect << "F " << endl;
     oss_expect << "struct A_B;" << endl;
+    oss_expect << "F " << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -158,6 +159,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     oss_expect << "struct A;" << endl;
     oss_expect << "F " << endl;
     oss_expect << "struct A_B;" << endl;
+    oss_expect << "F " << endl;
     oss_expect << "struct A_B_a_submap1;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
@@ -188,6 +190,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     oss_expect << "struct A;" << endl;
     oss_expect << "F " << endl;
     oss_expect << "struct A_B;" << endl;
+    oss_expect << "F " << endl;
     oss_expect << "struct C;" << endl;
     oss_expect << "F " << endl;
 
