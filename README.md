@@ -1,70 +1,69 @@
-# The Solidity Contract-Oriented Programming Language
-[![Join the chat at https://gitter.im/ethereum/solidity](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ethereum/solidity?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+# Model Checking in Solidity
 
-Solidity is a statically typed, contract-oriented, high-level language for implementing smart contracts on the Ethereum platform.
+Extension of the solidity compiler to support smart contract model checking.
 
-## Table of Contents
+## Repository Overview
 
-- [Background](#background)
-- [Build and Install](#build-and-install)
-- [Example](#example)
-- [Documentation](#documentation)
-- [Development](#development)
-- [Maintainers](#maintainers)
-- [License](#license)
+Code related to code generation, and the solidity AST, may be found in `libsolidity`.
+These components are integrated within `solc/` to build `./solc`, the solidity compiler.
+Tests for these libraries may be found under `test/libsolidity`.
+The libsolidity testsuite is accessible for `scripts/solctests.sh`.
 
-## Background
+## Building the Project
 
-Solidity is a statically-typed curly-braces programming language designed for developing smart contracts
-that run on the Ethereum Virtual Machine. Smart contracts are programs that are executed inside a peer-to-peer
-network where nobody has special authority over the execution and thus they allow to implement tokens of value,
-ownership, voting and other kinds of logics.
-
-When deploying contracts, you should use the latest released version of Solidity. This is because breaking changes as well as new features and bug fixes are introduced regularly. We currently use a 0.x version number [to indicate this fast pace of change](https://semver.org/#spec-item-4).
-
-## Build and Install
-
-Instructions about how to build and install the Solidity compiler can be found in the [Solidity documentation](https://solidity.readthedocs.io/en/latest/installing-solidity.html#building-from-source)
-
-
-## Example
-
-A "Hello World" program in Solidity is of even less use than in other languages, but still:
-
+Before building `solc`, ensure that the latest version of cmake is installed.
+To compile `solc` for the first time, run
 ```
-pragma solidity ^0.5.0;
+mkdir build
+cd build
+cmake ..
+```
+Once cmake has finished, simply run `make` from within `build/`.
 
-contract HelloWorld {
-  function helloWorld() external pure returns (string memory) {
-    return "Hello, World!";
-  }
+If needed, refer to the [official build documentation](https://solidity.readthedocs.io/en/latest/installing-solidity.html#building-from-source)
+
+## Adding New Modules and Tests
+
+To add a new file to `libsolidity/`, its path must be added to `libsolidity/CMakeLists.txt`.
+For each module added, some test cases should also be introduced.
+Unlike the libraries, the test CMake files need only be updated if a new directory is added.
+
+## Testing the Solidity Compiler
+
+The libsolidity testsuite is built on top of Boost's unit testing framework.
+A simply testsuite will be of the form,
+```
+BOOST_AUTO_TEST_SUITE(SuiteName);
+
+...
+
+BOOST_AUTO_TEST_CASE(test_name)
+{
+    ...
 }
+
+...
+
+BOOST_AUTO_TEST_SUITE_END()
 ```
 
-To get started with Solidity, you can use [Remix](https://remix.ethereum.org/), which is an
-browser-based IDE. Here are some example contracts:
+It is recommended that test cases use `test/libsolidity/AnalysisFramework.h`.
+This provides a test fixture which allows solidity to AST compiling within a testcase.
+By using solidity code within the test, the scope of each test becomes more evident.
 
-1. [Voting](https://solidity.readthedocs.io/en/v0.4.24/solidity-by-example.html#voting)
-2. [Blind Auction](https://solidity.readthedocs.io/en/v0.4.24/solidity-by-example.html#blind-auction)
-3. [Safe remote purchase](https://solidity.readthedocs.io/en/v0.4.24/solidity-by-example.html#safe-remote-purchase)
-4. [Micropayment Channel](https://solidity.readthedocs.io/en/v0.4.24/solidity-by-example.html#micropayment-channel)
+The script `scripts/solctests.sh` will execute tests only from libsolidity.
+The test script will use the latest version of `solctest` found under `build/test`.
+By default, all tests related to Z3 and aneth will be executed.
+These are not needed in this project, and may be bypassed with the following command.
+```
+/script/solctests.sh --no-smt --no-ipc
+```
 
-## Documentation
+For more information on the libsolidity testsuite, or to learn how to test other modules, refer to [Running the compiler tests](https://solidity.readthedocs.io/en/latest/contributing.html#running-the-compiler-tests) from the official developer documents.
 
-The Solidity documentation is hosted at [Read the docs](https://solidity.readthedocs.io).
+## More Information
 
-## Development
+Comprehensive documentation for solidity compiler development may be found in the [Developer's Guide](https://solidity.readthedocs.io/en/latest/contributing.html)
 
-Solidity is still under development. Contributions are always welcome!
-Please follow the
-[Developers Guide](https://solidity.readthedocs.io/en/latest/contributing.html)
-if you want to help.
-
-## Maintainers
-[@axic](https://github.com/axic)
-[@chriseth](https://github.com/chriseth)
-
-## License
-Solidity is licensed under [GNU General Public License v3.0](LICENSE.txt)
-
-Some third-party code has its [own licensing terms](cmake/templates/license.h.in).
+The original README.md for solidity has be renamed to solidity.md.
+This file provides useful information on other aspects of the solidity project.
