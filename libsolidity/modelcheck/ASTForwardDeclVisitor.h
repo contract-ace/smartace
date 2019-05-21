@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/TypeTranslator.h>
 #include <list>
 #include <ostream>
 #include <string>
@@ -41,19 +42,15 @@ public:
 
 	void endVisit(ContractDefinition const&) override;
 	void endVisit(VariableDeclaration const&) override;
-	void endVisit(Mapping const&) override;
 	void endVisit(StructDefinition const&) override;
 
 private:
 	ASTNode const* m_ast;
 	std::ostream* m_ostream = nullptr;
 
+	TypeTranslator m_translator;
+
 	std::list<std::string> m_model_scope;
-
-	unsigned int m_map_depth{0};
-
-	// Utility to format local names with full model scope.
-	void declare_struct_in_scope(const std::string &name);
 
 	// Used to push or pop the current name scope.
 	void push_scope(std::string scope);

@@ -1,5 +1,7 @@
-/*
- *
+/**
+ * @date 2019
+ * Tests maps of various depth with the MapDepthCalculator visitor. Complex
+ * value types are also tested.
  */
 
 #include <libsolidity/modelcheck/MapDepthCalculator.h>

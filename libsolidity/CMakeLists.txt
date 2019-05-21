@@ -110,6 +110,8 @@ set(sources
 	modelcheck/ASTForwardDeclVisitor.h
 	modelcheck/MapDepthCalculator.cpp
 	modelcheck/MapDepthCalculator.h
+	modelcheck/TypeTranslator.cpp
+	modelcheck/TypeTranslator.h
 	parsing/DocStringParser.cpp
 	parsing/DocStringParser.h
 	parsing/Parser.cpp

@@ -57,6 +57,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
     oss_expect << "struct A Ctor_A" << endl;
+    oss_expect << "struct A_a_submap1;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -184,6 +185,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     oss_expect << "struct A Ctor_A" << endl;
     oss_expect << "struct A_B;" << endl;
     oss_expect << "struct A_B Ctor_A_B" << endl;
+    oss_expect << "struct A_B_a_submap2;" << endl;
     oss_expect << "struct A_B_a_submap1;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
@@ -215,8 +217,10 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     oss_expect << "struct A Ctor_A" << endl;
     oss_expect << "struct A_B;" << endl;
     oss_expect << "struct A_B Ctor_A_B" << endl;
+    oss_expect << "struct A_B_a_submap1;" << endl;
     oss_expect << "struct C;" << endl;
     oss_expect << "struct C Ctor_C" << endl;
+    oss_expect << "struct C_b_submap1;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }
@@ -236,8 +240,9 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     ostringstream oss_expect;
     oss_expect << "struct A;" << endl;
     oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "struct A_a_submap1;" << endl;
+    oss_expect << "struct A_a_submap3;" << endl;
     oss_expect << "struct A_a_submap2;" << endl;
+    oss_expect << "struct A_a_submap1;" << endl;
 
     BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
 }

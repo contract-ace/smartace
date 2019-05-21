@@ -31,7 +31,8 @@ void ASTForwardDeclVisitor::print(ostream& _stream)
 bool ASTForwardDeclVisitor::visit(ContractDefinition const& _node)
 {
     string name = _node.name();
-    declare_struct_in_scope(name);
+    m_translator.enter_scope(_node);
+    (*m_ostream) << m_translator.translate(_node) << ";" << endl;
     push_scope(std::move(name));
     if (_node.constructor() == nullptr)
     {
@@ -68,7 +69,8 @@ bool ASTForwardDeclVisitor::visit(ContractDefinition const& _node)
 bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
 {
     string name = _node.name();
-    declare_struct_in_scope(name);
+    m_translator.enter_scope(_node);
+    (*m_ostream) << m_translator.translate(_node) << ";" << endl;
     push_scope(std::move(name));
     // Generates the AST for for a struct's default constructor.
     ASTPointer<ASTString> epsilon = make_shared<string>("");
@@ -151,49 +153,34 @@ bool ASTForwardDeclVisitor::visit(ModifierDefinition const& _node)
 
 bool ASTForwardDeclVisitor::visit(VariableDeclaration const& _node)
 {
+    m_translator.enter_scope(_node);
     push_scope(_node.name());
     return true;
 }
 
-bool ASTForwardDeclVisitor::visit(Mapping const&)
+bool ASTForwardDeclVisitor::visit(Mapping const& _node)
 {
-    if (m_map_depth > 0)
-    {
-        declare_struct_in_scope("submap" + to_string(m_map_depth));
-    }
+    (*m_ostream) << m_translator.translate(_node) << ";" << endl;
     // TODO: print helper methods.
-    ++m_map_depth;
     return true;
 }
 
 void ASTForwardDeclVisitor::endVisit(ContractDefinition const&)
 {
+    m_translator.exit_scope();
     pop_scope();
 }
 
 void ASTForwardDeclVisitor::endVisit(VariableDeclaration const&)
 {
+    m_translator.exit_scope();
     pop_scope();
-}
-
-void ASTForwardDeclVisitor::endVisit(Mapping const&)
-{
-    --m_map_depth;
 }
 
 void ASTForwardDeclVisitor::endVisit(StructDefinition const&)
 {
+    m_translator.exit_scope();
     pop_scope();
-}
-
-void ASTForwardDeclVisitor::declare_struct_in_scope(const string &name)
-{
-    (*m_ostream) << "struct ";
-    for (const auto scope : m_model_scope)
-    {
-        (*m_ostream) << scope << "_";
-    }
-    (*m_ostream) << name << ";" << endl;
 }
 
 void ASTForwardDeclVisitor::push_scope(std::string scope)
