@@ -30,10 +30,8 @@ void ASTForwardDeclVisitor::print(ostream& _stream)
 
 bool ASTForwardDeclVisitor::visit(ContractDefinition const& _node)
 {
-    string name = _node.name();
     m_translator.enter_scope(_node);
     (*m_ostream) << m_translator.translate(_node) << ";" << endl;
-    push_scope(std::move(name));
     if (_node.constructor() == nullptr)
     {
         // Generates the AST for a constructor which acts as
@@ -68,10 +66,8 @@ bool ASTForwardDeclVisitor::visit(ContractDefinition const& _node)
 
 bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
 {
-    string name = _node.name();
     m_translator.enter_scope(_node);
     (*m_ostream) << m_translator.translate(_node) << ";" << endl;
-    push_scope(std::move(name));
     // Generates the AST for for a struct's default constructor.
     ASTPointer<ASTString> epsilon = make_shared<string>("");
     ASTPointer<ParameterList> empty_param_list = make_shared<ParameterList>(
@@ -103,18 +99,10 @@ bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
 
 bool ASTForwardDeclVisitor::visit(FunctionDefinition const& _node)
 {
-    // Fully expands scope type.
-    stringstream owner_oss;
-    owner_oss << m_model_scope.front();
-    for (auto scope = ++m_model_scope.begin(); scope != m_model_scope.end(); ++scope)
-    {
-        owner_oss << "_" << (*scope);
-    }
-
     // Produces return type.
     if (_node.isConstructor())
     {
-        (*m_ostream) << "struct " << owner_oss.str();
+        (*m_ostream) << m_translator.scope_type();
     }
     else
     {
@@ -134,7 +122,7 @@ bool ASTForwardDeclVisitor::visit(FunctionDefinition const& _node)
     // Produces name of method.
     (*m_ostream) << ((_node.isConstructor()) ? "Ctor" : "Method")
                  << "_"
-                 << owner_oss.str();
+                 << m_translator.scope_name();
     if (!_node.isConstructor())
     {
         (*m_ostream) << "_" << _node.name();
@@ -154,7 +142,6 @@ bool ASTForwardDeclVisitor::visit(ModifierDefinition const& _node)
 bool ASTForwardDeclVisitor::visit(VariableDeclaration const& _node)
 {
     m_translator.enter_scope(_node);
-    push_scope(_node.name());
     return true;
 }
 
@@ -168,29 +155,16 @@ bool ASTForwardDeclVisitor::visit(Mapping const& _node)
 void ASTForwardDeclVisitor::endVisit(ContractDefinition const&)
 {
     m_translator.exit_scope();
-    pop_scope();
 }
 
 void ASTForwardDeclVisitor::endVisit(VariableDeclaration const&)
 {
     m_translator.exit_scope();
-    pop_scope();
 }
 
 void ASTForwardDeclVisitor::endVisit(StructDefinition const&)
 {
     m_translator.exit_scope();
-    pop_scope();
-}
-
-void ASTForwardDeclVisitor::push_scope(std::string scope)
-{
-    m_model_scope.push_back(std::move(scope));
-}
-
-void ASTForwardDeclVisitor::pop_scope()
-{
-    m_model_scope.pop_back();
 }
 
 }

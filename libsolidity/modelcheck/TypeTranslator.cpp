@@ -70,14 +70,14 @@ void TypeTranslator::exit_scope()
     
 }
 
-std::string TypeTranslator::translate(const ContractDefinition &datatype) const
+string TypeTranslator::translate(const ContractDefinition &datatype) const
 {
     ostringstream oss;
     oss << "struct " << datatype.name();
     return oss.str();
 }
 
-std::string TypeTranslator::translate(const StructDefinition &datatype) const
+string TypeTranslator::translate(const StructDefinition &datatype) const
 {
     if (!m_contract_ctx.is_initialized())
     {
@@ -89,7 +89,7 @@ std::string TypeTranslator::translate(const StructDefinition &datatype) const
     return oss.str();
 }
 
-std::string TypeTranslator::translate(const Mapping &datatype) const
+string TypeTranslator::translate(const Mapping &datatype) const
 {
     if (!m_map_ctx.is_initialized())
     {
@@ -99,12 +99,34 @@ std::string TypeTranslator::translate(const Mapping &datatype) const
     ostringstream oss;
     MapDepthCalculator depth_calc(datatype);
 
-    oss << "struct" << " " << m_contract_ctx.value() << "_";
+    oss << scope_type() << "_submap" << depth_calc.depth();
+    return oss.str();
+}
+
+string TypeTranslator::scope_name() const
+{
+    if (!m_contract_ctx.is_initialized())
+    {
+        throw runtime_error("No contract is currently in scope.");
+    }
+
+    ostringstream oss;
+    oss << m_contract_ctx.value();
     if (m_struct_ctx.is_initialized())
     {
-        oss << m_struct_ctx.value() << "_";
+        oss << "_" << m_struct_ctx.value();
     }
-    oss << m_map_ctx.value() << "_submap" << depth_calc.depth();
+    if (m_map_ctx.is_initialized())
+    {
+        oss << "_" << m_map_ctx.value();
+    }
+    return oss.str();
+}
+
+string TypeTranslator::scope_type() const
+{
+    ostringstream oss;
+    oss << "struct " << scope_name();
     return oss.str();
 }
 

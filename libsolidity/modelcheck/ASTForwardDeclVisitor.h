@@ -49,12 +49,6 @@ private:
 	std::ostream* m_ostream = nullptr;
 
 	TypeTranslator m_translator;
-
-	std::list<std::string> m_model_scope;
-
-	// Used to push or pop the current name scope.
-	void push_scope(std::string scope);
-	void pop_scope();
 };
 
 }
