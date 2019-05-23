@@ -16,6 +16,15 @@ namespace modelcheck
 {
 
 /*
+ *
+ */
+struct Translation
+{
+    std::string type;
+    std::string name;
+};
+
+/*
  * TODO
  */
 class TypeTranslator
@@ -30,13 +39,12 @@ public:
     void exit_scope();
 
     // TODO
-    std::string translate(const ContractDefinition &datatype) const;
-    std::string translate(const StructDefinition &datatype) const;
-    std::string translate(const Mapping &datatype) const;
+    Translation translate(const ContractDefinition &datatype) const;
+    Translation translate(const StructDefinition &datatype) const;
+    Translation translate(const Mapping &datatype) const;
 
     // TODO
-    std::string scope_name() const;
-    std::string scope_type() const;
+    Translation scope() const;
 
 private:
     boost::optional<std::string> m_contract_ctx;

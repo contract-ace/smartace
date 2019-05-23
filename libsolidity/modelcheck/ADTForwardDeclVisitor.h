@@ -34,11 +34,13 @@ public:
     void print(std::ostream& _stream);
 
 	bool visit(ContractDefinition const& _node) override;
+	bool visit(Mapping const& _node) override;
+	bool visit(VariableDeclaration const& _node) override;
 	bool visit(StructDefinition const& _node) override;
+
+	bool visit(EventDefinition const& _node) override;
 	bool visit(FunctionDefinition const& _node) override;
 	bool visit(ModifierDefinition const& _node) override;
-	bool visit(VariableDeclaration const& _node) override;
-	bool visit(Mapping const& _node) override;
 
 	void endVisit(ContractDefinition const&) override;
 	void endVisit(VariableDeclaration const&) override;

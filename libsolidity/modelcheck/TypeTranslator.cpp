@@ -70,64 +70,61 @@ void TypeTranslator::exit_scope()
     
 }
 
-string TypeTranslator::translate(const ContractDefinition &datatype) const
+Translation TypeTranslator::translate(const ContractDefinition &datatype) const
 {
-    ostringstream oss;
-    oss << "struct " << datatype.name();
-    return oss.str();
+    Translation t;
+    t.name = datatype.name();
+    t.type = "struct " + t.name;
+    return t;
 }
 
-string TypeTranslator::translate(const StructDefinition &datatype) const
+Translation TypeTranslator::translate(const StructDefinition &datatype) const
 {
     if (!m_contract_ctx.is_initialized())
     {
         throw runtime_error("A struct must be translated within a contract.");
     }
 
-    ostringstream oss;
-    oss << "struct " << m_contract_ctx.value() << "_" << datatype.name();
-    return oss.str();
+    Translation t;
+    t.name = m_contract_ctx.value() + "_" + datatype.name();
+    t.type = "struct " + t.name;
+    return t;
 }
 
-string TypeTranslator::translate(const Mapping &datatype) const
+Translation TypeTranslator::translate(const Mapping &datatype) const
 {
     if (!m_map_ctx.is_initialized())
     {
         throw runtime_error("A map must be translated within some scope.");
     }
 
-    ostringstream oss;
     MapDepthCalculator depth_calc(datatype);
 
-    oss << scope_type() << "_submap" << depth_calc.depth();
-    return oss.str();
+    Translation t;
+    t.name = scope().name + "_submap" + std::to_string(depth_calc.depth());
+    t.type = "struct " + t.name;
+    return t;
 }
 
-string TypeTranslator::scope_name() const
+Translation TypeTranslator::scope() const
 {
     if (!m_contract_ctx.is_initialized())
     {
         throw runtime_error("No contract is currently in scope.");
     }
 
-    ostringstream oss;
-    oss << m_contract_ctx.value();
+    Translation t;
+    t.name = m_contract_ctx.value();
     if (m_struct_ctx.is_initialized())
     {
-        oss << "_" << m_struct_ctx.value();
+        t.name += ("_" + m_struct_ctx.value());
     }
     if (m_map_ctx.is_initialized())
     {
-        oss << "_" << m_map_ctx.value();
+        t.name += ("_" + m_map_ctx.value());
     }
-    return oss.str();
-}
-
-string TypeTranslator::scope_type() const
-{
-    ostringstream oss;
-    oss << "struct " << scope_name();
-    return oss.str();
+    t.type = "struct " + t.name;
+    return t;
 }
 
 }

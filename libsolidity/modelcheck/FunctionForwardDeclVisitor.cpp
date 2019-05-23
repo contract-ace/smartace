@@ -15,6 +15,8 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 FunctionForwardDeclVisitor::FunctionForwardDeclVisitor(
     ASTNode const& _ast
 ): m_ast(&_ast)
@@ -27,6 +29,8 @@ void FunctionForwardDeclVisitor::print(ostream& _stream)
     m_ast->accept(*this);
     m_ostream = nullptr;
 }
+
+// -------------------------------------------------------------------------- //
 
 bool FunctionForwardDeclVisitor::visit(ContractDefinition const& _node)
 {
@@ -100,7 +104,7 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
     // Produces return type.
     if (_node.isConstructor())
     {
-        (*m_ostream) << m_translator.scope_type();
+        (*m_ostream) << m_translator.scope().type;
     }
     else
     {
@@ -120,7 +124,7 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
     // Produces name of method.
     (*m_ostream) << ((_node.isConstructor()) ? "Ctor" : "Method")
                  << "_"
-                 << m_translator.scope_name();
+                 << m_translator.scope().name;
     if (!_node.isConstructor())
     {
         (*m_ostream) << "_" << _node.name();
@@ -143,11 +147,39 @@ bool FunctionForwardDeclVisitor::visit(VariableDeclaration const& _node)
     return true;
 }
 
-bool FunctionForwardDeclVisitor::visit(Mapping const&)
+bool FunctionForwardDeclVisitor::visit(Mapping const& _node)
 {
-    // TODO: print helper methods.
+    Translation map_translation = m_translator.translate(_node);
+
+    string key_type = "k";
+    string val_type = "v";
+
+    (*m_ostream) << val_type << " "
+                 << "Read" << "_" << map_translation.name
+                 << "(" << map_translation.type << " *a, "
+                        << key_type << " idx"
+                 << ");"
+                 << endl;
+
+    (*m_ostream) << "void "
+                 << "Write" << "_" << map_translation.name
+                 << "(" << map_translation.type << " *a, "
+                        << key_type << " idx, "
+                        << val_type << " d"
+                 << ");"
+                 << endl;
+
+    (*m_ostream) << val_type << " *"
+                 << "Ref" << "_" << map_translation.name
+                 << "(" << map_translation.type << " *a, "
+                        << key_type << " idx"
+                 << ");"
+                 << endl;
+
     return true;
 }
+
+// -------------------------------------------------------------------------- //
 
 void FunctionForwardDeclVisitor::endVisit(ContractDefinition const&)
 {
@@ -163,6 +195,8 @@ void FunctionForwardDeclVisitor::endVisit(StructDefinition const&)
 {
     m_translator.exit_scope();
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }
