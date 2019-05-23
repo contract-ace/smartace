@@ -1,6 +1,6 @@
 /**
  * @date 2019
- * First-pass visitor for converting Solidity AST's to models in C.
+ * First-pass visitor for converting Solidity methods into functions in C.
  */
 
 #pragma once
@@ -19,14 +19,15 @@ namespace modelcheck
 {
 
 /**
- * Interprets the AST in terms of its C model, and prints forward declarations
- * for each of structures.
+ * Prints a forward declaration for each explicit (member function) and implicit
+ * (default constructor, map accessor, etc.) Solidity function, according to the
+ * C model.
  */
-class ASTForwardDeclVisitor : public ASTConstVisitor
+class FunctionForwardDeclVisitor : public ASTConstVisitor
 {
 public:
-    // Constructs a printer for all forward decl's required by ast's c model.
-    ASTForwardDeclVisitor(
+    // Constructs a printer for all function forward decl's required by the ast.
+    FunctionForwardDeclVisitor(
         ASTNode const& _ast
     );
 

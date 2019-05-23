@@ -106,8 +106,10 @@ set(sources
 	interface/StandardCompiler.h
 	interface/Version.cpp
 	interface/Version.h
-	modelcheck/ASTForwardDeclVisitor.cpp
-	modelcheck/ASTForwardDeclVisitor.h
+	modelcheck/ADTForwardDeclVisitor.cpp
+	modelcheck/ADTForwardDeclVisitor.h
+	modelcheck/FunctionForwardDeclVisitor.cpp
+	modelcheck/FunctionForwardDeclVisitor.h
 	modelcheck/MapDepthCalculator.cpp
 	modelcheck/MapDepthCalculator.h
 	modelcheck/TypeTranslator.cpp

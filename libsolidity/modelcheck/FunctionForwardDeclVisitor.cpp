@@ -1,9 +1,9 @@
 /**
  * @date 2019
- * First-pass visitor for converting Solidity AST's to models in C.
+ * First-pass visitor for converting Solidity methods into functions in C.
  */
 
-#include <libsolidity/modelcheck/ASTForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/FunctionForwardDeclVisitor.h>
 #include <sstream>
 
 using namespace std;
@@ -15,23 +15,22 @@ namespace solidity
 namespace modelcheck
 {
 
-ASTForwardDeclVisitor::ASTForwardDeclVisitor(
+FunctionForwardDeclVisitor::FunctionForwardDeclVisitor(
     ASTNode const& _ast
 ): m_ast(&_ast)
 {
 }
 
-void ASTForwardDeclVisitor::print(ostream& _stream)
+void FunctionForwardDeclVisitor::print(ostream& _stream)
 {
     m_ostream = &_stream;
     m_ast->accept(*this);
     m_ostream = nullptr;
 }
 
-bool ASTForwardDeclVisitor::visit(ContractDefinition const& _node)
+bool FunctionForwardDeclVisitor::visit(ContractDefinition const& _node)
 {
     m_translator.enter_scope(_node);
-    (*m_ostream) << m_translator.translate(_node) << ";" << endl;
     if (_node.constructor() == nullptr)
     {
         // Generates the AST for a constructor which acts as
@@ -64,10 +63,9 @@ bool ASTForwardDeclVisitor::visit(ContractDefinition const& _node)
     return true;
 }
 
-bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
+bool FunctionForwardDeclVisitor::visit(StructDefinition const& _node)
 {
     m_translator.enter_scope(_node);
-    (*m_ostream) << m_translator.translate(_node) << ";" << endl;
     // Generates the AST for for a struct's default constructor.
     ASTPointer<ASTString> epsilon = make_shared<string>("");
     ASTPointer<ParameterList> empty_param_list = make_shared<ParameterList>(
@@ -97,7 +95,7 @@ bool ASTForwardDeclVisitor::visit(StructDefinition const& _node)
     return true;
 }
 
-bool ASTForwardDeclVisitor::visit(FunctionDefinition const& _node)
+bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
 {
     // Produces return type.
     if (_node.isConstructor())
@@ -133,36 +131,35 @@ bool ASTForwardDeclVisitor::visit(FunctionDefinition const& _node)
     return false;
 }
 
-bool ASTForwardDeclVisitor::visit(ModifierDefinition const& _node)
+bool FunctionForwardDeclVisitor::visit(ModifierDefinition const& _node)
 {
     (*m_ostream) << "M " << _node.name() << endl;
     return false;
 }
 
-bool ASTForwardDeclVisitor::visit(VariableDeclaration const& _node)
+bool FunctionForwardDeclVisitor::visit(VariableDeclaration const& _node)
 {
     m_translator.enter_scope(_node);
     return true;
 }
 
-bool ASTForwardDeclVisitor::visit(Mapping const& _node)
+bool FunctionForwardDeclVisitor::visit(Mapping const&)
 {
-    (*m_ostream) << m_translator.translate(_node) << ";" << endl;
     // TODO: print helper methods.
     return true;
 }
 
-void ASTForwardDeclVisitor::endVisit(ContractDefinition const&)
+void FunctionForwardDeclVisitor::endVisit(ContractDefinition const&)
 {
     m_translator.exit_scope();
 }
 
-void ASTForwardDeclVisitor::endVisit(VariableDeclaration const&)
+void FunctionForwardDeclVisitor::endVisit(VariableDeclaration const&)
 {
     m_translator.exit_scope();
 }
 
-void ASTForwardDeclVisitor::endVisit(StructDefinition const&)
+void FunctionForwardDeclVisitor::endVisit(StructDefinition const&)
 {
     m_translator.exit_scope();
 }

@@ -3,7 +3,8 @@
  * Comprehensive tests for libsolidity/modelcheck/ASTForwardDeclVisitor.{h,cpp}.
  */
 
-#include <libsolidity/modelcheck/ASTForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/ADTForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/FunctionForwardDeclVisitor.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
@@ -31,15 +32,20 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 		}
 	)";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(simple_map)
@@ -50,16 +56,21 @@ BOOST_AUTO_TEST_CASE(simple_map)
         }
     )";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "struct A_a_submap1;" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    adt_expect << "struct A_a_submap1;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(simple_struct)
@@ -75,17 +86,22 @@ BOOST_AUTO_TEST_CASE(simple_struct)
         }
     )";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "struct A_B;" << endl;
-    oss_expect << "struct A_B Ctor_A_B" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    adt_expect << "struct A_B;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A_B Ctor_A_B" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(simple_modifier)
@@ -104,16 +120,21 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
         }
     )";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "M simpleModifier" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "M simpleModifier" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(simple_func)
@@ -128,16 +149,21 @@ BOOST_AUTO_TEST_CASE(simple_func)
         }
     )";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << " Method_A_simpleFunc" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+    func_expect << " Method_A_simpleFunc" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(simple_void_func)
@@ -152,16 +178,21 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
         }
     )";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "void Method_A_simpleFunc" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "void Method_A_simpleFunc" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(struct_nesting)
@@ -176,19 +207,24 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 		}
 	)";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "struct A_B;" << endl;
-    oss_expect << "struct A_B Ctor_A_B" << endl;
-    oss_expect << "struct A_B_a_submap2;" << endl;
-    oss_expect << "struct A_B_a_submap1;" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    adt_expect << "struct A_B;" << endl;
+    adt_expect << "struct A_B_a_submap2;" << endl;
+    adt_expect << "struct A_B_a_submap1;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A_B Ctor_A_B" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(multiple_contracts)
@@ -206,23 +242,27 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
             mapping (uint => uint) b;
         }
 	)";
-	SourceUnit const* ast = parseAndAnalyse(text);
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*ast);
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "struct A_B;" << endl;
-    oss_expect << "struct A_B Ctor_A_B" << endl;
-    oss_expect << "struct A_B_a_submap1;" << endl;
-    oss_expect << "struct C;" << endl;
-    oss_expect << "struct C Ctor_C" << endl;
-    oss_expect << "struct C_b_submap1;" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    adt_expect << "struct A_B;" << endl;
+    adt_expect << "struct A_B_a_submap1;" << endl;
+    adt_expect << "struct C;" << endl;
+    adt_expect << "struct C_b_submap1;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A_B Ctor_A_B" << endl;
+    func_expect << "struct C Ctor_C" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(nested_maps)
@@ -233,18 +273,23 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 		}
 	)";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "struct A_a_submap3;" << endl;
-    oss_expect << "struct A_a_submap2;" << endl;
-    oss_expect << "struct A_a_submap1;" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    adt_expect << "struct A_a_submap3;" << endl;
+    adt_expect << "struct A_a_submap2;" << endl;
+    adt_expect << "struct A_a_submap1;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(custom_ctor)
@@ -257,17 +302,21 @@ BOOST_AUTO_TEST_CASE(custom_ctor)
             }
 		}
 	)";
-	SourceUnit const* ast = parseAndAnalyse(text);
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*ast);
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
 
-    BOOST_CHECK_EQUAL(oss_actual.str(), oss_expect.str());
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(nontrivial_retval)
@@ -286,16 +335,23 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
         }
     )";
 
-    ostringstream oss_actual;
-    ASTForwardDeclVisitor decl_visitor(*parseAndAnalyse(text));
-    decl_visitor.print(oss_actual);
+    const auto &ast = *parseAndAnalyse(text);
 
-    ostringstream oss_expect;
-    oss_expect << "struct A;" << endl;
-    oss_expect << "struct A Ctor_A" << endl;
-    oss_expect << "struct A_B;" << endl;
-    oss_expect << "struct A_B Ctor_A_B" << endl;
-    oss_expect << " Method_A_simpleFunc" << endl;
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
+
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    adt_expect << "struct A_B;" << endl;
+    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A_B Ctor_A_B" << endl;
+    func_expect << " Method_A_advFunc" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
