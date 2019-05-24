@@ -151,7 +151,7 @@ bool FunctionForwardDeclVisitor::visit(Mapping const& _node)
 {
     Translation map_translation = m_translator.translate(_node);
 
-    string key_type = "k";
+    string key_type = m_translator.translate(_node.keyType()).type;
     string val_type = "v";
 
     (*m_ostream) << val_type << " "

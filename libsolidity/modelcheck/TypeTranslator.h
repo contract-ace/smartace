@@ -31,17 +31,18 @@ class TypeTranslator
 {
 public:
     // TODO
-    void enter_scope(const ContractDefinition &scope);
-    void enter_scope(const StructDefinition &scope);
-    void enter_scope(const VariableDeclaration &scope);
+    void enter_scope(ContractDefinition const& scope);
+    void enter_scope(StructDefinition const& scope);
+    void enter_scope(VariableDeclaration const& scope);
 
     // TODO
     void exit_scope();
 
     // TODO
-    Translation translate(const ContractDefinition &datatype) const;
-    Translation translate(const StructDefinition &datatype) const;
-    Translation translate(const Mapping &datatype) const;
+    Translation translate(ContractDefinition const& datatype) const;
+    Translation translate(StructDefinition const& datatype) const;
+    Translation translate(Mapping const& datatype) const;
+    Translation translate(TypeName const& datatype) const;
 
     // TODO
     Translation scope() const;

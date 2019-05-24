@@ -18,7 +18,9 @@ namespace solidity
 namespace modelcheck
 {
 
-void TypeTranslator::enter_scope(const ContractDefinition &scope)
+#define SOL_TCAST(Typename, ptr) dynamic_cast<Typename const*>(ptr)
+
+void TypeTranslator::enter_scope(ContractDefinition const& scope)
 {
     if (m_contract_ctx.is_initialized())
     {
@@ -27,7 +29,7 @@ void TypeTranslator::enter_scope(const ContractDefinition &scope)
     m_contract_ctx = scope.name();
 }
 
-void TypeTranslator::enter_scope(const StructDefinition &scope)
+void TypeTranslator::enter_scope(StructDefinition const& scope)
 {
     if (!m_contract_ctx.is_initialized())
     {
@@ -40,7 +42,7 @@ void TypeTranslator::enter_scope(const StructDefinition &scope)
     m_struct_ctx = scope.name();
 }
 
-void TypeTranslator::enter_scope(const VariableDeclaration &scope)
+void TypeTranslator::enter_scope(VariableDeclaration const& scope)
 {
     if (!m_contract_ctx.is_initialized())
     {
@@ -70,7 +72,7 @@ void TypeTranslator::exit_scope()
     
 }
 
-Translation TypeTranslator::translate(const ContractDefinition &datatype) const
+Translation TypeTranslator::translate(ContractDefinition const& datatype) const
 {
     Translation t;
     t.name = datatype.name();
@@ -78,7 +80,7 @@ Translation TypeTranslator::translate(const ContractDefinition &datatype) const
     return t;
 }
 
-Translation TypeTranslator::translate(const StructDefinition &datatype) const
+Translation TypeTranslator::translate(StructDefinition const& datatype) const
 {
     if (!m_contract_ctx.is_initialized())
     {
@@ -91,7 +93,7 @@ Translation TypeTranslator::translate(const StructDefinition &datatype) const
     return t;
 }
 
-Translation TypeTranslator::translate(const Mapping &datatype) const
+Translation TypeTranslator::translate(Mapping const& datatype) const
 {
     if (!m_map_ctx.is_initialized())
     {
@@ -104,6 +106,59 @@ Translation TypeTranslator::translate(const Mapping &datatype) const
     t.name = scope().name + "_submap" + std::to_string(depth_calc.depth());
     t.type = "struct " + t.name;
     return t;
+}
+
+Translation TypeTranslator::translate(TypeName const& datatype) const
+{
+    Type const* t = datatype.annotation().type;
+
+    Translation res;
+    if ((SOL_TCAST(AddressType, t) != nullptr) ||
+        (SOL_TCAST(StringLiteralType, t) != nullptr) ||
+        (SOL_TCAST(BoolType, t) != nullptr))
+    {
+        res.type = res.name = "int";
+    }
+    else if (SOL_TCAST(IntegerType, t) != nullptr)
+    {
+        if (SOL_TCAST(IntegerType, t)->isSigned())
+        {
+            res.type = res.name = "int";
+        }
+        else
+        {
+            res.type = res.name = "unsigned int";
+        }
+    }
+    else if ((SOL_TCAST(FixedPointType, t) != nullptr) ||
+             (SOL_TCAST(RationalNumberType, t) != nullptr))
+    {
+        res.type = res.name = "double";
+    }
+    else if (SOL_TCAST(MappingType, t) != nullptr)
+    {
+        res = translate(datatype);
+    }
+    else if (SOL_TCAST(ContractType, t) != nullptr)
+    {
+        res = translate(SOL_TCAST(ContractType, t)->contractDefinition());
+    }
+    else if (SOL_TCAST(StructType, t) != nullptr)
+    {
+        res = translate(SOL_TCAST(StructType, t)->structDefinition());
+    }
+    else
+    {
+        // TODO: Add support for...
+        //       - ReferenceType
+        //       - ArrayType
+        //       - EnumType
+        //       - TupleType
+        //       - FixedBytesType
+        throw runtime_error(
+            "Attempt to translate unsupported type:" + t->richIdentifier());
+    }
+    return res;
 }
 
 Translation TypeTranslator::scope() const
