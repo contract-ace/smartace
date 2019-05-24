@@ -95,17 +95,21 @@ Translation TypeTranslator::translate(StructDefinition const& datatype) const
 
 Translation TypeTranslator::translate(Mapping const& datatype) const
 {
-    if (!m_map_ctx.is_initialized())
-    {
-        throw runtime_error("A map must be translated within some scope.");
-    }
-
     MapDepthCalculator depth_calc(datatype);
+    return map_translation_impl(depth_calc.depth());
+}
 
-    Translation t;
-    t.name = scope().name + "_submap" + std::to_string(depth_calc.depth());
-    t.type = "struct " + t.name;
-    return t;
+Translation TypeTranslator::translate(MappingType const& datatype) const
+{
+    unsigned int depth = 0;
+
+    MappingType const* curr_type = &datatype;
+    do {
+        ++depth;
+        curr_type = dynamic_cast<MappingType const*>(curr_type->valueType());
+    } while (curr_type != nullptr);
+
+    return map_translation_impl(depth);
 }
 
 Translation TypeTranslator::translate(TypeName const& datatype) const
@@ -137,7 +141,7 @@ Translation TypeTranslator::translate(TypeName const& datatype) const
     }
     else if (SOL_TCAST(MappingType, t) != nullptr)
     {
-        res = translate(datatype);
+        res = translate(*SOL_TCAST(MappingType, t));
     }
     else if (SOL_TCAST(ContractType, t) != nullptr)
     {
@@ -178,6 +182,19 @@ Translation TypeTranslator::scope() const
     {
         t.name += ("_" + m_map_ctx.value());
     }
+    t.type = "struct " + t.name;
+    return t;
+}
+
+Translation TypeTranslator::map_translation_impl(unsigned int depth) const
+{
+    if (!m_map_ctx.is_initialized())
+    {
+        throw runtime_error("A map must be translated within some scope.");
+    }
+
+    Translation t;
+    t.name = scope().name + "_submap" + std::to_string(depth);
     t.type = "struct " + t.name;
     return t;
 }

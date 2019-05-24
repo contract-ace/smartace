@@ -68,9 +68,18 @@ BOOST_AUTO_TEST_CASE(simple_map)
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_a_submap1;" << endl;
     func_expect << "struct A Ctor_A" << endl;
-    func_expect << "v Read_A_a_submap1(struct A_a_submap1 *a, unsigned int idx);" << endl;
-    func_expect << "void Write_A_a_submap1(struct A_a_submap1 *a, unsigned int idx, v d);" << endl;
-    func_expect << "v *Ref_A_a_submap1(struct A_a_submap1 *a, unsigned int idx);" << endl;
+    func_expect << "unsigned int "
+                << "Read_A_a_submap1"
+                << "(struct A_a_submap1 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_a_submap1"
+                << "(struct A_a_submap1 *a, unsigned int idx, unsigned int d);"
+                << endl;
+    func_expect << "unsigned int *"
+                << "Ref_A_a_submap1"
+                << "(struct A_a_submap1 *a, unsigned int idx);"
+                << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -225,12 +234,30 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     adt_expect << "struct A_B_a_submap1;" << endl;
     func_expect << "struct A Ctor_A" << endl;
     func_expect << "struct A_B Ctor_A_B" << endl;
-    func_expect << "v Read_A_B_a_submap2(struct A_B_a_submap2 *a, unsigned int idx);" << endl;
-    func_expect << "void Write_A_B_a_submap2(struct A_B_a_submap2 *a, unsigned int idx, v d);" << endl;
-    func_expect << "v *Ref_A_B_a_submap2(struct A_B_a_submap2 *a, unsigned int idx);" << endl;
-    func_expect << "v Read_A_B_a_submap1(struct A_B_a_submap1 *a, unsigned int idx);" << endl;
-    func_expect << "void Write_A_B_a_submap1(struct A_B_a_submap1 *a, unsigned int idx, v d);" << endl;
-    func_expect << "v *Ref_A_B_a_submap1(struct A_B_a_submap1 *a, unsigned int idx);" << endl;
+    func_expect << "struct A_B_a_submap1 "
+                << "Read_A_B_a_submap2"
+                << "(struct A_B_a_submap2 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_B_a_submap2"
+                << "(struct A_B_a_submap2 *a, unsigned int idx, struct A_B_a_submap1 d);"
+                << endl;
+    func_expect << "struct A_B_a_submap1 *"
+                << "Ref_A_B_a_submap2"
+                << "(struct A_B_a_submap2 *a, unsigned int idx);"
+                << endl;
+    func_expect << "unsigned int "
+                << "Read_A_B_a_submap1"
+                << "(struct A_B_a_submap1 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_B_a_submap1"
+                << "(struct A_B_a_submap1 *a, unsigned int idx, unsigned int d);"
+                << endl;
+    func_expect << "unsigned int *"
+                << "Ref_A_B_a_submap1"
+                << "(struct A_B_a_submap1 *a, unsigned int idx);"
+                << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -268,13 +295,31 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct C_b_submap1;" << endl;
     func_expect << "struct A Ctor_A" << endl;
     func_expect << "struct A_B Ctor_A_B" << endl;
-    func_expect << "v Read_A_B_a_submap1(struct A_B_a_submap1 *a, unsigned int idx);" << endl;
-    func_expect << "void Write_A_B_a_submap1(struct A_B_a_submap1 *a, unsigned int idx, v d);" << endl;
-    func_expect << "v *Ref_A_B_a_submap1(struct A_B_a_submap1 *a, unsigned int idx);" << endl;
+    func_expect << "unsigned int "
+                << "Read_A_B_a_submap1"
+                << "(struct A_B_a_submap1 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_B_a_submap1"
+                << "(struct A_B_a_submap1 *a, unsigned int idx, unsigned int d);"
+                << endl;
+    func_expect << "unsigned int *"
+                << "Ref_A_B_a_submap1"
+                << "(struct A_B_a_submap1 *a, unsigned int idx);"
+                << endl;
     func_expect << "struct C Ctor_C" << endl;
-    func_expect << "v Read_C_b_submap1(struct C_b_submap1 *a, unsigned int idx);" << endl;
-    func_expect << "void Write_C_b_submap1(struct C_b_submap1 *a, unsigned int idx, v d);" << endl;
-    func_expect << "v *Ref_C_b_submap1(struct C_b_submap1 *a, unsigned int idx);" << endl;
+    func_expect << "unsigned int "
+                << "Read_C_b_submap1"
+                << "(struct C_b_submap1 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_C_b_submap1"
+                << "(struct C_b_submap1 *a, unsigned int idx, unsigned int d);"
+                << endl;
+    func_expect << "unsigned int *"
+                << "Ref_C_b_submap1"
+                << "(struct C_b_submap1 *a, unsigned int idx);"
+                << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -302,15 +347,42 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     adt_expect << "struct A_a_submap2;" << endl;
     adt_expect << "struct A_a_submap1;" << endl;
     func_expect << "struct A Ctor_A" << endl;
-    func_expect << "v Read_A_a_submap3(struct A_a_submap3 *a, unsigned int idx);" << endl;
-    func_expect << "void Write_A_a_submap3(struct A_a_submap3 *a, unsigned int idx, v d);" << endl;
-    func_expect << "v *Ref_A_a_submap3(struct A_a_submap3 *a, unsigned int idx);" << endl;
-    func_expect << "v Read_A_a_submap2(struct A_a_submap2 *a, unsigned int idx);" << endl;
-    func_expect << "void Write_A_a_submap2(struct A_a_submap2 *a, unsigned int idx, v d);" << endl;
-    func_expect << "v *Ref_A_a_submap2(struct A_a_submap2 *a, unsigned int idx);" << endl;
-    func_expect << "v Read_A_a_submap1(struct A_a_submap1 *a, unsigned int idx);" << endl;
-    func_expect << "void Write_A_a_submap1(struct A_a_submap1 *a, unsigned int idx, v d);" << endl;
-    func_expect << "v *Ref_A_a_submap1(struct A_a_submap1 *a, unsigned int idx);" << endl;
+    func_expect << "struct A_a_submap2 "
+                << "Read_A_a_submap3"
+                << "(struct A_a_submap3 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_a_submap3"
+                << "(struct A_a_submap3 *a, unsigned int idx, struct A_a_submap2 d);"
+                << endl;
+    func_expect << "struct A_a_submap2 *"
+                << "Ref_A_a_submap3"
+                << "(struct A_a_submap3 *a, unsigned int idx);"
+                << endl;
+    func_expect << "struct A_a_submap1 "
+                << "Read_A_a_submap2"
+                << "(struct A_a_submap2 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_a_submap2"
+                << "(struct A_a_submap2 *a, unsigned int idx, struct A_a_submap1 d);"
+                << endl;
+    func_expect << "struct A_a_submap1 *"
+                << "Ref_A_a_submap2"
+                << "(struct A_a_submap2 *a, unsigned int idx);"
+                << endl;
+    func_expect << "unsigned int "
+                << "Read_A_a_submap1"
+                << "(struct A_a_submap1 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_a_submap1"
+                << "(struct A_a_submap1 *a, unsigned int idx, unsigned int d);"
+                << endl;
+    func_expect << "unsigned int *"
+                << "Ref_A_a_submap1"
+                << "(struct A_a_submap1 *a, unsigned int idx);"
+                << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());

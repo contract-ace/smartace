@@ -152,7 +152,7 @@ bool FunctionForwardDeclVisitor::visit(Mapping const& _node)
     Translation map_translation = m_translator.translate(_node);
 
     string key_type = m_translator.translate(_node.keyType()).type;
-    string val_type = "v";
+    string val_type = m_translator.translate(_node.valueType()).type;
 
     (*m_ostream) << val_type << " "
                  << "Read" << "_" << map_translation.name

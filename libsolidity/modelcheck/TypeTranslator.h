@@ -42,12 +42,16 @@ public:
     Translation translate(ContractDefinition const& datatype) const;
     Translation translate(StructDefinition const& datatype) const;
     Translation translate(Mapping const& datatype) const;
+    Translation translate(MappingType const& datatype) const;
     Translation translate(TypeName const& datatype) const;
 
     // TODO
     Translation scope() const;
 
 private:
+    // TODO
+    Translation map_translation_impl(unsigned int depth) const;
+
     boost::optional<std::string> m_contract_ctx;
     boost::optional<std::string> m_struct_ctx;
     boost::optional<std::string> m_map_ctx;
