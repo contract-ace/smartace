@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(simple_func)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     func_expect << "struct A Ctor_A" << endl;
-    func_expect << " Method_A_simpleFunc" << endl;
+    func_expect << "unsigned int Method_A_simpleFunc" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     adt_expect << "struct A_B;" << endl;
     func_expect << "struct A Ctor_A" << endl;
     func_expect << "struct A_B Ctor_A_B" << endl;
-    func_expect << " Method_A_advFunc" << endl;
+    func_expect << "struct A_B Method_A_advFunc" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());

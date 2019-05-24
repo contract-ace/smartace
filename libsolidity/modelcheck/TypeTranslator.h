@@ -44,6 +44,7 @@ public:
     Translation translate(Mapping const& datatype) const;
     Translation translate(MappingType const& datatype) const;
     Translation translate(TypeName const& datatype) const;
+    Translation translate(TypePointer const& t) const;
 
     // TODO
     Translation scope() const;

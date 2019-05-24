@@ -108,14 +108,18 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
     }
     else
     {
-        auto ftype = _node.functionType(false);
-        if (ftype->returnParameterTypes().size() == 0)
+        auto rettype = _node.functionType(false)->returnParameterTypes();
+        if (rettype.empty())
         {
             (*m_ostream) << "void";
         }
+        else if (rettype.size() == 1)
+        {
+            (*m_ostream) << m_translator.translate(rettype[0]).type;
+        }
         else
         {
-            // TODO
+            throw length_error("Multi-element return types unsupport.");
         }
     }
 

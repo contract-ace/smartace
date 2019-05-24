@@ -114,8 +114,11 @@ Translation TypeTranslator::translate(MappingType const& datatype) const
 
 Translation TypeTranslator::translate(TypeName const& datatype) const
 {
-    Type const* t = datatype.annotation().type;
+    return translate(datatype.annotation().type);
+}
 
+Translation TypeTranslator::translate(TypePointer const& t) const
+{
     Translation res;
     if ((SOL_TCAST(AddressType, t) != nullptr) ||
         (SOL_TCAST(StringLiteralType, t) != nullptr) ||
