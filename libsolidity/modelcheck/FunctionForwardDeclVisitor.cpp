@@ -77,8 +77,18 @@ bool FunctionForwardDeclVisitor::visit(StructDefinition const& _node)
         vector<ASTPointer<VariableDeclaration>>{}
     );
     vector<ASTPointer<Statement>> initializations;
+    // Generates the argument list.
+    vector<ASTPointer<VariableDeclaration>> params;
+    for (const auto &param : _node.members())
+    {
+        const auto &type = param->type();
+        if (!dynamic_cast<const ArrayType *>(type) &&
+            !dynamic_cast<const MappingType *>(type))
+        {
+            params.push_back(param);
+        }
+    }
     // TODO: populate body
-    // TODO: populate arg list
     FunctionDefinition default_ctor_def(
         _node.location(),
         epsilon,
@@ -86,7 +96,7 @@ bool FunctionForwardDeclVisitor::visit(StructDefinition const& _node)
         StateMutability::Pure,
         true,
         epsilon,
-        empty_param_list,
+        make_shared<ParameterList>(_node.location(), params),
         vector<ASTPointer<ModifierInvocation>>{},
         empty_param_list,
         make_shared<Block>(
@@ -133,6 +143,24 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
     {
         (*m_ostream) << "_" << _node.name();
     }
+
+    // Produces the argument list.
+    auto argtypes = _node.functionType(false)->parameterTypes();
+    auto argnames = _node.functionType(false)->parameterNames();
+    (*m_ostream) << "(";
+    for (unsigned int idx = 0; idx < argtypes.size(); ++idx)
+    {
+        const auto &type = argtypes[idx];
+        const auto &name = argnames[idx];
+
+        Translation type_translation = m_translator.translate(type);
+        (*m_ostream) << type_translation.type << " " << name;
+        if (idx + 1 < argtypes.size())
+        {
+            (*m_ostream) << ", ";
+        }
+    }
+    (*m_ostream) << ");";
 
     (*m_ostream) << endl;
 

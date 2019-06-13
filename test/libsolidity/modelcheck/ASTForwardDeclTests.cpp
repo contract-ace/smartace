@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_a_submap1;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
     func_expect << "unsigned int "
                 << "Read_A_a_submap1"
                 << "(struct A_a_submap1 *a, unsigned int idx);"
@@ -109,8 +109,8 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
-    func_expect << "struct A_B Ctor_A_B" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A_B Ctor_A_B(unsigned int a, unsigned int b);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
     func_expect << "M simpleModifier" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -171,8 +171,8 @@ BOOST_AUTO_TEST_CASE(simple_func)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
-    func_expect << "unsigned int Method_A_simpleFunc" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "unsigned int Method_A_simpleFunc(unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -200,8 +200,8 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
-    func_expect << "void Method_A_simpleFunc" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "void Method_A_simpleFunc(unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -232,8 +232,8 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     adt_expect << "struct A_B;" << endl;
     adt_expect << "struct A_B_a_submap2;" << endl;
     adt_expect << "struct A_B_a_submap1;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
-    func_expect << "struct A_B Ctor_A_B" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A_B Ctor_A_B();" << endl;
     func_expect << "struct A_B_a_submap1 "
                 << "Read_A_B_a_submap2"
                 << "(struct A_B_a_submap2 *a, unsigned int idx);"
@@ -293,8 +293,8 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct A_B_a_submap1;" << endl;
     adt_expect << "struct C;" << endl;
     adt_expect << "struct C_b_submap1;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
-    func_expect << "struct A_B Ctor_A_B" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A_B Ctor_A_B();" << endl;
     func_expect << "unsigned int "
                 << "Read_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
                 << "Ref_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
                 << endl;
-    func_expect << "struct C Ctor_C" << endl;
+    func_expect << "struct C Ctor_C();" << endl;
     func_expect << "unsigned int "
                 << "Read_C_b_submap1"
                 << "(struct C_b_submap1 *a, unsigned int idx);"
@@ -346,7 +346,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     adt_expect << "struct A_a_submap3;" << endl;
     adt_expect << "struct A_a_submap2;" << endl;
     adt_expect << "struct A_a_submap1;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
     func_expect << "struct A_a_submap2 "
                 << "Read_A_a_submap3"
                 << "(struct A_a_submap3 *a, unsigned int idx);"
@@ -409,7 +409,7 @@ BOOST_AUTO_TEST_CASE(custom_ctor)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
+    func_expect << "struct A Ctor_A(unsigned int _a);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -442,9 +442,9 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
-    func_expect << "struct A Ctor_A" << endl;
-    func_expect << "struct A_B Ctor_A_B" << endl;
-    func_expect << "struct A_B Method_A_advFunc" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A_B Ctor_A_B(unsigned int a);" << endl;
+    func_expect << "struct A_B Method_A_advFunc(unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
