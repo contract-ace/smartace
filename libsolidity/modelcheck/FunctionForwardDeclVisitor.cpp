@@ -89,14 +89,25 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
 
     printArgs(_node);
 
-    (*m_ostream) << endl;
+    (*m_ostream) << ";" << endl;
 
     return false;
 }
 
 bool FunctionForwardDeclVisitor::visit(ModifierDefinition const& _node)
 {
-    (*m_ostream) << "M " << _node.name() << endl;
+    (*m_ostream) << "void"
+                 << " "
+                 << "Modifier"
+                 << "_"
+                 << m_translator.scope().name
+                 << "_"
+                 << _node.name();
+
+    printArgs(_node);
+
+    (*m_ostream) << ";" << endl;
+
     return false;
 }
 
@@ -173,7 +184,7 @@ void FunctionForwardDeclVisitor::printArgs(CallableDeclaration const& _node)
             (*m_ostream) << ", ";
         }
     }
-    (*m_ostream) << ");";
+    (*m_ostream) << ")";
 }
 
 void FunctionForwardDeclVisitor::printRetvals(CallableDeclaration const& _node)

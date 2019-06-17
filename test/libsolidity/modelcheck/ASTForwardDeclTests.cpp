@@ -123,10 +123,7 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
 			uint a;
             uint b;
             modifier simpleModifier {
-                require(
-                    a >= 100,
-                    "Placeholder"
-                );
+                require(a >= 100, "Placeholder");
                 _;
             }
         }
@@ -143,7 +140,35 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "M simpleModifier" << endl;
+    func_expect << "void Modifier_A_simpleModifier();" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(modifier_with_args)
+{
+    char const* text = R"(
+        contract A {
+            modifier simpleModifier(uint _a, int _b) {
+                require(_a >= 100 && _b >= 100,  "Placeholder");
+                _;
+            }
+        }
+    )";
+
+    const auto &ast = *parseAndAnalyse(text);
+
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
+
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "void Modifier_A_simpleModifier(unsigned int _a, int _b);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
