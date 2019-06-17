@@ -3,6 +3,7 @@
  * First-pass visitor for converting Solidity methods into functions in C.
  */
 
+#include <libsolidity/modelcheck/FunctionDefinitionGenerator.h>
 #include <libsolidity/modelcheck/FunctionForwardDeclVisitor.h>
 #include <sstream>
 
@@ -37,32 +38,10 @@ bool FunctionForwardDeclVisitor::visit(ContractDefinition const& _node)
     m_translator.enter_scope(_node);
     if (_node.constructor() == nullptr)
     {
-        // Generates the AST for a constructor which acts as
-        // ContractCompiler::initializeStateVariables.
-        ASTPointer<ASTString> epsilon = make_shared<string>("");
-        ASTPointer<ParameterList> empty_param_list = make_shared<ParameterList>(
-            _node.location(),
-            vector<ASTPointer<VariableDeclaration>>{}
-        );
-        vector<ASTPointer<Statement>> initializations;
+        FunctionDefinitionGenerator contract_ctor_gen(_node, true);
         // TODO: populate body
-        FunctionDefinition default_ctor_def(
-            _node.location(),
-            epsilon,
-            Declaration::Visibility::Public,
-            StateMutability::NonPayable,
-            true,
-            epsilon,
-            empty_param_list,
-            vector<ASTPointer<ModifierInvocation>>{},
-            empty_param_list,
-            make_shared<Block>(
-                _node.location(),
-                epsilon,
-                initializations
-            )
-        );
-        default_ctor_def.accept(*this);
+        auto contract_ctor_node = contract_ctor_gen.generate();
+        contract_ctor_node->accept(*this);
     }
     return true;
 }
@@ -71,41 +50,19 @@ bool FunctionForwardDeclVisitor::visit(StructDefinition const& _node)
 {
     m_translator.enter_scope(_node);
     // Generates the AST for for a struct's default constructor.
-    ASTPointer<ASTString> epsilon = make_shared<string>("");
-    ASTPointer<ParameterList> empty_param_list = make_shared<ParameterList>(
-        _node.location(),
-        vector<ASTPointer<VariableDeclaration>>{}
-    );
-    vector<ASTPointer<Statement>> initializations;
-    // Generates the argument list.
-    vector<ASTPointer<VariableDeclaration>> params;
+    FunctionDefinitionGenerator struct_ctor_gen(_node, true);
     for (const auto &param : _node.members())
     {
         const auto &type = param->type();
         if (!dynamic_cast<const ArrayType *>(type) &&
             !dynamic_cast<const MappingType *>(type))
         {
-            params.push_back(param);
+            struct_ctor_gen.push_arg(param);
         }
     }
     // TODO: populate body
-    FunctionDefinition default_ctor_def(
-        _node.location(),
-        epsilon,
-        Declaration::Visibility::Public,
-        StateMutability::Pure,
-        true,
-        epsilon,
-        make_shared<ParameterList>(_node.location(), params),
-        vector<ASTPointer<ModifierInvocation>>{},
-        empty_param_list,
-        make_shared<Block>(
-            _node.location(),
-            epsilon,
-            initializations
-        )
-    );
-    default_ctor_def.accept(*this);
+    auto struct_ctor_node = struct_ctor_gen.generate();
+    struct_ctor_node->accept(*this);
     return true;
 }
 
