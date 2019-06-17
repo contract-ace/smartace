@@ -68,31 +68,17 @@ bool FunctionForwardDeclVisitor::visit(StructDefinition const& _node)
 
 bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
 {
-    // Produces return type.
     if (_node.isConstructor())
     {
         (*m_ostream) << m_translator.scope().type;
     }
     else
     {
-        auto rettype = _node.functionType(false)->returnParameterTypes();
-        if (rettype.empty())
-        {
-            (*m_ostream) << "void";
-        }
-        else if (rettype.size() == 1)
-        {
-            (*m_ostream) << m_translator.translate(rettype[0]).type;
-        }
-        else
-        {
-            throw length_error("Multi-element return types unsupport.");
-        }
+        printRetvals(_node);
     }
 
     (*m_ostream) << " ";
 
-    // Produces name of method.
     (*m_ostream) << ((_node.isConstructor()) ? "Ctor" : "Method")
                  << "_"
                  << m_translator.scope().name;
@@ -101,23 +87,7 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
         (*m_ostream) << "_" << _node.name();
     }
 
-    // Produces the argument list.
-    auto argtypes = _node.functionType(false)->parameterTypes();
-    auto argnames = _node.functionType(false)->parameterNames();
-    (*m_ostream) << "(";
-    for (unsigned int idx = 0; idx < argtypes.size(); ++idx)
-    {
-        const auto &type = argtypes[idx];
-        const auto &name = argnames[idx];
-
-        Translation type_translation = m_translator.translate(type);
-        (*m_ostream) << type_translation.type << " " << name;
-        if (idx + 1 < argtypes.size())
-        {
-            (*m_ostream) << ", ";
-        }
-    }
-    (*m_ostream) << ");";
+    printArgs(_node);
 
     (*m_ostream) << endl;
 
@@ -183,6 +153,44 @@ void FunctionForwardDeclVisitor::endVisit(VariableDeclaration const&)
 void FunctionForwardDeclVisitor::endVisit(StructDefinition const&)
 {
     m_translator.exit_scope();
+}
+
+// -------------------------------------------------------------------------- //
+
+void FunctionForwardDeclVisitor::printArgs(CallableDeclaration const& _node)
+{
+    (*m_ostream) << "(";
+    auto const& args = _node.parameters();
+    for (unsigned int idx = 0; idx < args.size(); ++idx)
+    {
+        const auto &type = args[idx]->type();
+        const auto &name = args[idx]->name();
+
+        Translation type_translation = m_translator.translate(type);
+        (*m_ostream) << type_translation.type << " " << name;
+        if (idx + 1 < args.size())
+        {
+            (*m_ostream) << ", ";
+        }
+    }
+    (*m_ostream) << ");";
+}
+
+void FunctionForwardDeclVisitor::printRetvals(CallableDeclaration const& _node)
+{
+    auto const& rettypes = _node.returnParameters();
+    if (rettypes.empty())
+    {
+        (*m_ostream) << "void";
+    }
+    else if (rettypes.size() == 1)
+    {
+        (*m_ostream) << m_translator.translate(rettypes[0]->type()).type;
+    }
+    else
+    {
+        throw length_error("Multi-element return types unsupport.");
+    }
 }
 
 // -------------------------------------------------------------------------- //

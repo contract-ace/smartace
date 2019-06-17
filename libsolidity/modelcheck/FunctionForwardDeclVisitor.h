@@ -50,6 +50,10 @@ private:
 	std::ostream* m_ostream = nullptr;
 
 	TypeTranslator m_translator;
+
+	// Abstractions to handle a general CallableDeclaration.
+	void printArgs(CallableDeclaration const& _node);
+	void printRetvals(CallableDeclaration const& _node);
 };
 
 }
