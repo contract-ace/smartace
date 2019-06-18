@@ -33,6 +33,8 @@
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
+#include <libsolidity/modelcheck/ADTForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/FunctionForwardDeclVisitor.h>
 
 #include <libyul/AssemblyStack.h>
 
@@ -109,6 +111,7 @@ static string const g_strAstJson = "ast-json";
 static string const g_strAstCompactJson = "ast-compact-json";
 static string const g_strBinary = "bin";
 static string const g_strBinaryRuntime = "bin-runtime";
+static string const g_strCModel = "c-model";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -161,6 +164,7 @@ static string const g_argAstCompactJson = g_strAstCompactJson;
 static string const g_argAstJson = g_strAstJson;
 static string const g_argBinary = g_strBinary;
 static string const g_argBinaryRuntime = g_strBinaryRuntime;
+static string const g_argCModel = g_strCModel;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -693,6 +697,7 @@ Allowed options)",
 	po::options_description outputComponents("Output Components");
 	outputComponents.add_options()
 		(g_argAst.c_str(), "AST of all source files.")
+		(g_argCModel.c_str(), "C-based verification model of all contracts.")
 		(g_argAstJson.c_str(), "AST of all source files in JSON format.")
 		(g_argAstCompactJson.c_str(), "AST of all source files in a compact JSON format.")
 		(g_argAsm.c_str(), "EVM assembly of the contracts.")
@@ -1147,11 +1152,48 @@ void CommandLineInterface::handleAst(string const& _argStr)
 	}
 }
 
+void CommandLineInterface::handleCModel()
+{
+	vector<ASTNode const*> asts;
+	for (auto const& sourceCode: m_sourceCodes)
+	{
+		asts.push_back(&m_compiler->ast(sourceCode.first));
+	}
+
+	if (m_args.count(g_argOutputDir))
+	{
+		stringstream header_data;
+		handleCModelHeaders(asts, header_data);
+		createFile("cmodel.h", header_data.str());
+	}
+	else
+	{
+		sout() << endl << "======= cmodel.h =======" << endl;
+		handleCModelHeaders(asts, sout());
+	}
+}
+
+void CommandLineInterface::handleCModelHeaders(vector<ASTNode const*> const& _asts, ostream & _os)
+{
+	for (auto const& ast : _asts)
+	{
+		modelcheck::ADTForwardDeclVisitor struct_forward_decl_visitor(*ast);
+		struct_forward_decl_visitor.print(_os);
+	}
+	for (auto const& ast : _asts)
+	{
+		modelcheck::FunctionForwardDeclVisitor func_forward_decl_visitor(*ast);
+		func_forward_decl_visitor.print(_os);
+	}
+}
+
 bool CommandLineInterface::actOnInput()
 {
 	if (m_args.count(g_argStandardJSON) || m_onlyAssemble)
 		// Already done in "processInput" phase.
 		return true;
+	else if (m_args.count(g_argCModel))
+		handleCModel();
 	else if (m_onlyLink)
 		writeLinkedFiles();
 	else
