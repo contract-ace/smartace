@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "void Modifier_A_simpleModifier();" << endl;
+    func_expect << "void Modifier_A_simpleModifier(struct A *self, struct CallState *state);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(modifier_with_args)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "void Modifier_A_simpleModifier(unsigned int _a, int _b);" << endl;
+    func_expect << "void Modifier_A_simpleModifier(struct A *self, struct CallState *state, unsigned int _a, int _b);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -197,7 +197,34 @@ BOOST_AUTO_TEST_CASE(simple_func)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "unsigned int Method_A_simpleFunc(unsigned int _in);" << endl;
+    func_expect << "unsigned int Method_A_simpleFunc(struct A *self, struct CallState *state, unsigned int _in);" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(pure_func)
+{
+    char const* text = R"(
+        contract A {
+            function simpleFunc() public pure returns (uint _out) {
+                _out = 4;
+            }
+        }
+    )";
+
+    const auto &ast = *parseAndAnalyse(text);
+
+    ostringstream adt_actual, func_actual;
+    ADTForwardDeclVisitor adt_visitor(ast);
+    FunctionForwardDeclVisitor func_visitor(ast);
+    adt_visitor.print(adt_actual);
+    func_visitor.print(func_actual);
+
+    ostringstream adt_expect, func_expect;
+    adt_expect << "struct A;" << endl;
+    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "unsigned int Method_A_simpleFunc();" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -226,7 +253,7 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "void Method_A_simpleFunc(unsigned int _in);" << endl;
+    func_expect << "void Method_A_simpleFunc(struct A *self, struct CallState *state, unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -469,7 +496,7 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     adt_expect << "struct A_B;" << endl;
     func_expect << "struct A Ctor_A();" << endl;
     func_expect << "struct A_B Ctor_A_B(unsigned int a);" << endl;
-    func_expect << "struct A_B Method_A_advFunc(unsigned int _in);" << endl;
+    func_expect << "struct A_B Method_A_advFunc(struct A *self, struct CallState *state, unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());

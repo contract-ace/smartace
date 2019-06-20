@@ -87,7 +87,9 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
         (*m_ostream) << "_" << _node.name();
     }
 
-    printArgs(_node);
+    bool requires_state = _node.isConstructor() ||
+                          _node.stateMutability() == StateMutability::Pure;
+    printArgs(_node, !requires_state);
 
     (*m_ostream) << ";" << endl;
 
@@ -104,7 +106,7 @@ bool FunctionForwardDeclVisitor::visit(ModifierDefinition const& _node)
                  << "_"
                  << _node.name();
 
-    printArgs(_node);
+    printArgs(_node, true);
 
     (*m_ostream) << ";" << endl;
 
@@ -168,22 +170,32 @@ void FunctionForwardDeclVisitor::endVisit(StructDefinition const&)
 
 // -------------------------------------------------------------------------- //
 
-void FunctionForwardDeclVisitor::printArgs(CallableDeclaration const& _node)
+void FunctionForwardDeclVisitor::printArgs(
+    CallableDeclaration const& _node, bool _pass_state)
 {
     (*m_ostream) << "(";
+
+    if (_pass_state)
+    {
+        (*m_ostream) << m_translator.scope().type << " *self"
+                     << ", "
+                     << "struct CallState *state";
+    }
+
     auto const& args = _node.parameters();
     for (unsigned int idx = 0; idx < args.size(); ++idx)
     {
-        const auto &type = args[idx]->type();
-        const auto &name = args[idx]->name();
-
-        Translation type_translation = m_translator.translate(type);
-        (*m_ostream) << type_translation.type << " " << name;
-        if (idx + 1 < args.size())
+        if (_pass_state || idx > 0)
         {
             (*m_ostream) << ", ";
         }
+
+        const auto &type = args[idx]->type();
+        const auto &name = args[idx]->name();
+        Translation type_translation = m_translator.translate(type);
+        (*m_ostream) << type_translation.type << " " << name;
     }
+
     (*m_ostream) << ")";
 }
 
