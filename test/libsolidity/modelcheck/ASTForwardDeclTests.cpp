@@ -502,7 +502,7 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_SUITE_END();
 
 }
 }

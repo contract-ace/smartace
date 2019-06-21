@@ -108,6 +108,8 @@ set(sources
 	interface/Version.h
 	modelcheck/ADTForwardDeclVisitor.cpp
 	modelcheck/ADTForwardDeclVisitor.h
+	modelcheck/BlockToModelVisitor.cpp
+	modelcheck/BlockToModelVisitor.h
 	modelcheck/FunctionDefinitionGenerator.cpp
 	modelcheck/FunctionDefinitionGenerator.h
 	modelcheck/FunctionForwardDeclVisitor.cpp
