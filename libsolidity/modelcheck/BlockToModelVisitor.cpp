@@ -97,6 +97,30 @@ bool BlockToModelVisitor::visit(Literal const& _node)
     return false;
 }
 
+bool BlockToModelVisitor::visit(Continue const&)
+{
+    (*m_ostream) << "continue;" << endl;
+    return false;
+}
+
+bool BlockToModelVisitor::visit(Break const&)
+{
+    (*m_ostream) << "break;" << endl;
+    return false;
+}
+
+bool BlockToModelVisitor::visit(Return const& _node)
+{
+    (*m_ostream) << "return";
+    if (_node.expression())
+    {
+        (*m_ostream) << " ";
+        _node.expression()->accept(*this);
+    }
+    (*m_ostream) << ";" << endl;
+    return false;
+}
+
 bool BlockToModelVisitor::visit(ExpressionStatement const& _node)
 {
     _node.expression().accept(*this);

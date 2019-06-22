@@ -46,6 +46,9 @@ protected:
 	static long long int literal_to_number(Literal const& _node);
 
     bool visit(IfStatement const& _node) override;
+	bool visit(Continue const&) override;
+	bool visit(Break const&) override;
+	bool visit(Return const& _node) override;
 	bool visit(ExpressionStatement const& _node) override;
     bool visit(Literal const& _node) override;
 };
