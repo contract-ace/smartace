@@ -33,6 +33,48 @@ void BlockToModelVisitor::print(ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
+long long int BlockToModelVisitor::literal_to_number(Literal const& _node)
+{
+    long long int num;
+
+    istringstream iss(_node.value());
+    iss >> num;
+
+    switch(_node.subDenomination())
+    {
+    case Literal::SubDenomination::Szabo:
+        num *= 1000000000000;
+        break;
+    case Literal::SubDenomination::Finney:
+        num *= 1000000000000000;
+        break;
+    case Literal::SubDenomination::Ether:
+        num *= 1000000000000000000;
+        break;
+    case Literal::SubDenomination::Minute:
+        num *= 60;
+        break;
+    case Literal::SubDenomination::Hour:
+        num *= 60 * 60;
+        break;
+    case Literal::SubDenomination::Day:
+        num *= 60 * 60 * 24;
+        break;
+    case Literal::SubDenomination::Week:
+        num *= 60 * 60 * 24 * 7;
+        break;
+    case Literal::SubDenomination::Year:
+        num *= 60 * 60 * 24 * 365;
+        break;
+    default:
+        break;
+    }
+
+    return num;
+}
+
+// -------------------------------------------------------------------------- //
+
 bool BlockToModelVisitor::visit(Literal const& _node)
 {
     switch (_node.token())
@@ -44,7 +86,7 @@ bool BlockToModelVisitor::visit(Literal const& _node)
         (*m_ostream) << "0";
 		break;
 	case Token::Number:
-        (*m_ostream) << stoll(_node.value());
+        (*m_ostream) << literal_to_number(_node);
 		break;
 	case Token::StringLiteral:
         (*m_ostream) << m_hasher(_node.value());
