@@ -4,6 +4,7 @@
  */
 
 #include <libsolidity/modelcheck/BlockToModelVisitor.h>
+#include <stdexcept>
 
 using namespace std;
 
@@ -31,6 +32,35 @@ void BlockToModelVisitor::print(ostream& _stream)
 }
 
 // -------------------------------------------------------------------------- //
+
+bool BlockToModelVisitor::visit(Literal const& _node)
+{
+    switch (_node.token())
+    {
+	case Token::TrueLiteral:
+        (*m_ostream) << "1";
+        break;
+	case Token::FalseLiteral:
+        (*m_ostream) << "0";
+		break;
+	case Token::Number:
+        (*m_ostream) << stoll(_node.value());
+		break;
+	case Token::StringLiteral:
+        (*m_ostream) << m_hasher(_node.value());
+		break;
+    default:
+        throw runtime_error("Literal type derived from unsupported token.");
+    }
+    return false;
+}
+
+bool BlockToModelVisitor::visit(ExpressionStatement const& _node)
+{
+    _node.expression().accept(*this);
+    (*m_ostream) << ";" << endl;
+    return false;
+}
 
 bool BlockToModelVisitor::visit(IfStatement const& _node)
 {
