@@ -32,7 +32,7 @@ do { \
     BOOST_CHECK_EQUAL(calc.depth(), expt_val); \
 } while(0)
 
-BOOST_FIXTURE_TEST_SUITE(MapDepth, ::dev::solidity::test::AnalysisFramework);
+BOOST_FIXTURE_TEST_SUITE(MapDepth, ::dev::solidity::test::AnalysisFramework)
 
 BOOST_AUTO_TEST_CASE(depth_1_test)
 {
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(complex_type)
     DO_MAP_DEPTH_TEST(text, 1);
 }
 
-BOOST_AUTO_TEST_SUITE_END();
+BOOST_AUTO_TEST_SUITE_END()
 
 }
 }

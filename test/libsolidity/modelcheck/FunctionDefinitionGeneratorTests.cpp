@@ -20,7 +20,7 @@ namespace modelcheck
 namespace test
 {
 
-BOOST_FIXTURE_TEST_SUITE(FunctionDefinitionGeneration, ::dev::solidity::test::AnalysisFramework);
+BOOST_FIXTURE_TEST_SUITE(FunctionDefinitionGeneration, ::dev::solidity::test::AnalysisFramework)
 
 BOOST_AUTO_TEST_CASE(default_function)
 {
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(add_statements)
     }
 }
 
-BOOST_AUTO_TEST_SUITE_END();
+BOOST_AUTO_TEST_SUITE_END()
 
 }
 }

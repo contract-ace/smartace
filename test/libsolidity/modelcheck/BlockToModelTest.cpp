@@ -21,7 +21,7 @@ namespace modelcheck
 namespace test
 {
 
-BOOST_AUTO_TEST_SUITE(BlockToModel);
+BOOST_AUTO_TEST_SUITE(BlockToModel)
 
 BOOST_AUTO_TEST_CASE(if_statement)
 {
@@ -238,7 +238,163 @@ BOOST_AUTO_TEST_CASE(continue_statement)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
-BOOST_AUTO_TEST_SUITE_END();
+BOOST_AUTO_TEST_CASE(unary_op)
+{
+    auto literal = make_shared<Literal>(
+        SourceLocation(), langutil::Token::Number, make_shared<string>("1"));
+
+    auto not_op = make_shared<UnaryOperation>(
+        SourceLocation(), langutil::Token::Not, literal, true);
+    auto bnot = make_shared<UnaryOperation>(
+        SourceLocation(), langutil::Token::BitNot, literal, true);
+    // TODO(scottwe):
+    // auto del_op = make_shared<UnaryOperation>(
+    //     SourceLocation(), langutil::Token::Delete, literal, true);
+    auto pri_op = make_shared<UnaryOperation>(
+        SourceLocation(), langutil::Token::Inc, literal, true);
+    auto prd_op = make_shared<UnaryOperation>(
+        SourceLocation(), langutil::Token::Dec, literal, true);
+    auto poi_op = make_shared<UnaryOperation>(
+        SourceLocation(), langutil::Token::Inc, literal, false);
+    auto pod_op = make_shared<UnaryOperation>(
+        SourceLocation(), langutil::Token::Dec, literal, false);
+
+    Block block(SourceLocation(), nullptr, {
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, not_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, bnot),
+        // TODO(scottwe):
+        // make_shared<ExpressionStatement>(SourceLocation(), nullptr, del_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, pri_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, prd_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, poi_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, pod_op)});
+
+    ostringstream actual;
+    BlockToModelVisitor visitor(block, TypeTranslator());
+    visitor.print(actual);
+
+    ostringstream expected;
+    expected << "!(1);" << endl;
+    expected << "!(1);" << endl;
+    // TODO(scottwe): delete test
+    expected << "++(1);" << endl;
+    expected << "--(1);" << endl;
+    expected << "(1)++;" << endl;
+    expected << "(1)--;" << endl;
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
+BOOST_AUTO_TEST_CASE(binary_op)
+{
+    auto lit_1 = make_shared<Literal>(
+        SourceLocation(), langutil::Token::Number, make_shared<string>("1"));
+    auto lit_2 = make_shared<Literal>(
+        SourceLocation(), langutil::Token::Number, make_shared<string>("2"));
+
+    auto cma_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::Comma, lit_2);
+    auto or_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::Or, lit_2);
+    auto and_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::And, lit_2);
+    auto bor_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::BitOr, lit_2);
+    auto bxor_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::BitXor, lit_2);
+    auto band_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::BitAnd, lit_2);
+    auto shl_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::SHL, lit_2);
+    // TODO(scottwe):
+    // auto sar_op = make_shared<BinaryOperation>(
+    //     SourceLocation(), lit_1, Token::SAR, lit_2);
+    // TODO(scottwe):
+    // auto shr_op = make_shared<BinaryOperation>(
+    //     SourceLocation(), lit_1, Token::SHR, lit_2);
+    auto add_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::Add, lit_2);
+    auto sub_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::Sub, lit_2);
+    auto mul_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::Mul, lit_2);
+    auto div_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::Div, lit_2);
+    auto mod_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::Mod, lit_2);
+    // TODO(scottwe):
+    // auto exp_op = make_shared<BinaryOperation>(
+    //     SourceLocation(), lit_1, Token::Exp, lit_2);
+    auto eq_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::Equal, lit_2);
+    auto neq_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::NotEqual, lit_2);
+    auto lt_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::LessThan, lit_2);
+    auto gt_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::GreaterThan, lit_2);
+    auto lte_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::LessThanOrEqual, lit_2);
+    auto gte_op = make_shared<BinaryOperation>(
+        SourceLocation(), lit_1, Token::GreaterThanOrEqual, lit_2);
+
+    Block block(SourceLocation(), nullptr, {
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, cma_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, or_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, and_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, bor_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, bxor_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, band_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, shl_op),
+        // TODO(scottwe):
+        // make_shared<ExpressionStatement>(SourceLocation(), nullptr, sar_op),
+        // TODO(scottwe):
+        // make_shared<ExpressionStatement>(SourceLocation(), nullptr, shr_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, add_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, sub_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, mul_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, div_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, mod_op),
+        // TODO(scottwe):
+        // make_shared<ExpressionStatement>(SourceLocation(), nullptr, exp_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, eq_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, neq_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, lt_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, gt_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, lte_op),
+        make_shared<ExpressionStatement>(SourceLocation(), nullptr, gte_op)});
+
+    ostringstream actual;
+    BlockToModelVisitor visitor(block, TypeTranslator());
+    visitor.print(actual);
+
+    ostringstream expected;
+    expected << "(1),(2);" << endl;
+    expected << "(1)||(2);" << endl;
+    expected << "(1)&&(2);" << endl;
+    expected << "(1)|(2);" << endl;
+    expected << "(1)^(2);" << endl;
+    expected << "(1)&(2);" << endl;
+    expected << "(1)<<(2);" << endl;
+    // TODO(scottwe): sar test
+    // TODO(scottwe): shr test
+    expected << "(1)+(2);" << endl;
+    expected << "(1)-(2);" << endl;
+    expected << "(1)*(2);" << endl;
+    expected << "(1)/(2);" << endl;
+    expected << "(1)%(2);" << endl;
+    // TODO(scottwe): exp test
+    expected << "(1)==(2);" << endl;
+    expected << "(1)!=(2);" << endl;
+    expected << "(1)<(2);" << endl;
+    expected << "(1)>(2);" << endl;
+    expected << "(1)<=(2);" << endl;
+    expected << "(1)>=(2);" << endl;
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
+BOOST_AUTO_TEST_SUITE_END()
 
 }
 }

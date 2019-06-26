@@ -50,7 +50,12 @@ protected:
 	bool visit(Break const&) override;
 	bool visit(Return const& _node) override;
 	bool visit(ExpressionStatement const& _node) override;
+	bool visit(UnaryOperation const& _node) override;
+	bool visit(BinaryOperation const& _node) override;
     bool visit(Literal const& _node) override;
+
+private:
+	void print_subexpression(Expression const& _node);
 };
 
 }

@@ -127,6 +127,83 @@ bool BlockToModelVisitor::visit(ExpressionStatement const& _node)
     (*m_ostream) << ";" << endl;
     return false;
 }
+bool BlockToModelVisitor::visit(UnaryOperation const& _node)
+{
+    if (!_node.isPrefixOperation())
+    {
+        print_subexpression(_node.subExpression());
+    }
+
+    Token op_tok = _node.getOperator();
+    switch (op_tok)
+    {
+    case Token::Not:
+	case Token::BitNot:
+        (*m_ostream) << "!";
+        break;
+	case Token::Delete:
+        // TODO(scottwe)
+        throw runtime_error("Delete not yet supported.");
+	case Token::Inc:
+	case Token::Dec:
+        (*m_ostream) << TokenTraits::friendlyName(op_tok);
+        break;
+    default:
+        throw runtime_error("UnaryOp not yet supported.");
+    }
+
+    if (_node.isPrefixOperation())
+    {
+        print_subexpression(_node.subExpression());
+    }
+
+    return false;
+}
+
+bool BlockToModelVisitor::visit(BinaryOperation const& _node)
+{
+    print_subexpression(_node.leftExpression());
+
+    Token op_tok = _node.getOperator();
+    switch (op_tok)
+    {
+    case Token::SAR:
+        // TODO(scottwe)
+        throw runtime_error("Arithmetic right bit-shift not yet supported.");
+    case Token::SHR:
+        // TODO(scottwe)
+        throw runtime_error("Logical right bit-shift not yet supported.");
+    case Token::Exp:
+        // TODO(scottwe)
+        throw runtime_error("Exponentiation not yet supported.");
+    case Token::Comma:
+    case Token::Or:
+    case Token::And:
+    case Token::BitOr:
+    case Token::BitXor:
+    case Token::BitAnd:
+    case Token::SHL:
+    case Token::Add:
+    case Token::Sub:
+    case Token::Mul:
+    case Token::Div:
+    case Token::Mod:
+    case Token::Equal:
+    case Token::NotEqual:
+    case Token::LessThan:
+    case Token::GreaterThan:
+    case Token::LessThanOrEqual:
+    case Token::GreaterThanOrEqual:
+        (*m_ostream) << TokenTraits::friendlyName(op_tok);
+        break;
+    default:
+        throw runtime_error("BinOp not yet supported.");
+    }
+
+    print_subexpression(_node.rightExpression());
+
+    return false;
+}
 
 bool BlockToModelVisitor::visit(IfStatement const& _node)
 {
@@ -143,6 +220,15 @@ bool BlockToModelVisitor::visit(IfStatement const& _node)
     }
     (*m_ostream) << endl;
     return false;
+}
+
+// -------------------------------------------------------------------------- //
+
+void BlockToModelVisitor::print_subexpression(Expression const& _node)
+{
+    (*m_ostream) << "(";
+    _node.accept(*this);
+    (*m_ostream) << ")";
 }
 
 // -------------------------------------------------------------------------- //
