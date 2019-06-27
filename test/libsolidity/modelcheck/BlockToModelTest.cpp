@@ -6,6 +6,7 @@
 
 #include <libsolidity/modelcheck/BlockToModelVisitor.h>
 
+#include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
 #include <sstream>
 
@@ -21,7 +22,39 @@ namespace modelcheck
 namespace test
 {
 
-BOOST_AUTO_TEST_SUITE(BlockToModel)
+BOOST_FIXTURE_TEST_SUITE(BlockToModel, ::dev::solidity::test::AnalysisFramework)
+
+BOOST_AUTO_TEST_CASE(decl_statement)
+{
+    char const* text = R"(
+		contract A {
+            struct B { int a; }
+			function f() public {
+                int i1;
+                int i2 = 10;
+                B memory b;
+            }
+		}
+	)";
+
+    const auto &unit = *parseAndAnalyse(text);
+    const auto &ctrt = *retrieveContractByName(unit, "A");
+    const auto &body = ctrt.definedFunctions()[0]->body();
+
+    TypeTranslator translator;
+    translator.enter_scope(ctrt);
+
+    ostringstream actual;
+    BlockToModelVisitor visitor(body, translator);
+    visitor.print(actual);
+
+    ostringstream expected;
+    expected << "int i1;" << endl
+             << "int i2 = 10;" << endl
+             << "struct A_B b;" << endl;
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
 
 BOOST_AUTO_TEST_CASE(if_statement)
 {
