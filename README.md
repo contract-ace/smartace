@@ -61,6 +61,15 @@ These are not needed in this project, and may be bypassed with the following com
 
 For more information on the libsolidity testsuite, or to learn how to test other modules, refer to [Running the compiler tests](https://solidity.readthedocs.io/en/latest/contributing.html#running-the-compiler-tests) from the official developer documents.
 
+## Generating Abstract Syntax Trees
+
+The Solidity compiler can be configured to output JSON-formatted AST's.
+This tool proves useful when debugging end-to-end issues.
+The following command will consume a source unit through STDIN, and dump the AST to STDOUT.
+```
+solc --ast -
+```
+
 ## More Information
 
 Comprehensive documentation for solidity compiler development may be found in the [Developer's Guide](https://solidity.readthedocs.io/en/latest/contributing.html)
