@@ -118,6 +118,8 @@ set(sources
 	modelcheck/MapDepthCalculator.h
 	modelcheck/TypeTranslator.cpp
 	modelcheck/TypeTranslator.h
+	modelcheck/VariableScopeResolver.cpp
+	modelcheck/VariableScopeResolver.h
 	parsing/DocStringParser.cpp
 	parsing/DocStringParser.h
 	parsing/Parser.cpp
