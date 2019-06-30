@@ -37,7 +37,10 @@ public:
     void print(std::ostream& _stream);
 
 protected:
+	bool visit(Block const& _node) override;
     bool visit(IfStatement const& _node) override;
+	bool visit(WhileStatement const& _node) override;
+	bool visit(ForStatement const& _node) override;
 	bool visit(Continue const&) override;
 	bool visit(Break const&) override;
 	bool visit(Return const& _node) override;
@@ -57,9 +60,13 @@ private:
 
 	std::hash<std::string> m_hasher;
 
+	bool m_is_loop_statement = false;
+
 	static long long int literal_to_number(Literal const& _node);
 
 	void print_subexpression(Expression const& _node);
+	void print_loop_statement(ASTNode const* _node);
+	void end_statement();
 };
 
 }

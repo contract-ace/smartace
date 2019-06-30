@@ -482,6 +482,59 @@ BOOST_AUTO_TEST_CASE(var_id)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(simple_loops)
+{
+    char const* text = R"(
+		contract A {
+			function f() public {
+                for (int i = 0; i < 10; ++i) {
+                    while (false) {
+                        break;
+                    }
+                    for (; i < i; ++i) {
+                        break;
+                    }
+                    for (int j = 0; ; ++j) {
+                        break;
+                    }
+                    for (int j = i; j < i; ) {
+                        break;
+                    }
+                }
+            }
+        }
+    )";
+
+    const auto &unit = *parseAndAnalyse(text);
+    const auto &ctrt = *retrieveContractByName(unit, "A");
+    const auto &body = ctrt.definedFunctions()[0]->body();
+
+    TypeTranslator translator;
+    translator.enter_scope(ctrt);
+
+    ostringstream actual;
+    BlockToModelVisitor visitor(body, translator);
+    visitor.print(actual);
+
+    ostringstream expected;
+    expected << "for (int i = 0; (i)<(10); ++(i)) {" << endl
+             << "while (0) {" << endl
+             << "break;" << endl
+             << "}" << endl
+             << "for (; (i)<(i); ++(i)) {" << endl
+             << "break;" << endl
+             << "}" << endl
+             << "for (int j = 0; ; ++(j)) {" << endl
+             << "break;" << endl
+             << "}" << endl
+             << "for (int j = i; (j)<(i); ) {" << endl
+             << "break;" << endl
+             << "}" << endl
+             << "}" << endl;
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

@@ -35,6 +35,17 @@ void BlockToModelVisitor::print(ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
+bool BlockToModelVisitor::visit(Block const& _node)
+{
+    for (auto const& stmt : _node.statements())
+    {
+        stmt->accept(*this);
+        (*m_ostream) << endl;
+    }
+
+    return false;
+}
+
 bool BlockToModelVisitor::visit(Literal const& _node)
 {
     switch (_node.token())
@@ -59,13 +70,15 @@ bool BlockToModelVisitor::visit(Literal const& _node)
 
 bool BlockToModelVisitor::visit(Continue const&)
 {
-    (*m_ostream) << "continue;" << endl;
+    (*m_ostream) << "continue";
+    end_statement();
     return false;
 }
 
 bool BlockToModelVisitor::visit(Break const&)
 {
-    (*m_ostream) << "break;" << endl;
+    (*m_ostream) << "break";
+    end_statement();
     return false;
 }
 
@@ -77,7 +90,7 @@ bool BlockToModelVisitor::visit(Return const& _node)
         (*m_ostream) << " ";
         _node.expression()->accept(*this);
     }
-    (*m_ostream) << ";" << endl;
+    end_statement();
     return false;
 }
 
@@ -102,7 +115,7 @@ bool BlockToModelVisitor::visit(VariableDeclarationStatement const& _node)
             _node.initialValue()->accept(*this);
         }
 
-        (*m_ostream) << ";" << endl;
+        end_statement();
     }
 
     return false;
@@ -111,7 +124,7 @@ bool BlockToModelVisitor::visit(VariableDeclarationStatement const& _node)
 bool BlockToModelVisitor::visit(ExpressionStatement const& _node)
 {
     _node.expression().accept(*this);
-    (*m_ostream) << ";" << endl;
+    end_statement();
     return false;
 }
 
@@ -216,7 +229,47 @@ bool BlockToModelVisitor::visit(IfStatement const& _node)
         m_decls.exit();
         (*m_ostream) << "}";
     }
-    (*m_ostream) << endl;
+    return false;
+}
+bool BlockToModelVisitor::visit(WhileStatement const& _node)
+{
+    // TODO(scottwe): Ensure finite execution.
+
+    if (_node.isDoWhile())
+    {
+        (*m_ostream) << "do {" << endl;
+        _node.body().accept(*this);
+        (*m_ostream) << "} while (";
+        print_loop_statement(&_node.condition());
+        (*m_ostream) << ")";
+        end_statement();
+    }
+    else
+    {
+        (*m_ostream) << "while (";
+        print_loop_statement(&_node.condition());
+        (*m_ostream) << ") {" << endl;
+        _node.body().accept(*this);
+        (*m_ostream) << "}";
+    }
+
+    return false;
+}
+
+bool BlockToModelVisitor::visit(ForStatement const& _node)
+{
+    // TODO(scottwe): Ensure finite execution.
+
+    (*m_ostream) << "for (";
+    print_loop_statement(_node.initializationExpression());
+    (*m_ostream) << "; ";
+    print_loop_statement(_node.condition());
+    (*m_ostream) << "; ";
+    print_loop_statement(_node.loopExpression());
+    (*m_ostream) << ") {" << endl;
+    _node.body().accept(*this);
+    (*m_ostream) << "}";
+
     return false;
 }
 
@@ -269,6 +322,24 @@ void BlockToModelVisitor::print_subexpression(Expression const& _node)
     (*m_ostream) << "(";
     _node.accept(*this);
     (*m_ostream) << ")";
+}
+
+void BlockToModelVisitor::print_loop_statement(ASTNode const* _node)
+{
+    if (_node)
+    {
+        m_is_loop_statement = true;
+        _node->accept(*this);
+        m_is_loop_statement = false;
+    }
+}
+
+void BlockToModelVisitor::end_statement()
+{
+    if (!m_is_loop_statement)
+    {
+        (*m_ostream) << ";";
+    }
 }
 
 // -------------------------------------------------------------------------- //
