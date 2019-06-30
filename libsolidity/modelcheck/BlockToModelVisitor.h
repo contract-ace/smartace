@@ -7,6 +7,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
+#include <libsolidity/modelcheck/VariableScopeResolver.h>
 #include <functional>
 #include <ostream>
 
@@ -36,13 +37,6 @@ public:
     void print(std::ostream& _stream);
 
 protected:
-    Block const* m_body;
-    TypeTranslator const& m_scope;
-
-	std::ostream* m_ostream = nullptr;
-
-	std::hash<std::string> m_hasher;
-
     bool visit(IfStatement const& _node) override;
 	bool visit(Continue const&) override;
 	bool visit(Break const&) override;
@@ -51,9 +45,18 @@ protected:
 	bool visit(ExpressionStatement const& _node) override;
 	bool visit(UnaryOperation const& _node) override;
 	bool visit(BinaryOperation const& _node) override;
+	bool visit(Identifier const& _node) override;
     bool visit(Literal const& _node) override;
 
 private:
+    Block const* m_body;
+    TypeTranslator const& m_scope;
+	VariableScopeResolver m_decls;
+
+	std::ostream* m_ostream = nullptr;
+
+	std::hash<std::string> m_hasher;
+
 	static long long int literal_to_number(Literal const& _node);
 
 	void print_subexpression(Expression const& _node);

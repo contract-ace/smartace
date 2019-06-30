@@ -427,6 +427,61 @@ BOOST_AUTO_TEST_CASE(binary_op)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(var_id)
+{
+    char const* text = R"(
+		contract A {
+            int a;
+            int c;
+			function f() public returns (int) {
+                int b;
+                if (a == 1) {
+                    int c;
+                    ++a;
+                    ++b;
+                    ++c;
+                } else {
+                    ++a;
+                    ++b;
+                    ++c;
+                }
+                ++a;
+                ++b;
+                ++c;
+            }
+		}
+	)";
+
+    const auto &unit = *parseAndAnalyse(text);
+    const auto &ctrt = *retrieveContractByName(unit, "A");
+    const auto &body = ctrt.definedFunctions()[0]->body();
+
+    TypeTranslator translator;
+    translator.enter_scope(ctrt);
+
+    ostringstream actual;
+    BlockToModelVisitor visitor(body, translator);
+    visitor.print(actual);
+
+    ostringstream expected;
+    expected << "int b;" << endl
+             << "if ((self->d_a)==(1)) {" << endl
+             << "int c;" << endl
+             << "++(self->d_a);" << endl
+             << "++(b);" << endl
+             << "++(c);" << endl
+             << "} else {" << endl
+             << "++(self->d_a);" << endl
+             << "++(b);" << endl
+             << "++(self->d_c);" << endl
+             << "}" << endl
+             << "++(self->d_a);" << endl
+             << "++(b);" << endl
+             << "++(self->d_c);" << endl;
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

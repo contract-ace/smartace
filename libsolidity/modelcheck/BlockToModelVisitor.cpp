@@ -27,7 +27,9 @@ BlockToModelVisitor::BlockToModelVisitor(
 void BlockToModelVisitor::print(ostream& _stream)
 {
     m_ostream = &_stream;
+    m_decls.enter();
     m_body->accept(*this);
+    m_decls.exit();
     m_ostream = nullptr;
 }
 
@@ -87,11 +89,12 @@ bool BlockToModelVisitor::visit(VariableDeclarationStatement const& _node)
     }
     else if (!_node.declarations().empty())
     {
-        const auto &decl = _node.declarations()[0];
+        const auto &decl = *_node.declarations()[0];
+        m_decls.record_declaration(decl);
 
-        (*m_ostream) << m_scope.translate(decl->type()).type
+        (*m_ostream) << m_scope.translate(decl.type()).type
                      << " "
-                     << decl->name();
+                     << decl.name();
 
         if (_node.initialValue())
         {
@@ -111,6 +114,7 @@ bool BlockToModelVisitor::visit(ExpressionStatement const& _node)
     (*m_ostream) << ";" << endl;
     return false;
 }
+
 bool BlockToModelVisitor::visit(UnaryOperation const& _node)
 {
     if (!_node.isPrefixOperation())
@@ -189,17 +193,27 @@ bool BlockToModelVisitor::visit(BinaryOperation const& _node)
     return false;
 }
 
+bool BlockToModelVisitor::visit(Identifier const& _node)
+{
+    (*m_ostream) << m_decls.resolve_identifier(_node);
+    return false;
+}
+
 bool BlockToModelVisitor::visit(IfStatement const& _node)
 {
     (*m_ostream) << "if (";
     _node.condition().accept(*this);
     (*m_ostream) << ") {" << endl;
+    m_decls.enter();
     _node.trueStatement().accept(*this);
+    m_decls.exit();
     (*m_ostream) << "}";
     if (_node.falseStatement())
     {
         (*m_ostream) << " else {" << endl;
+        m_decls.enter();
         _node.falseStatement()->accept(*this);
+        m_decls.exit();
         (*m_ostream) << "}";
     }
     (*m_ostream) << endl;
