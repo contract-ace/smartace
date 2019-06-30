@@ -46,6 +46,7 @@ protected:
 	bool visit(Return const& _node) override;
 	bool visit(VariableDeclarationStatement const& _node) override;
 	bool visit(ExpressionStatement const& _node) override;
+	bool visit(Assignment const& _node) override;
 	bool visit(UnaryOperation const& _node) override;
 	bool visit(BinaryOperation const& _node) override;
 	bool visit(Identifier const& _node) override;

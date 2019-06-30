@@ -535,6 +535,52 @@ BOOST_AUTO_TEST_CASE(simple_loops)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(assignment)
+{
+    char const* text = R"(
+		contract A {
+            int a;
+			function f() public {
+                a = 5;
+                a |= 1;
+                a ^= 2;
+                a &= 3;
+                a <<= 4;
+                a += 5;
+                a -= 6;
+                a *= 7;
+                a /= 8;
+                a %= 9;
+            }
+        }
+    )";
+
+    const auto &unit = *parseAndAnalyse(text);
+    const auto &ctrt = *retrieveContractByName(unit, "A");
+    const auto &body = ctrt.definedFunctions()[0]->body();
+
+    TypeTranslator translator;
+    translator.enter_scope(ctrt);
+
+    ostringstream actual;
+    BlockToModelVisitor visitor(body, translator);
+    visitor.print(actual);
+
+    ostringstream expected;
+    expected << "(self->d_a)=(5);" << endl
+             << "(self->d_a)|=(1);" << endl
+             << "(self->d_a)^=(2);" << endl
+             << "(self->d_a)&=(3);" << endl
+             << "(self->d_a)<<=(4);" << endl
+             << "(self->d_a)+=(5);" << endl
+             << "(self->d_a)-=(6);" << endl
+             << "(self->d_a)*=(7);" << endl
+             << "(self->d_a)/=(8);" << endl
+             << "(self->d_a)%=(9);" << endl;
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

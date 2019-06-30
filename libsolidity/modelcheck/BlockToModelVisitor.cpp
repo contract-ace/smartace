@@ -128,6 +128,40 @@ bool BlockToModelVisitor::visit(ExpressionStatement const& _node)
     return false;
 }
 
+bool BlockToModelVisitor::visit(Assignment const& _node)
+{
+    print_subexpression(_node.leftHandSide());
+
+    Token op_tok = _node.assignmentOperator();
+    switch (op_tok)
+    {
+    case Token::AssignSar:
+        // TODO(scottwe)
+        throw runtime_error("Arithmetic right bit-shift not yet supported.");
+    case Token::AssignShr:
+        // TODO(scottwe)
+        throw runtime_error("Logical right bit-shift not yet supported.");
+    case Token::Assign:
+    case Token::AssignBitOr:
+    case Token::AssignBitXor:
+    case Token::AssignBitAnd:
+    case Token::AssignShl:
+    case Token::AssignAdd:
+    case Token::AssignSub:
+    case Token::AssignMul:
+    case Token::AssignDiv:
+    case Token::AssignMod:
+        (*m_ostream) << TokenTraits::friendlyName(op_tok);
+        break;
+    default:
+        throw runtime_error("Assignment not yet supported.");
+    }
+
+    print_subexpression(_node.rightHandSide());
+
+    return false;
+}
+
 bool BlockToModelVisitor::visit(UnaryOperation const& _node)
 {
     if (!_node.isPrefixOperation())
