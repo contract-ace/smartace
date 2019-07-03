@@ -96,9 +96,21 @@ bool ExpressionConversionVisitor::visit(Assignment const& _node)
 
 bool ExpressionConversionVisitor::visit(TupleExpression const& _node)
 {
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Tuple expressions not yet supported.");
+	if (_node.isInlineArray())
+	{
+		// TODO(scottwe): Support inline arrays.
+		throw runtime_error("Inline arrays not yet supported.");
+	}
+	else if (_node.components().size() > 1)
+	{
+		// TODO(scottwe): Support multiple return values.
+		throw runtime_error("Multivalue tuples not yet supported.");
+	}
+	else if (!_node.components().empty())
+	{
+		(_node.components()[0])->accept(*this);
+	}
+	return false;
 }
 
 bool ExpressionConversionVisitor::visit(UnaryOperation const& _node)

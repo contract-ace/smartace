@@ -142,7 +142,8 @@ BOOST_AUTO_TEST_CASE(conditional_expression_output)
         SourceLocation(),
         nullptr,
         make_shared<string>("a"),
-        nullptr, Declaration::Visibility::Public));
+        nullptr,
+        Declaration::Visibility::Public));
 
     ExpressionConversionVisitor visitor(cond, translator, resolver);
 
@@ -171,6 +172,27 @@ BOOST_AUTO_TEST_CASE(assignment_expression_output)
         _convert_assignment(Token::AssignDiv), "(a)/=((a)^(a))");
     BOOST_CHECK_EQUAL(
         _convert_assignment(Token::AssignMod), "(a)%=((a)^(a))");
+}
+
+BOOST_AUTO_TEST_CASE(tuple_expression_output)
+{
+    auto var_a = make_shared<Identifier>(
+        SourceLocation(), make_shared<string>("a"));
+
+    TupleExpression one_tuple(SourceLocation(), {var_a}, false);
+    // TODO(scottwe): two_tuple
+    // TODO(scottwe): three_tuple
+    // TODO(scottwe): empty array
+    // TODO(scottwe): n element array, large n
+
+    const TypeTranslator translator;
+    const VariableScopeResolver resolver;
+
+    ExpressionConversionVisitor visitor(one_tuple, translator, resolver);
+
+    ostringstream oss;
+    visitor.print(oss);
+    BOOST_CHECK_EQUAL(oss.str(), "self->d_a");
 }
 
 BOOST_AUTO_TEST_CASE(unary_expression_output)
@@ -228,7 +250,8 @@ BOOST_AUTO_TEST_CASE(identifier_expression_output)
         SourceLocation(),
         nullptr,
         make_shared<string>("a"),
-        nullptr, Declaration::Visibility::Public));
+        nullptr,
+        Declaration::Visibility::Public));
 
     ExpressionConversionVisitor a_visitor(id_a, translator, resolver);
     ExpressionConversionVisitor b_visitor(id_b, translator, resolver);

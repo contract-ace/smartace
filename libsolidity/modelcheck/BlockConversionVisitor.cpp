@@ -23,7 +23,12 @@ BlockConversionVisitor::BlockConversionVisitor(
 	TypeTranslator const& _scope
 ): m_body(&_func.body()), m_scope(_scope)
 {
-	if (!_func.returnParameters().empty())
+	// TODO(scottwe): support multiple return types.
+	if (_func.returnParameters().size() > 1)
+	{
+		throw runtime_error("Multiple return values not yet supported.");
+	}
+	else if (!_func.returnParameters().empty())
 	{
 		auto const& retvar = _func.returnParameters()[0];
 		if (retvar->name() != "")
@@ -216,6 +221,7 @@ bool BlockConversionVisitor::visit(VariableDeclarationStatement const& _node)
 {
 	if (_node.declarations().size() > 1)
 	{
+		// TODO(scottwe): support multiple return values.
 		throw runtime_error("Multiple return values are unsupported.");
 	}
 	else if (!_node.declarations().empty())
