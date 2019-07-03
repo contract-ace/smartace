@@ -19,10 +19,18 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 BlockConversionVisitor::BlockConversionVisitor(
-	Block const& _body,
+	FunctionDefinition const& _func,
 	TypeTranslator const& _scope
-): m_body(&_body), m_scope(_scope)
+): m_body(&_func.body()), m_scope(_scope)
 {
+	if (!_func.returnParameters().empty())
+	{
+		auto const& retvar = _func.returnParameters()[0];
+		if (retvar->name() != "")
+		{
+			m_retvar = retvar;
+		}
+	}
 }
 
 // -------------------------------------------------------------------------- //
@@ -30,6 +38,8 @@ BlockConversionVisitor::BlockConversionVisitor(
 void BlockConversionVisitor::print(ostream& _stream)
 {
 	m_ostream = &_stream;
+	m_is_top_level = true;
+	m_is_loop_statement = false;
 	m_body->accept(*this);
 	m_ostream = nullptr;
 }
@@ -38,15 +48,38 @@ void BlockConversionVisitor::print(ostream& _stream)
 
 bool BlockConversionVisitor::visit(Block const& _node)
 {
+	bool print_returns = (m_is_top_level && m_retvar);
+	m_is_top_level = false;
+
 	m_decls.enter();
 	(*m_ostream) << "{" << endl;
+
+	if (print_returns)
+	{
+		vector<ASTPointer<VariableDeclaration>> decls({m_retvar});
+		VariableDeclarationStatement decl_stmt(
+			langutil::SourceLocation(), nullptr, decls, nullptr);
+		decl_stmt.accept(*this);
+		(*m_ostream) << endl;
+	}
+
 	for (auto const& stmt : _node.statements())
 	{
 		stmt->accept(*this);
 		(*m_ostream) << endl;
 	}
+
+	if (print_returns)
+	{
+		auto id = make_shared<Identifier>(
+			langutil::SourceLocation(), make_shared<string>(m_retvar->name()));
+		Return ret_stmt(langutil::SourceLocation(), nullptr, id);
+		ret_stmt.accept(*this);
+		(*m_ostream) << endl;
+	}
+
 	(*m_ostream) << "}";
-	m_decls.exit();	
+	m_decls.exit();
 
 	return false;
 }

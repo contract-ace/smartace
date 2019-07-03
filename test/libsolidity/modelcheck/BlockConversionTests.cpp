@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     translator.enter_scope(ctrt);
 
     ostringstream actual_if;
-    BlockConversionVisitor if_visitor(if_stmt->body(), translator);
+    BlockConversionVisitor if_visitor(*if_stmt, translator);
     if_visitor.print(actual_if);
     ostringstream expected_if;
     expected_if << "{" << endl
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     BOOST_CHECK_EQUAL(actual_if.str(), expected_if.str());
 
     ostringstream actual_else;
-    BlockConversionVisitor else_visitor(else_stmt->body(), translator);
+    BlockConversionVisitor else_visitor(*else_stmt, translator);
     else_visitor.print(actual_else);
     ostringstream expected_else;
     expected_else << "{" << endl
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
     auto while_stmt = (fncs[0]->name() == "while_stmt") ? fncs[0] : fncs[1];
     ostringstream actual_while, expected_while;
-    BlockConversionVisitor while_visitor(while_stmt->body(), translator);
+    BlockConversionVisitor while_visitor(*while_stmt, translator);
     while_visitor.print(actual_while);
     expected_while << "{" << endl
                    << "while ((self->d_a)!=(self->d_a))" << endl
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
     auto for_stmt = (fncs[0]->name() == "while_stmt") ? fncs[1] : fncs[0];
     ostringstream actual_for, expected_for;
-    BlockConversionVisitor for_visitor(for_stmt->body(), translator);
+    BlockConversionVisitor for_visitor(*for_stmt, translator);
     for_visitor.print(actual_for);
     expected_for << "{" << endl
                  << "for (; (self->d_a)<(10); ++(self->d_a))" << endl
@@ -168,28 +168,54 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
 BOOST_AUTO_TEST_CASE(continue_statement)
 {
-    Block block(
-        SourceLocation(), nullptr, {make_shared<Continue>(SourceLocation(), nullptr)});
+    char const* text = R"(
+		contract A {
+			function void_func() public
+            {
+                while (false) { continue; }
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(block, TypeTranslator());
+    BlockConversionVisitor visitor(func, TypeTranslator());
     visitor.print(actual);
     expected << "{" << endl
+             << "while (0)" << endl
+             << "{" << endl
              << "continue;" << endl
+             << "}" << endl
              << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
 BOOST_AUTO_TEST_CASE(break_statement)
 {
-    Block block(
-        SourceLocation(), nullptr, {make_shared<Break>(SourceLocation(), nullptr)});
+    char const* text = R"(
+		contract A {
+			function void_func() public
+            {
+                while (false) { break; }
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(block, TypeTranslator());
+    BlockConversionVisitor visitor(func, TypeTranslator());
     visitor.print(actual);
     expected << "{" << endl
+             << "while (0)" << endl
+             << "{" << endl
              << "break;" << endl
+             << "}" << endl
              << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -207,13 +233,12 @@ BOOST_AUTO_TEST_CASE(return_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& fncs = ctrt.definedFunctions();
 
-
     TypeTranslator translator;
     translator.enter_scope(ctrt);
 
     auto void_func = (fncs[0]->name() == "void_func") ? fncs[0] : fncs[1];
     ostringstream actual_void, expected_void;
-    BlockConversionVisitor void_visitor(void_func->body(), translator);
+    BlockConversionVisitor void_visitor(*void_func, translator);
     void_visitor.print(actual_void);
     expected_void << "{" << endl
                   << "return;" << endl
@@ -222,7 +247,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
 
     auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int, expected_int;
-    BlockConversionVisitor int_visitor(int_func->body(), translator);
+    BlockConversionVisitor int_visitor(*int_func, translator);
     int_visitor.print(actual_int);
     expected_int << "{" << endl
                  << "return (10)+(5);" << endl
@@ -236,7 +261,7 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
 		contract A {
             int a;
             int c;
-			function f() public returns (int) {
+			function f() public {
                 int b;
                 {
                     int c;
@@ -250,13 +275,13 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
 
     const auto &unit = *parseAndAnalyse(text);
     const auto &ctrt = *retrieveContractByName(unit, "A");
-    const auto &body = ctrt.definedFunctions()[0]->body();
+    const auto &func = *ctrt.definedFunctions()[0];
 
     TypeTranslator translator;
     translator.enter_scope(ctrt);
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(body, translator);
+    BlockConversionVisitor visitor(func, translator);
     visitor.print(actual);
     expected << "{" << endl
              << "int b;" << endl
@@ -276,6 +301,43 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
              << "self->d_c;" << endl
              << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
+BOOST_AUTO_TEST_CASE(named_function_retvars)
+{
+    char const* text = R"(
+		contract A {
+			function f() public returns (int) { return 5; }
+			function g() public returns (int a) { a = 5; }
+		}
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& fncs = ctrt.definedFunctions();
+
+    TypeTranslator translator;
+    translator.enter_scope(ctrt);
+
+    auto unnamed = (fncs[0]->name() == "f") ? fncs[0] : fncs[1];
+    ostringstream actual_unnamed, expected_unnamed;
+    BlockConversionVisitor unnamed_visitor(*unnamed, translator);
+    unnamed_visitor.print(actual_unnamed);
+    expected_unnamed << "{" << endl
+                     << "return 5;" << endl
+                     << "}";
+    BOOST_CHECK_EQUAL(actual_unnamed.str(), expected_unnamed.str());
+
+    auto named = (fncs[0]->name() == "f") ? fncs[1] : fncs[0];
+    ostringstream actual_named, expected_named;
+    BlockConversionVisitor named_visitor(*named, translator);
+    named_visitor.print(actual_named);
+    expected_named << "{" << endl
+                   << "int a;" << endl
+                   << "(a)=(5);" << endl
+                   << "return a;" << endl
+                   << "}";
+    BOOST_CHECK_EQUAL(actual_named.str(), expected_named.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -28,7 +28,7 @@ class BlockConversionVisitor : public ASTConstVisitor
 public:
     // Creates a C model code generator for a given block of Solidity code.
     BlockConversionVisitor(
-        Block const& _body,
+        FunctionDefinition const& _func,
         TypeTranslator const& _scope
     );
 
@@ -55,9 +55,12 @@ private:
     TypeTranslator const& m_scope;
 	VariableScopeResolver m_decls;
 
+	ASTPointer<VariableDeclaration> m_retvar = nullptr;
+
 	std::ostream* m_ostream = nullptr;
 
-	bool m_is_loop_statement = false;
+	bool m_is_loop_statement;
+	bool m_is_top_level;
 
 	void print_loop_statement(Statement const* _node);
 	void end_statement();
