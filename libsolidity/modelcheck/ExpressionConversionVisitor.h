@@ -65,6 +65,7 @@ private:
 	static long long int literal_to_number(Literal const& _node);
 
 	void print_subexpression(Expression const& _node);
+	void print_assertion(std::string type, FunctionCall const& _func);
 };
 
 }

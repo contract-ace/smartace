@@ -193,9 +193,122 @@ bool ExpressionConversionVisitor::visit(BinaryOperation const& _node)
 
 bool ExpressionConversionVisitor::visit(FunctionCall const& _node)
 {
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Function calls not yet supported.");
+	auto ftype = dynamic_cast<FunctionType const*>(
+		_node.expression().annotation().type);
+	if (!ftype)
+	{
+		throw runtime_error("Function encountered without type annotations.");
+	}
+
+	switch (ftype->kind())
+	{
+	case FunctionType::Kind::Internal:
+		// TODO(scottwe): implement.
+		throw runtime_error("Internal function call not yet supported.");
+	case FunctionType::Kind::External:
+	case FunctionType::Kind::BareCall:
+	case FunctionType::Kind::BareStaticCall:
+		// TODO(scottwe): STATICCALL prevents immutability, as opposed to
+		//     relying on only compile-time checks... should this be handled
+		//     seperately, and where did compile-time checks fail?
+		// TODO(scottwe): how does value behave when chaining calls?
+		// TODO(scottwe): implement.
+		throw runtime_error("External function call not yet supported.");
+	case FunctionType::Kind::DelegateCall:
+	case FunctionType::Kind::BareDelegateCall:
+	case FunctionType::Kind::BareCallCode:
+		// TODO(scottwe): report that calls to DELEGATECALL are not supported.
+		throw runtime_error("Delegate calls are unsupported.");
+	case FunctionType::Kind::Creation:
+		// TODO(scottwe): what functions map to CREATE type?
+		throw runtime_error("CREATE call not yet supported.");
+	case FunctionType::Kind::Send:
+	case FunctionType::Kind::Transfer:
+		// TODO(scottwe): associate address and call at MemberAccess level?
+		throw runtime_error("Payment call not yet supported.");
+	case FunctionType::Kind::KECCAK256:
+		// TODO(scottwe): implement.
+		throw runtime_error("KECCAK256 not yet supported.");
+	case FunctionType::Kind::Selfdestruct:
+		// TODO(scottwe): when should this be acceptable?
+		throw runtime_error("Selfdestruct unsupported.");
+	case FunctionType::Kind::Revert:
+		// TODO(scottwe): decide on rollback versus assert branch pruning.
+		throw runtime_error("Revert not yet supported.");
+	case FunctionType::Kind::ECRecover:
+		// TODO(scottwe): implement.
+		throw runtime_error("ECRecover not yet supported.");
+	case FunctionType::Kind::SHA256:
+		// TODO(scottwe): implement.
+		throw runtime_error("SHA256 not yet supported.");
+	case FunctionType::Kind::RIPEMD160:
+		// TODO(scottwe): implement.
+		throw runtime_error("RIPEMD160 not yet supported.");
+	case FunctionType::Kind::Log0:
+	case FunctionType::Kind::Log1:
+	case FunctionType::Kind::Log2:
+	case FunctionType::Kind::Log3:
+	case FunctionType::Kind::Log4:
+	case FunctionType::Kind::Event:
+		// TODO(scottwe): prune statements which operate on events...
+		throw runtime_error("Logging is not verified.");
+	case FunctionType::Kind::SetGas:
+		// TODO(scottwe): will gas be modelled at all?
+		throw runtime_error("`gas(<val>)` not yet supported.");
+	case FunctionType::Kind::SetValue:
+		// TODO(scottwe): update state.value for the given call.
+		throw runtime_error("`value(<val>)` not yet supported.");
+	case FunctionType::Kind::BlockHash:
+		// TODO(scottwe): implement.
+		throw runtime_error("`block.blockhash(<val>)` not yet supported.");
+	case FunctionType::Kind::AddMod:
+		// TODO(scottwe): overflow free `assert(z > 0); return (x + y) % z;`.
+		throw runtime_error("AddMod not yet supported.");
+	case FunctionType::Kind::MulMod:
+		// TODO(scottwe): overflow free `assert(z > 0); return (x * y) % z;`.
+		throw runtime_error("AddMod not yet supported.");
+	case FunctionType::Kind::ArrayPush:
+	case FunctionType::Kind::ByteArrayPush:
+		// TODO(scottwe): implement.
+		throw runtime_error("`<array>.push(<val>)` not yet supported.");
+	case FunctionType::Kind::ArrayPop:
+		// TODO(scottwe): implement.
+		throw runtime_error("`<array>.pop()` not yet supported.");
+	case FunctionType::Kind::ObjectCreation:
+		// TODO(scottwe): implement.
+		throw runtime_error("`new <array>` not yet supported.");
+	case FunctionType::Kind::Assert:
+		print_assertion("assert", _node);
+		break;
+	case FunctionType::Kind::Require:
+		print_assertion("assume", _node);
+		break;
+	case FunctionType::Kind::ABIEncode:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.encode(...)` unsupported.");
+	case FunctionType::Kind::ABIEncodePacked:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.encodePacked(...)` unsupported.");
+	case FunctionType::Kind::ABIEncodeWithSelector:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.encodeWithSelector(...)` unsupported.");
+	case FunctionType::Kind::ABIEncodeWithSignature:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.encodeWithSignature(...)` unsupported.");
+	case FunctionType::Kind::ABIDecode:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.decode(...)` unsupported.");
+	case FunctionType::Kind::GasLeft:
+		// TODO(scottwe): decide how to handle remaining gas checks.
+		throw runtime_error("GasLeft not yet supported.");
+	case FunctionType::Kind::MetaType:
+		// Note: Compiler does not generate code for MetaType calls.
+		break;
+	default:
+		throw runtime_error("Unexpected function call type.");
+	}
+
+	return false;
 }
 
 bool ExpressionConversionVisitor::visit(NewExpression const& _node)
@@ -302,6 +415,19 @@ void ExpressionConversionVisitor::print_subexpression(Expression const& _node)
 {
 	(*m_ostream) << "(";
 	_node.accept(*this);
+	(*m_ostream) << ")";
+}
+
+void ExpressionConversionVisitor::print_assertion(
+	string type, FunctionCall const& _func)
+{
+	if (_func.arguments().empty())
+	{
+		throw runtime_error("Assertion requires condition.");
+	}
+
+	(*m_ostream) << type << "(";
+	(_func.arguments()[0])->accept(*this);
 	(*m_ostream) << ")";
 }
 

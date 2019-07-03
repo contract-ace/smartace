@@ -214,6 +214,7 @@ bool BlockConversionVisitor::visit(Throw const& _node)
 
 bool BlockConversionVisitor::visit(EmitStatement const&)
 {
+	// TODO(scottwe): warn unchecked; emit statements may be used to audit.
 	return false;
 }
 

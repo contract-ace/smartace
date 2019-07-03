@@ -21,7 +21,7 @@ namespace modelcheck
 namespace test
 {
 
-BOOST_FIXTURE_TEST_SUITE(BlockToModel, ::dev::solidity::test::AnalysisFramework)
+BOOST_FIXTURE_TEST_SUITE(BlockConversion, ::dev::solidity::test::AnalysisFramework)
 
 // Tests that else statements and bodies are optional and that branch bodies are
 // properly scoped
@@ -170,8 +170,7 @@ BOOST_AUTO_TEST_CASE(continue_statement)
 {
     char const* text = R"(
 		contract A {
-			function void_func() public
-            {
+			function void_func() public {
                 while (false) { continue; }
             }
         }
@@ -197,8 +196,7 @@ BOOST_AUTO_TEST_CASE(break_statement)
 {
     char const* text = R"(
 		contract A {
-			function void_func() public
-            {
+			function void_func() public {
                 while (false) { break; }
             }
         }
@@ -338,6 +336,35 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
                    << "return a;" << endl
                    << "}";
     BOOST_CHECK_EQUAL(actual_named.str(), expected_named.str());
+}
+
+// Tests conversion of assert/require into C-horn. This is tested on the block
+// level due to the complexity of annotated FunctionCall expressions.
+BOOST_AUTO_TEST_CASE(verification_function_calls)
+{
+    char const* text = R"(
+		contract A {
+			function f(address payable dst) public {
+                require(true);
+                require(true, "test");
+                assert(true);
+            }
+		}
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    ostringstream actual, expected;
+    BlockConversionVisitor visitor(func, TypeTranslator());
+    visitor.print(actual);
+    expected << "{" << endl
+             << "assume(1);" << endl
+             << "assume(1);" << endl
+             << "assert(1);" << endl
+             << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
