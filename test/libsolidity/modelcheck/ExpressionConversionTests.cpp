@@ -123,6 +123,34 @@ string _convert_literal(
 
 BOOST_AUTO_TEST_SUITE(ExpressionConversion)
 
+BOOST_AUTO_TEST_CASE(conditional_expression_output)
+{
+    auto var_a = make_shared<Identifier>(
+        SourceLocation(), make_shared<string>("a"));
+    auto var_b = make_shared<Identifier>(
+        SourceLocation(), make_shared<string>("b"));
+    auto var_c = make_shared<Identifier>(
+        SourceLocation(), make_shared<string>("c"));
+
+    Conditional cond(SourceLocation(), var_a, var_b, var_c);
+
+    const TypeTranslator translator;
+    VariableScopeResolver resolver;
+
+    resolver.enter();
+    resolver.record_declaration(VariableDeclaration(
+        SourceLocation(),
+        nullptr,
+        make_shared<string>("a"),
+        nullptr, Declaration::Visibility::Public));
+
+    ExpressionConversionVisitor visitor(cond, translator, resolver);
+
+    ostringstream oss;
+    visitor.print(oss);
+    BOOST_CHECK_EQUAL(oss.str(), "(a)?(self->d_b):(self->d_c)");
+}
+
 BOOST_AUTO_TEST_CASE(assignment_expression_output)
 {
     BOOST_CHECK_EQUAL(

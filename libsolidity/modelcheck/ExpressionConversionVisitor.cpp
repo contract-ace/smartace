@@ -52,9 +52,12 @@ bool ExpressionConversionVisitor::visit(ModifierInvocation const& _node)
 
 bool ExpressionConversionVisitor::visit(Conditional const& _node)
 {
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Conditionals not yet supported.");
+	print_subexpression(_node.condition());
+	(*m_ostream) << "?";
+	print_subexpression(_node.trueExpression());
+	(*m_ostream) << ":";
+	print_subexpression(_node.falseExpression());
+	return false;
 }
 
 bool ExpressionConversionVisitor::visit(Assignment const& _node)
