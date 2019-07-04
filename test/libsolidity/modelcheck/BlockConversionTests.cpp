@@ -364,6 +364,54 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     BOOST_CHECK_EQUAL(actual_named.str(), expected_named.str());
 }
 
+// Tests interal method calls. Internal calls are those which reference contract
+// members, without the use of member access (`<ctx>.<method>(...)` or
+// `this.<method>(...)`).
+BOOST_AUTO_TEST_CASE(internal_method_calls)
+{
+    char const* text = R"(
+		contract A {
+			function f() public { }
+            function g(int a) public { }
+            function h(int a, int b) public { }
+            function p() public pure { }
+            function q(int a) public pure { }
+            function r(int a, int b) public pure { }
+            function test() public {
+                f();
+                g(1);
+                h(1, 2);
+                p();
+                q(1);
+                r(1, 2);
+            }
+		}
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    
+    for (auto func_ptr : ctrt.definedFunctions())
+    {
+        if (func_ptr->name() == "test")
+        {
+            ostringstream actual, expected;
+            BlockConversionVisitor visitor(*func_ptr, TypeTranslator());
+            visitor.print(actual);
+            expected << "{" << endl
+                    << "Method_A_f(self, state);" << endl
+                    << "Method_A_g(self, state, 1);" << endl
+                    << "Method_A_h(self, state, 1, 2);" << endl
+                    << "Method_A_p();" << endl
+                    << "Method_A_q(1);" << endl
+                    << "Method_A_r(1, 2);" << endl
+                    << "}";
+            BOOST_CHECK_EQUAL(actual.str(), expected.str());
+            break;
+        }
+    }
+}
+
 // Tests conversion of transfer/send into _pay. This is tested on the block
 // level due to the complexity of annotated FunctionCall expressions.
 BOOST_AUTO_TEST_CASE(payment_function_calls)

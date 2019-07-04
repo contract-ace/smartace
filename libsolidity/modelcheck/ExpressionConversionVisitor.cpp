@@ -4,6 +4,7 @@
  */
 
 #include <libsolidity/modelcheck/ExpressionConversionVisitor.h>
+#include <libsolidity/modelcheck/FunctionDefinitionGenerator.h>
 #include <stdexcept>
 
 using namespace std;
@@ -218,6 +219,8 @@ bool ExpressionConversionVisitor::visit(BinaryOperation const& _node)
 
 bool ExpressionConversionVisitor::visit(FunctionCall const& _node)
 {
+	Identifier self(langutil::SourceLocation(), make_shared<string>("this"));
+
 	auto ftype = dynamic_cast<FunctionType const*>(
 		_node.expression().annotation().type);
 	if (!ftype)
@@ -228,8 +231,8 @@ bool ExpressionConversionVisitor::visit(FunctionCall const& _node)
 	switch (ftype->kind())
 	{
 	case FunctionType::Kind::Internal:
-		// TODO(scottwe): implement.
-		throw runtime_error("Internal function call not yet supported.");
+		print_method(*ftype, self, _node.arguments());
+		break;
 	case FunctionType::Kind::External:
 	case FunctionType::Kind::BareCall:
 	case FunctionType::Kind::BareStaticCall:
@@ -473,6 +476,43 @@ void ExpressionConversionVisitor::print_payment(FunctionCall const& _func)
 	call->expression().accept(*this);
 	(*m_ostream) << ", ";
 	(_func.arguments()[0])->accept(*this);
+	(*m_ostream) << ")";
+}
+
+void ExpressionConversionVisitor::print_method(
+	FunctionType const& _type,
+	Expression const& _ctx,
+	std::vector<ASTPointer<Expression const>> const& _args)
+{
+	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
+	const bool is_mutable = (decl.stateMutability() != StateMutability::Pure);
+
+	auto contract = dynamic_cast<ContractDefinition const*>(decl.scope());
+	if (!contract)
+	{
+		throw runtime_error("Failed to resolve contract from method call.");
+	}
+
+	(*m_ostream) << to_c_method_name(
+		decl.name(), m_scope.translate(*contract).name, false);
+
+	(*m_ostream) << "(";
+
+	if (is_mutable)
+	{
+		_ctx.accept(*this);
+		(*m_ostream) << ", state";
+	}
+
+	for (unsigned int i = 0; i < _args.size(); ++i)
+	{
+		if (is_mutable || i > 0)
+		{
+			(*m_ostream) << ", ";
+		}
+		_args[i]->accept(*this);
+	}
+
 	(*m_ostream) << ")";
 }
 

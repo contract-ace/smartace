@@ -68,7 +68,9 @@ bool FunctionForwardDeclVisitor::visit(StructDefinition const& _node)
 
 bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
 {
-    if (_node.isConstructor())
+    bool is_ctor = _node.isConstructor();
+
+    if (is_ctor)
     {
         (*m_ostream) << m_translator.scope().type;
     }
@@ -77,19 +79,11 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
         printRetvals(_node);
     }
 
-    (*m_ostream) << " ";
+    (*m_ostream) << " " << to_c_method_name(
+        _node.name(), m_translator.scope().name, is_ctor);
 
-    (*m_ostream) << ((_node.isConstructor()) ? "Ctor" : "Method")
-                 << "_"
-                 << m_translator.scope().name;
-    if (!_node.isConstructor())
-    {
-        (*m_ostream) << "_" << _node.name();
-    }
-
-    bool requires_state = _node.isConstructor() ||
-                          _node.stateMutability() == StateMutability::Pure;
-    printArgs(_node, !requires_state);
+    printArgs(
+        _node, !(is_ctor || _node.stateMutability() == StateMutability::Pure));
 
     (*m_ostream) << ";" << endl;
 

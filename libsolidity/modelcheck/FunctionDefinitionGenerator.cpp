@@ -4,6 +4,7 @@
  */
 
 #include <libsolidity/modelcheck/FunctionDefinitionGenerator.h>
+#include <sstream>
 
 using namespace std;
 
@@ -13,6 +14,21 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+string to_c_method_name(string method, string contract, bool is_ctor)
+{
+    ostringstream oss;
+    oss << (is_ctor ? "Ctor" : "Method") << "_" << contract;
+    if (!is_ctor)
+    {
+        oss << "_" << method;
+    }
+    return oss.str();
+}
+
+// -------------------------------------------------------------------------- //
 
 FunctionDefinitionGenerator::FunctionDefinitionGenerator(
     ASTNode const& _srcnode,
@@ -56,6 +72,8 @@ ASTPointer<FunctionDefinition> FunctionDefinitionGenerator::generate() const
         make_shared<Block>(LOC, epsilon, m_statements)
     );
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }

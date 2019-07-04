@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
+#include <libsolidity/modelcheck/TypeTranslator.h>
 #include <vector>
 
 namespace dev
@@ -14,6 +15,16 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Helper function to generate C-model function names.
+ */
+std::string to_c_method_name(
+    std::string method, std::string contract, bool is_ctor);
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Utility to easily build AST function nodes inline.
@@ -44,6 +55,8 @@ private:
     std::vector<ASTPointer<VariableDeclaration>> m_retvals;
     std::vector<ASTPointer<Statement>> m_statements;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }
