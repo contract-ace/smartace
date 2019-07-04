@@ -23,6 +23,32 @@ namespace test
 
 BOOST_FIXTURE_TEST_SUITE(BlockConversion, ::dev::solidity::test::AnalysisFramework)
 
+// Tests that input parameters are registered as declarations.
+BOOST_AUTO_TEST_CASE(argument_registration)
+{
+    char const* text = R"(
+		contract A {
+			function f(int a, int b) public {
+                a;
+                b;
+            }
+		}
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    ostringstream actual, expected;
+    BlockConversionVisitor visitor(func, TypeTranslator());
+    visitor.print(actual);
+    expected << "{" << endl
+             << "a;" << endl
+             << "b;" << endl
+             << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 // Tests that else statements and bodies are optional and that branch bodies are
 // properly scoped
 BOOST_AUTO_TEST_CASE(if_statement)

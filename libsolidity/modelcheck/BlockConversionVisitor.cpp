@@ -36,6 +36,12 @@ BlockConversionVisitor::BlockConversionVisitor(
 			m_retvar = retvar;
 		}
 	}
+
+	m_decls.enter();
+	for (auto const& arg : _func.parameters())
+	{
+		m_decls.record_declaration(*arg);
+	}
 }
 
 // -------------------------------------------------------------------------- //
