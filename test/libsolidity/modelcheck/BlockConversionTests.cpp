@@ -412,6 +412,53 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
     }
 }
 
+// Tests external method calls. External method calls reference members of a
+// given contract by address, through the use of member accessors
+// (`<ctx>.<method>(...)` or `this.<method>(...)`).
+BOOST_AUTO_TEST_CASE(external_method_calls)
+{
+    char const* text = R"(
+		contract A {
+			function f() public { }
+            function g() public pure { }
+		}
+        contract B {
+            A a;
+            B b;
+            function f() public { }
+            function test() public {
+                a.f();
+                a.g();
+                b.f();
+                this.f();
+                (this.f)();
+            }
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "B");
+    
+    for (auto func_ptr : ctrt.definedFunctions())
+    {
+        if (func_ptr->name() == "test")
+        {
+            ostringstream actual, expected;
+            BlockConversionVisitor visitor(*func_ptr, TypeTranslator());
+            visitor.print(actual);
+            expected << "{" << endl
+                    << "Method_A_f(self->d_a, state);" << endl
+                    << "Method_A_g();" << endl
+                    << "Method_B_f(self->d_b, state);" << endl
+                    << "Method_B_f(self, state);" << endl
+                    << "Method_B_f(self, state);" << endl
+                    << "}";
+            BOOST_CHECK_EQUAL(actual.str(), expected.str());
+            break;
+        }
+    }
+}
+
 // Tests conversion of transfer/send into _pay. This is tested on the block
 // level due to the complexity of annotated FunctionCall expressions.
 BOOST_AUTO_TEST_CASE(payment_function_calls)

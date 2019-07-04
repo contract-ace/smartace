@@ -93,6 +93,7 @@ private:
 	void print_subexpression(Expression const& _node);
 	void print_assertion(std::string type, FunctionCall const& _func);
 	void print_payment(FunctionCall const& _func);
+	void print_ext_method(FunctionType const& _type, FunctionCall const& _func);
 	void print_method(
 		FunctionType const& _type,
 		Expression const& _ctx,

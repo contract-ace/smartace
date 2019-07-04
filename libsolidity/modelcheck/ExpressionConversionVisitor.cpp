@@ -240,8 +240,8 @@ bool ExpressionConversionVisitor::visit(FunctionCall const& _node)
 		//     relying on only compile-time checks... should this be handled
 		//     seperately, and where did compile-time checks fail?
 		// TODO(scottwe): how does value behave when chaining calls?
-		// TODO(scottwe): implement.
-		throw runtime_error("External function call not yet supported.");
+		print_ext_method(*ftype, _node);
+		break;
 	case FunctionType::Kind::DelegateCall:
 	case FunctionType::Kind::BareDelegateCall:
 	case FunctionType::Kind::BareCallCode:
@@ -477,6 +477,17 @@ void ExpressionConversionVisitor::print_payment(FunctionCall const& _func)
 	(*m_ostream) << ", ";
 	(_func.arguments()[0])->accept(*this);
 	(*m_ostream) << ")";
+}
+
+void ExpressionConversionVisitor::print_ext_method(
+	FunctionType const& _type, FunctionCall const& _func)
+{
+	MemberAccess const* call = MemberAccessSniffer(_func.expression()).find();
+	if (!call)
+	{
+		throw runtime_error("Unable to extract address from external call.");
+	}
+	print_method(_type, call->expression(), _func.arguments());
 }
 
 void ExpressionConversionVisitor::print_method(
