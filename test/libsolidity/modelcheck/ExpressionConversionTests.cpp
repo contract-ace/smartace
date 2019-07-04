@@ -123,6 +123,27 @@ string _convert_literal(
 
 BOOST_AUTO_TEST_SUITE(ExpressionConversion)
 
+BOOST_AUTO_TEST_CASE(member_access_sniffer)
+{
+    auto id = make_shared<Identifier>(
+        SourceLocation(), make_shared<string>("a"));
+
+    auto m1 = make_shared<MemberAccess>(SourceLocation(), id, nullptr);
+    auto m2 = make_shared<MemberAccess>(SourceLocation(), m1, nullptr);
+
+    TupleExpression tuple(SourceLocation(), {m2}, false);
+
+    MemberAccessSniffer v1(tuple);
+    MemberAccessSniffer v2(*m2);
+    MemberAccessSniffer v3(*m1);
+    MemberAccessSniffer v4(*id);
+
+    BOOST_CHECK_EQUAL(v1.find(), m2.get());
+    BOOST_CHECK_EQUAL(v2.find(), m2.get());
+    BOOST_CHECK_EQUAL(v3.find(), m1.get());
+    BOOST_CHECK_EQUAL(v4.find(), nullptr);
+}
+
 BOOST_AUTO_TEST_CASE(conditional_expression_output)
 {
     auto var_a = make_shared<Identifier>(

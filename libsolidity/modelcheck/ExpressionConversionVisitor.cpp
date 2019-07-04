@@ -17,6 +17,31 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+MemberAccessSniffer::MemberAccessSniffer(
+	Expression const& _expr
+): m_expr(&_expr)
+{
+}
+
+// -------------------------------------------------------------------------- //
+
+MemberAccess const* MemberAccessSniffer::find()
+{
+	m_ret = nullptr;
+	m_expr->accept(*this);
+	return m_ret;
+}
+
+// -------------------------------------------------------------------------- //
+
+bool MemberAccessSniffer::visit(MemberAccess const& _node)
+{
+	m_ret = &_node;
+	return false;
+}
+
+// -------------------------------------------------------------------------- //
+
 ExpressionConversionVisitor::ExpressionConversionVisitor(
 	Expression const& _expr,
 	TypeTranslator const& _scope,
@@ -224,8 +249,8 @@ bool ExpressionConversionVisitor::visit(FunctionCall const& _node)
 		throw runtime_error("CREATE call not yet supported.");
 	case FunctionType::Kind::Send:
 	case FunctionType::Kind::Transfer:
-		// TODO(scottwe): associate address and call at MemberAccess level?
-		throw runtime_error("Payment call not yet supported.");
+		print_payment(_node);
+		break;
 	case FunctionType::Kind::KECCAK256:
 		// TODO(scottwe): implement.
 		throw runtime_error("KECCAK256 not yet supported.");
@@ -427,6 +452,26 @@ void ExpressionConversionVisitor::print_assertion(
 	}
 
 	(*m_ostream) << type << "(";
+	(_func.arguments()[0])->accept(*this);
+	(*m_ostream) << ")";
+}
+
+void ExpressionConversionVisitor::print_payment(FunctionCall const& _func)
+{
+	if (_func.arguments().size() != 1)
+	{
+		throw runtime_error("Payment calls require payment amount.");
+	}
+
+	MemberAccess const* call = MemberAccessSniffer(_func.expression()).find();
+	if (!call)
+	{
+		throw runtime_error("Unable to extract address from payment call.");
+	}
+
+	(*m_ostream) << "_pay(state, ";
+	call->expression().accept(*this);
+	(*m_ostream) << ", ";
 	(_func.arguments()[0])->accept(*this);
 	(*m_ostream) << ")";
 }

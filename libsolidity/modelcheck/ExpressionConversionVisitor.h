@@ -18,6 +18,32 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
+/**
+ * Utility to find top-most MemberAccess within an expression AST.
+ */
+class MemberAccessSniffer : public ASTConstVisitor
+{
+public:
+	// Wraps an AST node from which the member access is located.
+	MemberAccessSniffer(
+        Expression const& _expr
+	);
+
+	// Returns the member accessor if possible, or nullptr.
+	MemberAccess const* find();
+
+protected:
+	bool visit(MemberAccess const& _node);
+
+private:
+    Expression const* m_expr;
+    MemberAccess const* m_ret;
+};
+
+// -------------------------------------------------------------------------- //
+
 /**
  * A utility visitor, designed to convert Solidity statements into executable
  * C code. This is meant to be used a utility when converting a full Solidity
@@ -66,7 +92,10 @@ private:
 
 	void print_subexpression(Expression const& _node);
 	void print_assertion(std::string type, FunctionCall const& _func);
+	void print_payment(FunctionCall const& _func);
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

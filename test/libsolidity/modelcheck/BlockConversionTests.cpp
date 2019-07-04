@@ -364,6 +364,35 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     BOOST_CHECK_EQUAL(actual_named.str(), expected_named.str());
 }
 
+// Tests conversion of transfer/send into _pay. This is tested on the block
+// level due to the complexity of annotated FunctionCall expressions.
+BOOST_AUTO_TEST_CASE(payment_function_calls)
+{
+    char const* text = R"(
+		contract A {
+			function f(address payable dst) public {
+                dst.transfer(5);
+                dst.send(10);
+                (dst.send)(15);
+            }
+		}
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    ostringstream actual, expected;
+    BlockConversionVisitor visitor(func, TypeTranslator());
+    visitor.print(actual);
+    expected << "{" << endl
+             << "_pay(state, dst, 5);" << endl
+             << "_pay(state, dst, 10);" << endl
+             << "_pay(state, dst, 15);" << endl
+             << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 // Tests conversion of assert/require into C-horn. This is tested on the block
 // level due to the complexity of annotated FunctionCall expressions.
 BOOST_AUTO_TEST_CASE(verification_function_calls)
