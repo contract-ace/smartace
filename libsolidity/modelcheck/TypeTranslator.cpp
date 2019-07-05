@@ -4,7 +4,6 @@
 
 #include <libsolidity/modelcheck/TypeTranslator.h>
 
-#include <libsolidity/modelcheck/MapDepthCalculator.h>
 #include <sstream>
 #include <stdexcept>
 
@@ -17,8 +16,6 @@ namespace solidity
 {
 namespace modelcheck
 {
-
-#define SOL_TCAST(Typename, ptr) dynamic_cast<Typename const*>(ptr)
 
 void TypeTranslator::enter_scope(ContractDefinition const& scope)
 {
@@ -69,47 +66,11 @@ void TypeTranslator::exit_scope()
     {
         throw runtime_error("Translator out of scope.");
     }
-    
 }
 
-Translation TypeTranslator::translate(ContractDefinition const& datatype) const
+Translation TypeTranslator::translate(Declaration const& datatype) const
 {
-    Translation t;
-    t.name = datatype.name();
-    t.type = "struct " + t.name;
-    return t;
-}
-
-Translation TypeTranslator::translate(StructDefinition const& datatype) const
-{
-    if (!m_contract_ctx.is_initialized())
-    {
-        throw runtime_error("A struct must be translated within a contract.");
-    }
-
-    Translation t;
-    t.name = m_contract_ctx.value() + "_" + datatype.name();
-    t.type = "struct " + t.name;
-    return t;
-}
-
-Translation TypeTranslator::translate(Mapping const& datatype) const
-{
-    MapDepthCalculator depth_calc(datatype);
-    return map_translation_impl(depth_calc.depth());
-}
-
-Translation TypeTranslator::translate(MappingType const& datatype) const
-{
-    unsigned int depth = 0;
-
-    MappingType const* curr_type = &datatype;
-    do {
-        ++depth;
-        curr_type = dynamic_cast<MappingType const*>(curr_type->valueType());
-    } while (curr_type != nullptr);
-
-    return map_translation_impl(depth);
+    return translate(datatype.type());
 }
 
 Translation TypeTranslator::translate(TypeName const& datatype) const
@@ -117,55 +78,52 @@ Translation TypeTranslator::translate(TypeName const& datatype) const
     return translate(datatype.annotation().type);
 }
 
-Translation TypeTranslator::translate(TypePointer const& t) const
+Translation TypeTranslator::translate(TypePointer t) const
 {
-    Translation res;
-    if ((SOL_TCAST(AddressType, t) != nullptr) ||
-        (SOL_TCAST(StringLiteralType, t) != nullptr) ||
-        (SOL_TCAST(BoolType, t) != nullptr))
+    if (!t)
     {
-        res.type = res.name = "int";
+        throw runtime_error("nullptr provided to type translator.");
     }
-    else if (SOL_TCAST(IntegerType, t) != nullptr)
+
+    switch (t->category())
     {
-        if (SOL_TCAST(IntegerType, t)->isSigned())
-        {
-            res.type = res.name = "int";
-        }
-        else
-        {
-            res.type = res.name = "unsigned int";
-        }
+    case Type::Category::Address:
+    case Type::Category::Bool:
+    case Type::Category::StringLiteral:
+        return translate_basic("int");
+    case Type::Category::Integer:
+        return translate_int(t);
+    case Type::Category::RationalNumber:
+    case Type::Category::FixedPoint:
+        return translate_basic("double");
+    case Type::Category::Array:
+    case Type::Category::FixedBytes:
+        throw runtime_error("Array types are not supported");
+    case Type::Category::Contract:
+        return translate_contract(t);
+    case Type::Category::Struct:
+        return translate_struct(t);
+    case Type::Category::Function:
+        throw runtime_error("Function types are not supported.");
+    case Type::Category::Enum:
+        throw runtime_error("Enum types are not supported.");
+    case Type::Category::Tuple:
+        throw runtime_error("Tuple types are not supported.");
+    case Type::Category::Mapping:
+        return translate_mapping(t);
+    case Type::Category::TypeType:
+        return translate_type(t);
+    case Type::Category::Modifier:
+        throw runtime_error("Modifier types are not supported.");
+    case Type::Category::Magic:
+        throw runtime_error("Magic types are not supported.");
+    case Type::Category::Module:
+        throw runtime_error("Module types are not supported.");
+	case Type::Category::InaccessibleDynamic:
+        throw runtime_error("Type is inaccessible.");
+    default:
+        throw runtime_error("Unknown type:" + t->richIdentifier());
     }
-    else if ((SOL_TCAST(FixedPointType, t) != nullptr) ||
-             (SOL_TCAST(RationalNumberType, t) != nullptr))
-    {
-        res.type = res.name = "double";
-    }
-    else if (SOL_TCAST(MappingType, t) != nullptr)
-    {
-        res = translate(*SOL_TCAST(MappingType, t));
-    }
-    else if (SOL_TCAST(ContractType, t) != nullptr)
-    {
-        res = translate(SOL_TCAST(ContractType, t)->contractDefinition());
-    }
-    else if (SOL_TCAST(StructType, t) != nullptr)
-    {
-        res = translate(SOL_TCAST(StructType, t)->structDefinition());
-    }
-    else
-    {
-        // TODO: Add support for...
-        //       - ReferenceType
-        //       - ArrayType
-        //       - EnumType
-        //       - TupleType
-        //       - FixedBytesType
-        throw runtime_error(
-            "Attempt to translate unsupported type:" + t->richIdentifier());
-    }
-    return res;
 }
 
 Translation TypeTranslator::scope() const
@@ -189,17 +147,95 @@ Translation TypeTranslator::scope() const
     return t;
 }
 
-Translation TypeTranslator::map_translation_impl(unsigned int depth) const
+Translation TypeTranslator::translate_basic(const string &name) const
 {
+    Translation res;
+    res.type = res.name = name;
+    return res;
+}
+
+Translation TypeTranslator::translate_int(TypePointer t) const
+{
+    auto typecast = dynamic_cast<IntegerType const*>(t);
+    if (!typecast)
+    {
+        throw runtime_error("Type not convertible to IntegerType");
+    }
+
+    Translation res;
+    res.type = res.name = typecast->isSigned() ? "int" : "unsigned int";
+    return res;
+}
+
+Translation TypeTranslator::translate_contract(TypePointer t) const
+{
+    auto typecast = dynamic_cast<ContractType const*>(t);
+    if (!typecast)
+    {
+        throw runtime_error("Type not convertible to ContractType");
+    }
+
+    Translation res;
+    res.name = typecast->contractDefinition().name();
+    res.type = "struct " + res.name;
+    return res;
+}
+
+Translation TypeTranslator::translate_struct(TypePointer t) const
+{
+    auto typecast = dynamic_cast<StructType const*>(t);
+    if (!typecast)
+    {
+        throw runtime_error("Type not convertible to StructType");
+    }
+
+    auto const& str_decl = typecast->structDefinition();
+    auto const& ctx_decl = dynamic_cast<Declaration const*>(str_decl.scope());
+    if (!ctx_decl)
+    {
+        throw runtime_error("Expected Structure definition within Declaration.");
+    }
+
+    Translation res;
+    res.name  = ctx_decl->name() + "_" + str_decl.name();
+    res.type = "struct " + res.name;
+    return res;
+}
+
+Translation TypeTranslator::translate_mapping(TypePointer t) const
+{
+    auto typecast = dynamic_cast<MappingType const*>(t);
+    if (!typecast)
+    {
+        throw runtime_error("Type not convertible to MappingType");
+    }
+
+    unsigned int depth = 0;
+    MappingType const* curr_type = typecast;
+    do {
+        ++depth;
+        curr_type = dynamic_cast<MappingType const*>(curr_type->valueType());
+    } while (curr_type != nullptr);
+
     if (!m_map_ctx.is_initialized())
     {
         throw runtime_error("A map must be translated within some scope.");
     }
 
-    Translation t;
-    t.name = scope().name + "_submap" + std::to_string(depth);
-    t.type = "struct " + t.name;
-    return t;
+    Translation res;
+    res.name = scope().name + "_submap" + std::to_string(depth);
+    res.type = "struct " + res.name;
+    return res;
+}
+
+Translation TypeTranslator::translate_type(TypePointer t) const
+{
+    auto typecast = dynamic_cast<TypeType const*>(t);
+    if (!typecast)
+    {
+        throw runtime_error("Type not convertible to TypeType");
+    }
+    return translate(typecast->actualType());
 }
 
 }

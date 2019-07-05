@@ -116,8 +116,6 @@ set(sources
 	modelcheck/FunctionDefinitionGenerator.h
 	modelcheck/FunctionForwardDeclVisitor.cpp
 	modelcheck/FunctionForwardDeclVisitor.h
-	modelcheck/MapDepthCalculator.cpp
-	modelcheck/MapDepthCalculator.h
 	modelcheck/TypeTranslator.cpp
 	modelcheck/TypeTranslator.h
 	modelcheck/VariableScopeResolver.cpp
