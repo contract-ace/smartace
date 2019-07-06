@@ -18,13 +18,28 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+map<pair<MagicType::Kind, string>, string> const ExpressionConversionVisitor::m_magic_members{{
+	{{MagicType::Kind::Block, "coinbase"}, ""},
+	{{MagicType::Kind::Block, "difficulty"}, ""},
+	{{MagicType::Kind::Block, "gaslimit"}, ""},
+	{{MagicType::Kind::Block, "number"}, "state->blocknum"},
+	{{MagicType::Kind::Block, "timestamp"}, "state->blocknum"},
+	{{MagicType::Kind::Message, "data"}, ""},
+	{{MagicType::Kind::Message, "gas"}, ""},
+	{{MagicType::Kind::Message, "sender"}, "state->sender"},
+	{{MagicType::Kind::Message, "sig"}, ""},
+	{{MagicType::Kind::Message, "value"}, "state->value"},
+	{{MagicType::Kind::Transaction, "gasprice"}, ""},
+	{{MagicType::Kind::Transaction, "origin"}, ""}
+}};
+
+// -------------------------------------------------------------------------- //
+
 MemberAccessSniffer::MemberAccessSniffer(
 	Expression const& _expr
 ): m_expr(&_expr)
 {
 }
-
-// -------------------------------------------------------------------------- //
 
 MemberAccess const* MemberAccessSniffer::find()
 {
@@ -32,8 +47,6 @@ MemberAccess const* MemberAccessSniffer::find()
 	m_expr->accept(*this);
 	return m_ret;
 }
-
-// -------------------------------------------------------------------------- //
 
 bool MemberAccessSniffer::visit(MemberAccess const& _node)
 {
@@ -348,9 +361,30 @@ bool ExpressionConversionVisitor::visit(NewExpression const& _node)
 
 bool ExpressionConversionVisitor::visit(MemberAccess const& _node)
 {
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Member access not yet supported.");
+	auto expr_type = _node.expression().annotation().type;
+
+	switch (expr_type->category())
+	{
+	case Type::Category::Address:
+		print_address_member(_node.expression(), _node.memberName());
+		break;
+	case Type::Category::StringLiteral:
+	case Type::Category::Array:
+	case Type::Category::FixedBytes:
+		print_array_member(_node.expression(), _node.memberName());
+		break;
+	case Type::Category::Contract:
+	case Type::Category::Struct:
+		print_adt_member(_node.expression(), _node.memberName());
+		break;
+	case Type::Category::Magic:
+		print_magic_member(expr_type, _node.memberName());
+		break;
+	default:
+		throw runtime_error("MemberAccess applied to invalid type.");
+	}
+
+	return false;
 }
 
 bool ExpressionConversionVisitor::visit(IndexAccess const& _node)
@@ -446,6 +480,8 @@ void ExpressionConversionVisitor::print_subexpression(Expression const& _node)
 	(*m_ostream) << ")";
 }
 
+// -------------------------------------------------------------------------- //
+
 void ExpressionConversionVisitor::print_assertion(
 	string type, FunctionCall const& _func)
 {
@@ -525,6 +561,63 @@ void ExpressionConversionVisitor::print_method(
 	}
 
 	(*m_ostream) << ")";
+}
+
+// -------------------------------------------------------------------------- //
+
+void ExpressionConversionVisitor::print_address_member(
+	Expression const& _node, string const& _member)
+{
+	if (_member == "balance")
+	{
+		// TODO(scottwe): add `_balance(state, addr)` call to runtime.
+		(void) _node;
+		throw runtime_error("Address balance not yet supported.");
+	}
+	else
+	{
+		throw runtime_error("Unrecognized Address member: " + _member);
+	}
+}
+
+void ExpressionConversionVisitor::print_array_member(
+	Expression const& _node, string const& _member)
+{
+	if (_member == "length")
+	{
+		// TODO(scottwe): Decide on which "array features" should be allowed.
+		(void) _node;
+		throw runtime_error("Array-like lengths not yet supported.");
+	}
+	else
+	{
+		throw runtime_error("Unrecognized Array-like member: " + _member);
+	}
+}
+
+void ExpressionConversionVisitor::print_adt_member(
+	Expression const& _node, string const& _member)
+{
+	print_subexpression(_node);
+	(*m_ostream) << "->d_" << _member;
+}
+
+void ExpressionConversionVisitor::print_magic_member(
+	TypePointer _type, std::string const& _member)
+{
+	auto magic_type = dynamic_cast<MagicType const*>(_type);
+	if (!magic_type)
+	{
+		throw runtime_error("Resolution of MagicType failed in MemberAccess.");
+	}
+
+	auto const& result = m_magic_members.find({magic_type->kind(), _member});
+	if (result == m_magic_members.end() || result->second == "")
+	{
+		throw runtime_error("Unable to resolve member of Magic type.");
+	}
+
+	(*m_ostream) << result->second;
 }
 
 // -------------------------------------------------------------------------- //

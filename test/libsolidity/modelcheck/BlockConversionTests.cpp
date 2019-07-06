@@ -40,8 +40,7 @@ BOOST_AUTO_TEST_CASE(argument_registration)
     const auto& func = *ctrt.definedFunctions()[0];
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(func, TypeTranslator());
-    visitor.print(actual);
+    BlockConversionVisitor(func, TypeTranslator()).print(actual);
     expected << "{" << endl
              << "a;" << endl
              << "b;" << endl
@@ -81,10 +80,8 @@ BOOST_AUTO_TEST_CASE(if_statement)
     TypeTranslator translator;
     translator.enter_scope(ctrt);
 
-    ostringstream actual_if;
-    BlockConversionVisitor if_visitor(*if_stmt, translator);
-    if_visitor.print(actual_if);
-    ostringstream expected_if;
+    ostringstream actual_if, expected_if;
+    BlockConversionVisitor(*if_stmt, translator).print(actual_if);
     expected_if << "{" << endl
                 << "if ((self->d_a)==(1))" << endl
                 << "{" << endl
@@ -97,10 +94,8 @@ BOOST_AUTO_TEST_CASE(if_statement)
                 << "}";
     BOOST_CHECK_EQUAL(actual_if.str(), expected_if.str());
 
-    ostringstream actual_else;
-    BlockConversionVisitor else_visitor(*else_stmt, translator);
-    else_visitor.print(actual_else);
-    ostringstream expected_else;
+    ostringstream actual_else, expected_else;
+    BlockConversionVisitor(*else_stmt, translator).print(actual_else);
     expected_else << "{" << endl
                   << "if ((self->d_a)==(1))" << endl
                   << "{" << endl
@@ -153,8 +148,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
     auto while_stmt = (fncs[0]->name() == "while_stmt") ? fncs[0] : fncs[1];
     ostringstream actual_while, expected_while;
-    BlockConversionVisitor while_visitor(*while_stmt, translator);
-    while_visitor.print(actual_while);
+    BlockConversionVisitor(*while_stmt, translator).print(actual_while);
     expected_while << "{" << endl
                    << "while ((self->d_a)!=(self->d_a))" << endl
                    << "{" << endl
@@ -169,8 +163,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
     auto for_stmt = (fncs[0]->name() == "while_stmt") ? fncs[1] : fncs[0];
     ostringstream actual_for, expected_for;
-    BlockConversionVisitor for_visitor(*for_stmt, translator);
-    for_visitor.print(actual_for);
+    BlockConversionVisitor(*for_stmt, translator).print(actual_for);
     expected_for << "{" << endl
                  << "for (; (self->d_a)<(10); ++(self->d_a))" << endl
                  << "{" << endl
@@ -207,8 +200,7 @@ BOOST_AUTO_TEST_CASE(continue_statement)
     const auto& func = *ctrt.definedFunctions()[0];
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(func, TypeTranslator());
-    visitor.print(actual);
+    BlockConversionVisitor(func, TypeTranslator()).print(actual);
     expected << "{" << endl
              << "while (0)" << endl
              << "{" << endl
@@ -233,8 +225,7 @@ BOOST_AUTO_TEST_CASE(break_statement)
     const auto& func = *ctrt.definedFunctions()[0];
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(func, TypeTranslator());
-    visitor.print(actual);
+    BlockConversionVisitor(func, TypeTranslator()).print(actual);
     expected << "{" << endl
              << "while (0)" << endl
              << "{" << endl
@@ -262,8 +253,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
 
     auto void_func = (fncs[0]->name() == "void_func") ? fncs[0] : fncs[1];
     ostringstream actual_void, expected_void;
-    BlockConversionVisitor void_visitor(*void_func, translator);
-    void_visitor.print(actual_void);
+    BlockConversionVisitor(*void_func, translator).print(actual_void);
     expected_void << "{" << endl
                   << "return;" << endl
                   << "}";
@@ -271,8 +261,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
 
     auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int, expected_int;
-    BlockConversionVisitor int_visitor(*int_func, translator);
-    int_visitor.print(actual_int);
+    BlockConversionVisitor(*int_func, translator).print(actual_int);
     expected_int << "{" << endl
                  << "return (10)+(5);" << endl
                  << "}";
@@ -305,8 +294,7 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
     translator.enter_scope(ctrt);
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(func, translator);
-    visitor.print(actual);
+    BlockConversionVisitor(func, translator).print(actual);
     expected << "{" << endl
              << "int b;" << endl
              << "{" << endl
@@ -345,8 +333,7 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
 
     auto unnamed = (fncs[0]->name() == "f") ? fncs[0] : fncs[1];
     ostringstream actual_unnamed, expected_unnamed;
-    BlockConversionVisitor unnamed_visitor(*unnamed, translator);
-    unnamed_visitor.print(actual_unnamed);
+    BlockConversionVisitor(*unnamed, translator).print(actual_unnamed);
     expected_unnamed << "{" << endl
                      << "return 5;" << endl
                      << "}";
@@ -354,14 +341,54 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
 
     auto named = (fncs[0]->name() == "f") ? fncs[1] : fncs[0];
     ostringstream actual_named, expected_named;
-    BlockConversionVisitor named_visitor(*named, translator);
-    named_visitor.print(actual_named);
+    BlockConversionVisitor(*named, translator).print(actual_named);
     expected_named << "{" << endl
                    << "int a;" << endl
                    << "(a)=(5);" << endl
                    << "return a;" << endl
                    << "}";
     BOOST_CHECK_EQUAL(actual_named.str(), expected_named.str());
+}
+
+// Tests type-aware resolution of MemberAccess expressions. This is tested on
+// the block level as type annotation is not trial, and automatically handled by
+// the analysis framework.
+BOOST_AUTO_TEST_CASE(member_access_expressions)
+{
+    char const* text = R"(
+        contract A {
+            struct B { int c; }
+            B b;
+            int public c;
+            function f() public payable {
+                this.c;
+                b.c;
+                block.number;
+                block.timestamp;
+                msg.sender;
+                msg.value;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto &func = *ctrt.definedFunctions()[0];
+
+    TypeTranslator translator;
+    translator.enter_scope(ctrt);
+
+    ostringstream actual, expected;
+    BlockConversionVisitor(func, translator).print(actual);
+    expected << "{" << endl
+             << "(self)->d_c;" << endl
+             << "(self->d_b)->d_c;" << endl
+             << "state->blocknum;" << endl
+             << "state->blocknum;" << endl
+             << "state->sender;" << endl
+             << "state->value;" << endl
+             << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
 // Tests interal method calls. Internal calls are those which reference contract
@@ -396,8 +423,7 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            BlockConversionVisitor visitor(*func_ptr, TypeTranslator());
-            visitor.print(actual);
+            BlockConversionVisitor(*func_ptr, TypeTranslator()).print(actual);
             expected << "{" << endl
                     << "Method_A_f(self, state);" << endl
                     << "Method_A_g(self, state, 1);" << endl
@@ -444,8 +470,7 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            BlockConversionVisitor visitor(*func_ptr, TypeTranslator());
-            visitor.print(actual);
+            BlockConversionVisitor(*func_ptr, TypeTranslator()).print(actual);
             expected << "{" << endl
                     << "Method_A_f(self->d_a, state);" << endl
                     << "Method_A_g();" << endl
@@ -478,8 +503,7 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
     const auto& func = *ctrt.definedFunctions()[0];
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(func, TypeTranslator());
-    visitor.print(actual);
+    BlockConversionVisitor(func, TypeTranslator()).print(actual);
     expected << "{" << endl
              << "_pay(state, dst, 5);" << endl
              << "_pay(state, dst, 10);" << endl
@@ -507,8 +531,7 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
     const auto& func = *ctrt.definedFunctions()[0];
 
     ostringstream actual, expected;
-    BlockConversionVisitor visitor(func, TypeTranslator());
-    visitor.print(actual);
+    BlockConversionVisitor(func, TypeTranslator()).print(actual);
     expected << "{" << endl
              << "assume(1);" << endl
              << "assume(1);" << endl

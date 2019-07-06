@@ -8,8 +8,10 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
 #include <libsolidity/modelcheck/VariableScopeResolver.h>
+#include <array>
 #include <functional>
 #include <ostream>
+#include <utility>
 
 namespace dev
 {
@@ -88,9 +90,12 @@ private:
 
 	std::hash<std::string> m_hasher;
 
+	static std::map<std::pair<MagicType::Kind, std::string>, std::string> const m_magic_members;
+
 	static long long int literal_to_number(Literal const& _node);
 
 	void print_subexpression(Expression const& _node);
+
 	void print_assertion(std::string type, FunctionCall const& _func);
 	void print_payment(FunctionCall const& _func);
 	void print_ext_method(FunctionType const& _type, FunctionCall const& _func);
@@ -98,6 +103,13 @@ private:
 		FunctionType const& _type,
 		Expression const& _ctx,
 		std::vector<ASTPointer<Expression const>> const& _args);
+
+	void print_address_member(
+		Expression const& _node, std::string const& _member);
+	void print_array_member(
+		Expression const& _node, std::string const& _member);
+	void print_adt_member(Expression const& _node, std::string const& _member);
+	void print_magic_member(TypePointer _type, std::string const& _member);
 };
 
 // -------------------------------------------------------------------------- //

@@ -47,9 +47,7 @@ string _convert_assignment(Token tok)
     Assignment assignment(SourceLocation(), id, tok, op);
 
     ostringstream oss;
-    ExpressionConversionVisitor visitor(assignment, translator, resolver);
-    visitor.print(oss);
-
+    ExpressionConversionVisitor(assignment, translator, resolver).print(oss);
     return oss.str();
 }
 
@@ -74,9 +72,7 @@ string _convert_binop(Token tok)
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
 
     ostringstream oss;
-    ExpressionConversionVisitor visitor(op, translator, resolver);
-    visitor.print(oss);
-
+    ExpressionConversionVisitor(op, translator, resolver).print(oss);
     return oss.str();
 }
 
@@ -94,11 +90,9 @@ string _convert_unaryop(Token tok, shared_ptr<Expression> expr, bool prefix)
         Declaration::Visibility::Public));
 
     UnaryOperation op(SourceLocation(), tok, expr, prefix);
-    ExpressionConversionVisitor visitor(op, translator, resolver);
 
     ostringstream oss;
-    visitor.print(oss);
-
+    ExpressionConversionVisitor(op, translator, resolver).print(oss);
     return oss.str();
 }
 
@@ -111,11 +105,9 @@ string _convert_literal(
     const VariableScopeResolver resolver;
 
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
-    ExpressionConversionVisitor visitor(lit, translator, resolver);
 
     ostringstream oss;
-    visitor.print(oss);
-
+    ExpressionConversionVisitor(lit, translator, resolver).print(oss);
     return oss.str();
 }
 
@@ -133,15 +125,10 @@ BOOST_AUTO_TEST_CASE(member_access_sniffer)
 
     TupleExpression tuple(SourceLocation(), {m2}, false);
 
-    MemberAccessSniffer v1(tuple);
-    MemberAccessSniffer v2(*m2);
-    MemberAccessSniffer v3(*m1);
-    MemberAccessSniffer v4(*id);
-
-    BOOST_CHECK_EQUAL(v1.find(), m2.get());
-    BOOST_CHECK_EQUAL(v2.find(), m2.get());
-    BOOST_CHECK_EQUAL(v3.find(), m1.get());
-    BOOST_CHECK_EQUAL(v4.find(), nullptr);
+    BOOST_CHECK_EQUAL(MemberAccessSniffer(tuple).find(), m2.get());
+    BOOST_CHECK_EQUAL(MemberAccessSniffer(*m2).find(), m2.get());
+    BOOST_CHECK_EQUAL(MemberAccessSniffer(*m1).find(), m1.get());
+    BOOST_CHECK_EQUAL(MemberAccessSniffer(*id).find(), nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(conditional_expression_output)
@@ -166,10 +153,8 @@ BOOST_AUTO_TEST_CASE(conditional_expression_output)
         nullptr,
         Declaration::Visibility::Public));
 
-    ExpressionConversionVisitor visitor(cond, translator, resolver);
-
     ostringstream oss;
-    visitor.print(oss);
+    ExpressionConversionVisitor(cond, translator, resolver).print(oss);
     BOOST_CHECK_EQUAL(oss.str(), "(a)?(self->d_b):(self->d_c)");
 }
 
@@ -209,10 +194,8 @@ BOOST_AUTO_TEST_CASE(tuple_expression_output)
     const TypeTranslator translator;
     const VariableScopeResolver resolver;
 
-    ExpressionConversionVisitor visitor(one_tuple, translator, resolver);
-
     ostringstream oss;
-    visitor.print(oss);
+    ExpressionConversionVisitor(one_tuple, translator, resolver).print(oss);
     BOOST_CHECK_EQUAL(oss.str(), "self->d_a");
 }
 
@@ -274,14 +257,10 @@ BOOST_AUTO_TEST_CASE(identifier_expression_output)
         nullptr,
         Declaration::Visibility::Public));
 
-    ExpressionConversionVisitor a_visitor(id_a, translator, resolver);
-    ExpressionConversionVisitor b_visitor(id_b, translator, resolver);
-    ExpressionConversionVisitor msg_visitor(msg, translator, resolver);
-
     ostringstream a_oss, b_oss, msg_oss;
-    a_visitor.print(a_oss);
-    b_visitor.print(b_oss);
-    msg_visitor.print(msg_oss);
+    ExpressionConversionVisitor(id_a, translator, resolver).print(a_oss);
+    ExpressionConversionVisitor(id_b, translator, resolver).print(b_oss);
+    ExpressionConversionVisitor(msg, translator, resolver).print(msg_oss);
 
     BOOST_CHECK_EQUAL(a_oss.str(), "a");
     BOOST_CHECK_EQUAL(b_oss.str(), "self->d_b");
