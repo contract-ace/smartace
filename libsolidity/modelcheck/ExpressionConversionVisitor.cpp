@@ -103,32 +103,21 @@ bool ExpressionConversionVisitor::visit(Assignment const& _node)
 {
 	print_subexpression(_node.leftHandSide());
 
-	Token op_tok = _node.assignmentOperator();
-	switch (op_tok)
-	{
-	case Token::AssignSar:
-		// TODO(scottwe)
-		throw runtime_error("Arithmetic right bit-shift not yet supported.");
-	case Token::AssignShr:
-		// TODO(scottwe)
-		throw runtime_error("Logical right bit-shift not yet supported.");
-	case Token::Assign:
-	case Token::AssignBitOr:
-	case Token::AssignBitXor:
-	case Token::AssignBitAnd:
-	case Token::AssignShl:
-	case Token::AssignAdd:
-	case Token::AssignSub:
-	case Token::AssignMul:
-	case Token::AssignDiv:
-	case Token::AssignMod:
-		(*m_ostream) << TokenTraits::friendlyName(op_tok);
-		break;
-	default:
-		throw runtime_error("Assignment not yet supported.");
-	}
+	(*m_ostream) << "=";
 
-	print_subexpression(_node.rightHandSide());
+	if (_node.assignmentOperator() != Token::Assign)
+	{
+		(*m_ostream) << "(";
+		print_binary_op(
+			_node.leftHandSide(),
+			TokenTraits::AssignmentToBinaryOp(_node.assignmentOperator()),
+			_node.rightHandSide());
+		(*m_ostream) << ")";
+	}
+	else
+	{
+		print_subexpression(_node.rightHandSide());
+	}
 
 	return false;
 }
@@ -187,46 +176,10 @@ bool ExpressionConversionVisitor::visit(UnaryOperation const& _node)
 
 bool ExpressionConversionVisitor::visit(BinaryOperation const& _node)
 {
-	print_subexpression(_node.leftExpression());
-
-	Token op_tok = _node.getOperator();
-	switch (op_tok)
-	{
-	case Token::SAR:
-		// TODO(scottwe)
-		throw runtime_error("Arithmetic right bit-shift not yet supported.");
-	case Token::SHR:
-		// TODO(scottwe)
-		throw runtime_error("Logical right bit-shift not yet supported.");
-	case Token::Exp:
-		// TODO(scottwe)
-		throw runtime_error("Exponentiation not yet supported.");
-	case Token::Comma:
-	case Token::Or:
-	case Token::And:
-	case Token::BitOr:
-	case Token::BitXor:
-	case Token::BitAnd:
-	case Token::SHL:
-	case Token::Add:
-	case Token::Sub:
-	case Token::Mul:
-	case Token::Div:
-	case Token::Mod:
-	case Token::Equal:
-	case Token::NotEqual:
-	case Token::LessThan:
-	case Token::GreaterThan:
-	case Token::LessThanOrEqual:
-	case Token::GreaterThanOrEqual:
-		(*m_ostream) << TokenTraits::friendlyName(op_tok);
-		break;
-	default:
-		throw runtime_error("BinOp not yet supported.");
-	}
-
-	print_subexpression(_node.rightExpression());
-
+	print_binary_op(
+		_node.leftExpression(),
+		_node.getOperator(),
+		_node.rightExpression());
 	return false;
 }
 
@@ -478,6 +431,49 @@ void ExpressionConversionVisitor::print_subexpression(Expression const& _node)
 	(*m_ostream) << "(";
 	_node.accept(*this);
 	(*m_ostream) << ")";
+}
+
+void ExpressionConversionVisitor::print_binary_op(
+	Expression const& _lhs, Token _op, Expression const& _rhs)
+{
+	print_subexpression(_lhs);
+
+	switch (_op)
+	{
+	case Token::SAR:
+		// TODO(scottwe)
+		throw runtime_error("Arithmetic right bit-shift not yet supported.");
+	case Token::SHR:
+		// TODO(scottwe)
+		throw runtime_error("Logical right bit-shift not yet supported.");
+	case Token::Exp:
+		// TODO(scottwe)
+		throw runtime_error("Exponentiation not yet supported.");
+	case Token::Comma:
+	case Token::Or:
+	case Token::And:
+	case Token::BitOr:
+	case Token::BitXor:
+	case Token::BitAnd:
+	case Token::SHL:
+	case Token::Add:
+	case Token::Sub:
+	case Token::Mul:
+	case Token::Div:
+	case Token::Mod:
+	case Token::Equal:
+	case Token::NotEqual:
+	case Token::LessThan:
+	case Token::GreaterThan:
+	case Token::LessThanOrEqual:
+	case Token::GreaterThanOrEqual:
+		(*m_ostream) << TokenTraits::friendlyName(_op);
+		break;
+	default:
+		throw runtime_error("BinOp not yet supported.");
+	}
+
+	print_subexpression(_rhs);
 }
 
 // -------------------------------------------------------------------------- //

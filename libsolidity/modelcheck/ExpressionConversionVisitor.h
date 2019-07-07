@@ -37,7 +37,7 @@ public:
 	MemberAccess const* find();
 
 protected:
-	bool visit(MemberAccess const& _node);
+	bool visit(MemberAccess const& _node) override;
 
 private:
     Expression const* m_expr;
@@ -95,6 +95,8 @@ private:
 	static long long int literal_to_number(Literal const& _node);
 
 	void print_subexpression(Expression const& _node);
+	void print_binary_op(
+		Expression const& _lhs, Token _op, Expression const& _rhs);
 
 	void print_assertion(std::string type, FunctionCall const& _func);
 	void print_payment(FunctionCall const& _func);

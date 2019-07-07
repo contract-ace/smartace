@@ -163,21 +163,21 @@ BOOST_AUTO_TEST_CASE(assignment_expression_output)
     BOOST_CHECK_EQUAL(
         _convert_assignment(Token::Assign), "(a)=((a)^(a))");
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignBitOr), "(a)|=((a)^(a))");
+        _convert_assignment(Token::AssignBitOr), "(a)=((a)|((a)^(a)))");
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignBitAnd), "(a)&=((a)^(a))");
+        _convert_assignment(Token::AssignBitAnd), "(a)=((a)&((a)^(a)))");
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignShl), "(a)<<=((a)^(a))");
+        _convert_assignment(Token::AssignShl), "(a)=((a)<<((a)^(a)))");
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignAdd), "(a)+=((a)^(a))");
+        _convert_assignment(Token::AssignAdd), "(a)=((a)+((a)^(a)))");
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignSub), "(a)-=((a)^(a))");
+        _convert_assignment(Token::AssignSub), "(a)=((a)-((a)^(a)))");
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignMul), "(a)*=((a)^(a))");
+        _convert_assignment(Token::AssignMul), "(a)=((a)*((a)^(a)))");
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignDiv), "(a)/=((a)^(a))");
+        _convert_assignment(Token::AssignDiv), "(a)=((a)/((a)^(a)))");
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignMod), "(a)%=((a)^(a))");
+        _convert_assignment(Token::AssignMod), "(a)=((a)%((a)^(a)))");
 }
 
 BOOST_AUTO_TEST_CASE(tuple_expression_output)
