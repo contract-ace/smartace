@@ -3,8 +3,9 @@
  * First-pass visitor for converting Solidity methods into functions in C.
  */
 
+#include <libsolidity/modelcheck/BlockConversionVisitor.h>
 #include <libsolidity/modelcheck/FunctionDefinitionGenerator.h>
-#include <libsolidity/modelcheck/FunctionForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/FunctionConverter.h>
 #include <sstream>
 
 using namespace std;
@@ -18,13 +19,14 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-FunctionForwardDeclVisitor::FunctionForwardDeclVisitor(
-    ASTNode const& _ast
-): m_ast(&_ast)
+FunctionConverter::FunctionConverter(
+    ASTNode const& _ast,
+    bool _forward_declare
+): m_ast(&_ast), m_forward_declare(_forward_declare)
 {
 }
 
-void FunctionForwardDeclVisitor::print(ostream& _stream)
+void FunctionConverter::print(ostream& _stream)
 {
     m_ostream = &_stream;
     m_ast->accept(*this);
@@ -33,7 +35,7 @@ void FunctionForwardDeclVisitor::print(ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
-bool FunctionForwardDeclVisitor::visit(ContractDefinition const& _node)
+bool FunctionConverter::visit(ContractDefinition const& _node)
 {
     m_translator.enter_scope(_node);
     if (_node.constructor() == nullptr)
@@ -46,7 +48,7 @@ bool FunctionForwardDeclVisitor::visit(ContractDefinition const& _node)
     return true;
 }
 
-bool FunctionForwardDeclVisitor::visit(StructDefinition const& _node)
+bool FunctionConverter::visit(StructDefinition const& _node)
 {
     m_translator.enter_scope(_node);
     // Generates the AST for for a struct's default constructor.
@@ -66,7 +68,7 @@ bool FunctionForwardDeclVisitor::visit(StructDefinition const& _node)
     return true;
 }
 
-bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
+bool FunctionConverter::visit(FunctionDefinition const& _node)
 {
     bool is_ctor = _node.isConstructor();
 
@@ -85,12 +87,21 @@ bool FunctionForwardDeclVisitor::visit(FunctionDefinition const& _node)
     printArgs(
         _node, !(is_ctor || _node.stateMutability() == StateMutability::Pure));
 
-    (*m_ostream) << ";" << endl;
+    if (m_forward_declare)
+    {
+        (*m_ostream) << ";" << endl;
+    }
+    else
+    {
+        (*m_ostream) << endl;
+        BlockConversionVisitor(_node, m_translator).print(*m_ostream);
+        (*m_ostream) << endl;
+    }
 
     return false;
 }
 
-bool FunctionForwardDeclVisitor::visit(ModifierDefinition const& _node)
+bool FunctionConverter::visit(ModifierDefinition const& _node)
 {
     (*m_ostream) << "void"
                  << " "
@@ -107,13 +118,13 @@ bool FunctionForwardDeclVisitor::visit(ModifierDefinition const& _node)
     return false;
 }
 
-bool FunctionForwardDeclVisitor::visit(VariableDeclaration const& _node)
+bool FunctionConverter::visit(VariableDeclaration const& _node)
 {
     m_translator.enter_scope(_node);
     return true;
 }
 
-bool FunctionForwardDeclVisitor::visit(Mapping const& _node)
+bool FunctionConverter::visit(Mapping const& _node)
 {
     Translation map_translation = m_translator.translate(_node);
 
@@ -147,24 +158,24 @@ bool FunctionForwardDeclVisitor::visit(Mapping const& _node)
 
 // -------------------------------------------------------------------------- //
 
-void FunctionForwardDeclVisitor::endVisit(ContractDefinition const&)
+void FunctionConverter::endVisit(ContractDefinition const&)
 {
     m_translator.exit_scope();
 }
 
-void FunctionForwardDeclVisitor::endVisit(VariableDeclaration const&)
+void FunctionConverter::endVisit(VariableDeclaration const&)
 {
     m_translator.exit_scope();
 }
 
-void FunctionForwardDeclVisitor::endVisit(StructDefinition const&)
+void FunctionConverter::endVisit(StructDefinition const&)
 {
     m_translator.exit_scope();
 }
 
 // -------------------------------------------------------------------------- //
 
-void FunctionForwardDeclVisitor::printArgs(
+void FunctionConverter::printArgs(
     CallableDeclaration const& _node, bool _pass_state)
 {
     (*m_ostream) << "(";
@@ -193,7 +204,7 @@ void FunctionForwardDeclVisitor::printArgs(
     (*m_ostream) << ")";
 }
 
-void FunctionForwardDeclVisitor::printRetvals(CallableDeclaration const& _node)
+void FunctionConverter::printRetvals(CallableDeclaration const& _node)
 {
     auto const& rettypes = _node.returnParameters();
     if (rettypes.empty())

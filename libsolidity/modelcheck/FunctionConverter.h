@@ -23,12 +23,13 @@ namespace modelcheck
  * (default constructor, map accessor, etc.) Solidity function, according to the
  * C model.
  */
-class FunctionForwardDeclVisitor : public ASTConstVisitor
+class FunctionConverter : public ASTConstVisitor
 {
 public:
     // Constructs a printer for all function forward decl's required by the ast.
-    FunctionForwardDeclVisitor(
-        ASTNode const& _ast
+    FunctionConverter(
+        ASTNode const& _ast,
+		bool _forward_declare
     );
 
     // Prints each for declaration once, in some order.
@@ -50,6 +51,8 @@ private:
 	std::ostream* m_ostream = nullptr;
 
 	TypeTranslator m_translator;
+
+	const bool m_forward_declare;
 
 	// Abstractions to handle a general CallableDeclaration.
 	void printArgs(CallableDeclaration const& _node, bool _pass_state);

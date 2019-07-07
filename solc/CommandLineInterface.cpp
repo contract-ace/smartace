@@ -34,7 +34,7 @@
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/modelcheck/ADTForwardDeclVisitor.h>
-#include <libsolidity/modelcheck/FunctionForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/FunctionConverter.h>
 
 #include <libyul/AssemblyStack.h>
 
@@ -1162,14 +1162,18 @@ void CommandLineInterface::handleCModel()
 
 	if (m_args.count(g_argOutputDir))
 	{
-		stringstream header_data;
+		stringstream header_data, body_data;
 		handleCModelHeaders(asts, header_data);
+		handleCModelBody(asts, body_data);
 		createFile("cmodel.h", header_data.str());
+		createFile("cmodel.c", body_data.str());
 	}
 	else
 	{
 		sout() << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(asts, sout());
+		sout() << endl << "======= cmodel.c =======" << endl;
+		handleCModelBody(asts, sout());
 	}
 }
 
@@ -1177,13 +1181,19 @@ void CommandLineInterface::handleCModelHeaders(vector<ASTNode const*> const& _as
 {
 	for (auto const& ast : _asts)
 	{
-		modelcheck::ADTForwardDeclVisitor struct_forward_decl_visitor(*ast);
-		struct_forward_decl_visitor.print(_os);
+		modelcheck::ADTForwardDeclVisitor(*ast).print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
-		modelcheck::FunctionForwardDeclVisitor func_forward_decl_visitor(*ast);
-		func_forward_decl_visitor.print(_os);
+		modelcheck::FunctionConverter(*ast, true).print(_os);
+	}
+}
+
+void CommandLineInterface::handleCModelBody(std::vector<ASTNode const*> const& _asts, std::ostream & _os)
+{
+	for (auto const& ast : _asts)
+	{
+		modelcheck::FunctionConverter(*ast, false).print(_os);
 	}
 }
 

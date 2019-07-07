@@ -1,10 +1,11 @@
 /**
  * @date 2019
- * Comprehensive tests for libsolidity/modelcheck/ASTForwardDeclVisitor.{h,cpp}.
+ * Performs end-to-end tests. Test inputs are contracts, and test outputs are
+ * all converted components of a C header or body.
  */
 
 #include <libsolidity/modelcheck/ADTForwardDeclVisitor.h>
-#include <libsolidity/modelcheck/FunctionForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/FunctionConverter.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
@@ -36,14 +37,14 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    // FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     func_expect << "struct A Ctor_A();" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
-    //BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(simple_map)
@@ -58,7 +59,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -98,7 +99,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -127,7 +128,7 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -153,7 +154,7 @@ BOOST_AUTO_TEST_CASE(modifier_with_args)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -180,7 +181,7 @@ BOOST_AUTO_TEST_CASE(simple_func)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -205,7 +206,7 @@ BOOST_AUTO_TEST_CASE(pure_func)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -232,7 +233,7 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -259,7 +260,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -317,7 +318,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -369,7 +370,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -433,7 +434,7 @@ BOOST_AUTO_TEST_CASE(custom_ctor)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -463,7 +464,7 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     ostringstream adt_actual, func_actual;
     ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionForwardDeclVisitor(ast).print(func_actual);
+    FunctionConverter(ast, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -474,6 +475,76 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
+}
+
+// Attempts a full translation of a contract which highlights most features of
+// the model, in a single contract context.
+BOOST_AUTO_TEST_CASE(full_declaration)
+{
+    char const* text = R"(
+        contract A {
+            struct S { address owner; uint val; }
+            uint constant min_amt = 42;
+            mapping (uint => S) accs;
+            function Open(uint idx) public {
+                // require(accs[idx].owner == 0);
+                // accs[idx] = S(msg.sender, 0);
+            }
+            function Deposit(uint idx) public payable {
+                require(msg.value > min_amt);
+                // S storage entry = accs[idx];
+                // if (entry.owner != msg.sender) { Open(idx); }
+                // entry.val += msg.value;
+            }
+            function Withdraw(uint idx) public payable {
+                // require(accs[idx].owner == msg.sender);
+                // uint amt = accs[idx].amt;
+                // accs[idx] = S(msg.sender, 0);
+                // assert(accs[idx].val == 0);
+                // msg.sender.transfer(amt);
+            }
+            function View(uint idx) public returns (uint amt) {
+                // amt = accs[idx]
+            }
+        }
+    )";
+
+    const auto &ast = *parseAndAnalyse(text);
+
+    ostringstream adt_actual, func_actual;
+    // TODO: adt
+    FunctionConverter(ast, false).print(func_actual);
+
+    ostringstream adt_expect, func_expect;
+    // TODO: adt
+    func_expect << "struct A Ctor_A()" << endl
+                << "{" << endl
+                << "}" << endl
+                << "struct A_S Ctor_A_S(int owner, unsigned int val)" << endl
+                << "{" << endl
+                << "}" << endl
+                << "struct A_S Read_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx);" << endl
+                << "void Write_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx, struct A_S d);" << endl
+                << "struct A_S *Ref_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx);" << endl
+                << "void Method_A_Open(struct A *self, struct CallState *state, unsigned int idx)" << endl
+                << "{" << endl
+                << "}" << endl
+                << "void Method_A_Deposit(struct A *self, struct CallState *state, unsigned int idx)" << endl
+                << "{" << endl
+                << "assume((state->value)>(self->d_min_amt));" << endl
+                << "}" << endl
+                << "void Method_A_Withdraw(struct A *self, struct CallState *state, unsigned int idx)" << endl
+                << "{" << endl
+                << "}" << endl
+                << "unsigned int Method_A_View(struct A *self, struct CallState *state, unsigned int idx)" << endl
+                << "{" << endl
+                << "unsigned int amt;" << endl
+                << "return amt;" << endl
+                << "}" << endl;
+
+    BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
+    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()

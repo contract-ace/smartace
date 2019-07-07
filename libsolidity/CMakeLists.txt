@@ -112,10 +112,10 @@ set(sources
 	modelcheck/BlockConversionVisitor.h
 	modelcheck/ExpressionConversionVisitor.cpp
 	modelcheck/ExpressionConversionVisitor.h
+	modelcheck/FunctionConverter.cpp
+	modelcheck/FunctionConverter.h
 	modelcheck/FunctionDefinitionGenerator.cpp
 	modelcheck/FunctionDefinitionGenerator.h
-	modelcheck/FunctionForwardDeclVisitor.cpp
-	modelcheck/FunctionForwardDeclVisitor.h
 	modelcheck/TypeTranslator.cpp
 	modelcheck/TypeTranslator.h
 	modelcheck/VariableScopeResolver.cpp

@@ -65,6 +65,7 @@ private:
 	void handleAst(std::string const& _argStr);
 	void handleCModel();
 	void handleCModelHeaders(std::vector<ASTNode const*> const& _asts, std::ostream & _os);
+	void handleCModelBody(std::vector<ASTNode const*> const& _asts, std::ostream & _os);
 	void handleBinary(std::string const& _contract);
 	void handleOpcode(std::string const& _contract);
 	void handleIR(std::string const& _contract);
