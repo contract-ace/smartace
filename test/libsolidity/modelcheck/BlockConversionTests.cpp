@@ -39,8 +39,11 @@ BOOST_AUTO_TEST_CASE(argument_registration)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
+    TypeConverter converter;
+    converter.record(unit);
+
     ostringstream actual, expected;
-    BlockConversionVisitor(func, TypeTranslator()).print(actual);
+    BlockConversionVisitor(func, converter).print(actual);
     expected << "{" << endl
              << "a;" << endl
              << "b;" << endl
@@ -77,11 +80,11 @@ BOOST_AUTO_TEST_CASE(if_statement)
     auto if_stmt = (fncs[0]->name() == "if_stmt") ? fncs[0] : fncs[1];
     auto else_stmt = (fncs[0]->name() == "if_stmt") ? fncs[1] : fncs[0];
 
-    TypeTranslator translator;
-    translator.enter_scope(ctrt);
+    TypeConverter converter;
+    converter.record(unit);
 
     ostringstream actual_if, expected_if;
-    BlockConversionVisitor(*if_stmt, translator).print(actual_if);
+    BlockConversionVisitor(*if_stmt, converter).print(actual_if);
     expected_if << "{" << endl
                 << "if ((self->d_a)==(1))" << endl
                 << "{" << endl
@@ -95,7 +98,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     BOOST_CHECK_EQUAL(actual_if.str(), expected_if.str());
 
     ostringstream actual_else, expected_else;
-    BlockConversionVisitor(*else_stmt, translator).print(actual_else);
+    BlockConversionVisitor(*else_stmt, converter).print(actual_else);
     expected_else << "{" << endl
                   << "if ((self->d_a)==(1))" << endl
                   << "{" << endl
@@ -143,12 +146,12 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& fncs = ctrt.definedFunctions();
 
-    TypeTranslator translator;
-    translator.enter_scope(ctrt);
+    TypeConverter converter;
+    converter.record(unit);
 
     auto while_stmt = (fncs[0]->name() == "while_stmt") ? fncs[0] : fncs[1];
     ostringstream actual_while, expected_while;
-    BlockConversionVisitor(*while_stmt, translator).print(actual_while);
+    BlockConversionVisitor(*while_stmt, converter).print(actual_while);
     expected_while << "{" << endl
                    << "while ((self->d_a)!=(self->d_a))" << endl
                    << "{" << endl
@@ -163,7 +166,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
     auto for_stmt = (fncs[0]->name() == "while_stmt") ? fncs[1] : fncs[0];
     ostringstream actual_for, expected_for;
-    BlockConversionVisitor(*for_stmt, translator).print(actual_for);
+    BlockConversionVisitor(*for_stmt, converter).print(actual_for);
     expected_for << "{" << endl
                  << "for (; (self->d_a)<(10); ++(self->d_a))" << endl
                  << "{" << endl
@@ -199,8 +202,11 @@ BOOST_AUTO_TEST_CASE(continue_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
+    TypeConverter converter;
+    converter.record(unit);
+
     ostringstream actual, expected;
-    BlockConversionVisitor(func, TypeTranslator()).print(actual);
+    BlockConversionVisitor(func, converter).print(actual);
     expected << "{" << endl
              << "while (0)" << endl
              << "{" << endl
@@ -224,8 +230,11 @@ BOOST_AUTO_TEST_CASE(break_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
+    TypeConverter converter;
+    converter.record(unit);
+
     ostringstream actual, expected;
-    BlockConversionVisitor(func, TypeTranslator()).print(actual);
+    BlockConversionVisitor(func, converter).print(actual);
     expected << "{" << endl
              << "while (0)" << endl
              << "{" << endl
@@ -248,12 +257,12 @@ BOOST_AUTO_TEST_CASE(return_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& fncs = ctrt.definedFunctions();
 
-    TypeTranslator translator;
-    translator.enter_scope(ctrt);
+    TypeConverter converter;
+    converter.record(unit);
 
     auto void_func = (fncs[0]->name() == "void_func") ? fncs[0] : fncs[1];
     ostringstream actual_void, expected_void;
-    BlockConversionVisitor(*void_func, translator).print(actual_void);
+    BlockConversionVisitor(*void_func, converter).print(actual_void);
     expected_void << "{" << endl
                   << "return;" << endl
                   << "}";
@@ -261,7 +270,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
 
     auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int, expected_int;
-    BlockConversionVisitor(*int_func, translator).print(actual_int);
+    BlockConversionVisitor(*int_func, converter).print(actual_int);
     expected_int << "{" << endl
                  << "return (10)+(5);" << endl
                  << "}";
@@ -290,11 +299,11 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
     const auto &ctrt = *retrieveContractByName(unit, "A");
     const auto &func = *ctrt.definedFunctions()[0];
 
-    TypeTranslator translator;
-    translator.enter_scope(ctrt);
+    TypeConverter converter;
+    converter.record(unit);
 
     ostringstream actual, expected;
-    BlockConversionVisitor(func, translator).print(actual);
+    BlockConversionVisitor(func, converter).print(actual);
     expected << "{" << endl
              << "int b;" << endl
              << "{" << endl
@@ -328,12 +337,12 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& fncs = ctrt.definedFunctions();
 
-    TypeTranslator translator;
-    translator.enter_scope(ctrt);
+    TypeConverter converter;
+    converter.record(unit);
 
     auto unnamed = (fncs[0]->name() == "f") ? fncs[0] : fncs[1];
     ostringstream actual_unnamed, expected_unnamed;
-    BlockConversionVisitor(*unnamed, translator).print(actual_unnamed);
+    BlockConversionVisitor(*unnamed, converter).print(actual_unnamed);
     expected_unnamed << "{" << endl
                      << "return 5;" << endl
                      << "}";
@@ -341,7 +350,7 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
 
     auto named = (fncs[0]->name() == "f") ? fncs[1] : fncs[0];
     ostringstream actual_named, expected_named;
-    BlockConversionVisitor(*named, translator).print(actual_named);
+    BlockConversionVisitor(*named, converter).print(actual_named);
     expected_named << "{" << endl
                    << "int a;" << endl
                    << "(a)=(5);" << endl
@@ -375,11 +384,11 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto &func = *ctrt.definedFunctions()[0];
 
-    TypeTranslator translator;
-    translator.enter_scope(ctrt);
+    TypeConverter converter;
+    converter.record(unit);
 
     ostringstream actual, expected;
-    BlockConversionVisitor(func, translator).print(actual);
+    BlockConversionVisitor(func, converter).print(actual);
     expected << "{" << endl
              << "(self)->d_c;" << endl
              << "(self->d_b)->d_c;" << endl
@@ -417,13 +426,16 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
 
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt = *retrieveContractByName(unit, "A");
+
+    TypeConverter converter;
+    converter.record(unit);
     
     for (auto func_ptr : ctrt.definedFunctions())
     {
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            BlockConversionVisitor(*func_ptr, TypeTranslator()).print(actual);
+            BlockConversionVisitor(*func_ptr, converter).print(actual);
             expected << "{" << endl
                     << "Method_A_f(self, state);" << endl
                     << "Method_A_g(self, state, 1);" << endl
@@ -464,13 +476,16 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
 
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt = *retrieveContractByName(unit, "B");
+
+    TypeConverter converter;
+    converter.record(unit);
     
     for (auto func_ptr : ctrt.definedFunctions())
     {
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            BlockConversionVisitor(*func_ptr, TypeTranslator()).print(actual);
+            BlockConversionVisitor(*func_ptr, converter).print(actual);
             expected << "{" << endl
                     << "Method_A_f(self->d_a, state);" << endl
                     << "Method_A_g();" << endl
@@ -502,8 +517,11 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
+    TypeConverter converter;
+    converter.record(unit);
+
     ostringstream actual, expected;
-    BlockConversionVisitor(func, TypeTranslator()).print(actual);
+    BlockConversionVisitor(func, converter).print(actual);
     expected << "{" << endl
              << "_pay(state, dst, 5);" << endl
              << "_pay(state, dst, 10);" << endl
@@ -530,8 +548,11 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
+    TypeConverter converter;
+    converter.record(unit);
+
     ostringstream actual, expected;
-    BlockConversionVisitor(func, TypeTranslator()).print(actual);
+    BlockConversionVisitor(func, converter).print(actual);
     expected << "{" << endl
              << "assume(1);" << endl
              << "assume(1);" << endl

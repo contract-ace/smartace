@@ -58,7 +58,7 @@ public:
 	// declaration set. Will also propogate and expose relevant expression data.
     ExpressionConversionVisitor(
         Expression const& _expr,
-        TypeTranslator const& _scope,
+        TypeConverter const& _converter,
         VariableScopeResolver const& _decls
     );
 
@@ -83,7 +83,7 @@ protected:
 
 private:
     Expression const* m_expr;
-    TypeTranslator const& m_scope;
+    TypeConverter const& m_converter;
 	VariableScopeResolver const& m_decls;
 
 	std::ostream* m_ostream = nullptr;

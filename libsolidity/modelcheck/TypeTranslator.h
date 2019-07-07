@@ -1,4 +1,5 @@
 /*
+ * @date 2019
  * This model maps each Solidity type to a C-type. For structures and contracts,
  * these are synthesized C-structs. This translation unit provides utilities for
  * performing such conversions.
@@ -6,7 +7,8 @@
 
 #pragma once
 
-#include <libsolidity/ast/AST.h>
+#include <libsolidity/ast/ASTVisitor.h>
+#include <map>
 #include <string>
 #include <boost/optional.hpp>
 
@@ -28,49 +30,45 @@ struct Translation
 };
 
 /*
- * Converts types and AST nodes into C-model translations.
+ * Maintains a dictionary from AST Node addresses to type annotations. The
+ * mapping is restricted to AST Nodes for which types are practical, and records
+ * must be generated on a per-source-unit basis.
  */
-class TypeTranslator
+class TypeConverter : public ASTConstVisitor
 {
 public:
-    // TODO
-    void enter_scope(ContractDefinition const& scope);
-    void enter_scope(StructDefinition const& scope);
-    void enter_scope(VariableDeclaration const& scope);
+    // Generates type annotations for all relevant members of _unit. The type
+    // annotations may be recovered using the translate method.
+    void record(SourceUnit const& _unit);
 
-    // TODO
-    void exit_scope();
+    // Retrieves a type annotation. This interface is restricted so that only
+    // those AST Nodes with annotations may be queried.
+    Translation translate(ContractDefinition const& _contract) const;
+    Translation translate(StructDefinition const& _structure) const;
+    Translation translate(VariableDeclaration const& _decl) const;
+    Translation translate(TypeName const& _type) const;
+    Translation translate(FunctionDefinition const& _fun) const;
+    Translation translate(ModifierDefinition const& _mod) const;
 
-    // Generalized hooks for translating AST data structures.
-    Translation translate(Declaration const& datatype) const;
-    Translation translate(TypeName const& datatype) const;
-    Translation translate(TypePointer t) const;
+protected:
+    bool visit(VariableDeclaration const& _node) override;
+	bool visit(ElementaryTypeName const& _node) override;
+	bool visit(UserDefinedTypeName const& _node) override;
+	bool visit(FunctionTypeName const& _node) override;
+    bool visit(Mapping const&) override;
+	bool visit(ArrayTypeName const& _node) override;
 
-    // TODO
-    Translation scope() const;
+    void endVisit(ParameterList const& _node) override;
+	void endVisit(Mapping const& _node) override;
 
 private:
-    // Translation for categories with 1-to-1 mappings to C primitives. This
-    // assumes `name` is a C primitive, and will use that as the translation.
-    Translation translate_basic(const std::string &name) const;
-    // Validates t is an IntType, and then handles signedness.
-    Translation translate_int(TypePointer t) const;
-    // Validates t is a contract, and then translates.
-    Translation translate_contract(TypePointer t) const;
-    // Validates t is a structure, and then resolves scope before translation.
-    // Failure to resolve scope will result in an exception. The result will be
-    // of the form <scope.name()>_<struct.name()>.
-    Translation translate_struct(TypePointer t) const;
-    // Validates t is a mapping, resolves the the depth of this map (or submap),
-    // and then produces a C type. The result will be of the form,
-    // <scope.name()>_<map.name()>_submap<depth>
-    Translation translate_mapping(TypePointer t) const;
-    // Unwraps TypeTypes.
-    Translation translate_type(TypePointer t) const;
+    std::map<ASTNode const*, Translation> m_dictionary;
 
-    boost::optional<std::string> m_contract_ctx;
-    boost::optional<std::string> m_struct_ctx;
-    boost::optional<std::string> m_map_ctx;
+    VariableDeclaration const* m_curr_decl = nullptr;
+    unsigned int m_rectype_depth = 0;
+    bool m_is_retval = false;
+
+    Translation translate_impl(ASTNode const* _node) const;
 };
 
 }

@@ -35,13 +35,16 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A Init_A();" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -57,14 +60,17 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_a_submap1;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A Init_A();" << endl;
     func_expect << "unsigned int "
                 << "Read_A_a_submap1"
                 << "(struct A_a_submap1 *a, unsigned int idx);"
@@ -97,15 +103,18 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "struct A_B Ctor_A_B(unsigned int a, unsigned int b);" << endl;
+    func_expect << "struct A Init_A();" << endl;
+    func_expect << "struct A_B Init_A_B(unsigned int a, unsigned int b);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -126,13 +135,16 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A Init_A();" << endl;
     func_expect << "void Modifier_A_simpleModifier(struct A *self, struct CallState *state);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -152,13 +164,16 @@ BOOST_AUTO_TEST_CASE(modifier_with_args)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A Init_A();" << endl;
     func_expect << "void Modifier_A_simpleModifier(struct A *self, struct CallState *state, unsigned int _a, int _b);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -179,13 +194,16 @@ BOOST_AUTO_TEST_CASE(simple_func)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A Init_A();" << endl;
     func_expect << "unsigned int Method_A_simpleFunc(struct A *self, struct CallState *state, unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -204,13 +222,16 @@ BOOST_AUTO_TEST_CASE(pure_func)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A Init_A();" << endl;
     func_expect << "unsigned int Method_A_simpleFunc();" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -231,13 +252,16 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
+    func_expect << "struct A Init_A();" << endl;
     func_expect << "void Method_A_simpleFunc(struct A *self, struct CallState *state, unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -258,40 +282,43 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
-    adt_expect << "struct A_B_a_submap2;" << endl;
     adt_expect << "struct A_B_a_submap1;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "struct A_B Ctor_A_B();" << endl;
-    func_expect << "struct A_B_a_submap1 "
-                << "Read_A_B_a_submap2"
-                << "(struct A_B_a_submap2 *a, unsigned int idx);"
-                << endl;
-    func_expect << "void "
-                << "Write_A_B_a_submap2"
-                << "(struct A_B_a_submap2 *a, unsigned int idx, struct A_B_a_submap1 d);"
-                << endl;
-    func_expect << "struct A_B_a_submap1 *"
-                << "Ref_A_B_a_submap2"
-                << "(struct A_B_a_submap2 *a, unsigned int idx);"
-                << endl;
-    func_expect << "unsigned int "
+    adt_expect << "struct A_B_a_submap2;" << endl;
+    func_expect << "struct A Init_A();" << endl;
+    func_expect << "struct A_B Init_A_B();" << endl;
+    func_expect << "struct A_B_a_submap2 "
                 << "Read_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
                 << endl;
     func_expect << "void "
                 << "Write_A_B_a_submap1"
-                << "(struct A_B_a_submap1 *a, unsigned int idx, unsigned int d);"
+                << "(struct A_B_a_submap1 *a, unsigned int idx, struct A_B_a_submap2 d);"
                 << endl;
-    func_expect << "unsigned int *"
+    func_expect << "struct A_B_a_submap2 *"
                 << "Ref_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
+                << endl;
+    func_expect << "unsigned int "
+                << "Read_A_B_a_submap2"
+                << "(struct A_B_a_submap2 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_B_a_submap2"
+                << "(struct A_B_a_submap2 *a, unsigned int idx, unsigned int d);"
+                << endl;
+    func_expect << "unsigned int *"
+                << "Ref_A_B_a_submap2"
+                << "(struct A_B_a_submap2 *a, unsigned int idx);"
                 << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -316,9 +343,12 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
@@ -326,8 +356,8 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct A_B_a_submap1;" << endl;
     adt_expect << "struct C;" << endl;
     adt_expect << "struct C_b_submap1;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "struct A_B Ctor_A_B();" << endl;
+    func_expect << "struct A Init_A();" << endl;
+    func_expect << "struct A_B Init_A_B();" << endl;
     func_expect << "unsigned int "
                 << "Read_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
@@ -340,7 +370,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
                 << "Ref_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
                 << endl;
-    func_expect << "struct C Ctor_C();" << endl;
+    func_expect << "struct C Init_C();" << endl;
     func_expect << "unsigned int "
                 << "Read_C_b_submap1"
                 << "(struct C_b_submap1 *a, unsigned int idx);"
@@ -368,51 +398,54 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    adt_expect << "struct A_a_submap3;" << endl;
-    adt_expect << "struct A_a_submap2;" << endl;
     adt_expect << "struct A_a_submap1;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
+    adt_expect << "struct A_a_submap2;" << endl;
+    adt_expect << "struct A_a_submap3;" << endl;
+    func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_a_submap2 "
-                << "Read_A_a_submap3"
-                << "(struct A_a_submap3 *a, unsigned int idx);"
-                << endl;
-    func_expect << "void "
-                << "Write_A_a_submap3"
-                << "(struct A_a_submap3 *a, unsigned int idx, struct A_a_submap2 d);"
-                << endl;
-    func_expect << "struct A_a_submap2 *"
-                << "Ref_A_a_submap3"
-                << "(struct A_a_submap3 *a, unsigned int idx);"
-                << endl;
-    func_expect << "struct A_a_submap1 "
-                << "Read_A_a_submap2"
-                << "(struct A_a_submap2 *a, unsigned int idx);"
-                << endl;
-    func_expect << "void "
-                << "Write_A_a_submap2"
-                << "(struct A_a_submap2 *a, unsigned int idx, struct A_a_submap1 d);"
-                << endl;
-    func_expect << "struct A_a_submap1 *"
-                << "Ref_A_a_submap2"
-                << "(struct A_a_submap2 *a, unsigned int idx);"
-                << endl;
-    func_expect << "unsigned int "
                 << "Read_A_a_submap1"
                 << "(struct A_a_submap1 *a, unsigned int idx);"
                 << endl;
     func_expect << "void "
                 << "Write_A_a_submap1"
-                << "(struct A_a_submap1 *a, unsigned int idx, unsigned int d);"
+                << "(struct A_a_submap1 *a, unsigned int idx, struct A_a_submap2 d);"
                 << endl;
-    func_expect << "unsigned int *"
+    func_expect << "struct A_a_submap2 *"
                 << "Ref_A_a_submap1"
                 << "(struct A_a_submap1 *a, unsigned int idx);"
+                << endl;
+    func_expect << "struct A_a_submap3 "
+                << "Read_A_a_submap2"
+                << "(struct A_a_submap2 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_a_submap2"
+                << "(struct A_a_submap2 *a, unsigned int idx, struct A_a_submap3 d);"
+                << endl;
+    func_expect << "struct A_a_submap3 *"
+                << "Ref_A_a_submap2"
+                << "(struct A_a_submap2 *a, unsigned int idx);"
+                << endl;
+    func_expect << "unsigned int "
+                << "Read_A_a_submap3"
+                << "(struct A_a_submap3 *a, unsigned int idx);"
+                << endl;
+    func_expect << "void "
+                << "Write_A_a_submap3"
+                << "(struct A_a_submap3 *a, unsigned int idx, unsigned int d);"
+                << endl;
+    func_expect << "unsigned int *"
+                << "Ref_A_a_submap3"
+                << "(struct A_a_submap3 *a, unsigned int idx);"
                 << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -432,13 +465,17 @@ BOOST_AUTO_TEST_CASE(custom_ctor)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Ctor_A(unsigned int _a);" << endl;
+    func_expect << "struct A Init_A();" << endl;
+    func_expect << "void Ctor_A(struct A *self, struct CallState *state, unsigned int _a);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -462,15 +499,18 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast).print(adt_actual);
-    FunctionConverter(ast, true).print(func_actual);
+    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
-    func_expect << "struct A Ctor_A();" << endl;
-    func_expect << "struct A_B Ctor_A_B(unsigned int a);" << endl;
+    func_expect << "struct A Init_A();" << endl;
+    func_expect << "struct A_B Init_A_B(unsigned int a);" << endl;
     func_expect << "struct A_B Method_A_advFunc(struct A *self, struct CallState *state, unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -511,18 +551,17 @@ BOOST_AUTO_TEST_CASE(full_declaration)
 
     const auto &ast = *parseAndAnalyse(text);
 
+    TypeConverter converter;
+    converter.record(ast);
+
     ostringstream adt_actual, func_actual;
     // TODO: adt
-    FunctionConverter(ast, false).print(func_actual);
+    FunctionConverter(ast, converter, false).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     // TODO: adt
-    func_expect << "struct A Ctor_A()" << endl
-                << "{" << endl
-                << "}" << endl
-                << "struct A_S Ctor_A_S(int owner, unsigned int val)" << endl
-                << "{" << endl
-                << "}" << endl
+    func_expect << "struct A Init_A();" << endl
+                << "struct A_S Init_A_S(int owner, unsigned int val);" << endl
                 << "struct A_S Read_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx);" << endl
                 << "void Write_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx, struct A_S d);" << endl
                 << "struct A_S *Ref_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx);" << endl

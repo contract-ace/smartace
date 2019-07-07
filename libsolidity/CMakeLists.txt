@@ -114,8 +114,6 @@ set(sources
 	modelcheck/ExpressionConversionVisitor.h
 	modelcheck/FunctionConverter.cpp
 	modelcheck/FunctionConverter.h
-	modelcheck/FunctionDefinitionGenerator.cpp
-	modelcheck/FunctionDefinitionGenerator.h
 	modelcheck/TypeTranslator.cpp
 	modelcheck/TypeTranslator.h
 	modelcheck/VariableScopeResolver.cpp

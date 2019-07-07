@@ -27,7 +27,7 @@ namespace test
 
 string _convert_assignment(Token tok)
 {
-    const TypeTranslator translator;
+    const TypeConverter converter;
     VariableScopeResolver resolver;
 
     auto id_name = make_shared<string>("a");
@@ -47,13 +47,13 @@ string _convert_assignment(Token tok)
     Assignment assignment(SourceLocation(), id, tok, op);
 
     ostringstream oss;
-    ExpressionConversionVisitor(assignment, translator, resolver).print(oss);
+    ExpressionConversionVisitor(assignment, converter, resolver).print(oss);
     return oss.str();
 }
 
 string _convert_binop(Token tok)
 {
-    const TypeTranslator translator;
+    const TypeConverter converter;
     VariableScopeResolver resolver;
 
     resolver.enter();
@@ -72,13 +72,13 @@ string _convert_binop(Token tok)
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
 
     ostringstream oss;
-    ExpressionConversionVisitor(op, translator, resolver).print(oss);
+    ExpressionConversionVisitor(op, converter, resolver).print(oss);
     return oss.str();
 }
 
 string _convert_unaryop(Token tok, shared_ptr<Expression> expr, bool prefix)
 {
-    const TypeTranslator translator;
+    const TypeConverter converter;
     VariableScopeResolver resolver;
 
     resolver.enter();
@@ -92,7 +92,7 @@ string _convert_unaryop(Token tok, shared_ptr<Expression> expr, bool prefix)
     UnaryOperation op(SourceLocation(), tok, expr, prefix);
 
     ostringstream oss;
-    ExpressionConversionVisitor(op, translator, resolver).print(oss);
+    ExpressionConversionVisitor(op, converter, resolver).print(oss);
     return oss.str();
 }
 
@@ -101,13 +101,13 @@ string _convert_literal(
     string src,
     Literal::SubDenomination subdom = Literal::SubDenomination::None)
 {
-    const TypeTranslator translator;
+    const TypeConverter converter;
     const VariableScopeResolver resolver;
 
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
 
     ostringstream oss;
-    ExpressionConversionVisitor(lit, translator, resolver).print(oss);
+    ExpressionConversionVisitor(lit, converter, resolver).print(oss);
     return oss.str();
 }
 
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(conditional_expression_output)
 
     Conditional cond(SourceLocation(), var_a, var_b, var_c);
 
-    const TypeTranslator translator;
+    const TypeConverter converter;
     VariableScopeResolver resolver;
 
     resolver.enter();
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(conditional_expression_output)
         Declaration::Visibility::Public));
 
     ostringstream oss;
-    ExpressionConversionVisitor(cond, translator, resolver).print(oss);
+    ExpressionConversionVisitor(cond, converter, resolver).print(oss);
     BOOST_CHECK_EQUAL(oss.str(), "(a)?(self->d_b):(self->d_c)");
 }
 
@@ -191,11 +191,11 @@ BOOST_AUTO_TEST_CASE(tuple_expression_output)
     // TODO(scottwe): empty array
     // TODO(scottwe): n element array, large n
 
-    const TypeTranslator translator;
+    const TypeConverter converter;
     const VariableScopeResolver resolver;
 
     ostringstream oss;
-    ExpressionConversionVisitor(one_tuple, translator, resolver).print(oss);
+    ExpressionConversionVisitor(one_tuple, converter, resolver).print(oss);
     BOOST_CHECK_EQUAL(oss.str(), "self->d_a");
 }
 
@@ -246,7 +246,7 @@ BOOST_AUTO_TEST_CASE(identifier_expression_output)
     Identifier id_b(SourceLocation(), make_shared<string>("b"));
     Identifier msg(SourceLocation(), make_shared<string>("msg"));
 
-    const TypeTranslator translator;
+    const TypeConverter converter;
     VariableScopeResolver resolver;
 
     resolver.enter();
@@ -258,9 +258,9 @@ BOOST_AUTO_TEST_CASE(identifier_expression_output)
         Declaration::Visibility::Public));
 
     ostringstream a_oss, b_oss, msg_oss;
-    ExpressionConversionVisitor(id_a, translator, resolver).print(a_oss);
-    ExpressionConversionVisitor(id_b, translator, resolver).print(b_oss);
-    ExpressionConversionVisitor(msg, translator, resolver).print(msg_oss);
+    ExpressionConversionVisitor(id_a, converter, resolver).print(a_oss);
+    ExpressionConversionVisitor(id_b, converter, resolver).print(b_oss);
+    ExpressionConversionVisitor(msg, converter, resolver).print(msg_oss);
 
     BOOST_CHECK_EQUAL(a_oss.str(), "a");
     BOOST_CHECK_EQUAL(b_oss.str(), "self->d_b");

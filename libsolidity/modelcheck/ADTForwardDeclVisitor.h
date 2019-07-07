@@ -27,7 +27,8 @@ class ADTForwardDeclVisitor : public ASTConstVisitor
 public:
     // Constructs a printer for all forward decl's required by ast's c model.
     ADTForwardDeclVisitor(
-        ASTNode const& _ast
+        ASTNode const& _ast,
+		TypeConverter const& _converter
     );
 
     // Prints each for declaration once, in some order.
@@ -35,22 +36,16 @@ public:
 
 	bool visit(ContractDefinition const& _node) override;
 	bool visit(Mapping const& _node) override;
-	bool visit(VariableDeclaration const& _node) override;
 	bool visit(StructDefinition const& _node) override;
 
 	bool visit(EventDefinition const& _node) override;
 	bool visit(FunctionDefinition const& _node) override;
 	bool visit(ModifierDefinition const& _node) override;
 
-	void endVisit(ContractDefinition const&) override;
-	void endVisit(VariableDeclaration const&) override;
-	void endVisit(StructDefinition const&) override;
-
 private:
 	ASTNode const* m_ast;
+	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
-
-	TypeTranslator m_translator;
 };
 
 }

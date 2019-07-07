@@ -20,8 +20,8 @@ namespace modelcheck
 
 BlockConversionVisitor::BlockConversionVisitor(
 	FunctionDefinition const& _func,
-	TypeTranslator const& _scope
-): m_body(&_func.body()), m_scope(_scope)
+	TypeConverter const& _converter
+): m_body(&_func.body()), m_converter(_converter)
 {
 	// TODO(scottwe): support multiple return types.
 	if (_func.returnParameters().size() > 1)
@@ -104,12 +104,10 @@ bool BlockConversionVisitor::visit(PlaceholderStatement const& _node)
 
 bool BlockConversionVisitor::visit(IfStatement const& _node)
 {
-	ExpressionConversionVisitor condition_visitor(
-		_node.condition(), m_scope, m_decls
-	);
-
 	(*m_ostream) << "if (";
-	condition_visitor.print(*m_ostream);
+	ExpressionConversionVisitor(
+		_node.condition(), m_converter, m_decls
+	).print(*m_ostream);
 	(*m_ostream) << ")" << endl;
 	_node.trueStatement().accept(*this);
 	if (_node.falseStatement())
@@ -125,7 +123,7 @@ bool BlockConversionVisitor::visit(WhileStatement const& _node)
 {
 	// TODO(scottwe): Ensure number of interations has finite bound.
 	ExpressionConversionVisitor condition_visitor(
-		_node.condition(), m_scope, m_decls
+		_node.condition(), m_converter, m_decls
 	);
 
 	if (_node.isDoWhile())
@@ -159,10 +157,9 @@ bool BlockConversionVisitor::visit(ForStatement const& _node)
 	// TODO(scottwe): Ensure number of interations has finite bound.
 	if (_node.condition())
 	{
-		ExpressionConversionVisitor condition_visitor(
-			*_node.condition(), m_scope, m_decls
-		);
-		condition_visitor.print(*m_ostream);
+		ExpressionConversionVisitor(
+			*_node.condition(), m_converter, m_decls
+		).print(*m_ostream);
 	}
 
 	(*m_ostream) << "; ";
@@ -201,11 +198,10 @@ bool BlockConversionVisitor::visit(Return const& _node)
 	(*m_ostream) << "return";
 	if (_node.expression())
 	{
-		ExpressionConversionVisitor retval_visitor(
-			*_node.expression(), m_scope, m_decls
-		);
 		(*m_ostream) << " ";
-		retval_visitor.print(*m_ostream);
+		ExpressionConversionVisitor(
+			*_node.expression(), m_converter, m_decls
+		).print(*m_ostream);
 	}
 	end_statement();
 	return false;
@@ -236,17 +232,14 @@ bool BlockConversionVisitor::visit(VariableDeclarationStatement const& _node)
 		const auto &decl = *_node.declarations()[0];
 		m_decls.record_declaration(decl);
 
-		(*m_ostream) << m_scope.translate(decl.type()).type
-					 << " "
-					 << decl.name();
+		(*m_ostream) << m_converter.translate(decl).type  << " " << decl.name();
 
 		if (_node.initialValue())
 		{
-			ExpressionConversionVisitor value_visitor(
-				*_node.initialValue(), m_scope, m_decls
-			);
 			(*m_ostream) << " = ";
-			value_visitor.print(*m_ostream);
+			ExpressionConversionVisitor(
+				*_node.initialValue(), m_converter, m_decls
+			).print(*m_ostream);
 		}
 
 		end_statement();
@@ -257,10 +250,9 @@ bool BlockConversionVisitor::visit(VariableDeclarationStatement const& _node)
 
 bool BlockConversionVisitor::visit(ExpressionStatement const& _node)
 {
-	ExpressionConversionVisitor expr_visitor(
-		_node.expression(), m_scope, m_decls
-	);
-	expr_visitor.print(*m_ostream);
+	ExpressionConversionVisitor(
+		_node.expression(), m_converter, m_decls
+	).print(*m_ostream);
 	end_statement();
 	return false;
 }

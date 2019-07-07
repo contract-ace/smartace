@@ -18,8 +18,9 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 ADTForwardDeclVisitor::ADTForwardDeclVisitor(
-    ASTNode const& _ast
-): m_ast(&_ast)
+    ASTNode const& _ast,
+    TypeConverter const& _converter
+): m_ast(&_ast), m_converter(_converter)
 {
 }
 
@@ -34,27 +35,19 @@ void ADTForwardDeclVisitor::print(ostream& _stream)
 
 bool ADTForwardDeclVisitor::visit(ContractDefinition const& _node)
 {
-    m_translator.enter_scope(_node);
-    (*m_ostream) << m_translator.translate(_node).type << ";" << endl;
+    (*m_ostream) << m_converter.translate(_node).type << ";" << endl;
     return true;
 }
 
 bool ADTForwardDeclVisitor::visit(Mapping const& _node)
 {
-    (*m_ostream) << m_translator.translate(_node).type << ";" << endl;
-    return true;
-}
-
-bool ADTForwardDeclVisitor::visit(VariableDeclaration const& _node)
-{
-    m_translator.enter_scope(_node);
+    (*m_ostream) << m_converter.translate(_node).type << ";" << endl;
     return true;
 }
 
 bool ADTForwardDeclVisitor::visit(StructDefinition const& _node)
 {
-    m_translator.enter_scope(_node);
-    (*m_ostream) << m_translator.translate(_node).type << ";" << endl;
+    (*m_ostream) << m_converter.translate(_node).type << ";" << endl;
     return true;
 }
 
@@ -73,23 +66,6 @@ bool ADTForwardDeclVisitor::visit(FunctionDefinition const&)
 bool ADTForwardDeclVisitor::visit(ModifierDefinition const&)
 {
     return false;
-}
-
-// -------------------------------------------------------------------------- //
-
-void ADTForwardDeclVisitor::endVisit(ContractDefinition const&)
-{
-    m_translator.exit_scope();
-}
-
-void ADTForwardDeclVisitor::endVisit(VariableDeclaration const&)
-{
-    m_translator.exit_scope();
-}
-
-void ADTForwardDeclVisitor::endVisit(StructDefinition const&)
-{
-    m_translator.exit_scope();
 }
 
 // -------------------------------------------------------------------------- //

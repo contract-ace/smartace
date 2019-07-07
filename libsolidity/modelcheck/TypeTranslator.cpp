@@ -1,5 +1,8 @@
 /*
- * TODO
+ * @date 2019
+ * This model maps each Solidity type to a C-type. For structures and contracts,
+ * these are synthesized C-structs. This translation unit provides utilities for
+ * performing such conversions.
  */
 
 #include <libsolidity/modelcheck/TypeTranslator.h>
@@ -17,226 +20,246 @@ namespace solidity
 namespace modelcheck
 {
 
-void TypeTranslator::enter_scope(ContractDefinition const& scope)
+// -------------------------------------------------------------------------- //
+
+void TypeConverter::record(SourceUnit const& _unit)
 {
-    if (m_contract_ctx.is_initialized())
+    auto contracts = ASTNode::filteredNodes<ContractDefinition>(_unit.nodes());
+
+    for (auto contract : contracts)
     {
-        throw runtime_error("Contracts are not nestable.");
+        for (auto structure : contract->definedStructs())
+        {
+            ostringstream struct_oss;
+            struct_oss << contract->name() << "_" << structure->name();
+        
+            Translation struct_entry;
+            struct_entry.name = struct_oss.str();
+            struct_entry.type = "struct " + struct_entry.name;
+            m_dictionary.insert({structure, struct_entry});
+        }
+
+        Translation contract_entry;
+        contract_entry.name = contract->name();
+        contract_entry.type = "struct " + contract_entry.name;
+        m_dictionary.insert({contract, contract_entry});
     }
-    m_contract_ctx = scope.name();
+
+    for (auto contract : contracts)
+    {
+        for (auto structure : contract->definedStructs())
+        {
+            for (auto decl : structure->members())
+            {
+                decl->accept(*this);
+            }
+        }
+        for (auto decl : contract->stateVariables())
+        {
+            decl->accept(*this);
+        }
+        for (auto fun : contract->definedFunctions())
+        {
+            auto const* returnParams = fun->returnParameterList().get();
+
+            m_is_retval = true;
+            returnParams->accept(*this);
+            m_is_retval = false;
+
+            ostringstream fun_oss;
+            fun_oss << (fun->isConstructor() ? "Ctor" : "Method")
+                    << "_" << contract->name();
+            if (!fun->isConstructor())
+            {
+                fun_oss << "_" << fun->name();
+            }
+
+            Translation fun_entry;
+            fun_entry.name = fun_oss.str();
+            fun_entry.type = translate_impl(returnParams).type;
+            m_dictionary.insert({fun, fun_entry});
+
+            fun->parameterList().accept(*this);
+            fun->body().accept(*this);
+        }
+        for (auto mod : contract->functionModifiers())
+        {
+            ostringstream mod_oss;
+            mod_oss << "Modifier_" << contract->name() << "_" << mod->name();
+        
+            Translation mod_entry;
+            mod_entry.name = mod_oss.str();
+            mod_entry.type = "void";
+            m_dictionary.insert({mod, mod_entry});
+
+            mod->parameterList().accept(*this);
+        }
+    }
 }
 
-void TypeTranslator::enter_scope(StructDefinition const& scope)
+// -------------------------------------------------------------------------- //
+
+Translation TypeConverter::translate(ContractDefinition const& _contract) const
 {
-    if (!m_contract_ctx.is_initialized())
-    {
-        throw runtime_error("Structs must be defined within contracts.");
-    }
-    if (m_struct_ctx.is_initialized())
-    {
-        throw runtime_error("Structs are not nestable.");
-    }
-    m_struct_ctx = scope.name();
+    return translate_impl(&_contract);
 }
 
-void TypeTranslator::enter_scope(VariableDeclaration const& scope)
+Translation TypeConverter::translate(StructDefinition const& _structure) const
 {
-    if (!m_contract_ctx.is_initialized())
-    {
-        throw runtime_error("VariableDeclarations must be nested in a type.");
-    }
-    m_map_ctx = scope.name();
+    return translate_impl(&_structure);
 }
 
-void TypeTranslator::exit_scope()
+Translation TypeConverter::translate(VariableDeclaration const& _decl) const
 {
-    if (m_map_ctx.is_initialized())
+    return translate_impl(&_decl);
+}
+
+Translation TypeConverter::translate(TypeName const& _type) const
+{
+    return translate_impl(&_type);
+}
+
+Translation TypeConverter::translate(FunctionDefinition const& _fun) const
+{
+    return translate_impl(&_fun);
+}
+
+Translation TypeConverter::translate(ModifierDefinition const& _mod) const
+{
+    return translate_impl(&_mod);
+}
+
+// -------------------------------------------------------------------------- //
+
+bool TypeConverter::visit(VariableDeclaration const& _node)
+{
+    m_curr_decl = &_node;
+    if (!_node.typeName())
     {
-        m_map_ctx.reset();
-    }
-    else if (m_struct_ctx.is_initialized())
-    {
-        m_struct_ctx.reset();
-    }
-    else if (m_contract_ctx.is_initialized())
-    {
-        m_contract_ctx.reset();
+        throw runtime_error("`var` type unsupported.");
     }
     else
     {
-        throw runtime_error("Translator out of scope.");
+        _node.typeName()->accept(*this);
+
+        auto translation = translate_impl(_node.typeName());
+        m_dictionary.insert({&_node, translation});
     }
+    m_curr_decl = nullptr;
+
+    return false;
 }
 
-Translation TypeTranslator::translate(Declaration const& datatype) const
+bool TypeConverter::visit(ElementaryTypeName const& _node)
 {
-    return translate(datatype.type());
-}
+    Translation translation;
 
-Translation TypeTranslator::translate(TypeName const& datatype) const
-{
-    return translate(datatype.annotation().type);
-}
-
-Translation TypeTranslator::translate(TypePointer t) const
-{
-    if (!t)
-    {
-        throw runtime_error("nullptr provided to type translator.");
-    }
-
-    switch (t->category())
+    auto type = _node.annotation().type;
+    switch (type->category())
     {
     case Type::Category::Address:
     case Type::Category::Bool:
-    case Type::Category::StringLiteral:
-        return translate_basic("int");
+        translation.name = "int";
+        break;
     case Type::Category::Integer:
-        return translate_int(t);
+        if (dynamic_cast<IntegerType const*>(type)->isSigned())
+        {
+            translation.name = "int";
+        }
+        else
+        {
+            translation.name = "unsigned int";
+        }
+        break;
     case Type::Category::RationalNumber:
     case Type::Category::FixedPoint:
-        return translate_basic("double");
-    case Type::Category::Array:
-    case Type::Category::FixedBytes:
-        throw runtime_error("Array types are not supported");
-    case Type::Category::Contract:
-        return translate_contract(t);
-    case Type::Category::Struct:
-        return translate_struct(t);
-    case Type::Category::Function:
-        throw runtime_error("Function types are not supported.");
-    case Type::Category::Enum:
-        throw runtime_error("Enum types are not supported.");
-    case Type::Category::Tuple:
-        throw runtime_error("Tuple types are not supported.");
-    case Type::Category::Mapping:
-        return translate_mapping(t);
-    case Type::Category::TypeType:
-        return translate_type(t);
-    case Type::Category::Modifier:
-        throw runtime_error("Modifier types are not supported.");
-    case Type::Category::Magic:
-        throw runtime_error("Magic types are not supported.");
-    case Type::Category::Module:
-        throw runtime_error("Module types are not supported.");
-	case Type::Category::InaccessibleDynamic:
-        throw runtime_error("Type is inaccessible.");
+        translation.name = "double";
+        break;
     default:
-        throw runtime_error("Unknown type:" + t->richIdentifier());
+        throw runtime_error("Encountered ElementryTypeName with complex type.");
     }
+    translation.type = translation.name;
+
+    m_dictionary.insert({&_node, translation});
+
+    return false;
 }
 
-Translation TypeTranslator::scope() const
+bool TypeConverter::visit(UserDefinedTypeName const& _node)
 {
-    if (!m_contract_ctx.is_initialized())
-    {
-        throw runtime_error("No contract is currently in scope.");
-    }
-
-    Translation t;
-    t.name = m_contract_ctx.value();
-    if (m_struct_ctx.is_initialized())
-    {
-        t.name += ("_" + m_struct_ctx.value());
-    }
-    if (m_map_ctx.is_initialized())
-    {
-        t.name += ("_" + m_map_ctx.value());
-    }
-    t.type = "struct " + t.name;
-    return t;
+    auto t = translate_impl(_node.annotation().referencedDeclaration);
+    m_dictionary.insert({&_node, t});
+    return false;
 }
 
-Translation TypeTranslator::translate_basic(const string &name) const
+bool TypeConverter::visit(FunctionTypeName const& _node)
 {
-    Translation res;
-    res.type = res.name = name;
-    return res;
+    (void) _node;
+    throw runtime_error("Function type unsupported.");
 }
 
-Translation TypeTranslator::translate_int(TypePointer t) const
+bool TypeConverter::visit(Mapping const&)
 {
-    auto typecast = dynamic_cast<IntegerType const*>(t);
-    if (!typecast)
-    {
-        throw runtime_error("Type not convertible to IntegerType");
-    }
-
-    Translation res;
-    res.type = res.name = typecast->isSigned() ? "int" : "unsigned int";
-    return res;
+    ++m_rectype_depth;
+    return true;
 }
 
-Translation TypeTranslator::translate_contract(TypePointer t) const
+bool TypeConverter::visit(ArrayTypeName const& _node)
 {
-    auto typecast = dynamic_cast<ContractType const*>(t);
-    if (!typecast)
-    {
-        throw runtime_error("Type not convertible to ContractType");
-    }
-
-    Translation res;
-    res.name = typecast->contractDefinition().name();
-    res.type = "struct " + res.name;
-    return res;
+    (void) _node;
+    throw runtime_error("Array type unsupported.");
 }
 
-Translation TypeTranslator::translate_struct(TypePointer t) const
+// -------------------------------------------------------------------------- //
+
+void TypeConverter::endVisit(ParameterList const& _node)
 {
-    auto typecast = dynamic_cast<StructType const*>(t);
-    if (!typecast)
+    if (m_is_retval)
     {
-        throw runtime_error("Type not convertible to StructType");
+        Translation translation;
+        if (_node.parameters().size() > 1)
+        {
+            throw runtime_error("Multiple return types are unsupported.");
+        }
+        else if (_node.parameters().size() == 1)
+        {
+            translation = translate_impl(_node.parameters()[0].get());
+        }
+        else
+        {
+            translation.name = "void";
+            translation.type = "void";
+        }
+        m_dictionary.insert({&_node, translation});
     }
-
-    auto const& str_decl = typecast->structDefinition();
-    auto const& ctx_decl = dynamic_cast<Declaration const*>(str_decl.scope());
-    if (!ctx_decl)
-    {
-        throw runtime_error("Expected Structure definition within Declaration.");
-    }
-
-    Translation res;
-    res.name  = ctx_decl->name() + "_" + str_decl.name();
-    res.type = "struct " + res.name;
-    return res;
 }
 
-Translation TypeTranslator::translate_mapping(TypePointer t) const
+void TypeConverter::endVisit(Mapping const& _node)
 {
-    auto typecast = dynamic_cast<MappingType const*>(t);
-    if (!typecast)
-    {
-        throw runtime_error("Type not convertible to MappingType");
-    }
+    string name = translate_impl(m_curr_decl->scope()).name;
+    name += "_" + m_curr_decl->name() + "_submap" + to_string(m_rectype_depth);
 
-    unsigned int depth = 0;
-    MappingType const* curr_type = typecast;
-    do {
-        ++depth;
-        curr_type = dynamic_cast<MappingType const*>(curr_type->valueType());
-    } while (curr_type != nullptr);
+    Translation translation;
+    translation.name = name;
+    translation.type = "struct " + name;
+    m_dictionary.insert({&_node, translation});
 
-    if (!m_map_ctx.is_initialized())
-    {
-        throw runtime_error("A map must be translated within some scope.");
-    }
-
-    Translation res;
-    res.name = scope().name + "_submap" + std::to_string(depth);
-    res.type = "struct " + res.name;
-    return res;
+    --m_rectype_depth;
 }
 
-Translation TypeTranslator::translate_type(TypePointer t) const
+// -------------------------------------------------------------------------- //
+
+Translation TypeConverter::translate_impl(ASTNode const* _node) const
 {
-    auto typecast = dynamic_cast<TypeType const*>(t);
-    if (!typecast)
+    auto res = m_dictionary.find(_node);
+    if (res == m_dictionary.end())
     {
-        throw runtime_error("Type not convertible to TypeType");
+        throw logic_error("Translation request for type not in source unit.");
     }
-    return translate(typecast->actualType());
+    return res->second;
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }

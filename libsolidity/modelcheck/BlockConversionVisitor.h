@@ -29,7 +29,7 @@ public:
     // Creates a C model code generator for a given block of Solidity code.
     BlockConversionVisitor(
         FunctionDefinition const& _func,
-        TypeTranslator const& _scope
+		TypeConverter const& _converter
     );
 
     // Generates a human-readable block of C code, from the given block.
@@ -52,7 +52,7 @@ protected:
 
 private:
     Block const* m_body;
-    TypeTranslator const& m_scope;
+	TypeConverter const& m_converter;
 	VariableScopeResolver m_decls;
 
 	ASTPointer<VariableDeclaration> m_retvar = nullptr;

@@ -4,7 +4,6 @@
  */
 
 #include <libsolidity/modelcheck/ExpressionConversionVisitor.h>
-#include <libsolidity/modelcheck/FunctionDefinitionGenerator.h>
 #include <stdexcept>
 
 using namespace std;
@@ -58,9 +57,9 @@ bool MemberAccessSniffer::visit(MemberAccess const& _node)
 
 ExpressionConversionVisitor::ExpressionConversionVisitor(
 	Expression const& _expr,
-	TypeTranslator const& _scope,
+	TypeConverter const& _converter,
 	VariableScopeResolver const& _decls
-): m_expr(&_expr), m_scope(_scope), m_decls(_decls)
+): m_expr(&_expr), m_converter(_converter), m_decls(_decls)
 {
 }
 
@@ -536,8 +535,7 @@ void ExpressionConversionVisitor::print_method(
 		throw runtime_error("Failed to resolve contract from method call.");
 	}
 
-	(*m_ostream) << to_c_method_name(
-		decl.name(), m_scope.translate(*contract).name, false);
+	(*m_ostream) << m_converter.translate(decl).name;
 
 	(*m_ostream) << "(";
 

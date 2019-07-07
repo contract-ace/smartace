@@ -29,6 +29,7 @@ public:
     // Constructs a printer for all function forward decl's required by the ast.
     FunctionConverter(
         ASTNode const& _ast,
+		TypeConverter const& _converter,
 		bool _forward_declare
     );
 
@@ -39,24 +40,18 @@ public:
 	bool visit(StructDefinition const& _node) override;
 	bool visit(FunctionDefinition const& _node) override;
 	bool visit(ModifierDefinition const& _node) override;
-	bool visit(VariableDeclaration const& _node) override;
 	bool visit(Mapping const& _node) override;
-
-	void endVisit(ContractDefinition const&) override;
-	void endVisit(VariableDeclaration const&) override;
-	void endVisit(StructDefinition const&) override;
 
 private:
 	ASTNode const* m_ast;
+	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
-
-	TypeTranslator m_translator;
 
 	const bool m_forward_declare;
 
-	// Abstractions to handle a general CallableDeclaration.
-	void printArgs(CallableDeclaration const& _node, bool _pass_state);
-	void printRetvals(CallableDeclaration const& _node);
+	void print_args(
+		std::vector<ASTPointer<VariableDeclaration>> const& args,
+		ASTNode const* scope);
 };
 
 }

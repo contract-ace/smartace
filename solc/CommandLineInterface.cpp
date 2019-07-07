@@ -1155,45 +1155,49 @@ void CommandLineInterface::handleAst(string const& _argStr)
 void CommandLineInterface::handleCModel()
 {
 	vector<ASTNode const*> asts;
+	modelcheck::TypeConverter converter;
 	for (auto const& sourceCode: m_sourceCodes)
 	{
-		asts.push_back(&m_compiler->ast(sourceCode.first));
+		SourceUnit const& ast = m_compiler->ast(sourceCode.first);
+		converter.record(ast);
+		asts.push_back(&ast);
 	}
 
 	if (m_args.count(g_argOutputDir))
 	{
 		stringstream header_data, body_data;
-		handleCModelHeaders(asts, header_data);
-		handleCModelBody(asts, body_data);
+		handleCModelHeaders(asts, converter, header_data);
+		handleCModelBody(asts, converter, body_data);
 		createFile("cmodel.h", header_data.str());
 		createFile("cmodel.c", body_data.str());
 	}
 	else
 	{
 		sout() << endl << "======= cmodel.h =======" << endl;
-		handleCModelHeaders(asts, sout());
+		handleCModelHeaders(asts, converter, sout());
 		sout() << endl << "======= cmodel.c =======" << endl;
-		handleCModelBody(asts, sout());
+		handleCModelBody(asts, converter, sout());
 	}
 }
 
-void CommandLineInterface::handleCModelHeaders(vector<ASTNode const*> const& _asts, ostream & _os)
+void CommandLineInterface::handleCModelHeaders(vector<ASTNode const*> const& _asts, modelcheck::TypeConverter const& _con, ostream & _os)
 {
 	for (auto const& ast : _asts)
 	{
-		modelcheck::ADTForwardDeclVisitor(*ast).print(_os);
+		modelcheck::ADTForwardDeclVisitor(*ast, _con).print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
-		modelcheck::FunctionConverter(*ast, true).print(_os);
+		modelcheck::FunctionConverter(*ast, _con, true).print(_os);
 	}
 }
 
-void CommandLineInterface::handleCModelBody(std::vector<ASTNode const*> const& _asts, std::ostream & _os)
+void CommandLineInterface::handleCModelBody(std::vector<ASTNode const*> const& _asts, modelcheck::TypeConverter const& _con, ostream & _os)
 {
+	(void) _con;
 	for (auto const& ast : _asts)
 	{
-		modelcheck::FunctionConverter(*ast, false).print(_os);
+		modelcheck::FunctionConverter(*ast, _con, false).print(_os);
 	}
 }
 

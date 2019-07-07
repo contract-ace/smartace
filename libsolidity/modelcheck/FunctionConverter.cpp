@@ -4,7 +4,6 @@
  */
 
 #include <libsolidity/modelcheck/BlockConversionVisitor.h>
-#include <libsolidity/modelcheck/FunctionDefinitionGenerator.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
 #include <sstream>
 
@@ -21,8 +20,9 @@ namespace modelcheck
 
 FunctionConverter::FunctionConverter(
     ASTNode const& _ast,
+	TypeConverter const& _converter,
     bool _forward_declare
-): m_ast(&_ast), m_forward_declare(_forward_declare)
+): m_ast(&_ast), m_converter(_converter), m_forward_declare(_forward_declare)
 {
 }
 
@@ -37,55 +37,52 @@ void FunctionConverter::print(ostream& _stream)
 
 bool FunctionConverter::visit(ContractDefinition const& _node)
 {
-    m_translator.enter_scope(_node);
-    if (_node.constructor() == nullptr)
-    {
-        FunctionDefinitionGenerator contract_ctor_gen(_node, true);
-        // TODO: populate body
-        auto contract_ctor_node = contract_ctor_gen.generate();
-        contract_ctor_node->accept(*this);
-    }
+    auto translation = m_converter.translate(_node);
+
+    (*m_ostream) << translation.type << " Init_" << translation.name;
+    print_args({}, nullptr);
+    (*m_ostream) << ";" << endl;
+
     return true;
 }
 
 bool FunctionConverter::visit(StructDefinition const& _node)
 {
-    m_translator.enter_scope(_node);
-    // Generates the AST for for a struct's default constructor.
-    FunctionDefinitionGenerator struct_ctor_gen(_node, true);
-    for (const auto &param : _node.members())
+    vector<ASTPointer<VariableDeclaration>> initializable_members;
+    vector<ASTPointer<VariableDeclaration>> unitializable_members;
+    for (auto const& member : _node.members())
     {
-        const auto &type = param->type();
-        if (!dynamic_cast<const ArrayType *>(type) &&
-            !dynamic_cast<const MappingType *>(type))
+        switch (member->type()->category())
         {
-            struct_ctor_gen.push_arg(param);
+        case Type::Category::Address:
+        case Type::Category::Integer:
+        case Type::Category::RationalNumber:
+        case Type::Category::Bool:
+        case Type::Category::FixedPoint:
+        case Type::Category::Enum:
+            initializable_members.push_back(member);
+            break;
+        default:
+            unitializable_members.push_back(member);
+            break;
         }
     }
-    // TODO: populate body
-    auto struct_ctor_node = struct_ctor_gen.generate();
-    struct_ctor_node->accept(*this);
+
+    auto translation = m_converter.translate(_node);
+    (*m_ostream) << translation.type << " Init_" << translation.name;
+    print_args(initializable_members, nullptr);
+    (*m_ostream) << ";" << endl;
+
     return true;
 }
 
 bool FunctionConverter::visit(FunctionDefinition const& _node)
 {
-    bool is_ctor = _node.isConstructor();
+    auto translation = m_converter.translate(_node);
+    (*m_ostream) << translation.type << " " << translation.name;
 
-    if (is_ctor)
-    {
-        (*m_ostream) << m_translator.scope().type;
-    }
-    else
-    {
-        printRetvals(_node);
-    }
-
-    (*m_ostream) << " " << to_c_method_name(
-        _node.name(), m_translator.scope().name, is_ctor);
-
-    printArgs(
-        _node, !(is_ctor || _node.stateMutability() == StateMutability::Pure));
+    bool is_mutable = _node.stateMutability() != StateMutability::Pure;
+    print_args(_node.parameters(), is_mutable ? _node.scope() : nullptr);
 
     if (m_forward_declare)
     {
@@ -94,7 +91,7 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     else
     {
         (*m_ostream) << endl;
-        BlockConversionVisitor(_node, m_translator).print(*m_ostream);
+        BlockConversionVisitor(_node, m_converter).print(*m_ostream);
         (*m_ostream) << endl;
     }
 
@@ -103,33 +100,21 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
 
 bool FunctionConverter::visit(ModifierDefinition const& _node)
 {
-    (*m_ostream) << "void"
-                 << " "
-                 << "Modifier"
-                 << "_"
-                 << m_translator.scope().name
-                 << "_"
-                 << _node.name();
+    auto translation = m_converter.translate(_node);
 
-    printArgs(_node, true);
-
+    (*m_ostream) << translation.type << " " << translation.name;
+    print_args(_node.parameters(), _node.scope());
     (*m_ostream) << ";" << endl;
 
     return false;
 }
 
-bool FunctionConverter::visit(VariableDeclaration const& _node)
-{
-    m_translator.enter_scope(_node);
-    return true;
-}
-
 bool FunctionConverter::visit(Mapping const& _node)
 {
-    Translation map_translation = m_translator.translate(_node);
+    Translation map_translation = m_converter.translate(_node);
 
-    string key_type = m_translator.translate(_node.keyType()).type;
-    string val_type = m_translator.translate(_node.valueType()).type;
+    string key_type = m_converter.translate(_node.keyType()).type;
+    string val_type = m_converter.translate(_node.valueType()).type;
 
     (*m_ostream) << val_type << " "
                  << "Read" << "_" << map_translation.name
@@ -158,67 +143,31 @@ bool FunctionConverter::visit(Mapping const& _node)
 
 // -------------------------------------------------------------------------- //
 
-void FunctionConverter::endVisit(ContractDefinition const&)
-{
-    m_translator.exit_scope();
-}
-
-void FunctionConverter::endVisit(VariableDeclaration const&)
-{
-    m_translator.exit_scope();
-}
-
-void FunctionConverter::endVisit(StructDefinition const&)
-{
-    m_translator.exit_scope();
-}
-
-// -------------------------------------------------------------------------- //
-
-void FunctionConverter::printArgs(
-    CallableDeclaration const& _node, bool _pass_state)
+void FunctionConverter::print_args(
+    vector<ASTPointer<VariableDeclaration>> const& args, ASTNode const* scope)
 {
     (*m_ostream) << "(";
 
-    if (_pass_state)
+    auto contract_scope = dynamic_cast<ContractDefinition const*>(scope);
+    if (contract_scope)
     {
-        (*m_ostream) << m_translator.scope().type << " *self"
-                     << ", "
-                     << "struct CallState *state";
+        auto type = m_converter.translate(*contract_scope).type;
+        (*m_ostream) << type << " *self, struct CallState *state";
     }
 
-    auto const& args = _node.parameters();
     for (unsigned int idx = 0; idx < args.size(); ++idx)
     {
-        if (_pass_state || idx > 0)
+        if (contract_scope || idx > 0)
         {
             (*m_ostream) << ", ";
         }
 
-        const auto &type = args[idx]->type();
-        const auto &name = args[idx]->name();
-        Translation type_translation = m_translator.translate(type);
-        (*m_ostream) << type_translation.type << " " << name;
+        auto const& arg = *args[idx];
+        Translation type_translation = m_converter.translate(arg);
+        (*m_ostream) << type_translation.type << " " << arg.name();
     }
 
     (*m_ostream) << ")";
-}
-
-void FunctionConverter::printRetvals(CallableDeclaration const& _node)
-{
-    auto const& rettypes = _node.returnParameters();
-    if (rettypes.empty())
-    {
-        (*m_ostream) << "void";
-    }
-    else if (rettypes.size() == 1)
-    {
-        (*m_ostream) << m_translator.translate(rettypes[0]->type()).type;
-    }
-    else
-    {
-        throw length_error("Multi-element return types unsupport.");
-    }
 }
 
 // -------------------------------------------------------------------------- //

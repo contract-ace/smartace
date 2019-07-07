@@ -22,6 +22,7 @@
 #pragma once
 
 #include <libsolidity/interface/CompilerStack.h>
+#include <libsolidity/modelcheck/TypeTranslator.h>
 #include <libyul/AssemblyStack.h>
 #include <liblangutil/EVMVersion.h>
 
@@ -64,8 +65,8 @@ private:
 	void handleCombinedJSON();
 	void handleAst(std::string const& _argStr);
 	void handleCModel();
-	void handleCModelHeaders(std::vector<ASTNode const*> const& _asts, std::ostream & _os);
-	void handleCModelBody(std::vector<ASTNode const*> const& _asts, std::ostream & _os);
+	void handleCModelHeaders(std::vector<ASTNode const*> const& _asts, modelcheck::TypeConverter const& _con, std::ostream & _os);
+	void handleCModelBody(std::vector<ASTNode const*> const& _asts, modelcheck::TypeConverter const& _con, std::ostream & _os);
 	void handleBinary(std::string const& _contract);
 	void handleOpcode(std::string const& _contract);
 	void handleIR(std::string const& _contract);
