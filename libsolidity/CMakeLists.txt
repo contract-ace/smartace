@@ -106,8 +106,8 @@ set(sources
 	interface/StandardCompiler.h
 	interface/Version.cpp
 	interface/Version.h
-	modelcheck/ADTForwardDeclVisitor.cpp
-	modelcheck/ADTForwardDeclVisitor.h
+	modelcheck/ADTConverter.cpp
+	modelcheck/ADTConverter.h
 	modelcheck/BlockConversionVisitor.cpp
 	modelcheck/BlockConversionVisitor.h
 	modelcheck/ExpressionConversionVisitor.cpp

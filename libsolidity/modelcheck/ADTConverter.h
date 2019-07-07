@@ -22,13 +22,14 @@ namespace modelcheck
  * Interprets the AST in terms of its C model, and prints forward declarations
  * for each of structures.
  */
-class ADTForwardDeclVisitor : public ASTConstVisitor
+class ADTConverter : public ASTConstVisitor
 {
 public:
     // Constructs a printer for all forward decl's required by ast's c model.
-    ADTForwardDeclVisitor(
+    ADTConverter(
         ASTNode const& _ast,
-		TypeConverter const& _converter
+		TypeConverter const& _converter,
+		bool _forward_declare
     );
 
     // Prints each for declaration once, in some order.
@@ -46,6 +47,8 @@ private:
 	ASTNode const* m_ast;
 	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
+
+	const bool m_forward_declare;
 };
 
 }

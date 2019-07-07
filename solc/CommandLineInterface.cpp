@@ -33,7 +33,7 @@
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
-#include <libsolidity/modelcheck/ADTForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/ADTConverter.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
 
 #include <libyul/AssemblyStack.h>
@@ -1184,7 +1184,7 @@ void CommandLineInterface::handleCModelHeaders(vector<ASTNode const*> const& _as
 {
 	for (auto const& ast : _asts)
 	{
-		modelcheck::ADTForwardDeclVisitor(*ast, _con).print(_os);
+		modelcheck::ADTConverter(*ast, _con, true).print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
@@ -1194,7 +1194,10 @@ void CommandLineInterface::handleCModelHeaders(vector<ASTNode const*> const& _as
 
 void CommandLineInterface::handleCModelBody(std::vector<ASTNode const*> const& _asts, modelcheck::TypeConverter const& _con, ostream & _os)
 {
-	(void) _con;
+	for (auto const& ast : _asts)
+	{
+		modelcheck::ADTConverter(*ast, _con, false).print(_os);
+	}
 	for (auto const& ast : _asts)
 	{
 		modelcheck::FunctionConverter(*ast, _con, false).print(_os);

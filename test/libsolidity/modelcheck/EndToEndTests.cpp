@@ -4,7 +4,7 @@
  * all converted components of a C header or body.
  */
 
-#include <libsolidity/modelcheck/ADTForwardDeclVisitor.h>
+#include <libsolidity/modelcheck/ADTConverter.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(simple_modifier)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(modifier_with_args)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -198,7 +198,7 @@ BOOST_AUTO_TEST_CASE(simple_func)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(pure_func)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -256,7 +256,7 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -347,7 +347,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -402,7 +402,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -469,7 +469,7 @@ BOOST_AUTO_TEST_CASE(custom_ctor)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -503,7 +503,7 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    ADTForwardDeclVisitor(ast, converter).print(adt_actual);
+    ADTConverter(ast, converter, true).print(adt_actual);
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -555,11 +555,26 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     converter.record(ast);
 
     ostringstream adt_actual, func_actual;
-    // TODO: adt
+    ADTConverter(ast, converter, false).print(adt_actual);
     FunctionConverter(ast, converter, false).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    // TODO: adt
+    adt_expect << "struct A" << endl
+               << "{" << endl
+               << "unsigned int d_min_amt;" << endl
+               << "struct A_accs_submap1 d_accs;" << endl
+               << "};" << endl
+               << "struct A_S" << endl
+               << "{" << endl
+               << "int d_owner;" << endl
+               << "unsigned int d_val;" << endl
+               << "};" << endl
+               << "struct A_accs_submap1" << endl
+               << "{" << endl
+               << "int m_set;" << endl
+               << "unsigned int m_curr;" << endl
+               << "struct A_S d_;" << endl
+               << "};" << endl;
     func_expect << "struct A Init_A();" << endl
                 << "struct A_S Init_A_S(int owner, unsigned int val);" << endl
                 << "struct A_S Read_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx);" << endl
