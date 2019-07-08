@@ -35,27 +35,6 @@ map<pair<MagicType::Kind, string>, string> const
 
 // -------------------------------------------------------------------------- //
 
-MemberAccessSniffer::MemberAccessSniffer(
-	Expression const& _expr
-): m_expr(&_expr)
-{
-}
-
-MemberAccess const* MemberAccessSniffer::find()
-{
-	m_ret = nullptr;
-	m_expr->accept(*this);
-	return m_ret;
-}
-
-bool MemberAccessSniffer::visit(MemberAccess const& _node)
-{
-	m_ret = &_node;
-	return false;
-}
-
-// -------------------------------------------------------------------------- //
-
 ExpressionConverter::ExpressionConverter(
 	Expression const& _expr,
 	TypeConverter const& _converter,
@@ -185,123 +164,19 @@ bool ExpressionConverter::visit(BinaryOperation const& _node)
 
 bool ExpressionConverter::visit(FunctionCall const& _node)
 {
-	Identifier self(langutil::SourceLocation(), make_shared<string>("this"));
-
-	auto ftype = dynamic_cast<FunctionType const*>(
-		_node.expression().annotation().type);
-	if (!ftype)
+	switch (_node.annotation().kind)
 	{
-		throw runtime_error("Function encountered without type annotations.");
-	}
-
-	switch (ftype->kind())
-	{
-	case FunctionType::Kind::Internal:
-		print_method(*ftype, self, _node.arguments());
+	case FunctionCallKind::FunctionCall:
+		print_function(_node.expression(), _node.arguments());
 		break;
-	case FunctionType::Kind::External:
-	case FunctionType::Kind::BareCall:
-	case FunctionType::Kind::BareStaticCall:
-		// TODO(scottwe): STATICCALL prevents immutability, as opposed to
-		//     relying on only compile-time checks... should this be handled
-		//     seperately, and where did compile-time checks fail?
-		// TODO(scottwe): how does value behave when chaining calls?
-		print_ext_method(*ftype, _node);
-		break;
-	case FunctionType::Kind::DelegateCall:
-	case FunctionType::Kind::BareDelegateCall:
-	case FunctionType::Kind::BareCallCode:
-		// TODO(scottwe): report that calls to DELEGATECALL are not supported.
-		throw runtime_error("Delegate calls are unsupported.");
-	case FunctionType::Kind::Creation:
-		// TODO(scottwe): what functions map to CREATE type?
-		throw runtime_error("CREATE call not yet supported.");
-	case FunctionType::Kind::Send:
-	case FunctionType::Kind::Transfer:
-		print_payment(_node);
-		break;
-	case FunctionType::Kind::KECCAK256:
-		// TODO(scottwe): implement.
-		throw runtime_error("KECCAK256 not yet supported.");
-	case FunctionType::Kind::Selfdestruct:
-		// TODO(scottwe): when should this be acceptable?
-		throw runtime_error("Selfdestruct unsupported.");
-	case FunctionType::Kind::Revert:
-		// TODO(scottwe): decide on rollback versus assert branch pruning.
-		throw runtime_error("Revert not yet supported.");
-	case FunctionType::Kind::ECRecover:
-		// TODO(scottwe): implement.
-		throw runtime_error("ECRecover not yet supported.");
-	case FunctionType::Kind::SHA256:
-		// TODO(scottwe): implement.
-		throw runtime_error("SHA256 not yet supported.");
-	case FunctionType::Kind::RIPEMD160:
-		// TODO(scottwe): implement.
-		throw runtime_error("RIPEMD160 not yet supported.");
-	case FunctionType::Kind::Log0:
-	case FunctionType::Kind::Log1:
-	case FunctionType::Kind::Log2:
-	case FunctionType::Kind::Log3:
-	case FunctionType::Kind::Log4:
-	case FunctionType::Kind::Event:
-		// TODO(scottwe): prune statements which operate on events...
-		throw runtime_error("Logging is not verified.");
-	case FunctionType::Kind::SetGas:
-		// TODO(scottwe): will gas be modelled at all?
-		throw runtime_error("`gas(<val>)` not yet supported.");
-	case FunctionType::Kind::SetValue:
-		// TODO(scottwe): update state.value for the given call.
-		throw runtime_error("`value(<val>)` not yet supported.");
-	case FunctionType::Kind::BlockHash:
-		// TODO(scottwe): implement.
-		throw runtime_error("`block.blockhash(<val>)` not yet supported.");
-	case FunctionType::Kind::AddMod:
-		// TODO(scottwe): overflow free `assert(z > 0); return (x + y) % z;`.
-		throw runtime_error("AddMod not yet supported.");
-	case FunctionType::Kind::MulMod:
-		// TODO(scottwe): overflow free `assert(z > 0); return (x * y) % z;`.
-		throw runtime_error("AddMod not yet supported.");
-	case FunctionType::Kind::ArrayPush:
-	case FunctionType::Kind::ByteArrayPush:
-		// TODO(scottwe): implement.
-		throw runtime_error("`<array>.push(<val>)` not yet supported.");
-	case FunctionType::Kind::ArrayPop:
-		// TODO(scottwe): implement.
-		throw runtime_error("`<array>.pop()` not yet supported.");
-	case FunctionType::Kind::ObjectCreation:
-		// TODO(scottwe): implement.
-		throw runtime_error("`new <array>` not yet supported.");
-	case FunctionType::Kind::Assert:
-		print_assertion("assert", _node);
-		break;
-	case FunctionType::Kind::Require:
-		print_assertion("assume", _node);
-		break;
-	case FunctionType::Kind::ABIEncode:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.encode(...)` unsupported.");
-	case FunctionType::Kind::ABIEncodePacked:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.encodePacked(...)` unsupported.");
-	case FunctionType::Kind::ABIEncodeWithSelector:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.encodeWithSelector(...)` unsupported.");
-	case FunctionType::Kind::ABIEncodeWithSignature:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.encodeWithSignature(...)` unsupported.");
-	case FunctionType::Kind::ABIDecode:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.decode(...)` unsupported.");
-	case FunctionType::Kind::GasLeft:
-		// TODO(scottwe): decide how to handle remaining gas checks.
-		throw runtime_error("GasLeft not yet supported.");
-	case FunctionType::Kind::MetaType:
-		// Note: Compiler does not generate code for MetaType calls.
+	case FunctionCallKind::TypeConversion:
+		throw runtime_error("Type conversion not yet supported.");
+	case FunctionCallKind::StructConstructorCall:
+		print_struct_consructor(_node.expression(), _node.arguments());
 		break;
 	default:
-		throw runtime_error("Unexpected function call type.");
+		throw runtime_error("FunctionCall encountered of unknown kind.");
 	}
-
 	return false;
 }
 
@@ -479,50 +354,202 @@ void ExpressionConverter::print_binary_op(
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConverter::print_assertion(
-	string _type, FunctionCall const& _func
+void ExpressionConverter::print_struct_consructor(
+	Expression const& _struct,
+	vector<ASTPointer<Expression const>> const& _args
 )
 {
-	if (_func.arguments().empty())
+	if (auto struct_id = NodeSniffer<Identifier>(_struct).find())
+	{
+		auto translation = m_converter.translate(*struct_id);
+		(*m_ostream) << "Init_" << translation.name << "(";
+		for (unsigned int i = 0; i < _args.size(); ++i)
+		{
+			if (i > 0)
+			{
+				(*m_ostream) << ", ";
+			}
+			_args[i]->accept(*this);
+		}
+		(*m_ostream) << ")";
+	}
+	else
+	{
+		throw runtime_error("Struct constructor called without identifier.");
+	}
+}
+
+void ExpressionConverter::print_function(
+	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
+)
+{
+	Identifier self(langutil::SourceLocation(), make_shared<string>("this"));
+
+	auto ftype = dynamic_cast<FunctionType const*>(_call.annotation().type);
+	if (!ftype)
+	{
+		throw runtime_error("Function encountered without type annotations.");
+	}
+
+	switch (ftype->kind())
+	{
+	case FunctionType::Kind::Internal:
+		print_method(*ftype, self, _args);
+		break;
+	case FunctionType::Kind::External:
+	case FunctionType::Kind::BareCall:
+	case FunctionType::Kind::BareStaticCall:
+		// TODO(scottwe): STATICCALL prevents immutability, as opposed to
+		//     relying on only compile-time checks... should this be handled
+		//     seperately, and where did compile-time checks fail?
+		// TODO(scottwe): how does value behave when chaining calls?
+		print_ext_method(*ftype, _call, _args);
+		break;
+	case FunctionType::Kind::DelegateCall:
+	case FunctionType::Kind::BareDelegateCall:
+	case FunctionType::Kind::BareCallCode:
+		// TODO(scottwe): report that calls to DELEGATECALL are not supported.
+		throw runtime_error("Delegate calls are unsupported.");
+	case FunctionType::Kind::Creation:
+		// TODO(scottwe): what functions map to CREATE type?
+		throw runtime_error("CREATE call not yet supported.");
+	case FunctionType::Kind::Send:
+	case FunctionType::Kind::Transfer:
+		print_payment(_call, _args);
+		break;
+	case FunctionType::Kind::KECCAK256:
+		// TODO(scottwe): implement.
+		throw runtime_error("KECCAK256 not yet supported.");
+	case FunctionType::Kind::Selfdestruct:
+		// TODO(scottwe): when should this be acceptable?
+		throw runtime_error("Selfdestruct unsupported.");
+	case FunctionType::Kind::Revert:
+		// TODO(scottwe): decide on rollback versus assert branch pruning.
+		throw runtime_error("Revert not yet supported.");
+	case FunctionType::Kind::ECRecover:
+		// TODO(scottwe): implement.
+		throw runtime_error("ECRecover not yet supported.");
+	case FunctionType::Kind::SHA256:
+		// TODO(scottwe): implement.
+		throw runtime_error("SHA256 not yet supported.");
+	case FunctionType::Kind::RIPEMD160:
+		// TODO(scottwe): implement.
+		throw runtime_error("RIPEMD160 not yet supported.");
+	case FunctionType::Kind::Log0:
+	case FunctionType::Kind::Log1:
+	case FunctionType::Kind::Log2:
+	case FunctionType::Kind::Log3:
+	case FunctionType::Kind::Log4:
+	case FunctionType::Kind::Event:
+		// TODO(scottwe): prune statements which operate on events...
+		throw runtime_error("Logging is not verified.");
+	case FunctionType::Kind::SetGas:
+		// TODO(scottwe): will gas be modelled at all?
+		throw runtime_error("`gas(<val>)` not yet supported.");
+	case FunctionType::Kind::SetValue:
+		// TODO(scottwe): update state.value for the given call.
+		throw runtime_error("`value(<val>)` not yet supported.");
+	case FunctionType::Kind::BlockHash:
+		// TODO(scottwe): implement.
+		throw runtime_error("`block.blockhash(<val>)` not yet supported.");
+	case FunctionType::Kind::AddMod:
+		// TODO(scottwe): overflow free `assert(z > 0); return (x + y) % z;`.
+		throw runtime_error("AddMod not yet supported.");
+	case FunctionType::Kind::MulMod:
+		// TODO(scottwe): overflow free `assert(z > 0); return (x * y) % z;`.
+		throw runtime_error("AddMod not yet supported.");
+	case FunctionType::Kind::ArrayPush:
+	case FunctionType::Kind::ByteArrayPush:
+		// TODO(scottwe): implement.
+		throw runtime_error("`<array>.push(<val>)` not yet supported.");
+	case FunctionType::Kind::ArrayPop:
+		// TODO(scottwe): implement.
+		throw runtime_error("`<array>.pop()` not yet supported.");
+	case FunctionType::Kind::ObjectCreation:
+		// TODO(scottwe): implement.
+		throw runtime_error("`new <array>` not yet supported.");
+	case FunctionType::Kind::Assert:
+		print_assertion("assert", _args);
+		break;
+	case FunctionType::Kind::Require:
+		print_assertion("assume", _args);
+		break;
+	case FunctionType::Kind::ABIEncode:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.encode(...)` unsupported.");
+	case FunctionType::Kind::ABIEncodePacked:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.encodePacked(...)` unsupported.");
+	case FunctionType::Kind::ABIEncodeWithSelector:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.encodeWithSelector(...)` unsupported.");
+	case FunctionType::Kind::ABIEncodeWithSignature:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.encodeWithSignature(...)` unsupported.");
+	case FunctionType::Kind::ABIDecode:
+		// TODO(scottwe): decide how/if this should be used.
+		throw runtime_error("`abi.decode(...)` unsupported.");
+	case FunctionType::Kind::GasLeft:
+		// TODO(scottwe): decide how to handle remaining gas checks.
+		throw runtime_error("GasLeft not yet supported.");
+	case FunctionType::Kind::MetaType:
+		// Note: Compiler does not generate code for MetaType calls.
+		break;
+	default:
+		throw runtime_error("Unexpected function call type.");
+	}
+}
+
+void ExpressionConverter::print_assertion(
+	string _type, vector<ASTPointer<Expression const>> const& _args
+)
+{
+	if (_args.empty())
 	{
 		throw runtime_error("Assertion requires condition.");
 	}
 
 	(*m_ostream) << _type << "(";
-	(_func.arguments()[0])->accept(*this);
+	(_args[0])->accept(*this);
 	(*m_ostream) << ")";
 }
 
-void ExpressionConverter::print_payment(FunctionCall const& _func)
+void ExpressionConverter::print_payment(
+	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
+)
 {
-	if (_func.arguments().size() != 1)
+	if (_args.size() != 1)
 	{
 		throw runtime_error("Payment calls require payment amount.");
 	}
-
-	MemberAccess const* call = MemberAccessSniffer(_func.expression()).find();
-	if (!call)
+	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
+	{
+		(*m_ostream) << "_pay(state, ";
+		call->expression().accept(*this);
+		(*m_ostream) << ", ";
+		(_args[0])->accept(*this);
+		(*m_ostream) << ")";	
+	}
+	else
 	{
 		throw runtime_error("Unable to extract address from payment call.");
 	}
-
-	(*m_ostream) << "_pay(state, ";
-	call->expression().accept(*this);
-	(*m_ostream) << ", ";
-	(_func.arguments()[0])->accept(*this);
-	(*m_ostream) << ")";
 }
 
 void ExpressionConverter::print_ext_method(
-	FunctionType const& _type, FunctionCall const& _func
+	FunctionType const& _type,
+	Expression const& _call,
+	vector<ASTPointer<Expression const>> const& _args
 )
 {
-	MemberAccess const* call = MemberAccessSniffer(_func.expression()).find();
-	if (!call)
+	if (auto call = NodeSniffer<MemberAccess>(_call).find())
+	{
+		print_method(_type, call->expression(), _args);	
+	}
+	else
 	{
 		throw runtime_error("Unable to extract address from external call.");
 	}
-	print_method(_type, call->expression(), _func.arguments());
 }
 
 void ExpressionConverter::print_method(
@@ -534,15 +561,7 @@ void ExpressionConverter::print_method(
 	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
 	const bool is_mutable = (decl.stateMutability() != StateMutability::Pure);
 
-	auto contract = dynamic_cast<ContractDefinition const*>(decl.scope());
-	if (!contract)
-	{
-		throw runtime_error("Failed to resolve contract from method call.");
-	}
-
-	(*m_ostream) << m_converter.translate(decl).name;
-
-	(*m_ostream) << "(";
+	(*m_ostream) << m_converter.translate(decl).name << "(";
 
 	if (is_mutable)
 	{
@@ -608,19 +627,19 @@ void ExpressionConverter::print_magic_member(
 	TypePointer _type, string const& _member
 )
 {
-	auto magic_type = dynamic_cast<MagicType const*>(_type);
-	if (!magic_type)
+	if (auto magic_type = dynamic_cast<MagicType const*>(_type))
+	{
+		auto res = m_magic_members.find({magic_type->kind(), _member});
+		if (res == m_magic_members.end() || res->second == "")
+		{
+			throw runtime_error("Unable to resolve member of Magic type.");
+		}
+		(*m_ostream) << res->second;	
+	}
+	else
 	{
 		throw runtime_error("Resolution of MagicType failed in MemberAccess.");
 	}
-
-	auto const& result = m_magic_members.find({magic_type->kind(), _member});
-	if (result == m_magic_members.end() || result->second == "")
-	{
-		throw runtime_error("Unable to resolve member of Magic type.");
-	}
-
-	(*m_ostream) << result->second;
 }
 
 // -------------------------------------------------------------------------- //

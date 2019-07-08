@@ -117,10 +117,11 @@ BOOST_AUTO_TEST_CASE(member_access_sniffer)
 
     TupleExpression tuple(SourceLocation(), {m2}, false);
 
-    BOOST_CHECK_EQUAL(MemberAccessSniffer(tuple).find(), m2.get());
-    BOOST_CHECK_EQUAL(MemberAccessSniffer(*m2).find(), m2.get());
-    BOOST_CHECK_EQUAL(MemberAccessSniffer(*m1).find(), m1.get());
-    BOOST_CHECK_EQUAL(MemberAccessSniffer(*id).find(), nullptr);
+    BOOST_CHECK_EQUAL(NodeSniffer<MemberAccess>(tuple).find(), m2.get());
+    BOOST_CHECK_EQUAL(NodeSniffer<MemberAccess>(*m2).find(), m2.get());
+    BOOST_CHECK_EQUAL(NodeSniffer<MemberAccess>(*m1).find(), m1.get());
+    BOOST_CHECK_EQUAL(NodeSniffer<MemberAccess>(*id).find(), nullptr);
+    BOOST_CHECK_EQUAL(NodeSniffer<Identifier>(tuple).find(), id.get());
 }
 
 BOOST_AUTO_TEST_CASE(conditional_expression_output)

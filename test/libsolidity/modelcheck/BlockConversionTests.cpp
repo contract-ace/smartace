@@ -561,6 +561,36 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(struct_ctor_calls)
+{
+    char const* text = R"(
+		contract A {
+            struct B { mapping(uint => uint) a; }
+            struct C { uint a; }
+            struct D { uint a; uint b; }
+			function f() public {
+                B(); C(1); D(1, 2);
+            }
+		}
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expected;
+    BlockConverter(func, converter).print(actual);
+    expected << "{" << endl
+             << "Init_A_B();" << endl
+             << "Init_A_C(1);" << endl
+             << "Init_A_D(1, 2);" << endl
+             << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

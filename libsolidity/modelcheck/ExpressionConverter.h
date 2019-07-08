@@ -25,23 +25,27 @@ namespace modelcheck
 /**
  * Utility to find top-most MemberAccess within an expression AST.
  */
-class MemberAccessSniffer : public ASTConstVisitor
+template <class T>
+class NodeSniffer : public ASTConstVisitor
 {
 public:
 	// Wraps an AST node from which the member access is located.
-	MemberAccessSniffer(
-        Expression const& _expr
-	);
+	NodeSniffer(Expression const& _expr): m_expr(_expr) {}
 
 	// Returns the member accessor if possible, or nullptr.
-	MemberAccess const* find();
+	T const* find()
+	{
+		m_ret = nullptr;
+		m_expr.accept(*this);
+		return m_ret;
+	}
 
 protected:
-	bool visit(MemberAccess const& _node) override;
+	void endVisit(T const& _node) override { m_ret = &_node; }
 
 private:
-    Expression const* m_expr;
-    MemberAccess const* m_ret;
+    Expression const& m_expr;
+    T const* m_ret;
 };
 
 // -------------------------------------------------------------------------- //
@@ -104,9 +108,27 @@ private:
 	);
 
 	// Helper functions to produce specialized function calls.
-	void print_assertion(std::string _type, FunctionCall const& _func);
-	void print_payment(FunctionCall const& _func);
-	void print_ext_method(FunctionType const& _type, FunctionCall const& _func);
+	void print_struct_consructor(
+		Expression const& _struct,
+		std::vector<ASTPointer<Expression const>> const& _args
+	);
+	void print_function(
+		Expression const& _call,
+		std::vector<ASTPointer<Expression const>> const& _args
+	);
+	void print_assertion(
+		std::string _type,
+		std::vector<ASTPointer<Expression const>> const& _args
+	);
+	void print_payment(
+		Expression const& _call,
+		std::vector<ASTPointer<Expression const>> const& _args
+	);
+	void print_ext_method(
+		FunctionType const& _type,
+		Expression const& _call,
+		std::vector<ASTPointer<Expression const>> const& _args
+	);
 	void print_method(
 		FunctionType const& _type,
 		Expression const& _ctx,
