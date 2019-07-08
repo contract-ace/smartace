@@ -3,7 +3,7 @@
  * Utility visitor to convert Solidity expressions into verifiable code.
  */
 
-#include <libsolidity/modelcheck/ExpressionConversionVisitor.h>
+#include <libsolidity/modelcheck/ExpressionConverter.h>
 #include <stdexcept>
 
 using namespace std;
@@ -17,7 +17,8 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-map<pair<MagicType::Kind, string>, string> const ExpressionConversionVisitor::m_magic_members{{
+map<pair<MagicType::Kind, string>, string> const 
+	ExpressionConverter::m_magic_members{{
 	{{MagicType::Kind::Block, "coinbase"}, ""},
 	{{MagicType::Kind::Block, "difficulty"}, ""},
 	{{MagicType::Kind::Block, "gaslimit"}, ""},
@@ -55,7 +56,7 @@ bool MemberAccessSniffer::visit(MemberAccess const& _node)
 
 // -------------------------------------------------------------------------- //
 
-ExpressionConversionVisitor::ExpressionConversionVisitor(
+ExpressionConverter::ExpressionConverter(
 	Expression const& _expr,
 	TypeConverter const& _converter,
 	VariableScopeResolver const& _decls
@@ -65,7 +66,7 @@ ExpressionConversionVisitor::ExpressionConversionVisitor(
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConversionVisitor::print(std::ostream& _stream)
+void ExpressionConverter::print(ostream& _stream)
 {
 	m_ostream = &_stream;
 	m_expr->accept(*this);
@@ -74,21 +75,21 @@ void ExpressionConversionVisitor::print(std::ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
-bool ExpressionConversionVisitor::visit(EnumValue const& _node)
+bool ExpressionConverter::visit(EnumValue const& _node)
 {
 	(void) _node;
 	// TODO(scottwe): implement.
 	throw runtime_error("Enum value not yet supported.");
 }
 
-bool ExpressionConversionVisitor::visit(ModifierInvocation const& _node)
+bool ExpressionConverter::visit(ModifierInvocation const& _node)
 {
 	(void) _node;
 	// TODO(scottwe): implement.
 	throw runtime_error("Modifier invocations not yet supported.");
 }
 
-bool ExpressionConversionVisitor::visit(Conditional const& _node)
+bool ExpressionConverter::visit(Conditional const& _node)
 {
 	print_subexpression(_node.condition());
 	(*m_ostream) << "?";
@@ -98,7 +99,7 @@ bool ExpressionConversionVisitor::visit(Conditional const& _node)
 	return false;
 }
 
-bool ExpressionConversionVisitor::visit(Assignment const& _node)
+bool ExpressionConverter::visit(Assignment const& _node)
 {
 	print_subexpression(_node.leftHandSide());
 
@@ -121,7 +122,7 @@ bool ExpressionConversionVisitor::visit(Assignment const& _node)
 	return false;
 }
 
-bool ExpressionConversionVisitor::visit(TupleExpression const& _node)
+bool ExpressionConverter::visit(TupleExpression const& _node)
 {
 	if (_node.isInlineArray())
 	{
@@ -140,7 +141,7 @@ bool ExpressionConversionVisitor::visit(TupleExpression const& _node)
 	return false;
 }
 
-bool ExpressionConversionVisitor::visit(UnaryOperation const& _node)
+bool ExpressionConverter::visit(UnaryOperation const& _node)
 {
 	if (!_node.isPrefixOperation())
 	{
@@ -173,7 +174,7 @@ bool ExpressionConversionVisitor::visit(UnaryOperation const& _node)
 	return false;
 }
 
-bool ExpressionConversionVisitor::visit(BinaryOperation const& _node)
+bool ExpressionConverter::visit(BinaryOperation const& _node)
 {
 	print_binary_op(
 		_node.leftExpression(),
@@ -182,7 +183,7 @@ bool ExpressionConversionVisitor::visit(BinaryOperation const& _node)
 	return false;
 }
 
-bool ExpressionConversionVisitor::visit(FunctionCall const& _node)
+bool ExpressionConverter::visit(FunctionCall const& _node)
 {
 	Identifier self(langutil::SourceLocation(), make_shared<string>("this"));
 
@@ -304,14 +305,14 @@ bool ExpressionConversionVisitor::visit(FunctionCall const& _node)
 	return false;
 }
 
-bool ExpressionConversionVisitor::visit(NewExpression const& _node)
+bool ExpressionConverter::visit(NewExpression const& _node)
 {
 	(void) _node;
 	// TODO(scottwe): implement.
 	throw runtime_error("New expressions not yet supported.");
 }
 
-bool ExpressionConversionVisitor::visit(MemberAccess const& _node)
+bool ExpressionConverter::visit(MemberAccess const& _node)
 {
 	auto expr_type = _node.expression().annotation().type;
 
@@ -339,27 +340,27 @@ bool ExpressionConversionVisitor::visit(MemberAccess const& _node)
 	return false;
 }
 
-bool ExpressionConversionVisitor::visit(IndexAccess const& _node)
+bool ExpressionConverter::visit(IndexAccess const& _node)
 {
 	(void) _node;
 	// TODO(scottwe): implement.
 	throw runtime_error("Index access not yet supported.");
 }
 
-bool ExpressionConversionVisitor::visit(Identifier const& _node)
+bool ExpressionConverter::visit(Identifier const& _node)
 {
 	(*m_ostream) << m_decls.resolve_identifier(_node);
 	return false;
 }
 
-bool ExpressionConversionVisitor::visit(ElementaryTypeNameExpression const& _node)
+bool ExpressionConverter::visit(ElementaryTypeNameExpression const& _node)
 {
 	(void) _node;
 	// TODO(scottwe): implement.
 	throw runtime_error("Elementary type name expressions not yet supported.");
 }
 
-bool ExpressionConversionVisitor::visit(Literal const& _node)
+bool ExpressionConverter::visit(Literal const& _node)
 {
 	switch (_node.token())
 	{
@@ -383,7 +384,7 @@ bool ExpressionConversionVisitor::visit(Literal const& _node)
 
 // -------------------------------------------------------------------------- //
 
-long long int ExpressionConversionVisitor::literal_to_number(Literal const& _node)
+long long int ExpressionConverter::literal_to_number(Literal const& _node)
 {
 	long long int num;
 
@@ -425,15 +426,16 @@ long long int ExpressionConversionVisitor::literal_to_number(Literal const& _nod
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConversionVisitor::print_subexpression(Expression const& _node)
+void ExpressionConverter::print_subexpression(Expression const& _node)
 {
 	(*m_ostream) << "(";
 	_node.accept(*this);
 	(*m_ostream) << ")";
 }
 
-void ExpressionConversionVisitor::print_binary_op(
-	Expression const& _lhs, Token _op, Expression const& _rhs)
+void ExpressionConverter::print_binary_op(
+	Expression const& _lhs, Token _op, Expression const& _rhs
+)
 {
 	print_subexpression(_lhs);
 
@@ -477,20 +479,21 @@ void ExpressionConversionVisitor::print_binary_op(
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConversionVisitor::print_assertion(
-	string type, FunctionCall const& _func)
+void ExpressionConverter::print_assertion(
+	string _type, FunctionCall const& _func
+)
 {
 	if (_func.arguments().empty())
 	{
 		throw runtime_error("Assertion requires condition.");
 	}
 
-	(*m_ostream) << type << "(";
+	(*m_ostream) << _type << "(";
 	(_func.arguments()[0])->accept(*this);
 	(*m_ostream) << ")";
 }
 
-void ExpressionConversionVisitor::print_payment(FunctionCall const& _func)
+void ExpressionConverter::print_payment(FunctionCall const& _func)
 {
 	if (_func.arguments().size() != 1)
 	{
@@ -510,8 +513,9 @@ void ExpressionConversionVisitor::print_payment(FunctionCall const& _func)
 	(*m_ostream) << ")";
 }
 
-void ExpressionConversionVisitor::print_ext_method(
-	FunctionType const& _type, FunctionCall const& _func)
+void ExpressionConverter::print_ext_method(
+	FunctionType const& _type, FunctionCall const& _func
+)
 {
 	MemberAccess const* call = MemberAccessSniffer(_func.expression()).find();
 	if (!call)
@@ -521,10 +525,11 @@ void ExpressionConversionVisitor::print_ext_method(
 	print_method(_type, call->expression(), _func.arguments());
 }
 
-void ExpressionConversionVisitor::print_method(
+void ExpressionConverter::print_method(
 	FunctionType const& _type,
 	Expression const& _ctx,
-	std::vector<ASTPointer<Expression const>> const& _args)
+	vector<ASTPointer<Expression const>> const& _args
+)
 {
 	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
 	const bool is_mutable = (decl.stateMutability() != StateMutability::Pure);
@@ -559,8 +564,9 @@ void ExpressionConversionVisitor::print_method(
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConversionVisitor::print_address_member(
-	Expression const& _node, string const& _member)
+void ExpressionConverter::print_address_member(
+	Expression const& _node, string const& _member
+)
 {
 	if (_member == "balance")
 	{
@@ -574,8 +580,9 @@ void ExpressionConversionVisitor::print_address_member(
 	}
 }
 
-void ExpressionConversionVisitor::print_array_member(
-	Expression const& _node, string const& _member)
+void ExpressionConverter::print_array_member(
+	Expression const& _node, string const& _member
+)
 {
 	if (_member == "length")
 	{
@@ -589,15 +596,17 @@ void ExpressionConversionVisitor::print_array_member(
 	}
 }
 
-void ExpressionConversionVisitor::print_adt_member(
-	Expression const& _node, string const& _member)
+void ExpressionConverter::print_adt_member(
+	Expression const& _node, string const& _member
+)
 {
 	print_subexpression(_node);
 	(*m_ostream) << "->d_" << _member;
 }
 
-void ExpressionConversionVisitor::print_magic_member(
-	TypePointer _type, std::string const& _member)
+void ExpressionConverter::print_magic_member(
+	TypePointer _type, string const& _member
+)
 {
 	auto magic_type = dynamic_cast<MagicType const*>(_type);
 	if (!magic_type)

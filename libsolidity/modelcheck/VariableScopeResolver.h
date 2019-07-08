@@ -31,10 +31,10 @@ public:
     void exit();
 
     // Records a variable declaration in the top-most scope.
-    void record_declaration(VariableDeclaration const& decl);
+    void record_declaration(VariableDeclaration const& _decl);
 
     // Maps an indentifer to its C-model name in the present scope.
-    std::string resolve_identifier(Identifier const& id) const;
+    std::string resolve_identifier(Identifier const& _id) const;
 
 private:
     std::list<std::set<std::string>> m_scopes;

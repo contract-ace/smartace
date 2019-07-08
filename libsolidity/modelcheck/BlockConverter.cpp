@@ -3,8 +3,8 @@
  * Utility visitor to convert Solidity blocks into verifiable code.
  */
 
-#include <libsolidity/modelcheck/BlockConversionVisitor.h>
-#include <libsolidity/modelcheck/ExpressionConversionVisitor.h>
+#include <libsolidity/modelcheck/BlockConverter.h>
+#include <libsolidity/modelcheck/ExpressionConverter.h>
 #include <stdexcept>
 
 using namespace std;
@@ -18,7 +18,7 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-BlockConversionVisitor::BlockConversionVisitor(
+BlockConverter::BlockConverter(
 	FunctionDefinition const& _func,
 	TypeConverter const& _converter
 ): m_body(&_func.body()), m_converter(_converter)
@@ -46,7 +46,7 @@ BlockConversionVisitor::BlockConversionVisitor(
 
 // -------------------------------------------------------------------------- //
 
-void BlockConversionVisitor::print(ostream& _stream)
+void BlockConverter::print(ostream& _stream)
 {
 	m_ostream = &_stream;
 	m_is_top_level = true;
@@ -57,7 +57,7 @@ void BlockConversionVisitor::print(ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
-bool BlockConversionVisitor::visit(Block const& _node)
+bool BlockConverter::visit(Block const& _node)
 {
 	bool print_returns = (m_is_top_level && m_retvar);
 	m_is_top_level = false;
@@ -95,17 +95,17 @@ bool BlockConversionVisitor::visit(Block const& _node)
 	return false;
 }
 
-bool BlockConversionVisitor::visit(PlaceholderStatement const& _node)
+bool BlockConverter::visit(PlaceholderStatement const& _node)
 {
 	(void) _node;
 	// TODO(scottwe): implement.
 	throw runtime_error("Placeholder statement not yet supported.");
 }
 
-bool BlockConversionVisitor::visit(IfStatement const& _node)
+bool BlockConverter::visit(IfStatement const& _node)
 {
 	(*m_ostream) << "if (";
-	ExpressionConversionVisitor(
+	ExpressionConverter(
 		_node.condition(), m_converter, m_decls
 	).print(*m_ostream);
 	(*m_ostream) << ")" << endl;
@@ -119,10 +119,10 @@ bool BlockConversionVisitor::visit(IfStatement const& _node)
 	return false;
 }
 
-bool BlockConversionVisitor::visit(WhileStatement const& _node)
+bool BlockConverter::visit(WhileStatement const& _node)
 {
 	// TODO(scottwe): Ensure number of interations has finite bound.
-	ExpressionConversionVisitor condition_visitor(
+	ExpressionConverter condition_visitor(
 		_node.condition(), m_converter, m_decls
 	);
 
@@ -146,7 +146,7 @@ bool BlockConversionVisitor::visit(WhileStatement const& _node)
 	return false;
 }
 
-bool BlockConversionVisitor::visit(ForStatement const& _node)
+bool BlockConverter::visit(ForStatement const& _node)
 {
 	m_decls.enter();
 
@@ -157,7 +157,7 @@ bool BlockConversionVisitor::visit(ForStatement const& _node)
 	// TODO(scottwe): Ensure number of interations has finite bound.
 	if (_node.condition())
 	{
-		ExpressionConversionVisitor(
+		ExpressionConverter(
 			*_node.condition(), m_converter, m_decls
 		).print(*m_ostream);
 	}
@@ -172,34 +172,34 @@ bool BlockConversionVisitor::visit(ForStatement const& _node)
 	return false;
 }
 
-bool BlockConversionVisitor::visit(Continue const&)
+bool BlockConverter::visit(Continue const&)
 {
 	(*m_ostream) << "continue";
 	end_statement();
 	return false;
 }
 
-bool BlockConversionVisitor::visit(InlineAssembly const& _node)
+bool BlockConverter::visit(InlineAssembly const& _node)
 {
 	(void) _node;
 	// TODO(scottwe): implement.
 	throw runtime_error("Inline assembly statement not yet supported.");
 }
 
-bool BlockConversionVisitor::visit(Break const&)
+bool BlockConverter::visit(Break const&)
 {
 	(*m_ostream) << "break";
 	end_statement();
 	return false;
 }
 
-bool BlockConversionVisitor::visit(Return const& _node)
+bool BlockConverter::visit(Return const& _node)
 {
 	(*m_ostream) << "return";
 	if (_node.expression())
 	{
 		(*m_ostream) << " ";
-		ExpressionConversionVisitor(
+		ExpressionConverter(
 			*_node.expression(), m_converter, m_decls
 		).print(*m_ostream);
 	}
@@ -207,20 +207,20 @@ bool BlockConversionVisitor::visit(Return const& _node)
 	return false;
 }
 
-bool BlockConversionVisitor::visit(Throw const& _node)
+bool BlockConverter::visit(Throw const& _node)
 {
 	(void) _node;
 	// TODO(scottwe): implement.
 	throw runtime_error("Throw statement not yet supported.");
 }
 
-bool BlockConversionVisitor::visit(EmitStatement const&)
+bool BlockConverter::visit(EmitStatement const&)
 {
 	// TODO(scottwe): warn unchecked; emit statements may be used to audit.
 	return false;
 }
 
-bool BlockConversionVisitor::visit(VariableDeclarationStatement const& _node)
+bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 {
 	if (_node.declarations().size() > 1)
 	{
@@ -237,7 +237,7 @@ bool BlockConversionVisitor::visit(VariableDeclarationStatement const& _node)
 		if (_node.initialValue())
 		{
 			(*m_ostream) << " = ";
-			ExpressionConversionVisitor(
+			ExpressionConverter(
 				*_node.initialValue(), m_converter, m_decls
 			).print(*m_ostream);
 		}
@@ -248,9 +248,9 @@ bool BlockConversionVisitor::visit(VariableDeclarationStatement const& _node)
 	return false;
 }
 
-bool BlockConversionVisitor::visit(ExpressionStatement const& _node)
+bool BlockConverter::visit(ExpressionStatement const& _node)
 {
-	ExpressionConversionVisitor(
+	ExpressionConverter(
 		_node.expression(), m_converter, m_decls
 	).print(*m_ostream);
 	end_statement();
@@ -259,7 +259,7 @@ bool BlockConversionVisitor::visit(ExpressionStatement const& _node)
 
 // -------------------------------------------------------------------------- //
 
-void BlockConversionVisitor::print_loop_statement(Statement const* _node)
+void BlockConverter::print_loop_statement(Statement const* _node)
 {
 	if (_node)
 	{
@@ -269,7 +269,7 @@ void BlockConversionVisitor::print_loop_statement(Statement const* _node)
 	}
 }
 
-void BlockConversionVisitor::end_statement()
+void BlockConverter::end_statement()
 {
 	if (!m_is_loop_statement)
 	{

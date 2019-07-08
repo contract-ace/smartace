@@ -23,16 +23,18 @@ namespace modelcheck
  * source unit. This splits data structure conversion from instruction
  * conversion.
  */
-class BlockConversionVisitor : public ASTConstVisitor
+class BlockConverter : public ASTConstVisitor
 {
 public:
-    // Creates a C model code generator for a given block of Solidity code.
-    BlockConversionVisitor(
+    // Constructs a printer for the C code corresponding to a Solidity function.
+	// The converter should provide translations for all typed ASTNodes.
+    BlockConverter(
         FunctionDefinition const& _func,
 		TypeConverter const& _converter
     );
 
-    // Generates a human-readable block of C code, from the given block.
+    // Streams a human-readable block of C code, from the given Solidity
+	// function.
     void print(std::ostream& _stream);
 
 protected:

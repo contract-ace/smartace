@@ -25,14 +25,14 @@ void VariableScopeResolver::exit()
     m_scopes.pop_back();
 }
 
-void VariableScopeResolver::record_declaration(VariableDeclaration const& decl)
+void VariableScopeResolver::record_declaration(VariableDeclaration const& _decl)
 {
-    m_scopes.back().insert(decl.name());
+    m_scopes.back().insert(_decl.name());
 }
 
-string VariableScopeResolver::resolve_identifier(Identifier const& id) const
+string VariableScopeResolver::resolve_identifier(Identifier const& _id) const
 {
-    auto const& name = id.name();
+    auto const& name = _id.name();
 
     for (auto scope = m_scopes.crbegin(); scope != m_scopes.crend(); scope++)
     {

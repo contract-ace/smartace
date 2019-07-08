@@ -1180,7 +1180,11 @@ void CommandLineInterface::handleCModel()
 	}
 }
 
-void CommandLineInterface::handleCModelHeaders(vector<ASTNode const*> const& _asts, modelcheck::TypeConverter const& _con, ostream & _os)
+void CommandLineInterface::handleCModelHeaders(
+	vector<ASTNode const*> const& _asts,
+	modelcheck::TypeConverter const& _con,
+	ostream& _os
+)
 {
 	for (auto const& ast : _asts)
 	{
@@ -1192,7 +1196,11 @@ void CommandLineInterface::handleCModelHeaders(vector<ASTNode const*> const& _as
 	}
 }
 
-void CommandLineInterface::handleCModelBody(std::vector<ASTNode const*> const& _asts, modelcheck::TypeConverter const& _con, ostream & _os)
+void CommandLineInterface::handleCModelBody(
+	vector<ASTNode const*> const& _asts,
+	modelcheck::TypeConverter const& _con,
+	ostream& _os
+)
 {
 	for (auto const& ast : _asts)
 	{

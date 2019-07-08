@@ -108,10 +108,10 @@ set(sources
 	interface/Version.h
 	modelcheck/ADTConverter.cpp
 	modelcheck/ADTConverter.h
-	modelcheck/BlockConversionVisitor.cpp
-	modelcheck/BlockConversionVisitor.h
-	modelcheck/ExpressionConversionVisitor.cpp
-	modelcheck/ExpressionConversionVisitor.h
+	modelcheck/BlockConverter.cpp
+	modelcheck/BlockConverter.h
+	modelcheck/ExpressionConverter.cpp
+	modelcheck/ExpressionConverter.h
 	modelcheck/FunctionConverter.cpp
 	modelcheck/FunctionConverter.h
 	modelcheck/TypeTranslator.cpp

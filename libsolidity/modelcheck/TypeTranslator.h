@@ -68,6 +68,8 @@ private:
     unsigned int m_rectype_depth = 0;
     bool m_is_retval = false;
 
+    // Searches for the given address within the type dictionary. If no entry is
+    // found, then a runtime exception is raised.
     Translation translate_impl(ASTNode const* _node) const;
 };
 

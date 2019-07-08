@@ -54,10 +54,12 @@ void TypeConverter::record(SourceUnit const& _unit)
                 decl->accept(*this);
             }
         }
+
         for (auto decl : contract->stateVariables())
         {
             decl->accept(*this);
         }
+
         for (auto fun : contract->definedFunctions())
         {
             auto const* returnParams = fun->returnParameterList().get();
@@ -82,11 +84,12 @@ void TypeConverter::record(SourceUnit const& _unit)
             fun->parameterList().accept(*this);
             fun->body().accept(*this);
         }
+
         for (auto mod : contract->functionModifiers())
         {
             ostringstream mod_oss;
             mod_oss << "Modifier_" << contract->name() << "_" << mod->name();
-        
+
             Translation mod_entry;
             mod_entry.name = mod_oss.str();
             mod_entry.type = "void";

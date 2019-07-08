@@ -51,12 +51,12 @@ private:
  * C code. This is meant to be used a utility when converting a full Solidity
  * block. Issues such as type inference are handled at this level.
  */
-class ExpressionConversionVisitor : public ASTConstVisitor
+class ExpressionConverter : public ASTConstVisitor
 {
 public:
     // Creates a visitor, which evaluates an expressive, given a fixed scope and
 	// declaration set. Will also propogate and expose relevant expression data.
-    ExpressionConversionVisitor(
+    ExpressionConverter(
         Expression const& _expr,
         TypeConverter const& _converter,
         VariableScopeResolver const& _decls
@@ -90,26 +90,36 @@ private:
 
 	std::hash<std::string> m_hasher;
 
-	static std::map<std::pair<MagicType::Kind, std::string>, std::string> const m_magic_members;
+	static std::map<std::pair<MagicType::Kind, std::string>, std::string> const
+		m_magic_members;
 
+	// In the present model, all primitives are reduced to integers. This map
+	// produces such integers from Solidity literals.
 	static long long int literal_to_number(Literal const& _node);
 
+	// Helper functions to produce common sub-expressions of the expression AST.
 	void print_subexpression(Expression const& _node);
 	void print_binary_op(
-		Expression const& _lhs, Token _op, Expression const& _rhs);
+		Expression const& _lhs, Token _op, Expression const& _rhs
+	);
 
-	void print_assertion(std::string type, FunctionCall const& _func);
+	// Helper functions to produce specialized function calls.
+	void print_assertion(std::string _type, FunctionCall const& _func);
 	void print_payment(FunctionCall const& _func);
 	void print_ext_method(FunctionType const& _type, FunctionCall const& _func);
 	void print_method(
 		FunctionType const& _type,
 		Expression const& _ctx,
-		std::vector<ASTPointer<Expression const>> const& _args);
+		std::vector<ASTPointer<Expression const>> const& _args
+	);
 
+	// Helpe functions to handle certain member access cases.
 	void print_address_member(
-		Expression const& _node, std::string const& _member);
+		Expression const& _node, std::string const& _member
+	);
 	void print_array_member(
-		Expression const& _node, std::string const& _member);
+		Expression const& _node, std::string const& _member
+	);
 	void print_adt_member(Expression const& _node, std::string const& _member);
 	void print_magic_member(TypePointer _type, std::string const& _member);
 };

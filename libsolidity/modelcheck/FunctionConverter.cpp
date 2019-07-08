@@ -3,7 +3,7 @@
  * First-pass visitor for converting Solidity methods into functions in C.
  */
 
-#include <libsolidity/modelcheck/BlockConversionVisitor.h>
+#include <libsolidity/modelcheck/BlockConverter.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
 #include <sstream>
 
@@ -91,7 +91,7 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     else
     {
         (*m_ostream) << endl;
-        BlockConversionVisitor(_node, m_converter).print(*m_ostream);
+        BlockConverter(_node, m_converter).print(*m_ostream);
         (*m_ostream) << endl;
     }
 
@@ -144,25 +144,26 @@ bool FunctionConverter::visit(Mapping const& _node)
 // -------------------------------------------------------------------------- //
 
 void FunctionConverter::print_args(
-    vector<ASTPointer<VariableDeclaration>> const& args, ASTNode const* scope)
+    vector<ASTPointer<VariableDeclaration>> const& _args, ASTNode const* _scope
+)
 {
     (*m_ostream) << "(";
 
-    auto contract_scope = dynamic_cast<ContractDefinition const*>(scope);
+    auto contract_scope = dynamic_cast<ContractDefinition const*>(_scope);
     if (contract_scope)
     {
         auto type = m_converter.translate(*contract_scope).type;
         (*m_ostream) << type << " *self, struct CallState *state";
     }
 
-    for (unsigned int idx = 0; idx < args.size(); ++idx)
+    for (unsigned int idx = 0; idx < _args.size(); ++idx)
     {
         if (contract_scope || idx > 0)
         {
             (*m_ostream) << ", ";
         }
 
-        auto const& arg = *args[idx];
+        auto const& arg = *_args[idx];
         Translation type_translation = m_converter.translate(arg);
         (*m_ostream) << type_translation.type << " " << arg.name();
     }

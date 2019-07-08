@@ -25,14 +25,16 @@ namespace modelcheck
 class ADTConverter : public ASTConstVisitor
 {
 public:
-    // Constructs a printer for all forward decl's required by ast's c model.
+    // Constructs a printer for all ADT's required by the ast's c model. The
+	// converter should provide translations for all typed ASTNodes. If forward
+	// declare is set, then the structure bodies are not generated.
     ADTConverter(
         ASTNode const& _ast,
 		TypeConverter const& _converter,
 		bool _forward_declare
     );
 
-    // Prints each for declaration once, in some order.
+    // Prints each ADT declaration once, in some order.
     void print(std::ostream& _stream);
 
 	bool visit(ContractDefinition const& _node) override;
