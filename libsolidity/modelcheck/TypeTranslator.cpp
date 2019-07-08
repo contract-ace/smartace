@@ -22,12 +22,44 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+map<string, Translation> const TypeConverter::m_global_context({
+    {"abi", {}},
+    {"addmod", {"unsigned int", "addmod"}},
+    {"assert", {"void", "assert"}},
+    {"block", {}},
+    {"blockhash", {"", "blockhash"}}, // TODO(scottwe): byte32
+    {"ecrecover", {"int", "ecrecover"}},
+    {"gasleft", {"unsigned int", "gasleft"}},
+    {"keccak256", {"", "keccak256"}}, // TODO(scottwe): byte32
+    {"log0", {"void", "log0"}},
+    {"log1", {"void", "log1"}},
+    {"log2", {"void", "log2"}},
+    {"log3", {"void", "log3"}},
+    {"log4", {"void", "log4"}},
+    {"msg", {}},
+    {"mulmod", {"unsigned int", "mulmod"}},
+    {"now", {"unsigned int", "unsigned int"}},
+    {"require", {"void", "require"}},
+    {"revert", {"void", "revert"}},
+    {"ripemd160", {"", "ripemd160"}}, // TODO(scottwe): byte20
+    {"selfdestruct", {"void", "selfdestruct"}},
+    {"sha256", {"", "sha256"}}, // TODO(scottwe): byte32
+    {"sha3", {"", "sha3"}}, // TODO(scottwe): byte32
+    {"suicide", {"void", "suicide"}},
+    {"tx", {}},
+    {"type", {}}
+});
+
+// -------------------------------------------------------------------------- //
+
 void TypeConverter::record(SourceUnit const& _unit)
 {
     auto contracts = ASTNode::filteredNodes<ContractDefinition>(_unit.nodes());
 
     for (auto contract : contracts)
     {
+        m_curr_contract = contract;
+
         for (auto structure : contract->definedStructs())
         {
             ostringstream struct_oss;
@@ -43,10 +75,14 @@ void TypeConverter::record(SourceUnit const& _unit)
         contract_entry.name = contract->name();
         contract_entry.type = "struct " + contract_entry.name;
         m_dictionary.insert({contract, contract_entry});
+
+        m_curr_contract = nullptr;
     }
 
     for (auto contract : contracts)
     {
+        m_curr_contract = contract;
+
         for (auto structure : contract->definedStructs())
         {
             for (auto decl : structure->members())
@@ -97,6 +133,8 @@ void TypeConverter::record(SourceUnit const& _unit)
 
             mod->parameterList().accept(*this);
         }
+
+        m_curr_contract = nullptr;
     }
 }
 
@@ -130,6 +168,11 @@ Translation TypeConverter::translate(FunctionDefinition const& _fun) const
 Translation TypeConverter::translate(ModifierDefinition const& _mod) const
 {
     return translate_impl(&_mod);
+}
+
+Translation TypeConverter::translate(Identifier const& _id) const
+{
+    return translate_impl(&_id);
 }
 
 // -------------------------------------------------------------------------- //
@@ -211,6 +254,39 @@ bool TypeConverter::visit(ArrayTypeName const& _node)
 {
     (void) _node;
     throw runtime_error("Array type unsupported.");
+}
+
+bool TypeConverter::visit(Identifier const& _node)
+{
+    auto magic_res = m_global_context.find(_node.name());
+    if (magic_res != m_global_context.end())
+    {
+        m_dictionary.insert({&_node, magic_res->second});
+    }
+    else
+    {
+        ASTNode const* ref = nullptr;
+
+        if (_node.name() == "this")
+        {
+            ref = m_curr_contract;
+        }
+        else if (_node.name() == "super")
+        {
+            // Note: ContractDefinitionAnnotation::linearizedBaseContracts.
+            // TODO(scottwe): resolve super; not needed for MVP prototype.
+            throw runtime_error("super is currently unsupported.");
+        }
+        else
+        {
+            ref = _node.annotation().referencedDeclaration;
+        }
+
+        auto actual_res = translate_impl(ref);
+        m_dictionary.insert({&_node, actual_res});
+    }
+
+    return false;
 }
 
 // -------------------------------------------------------------------------- //
