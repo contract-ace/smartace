@@ -71,6 +71,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_a_submap1;" << endl;
     func_expect << "struct A Init_A();" << endl;
+    func_expect << "struct A_a_submap1 Init_A_a_submap1();" << endl;
     func_expect << "unsigned int "
                 << "Read_A_a_submap1"
                 << "(struct A_a_submap1 *a, unsigned int idx);"
@@ -114,7 +115,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
     func_expect << "struct A Init_A();" << endl;
-    func_expect << "struct A_B Init_A_B(unsigned int a, unsigned int b);" << endl;
+    func_expect << "struct A_B Init_A_B(unsigned int a = 0, unsigned int b = 0);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -296,6 +297,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     adt_expect << "struct A_B_a_submap2;" << endl;
     func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_B Init_A_B();" << endl;
+    func_expect << "struct A_B_a_submap1 Init_A_B_a_submap1();" << endl;
     func_expect << "struct A_B_a_submap2 "
                 << "Read_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
@@ -308,6 +310,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
                 << "Ref_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
                 << endl;
+    func_expect << "struct A_B_a_submap2 Init_A_B_a_submap2();" << endl;
     func_expect << "unsigned int "
                 << "Read_A_B_a_submap2"
                 << "(struct A_B_a_submap2 *a, unsigned int idx);"
@@ -358,6 +361,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct C_b_submap1;" << endl;
     func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_B Init_A_B();" << endl;
+    func_expect << "struct A_B_a_submap1 Init_A_B_a_submap1();" << endl;
     func_expect << "unsigned int "
                 << "Read_A_B_a_submap1"
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
@@ -371,6 +375,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
                 << "(struct A_B_a_submap1 *a, unsigned int idx);"
                 << endl;
     func_expect << "struct C Init_C();" << endl;
+    func_expect << "struct C_b_submap1 Init_C_b_submap1();" << endl;
     func_expect << "unsigned int "
                 << "Read_C_b_submap1"
                 << "(struct C_b_submap1 *a, unsigned int idx);"
@@ -411,6 +416,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     adt_expect << "struct A_a_submap2;" << endl;
     adt_expect << "struct A_a_submap3;" << endl;
     func_expect << "struct A Init_A();" << endl;
+    func_expect << "struct A_a_submap1 Init_A_a_submap1();" << endl;
     func_expect << "struct A_a_submap2 "
                 << "Read_A_a_submap1"
                 << "(struct A_a_submap1 *a, unsigned int idx);"
@@ -423,6 +429,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
                 << "Ref_A_a_submap1"
                 << "(struct A_a_submap1 *a, unsigned int idx);"
                 << endl;
+    func_expect << "struct A_a_submap2 Init_A_a_submap2();" << endl;
     func_expect << "struct A_a_submap3 "
                 << "Read_A_a_submap2"
                 << "(struct A_a_submap2 *a, unsigned int idx);"
@@ -435,6 +442,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
                 << "Ref_A_a_submap2"
                 << "(struct A_a_submap2 *a, unsigned int idx);"
                 << endl;
+    func_expect << "struct A_a_submap3 Init_A_a_submap3();" << endl;
     func_expect << "unsigned int "
                 << "Read_A_a_submap3"
                 << "(struct A_a_submap3 *a, unsigned int idx);"
@@ -510,11 +518,49 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
     func_expect << "struct A Init_A();" << endl;
-    func_expect << "struct A_B Init_A_B(unsigned int a);" << endl;
+    func_expect << "struct A_B Init_A_B(unsigned int a = 0);" << endl;
     func_expect << "struct A_B Method_A_advFunc(struct A *self, struct CallState *state, unsigned int _in);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(default_constructors)
+{
+    char const* text = R"(
+        contract A {
+            struct B {
+                uint a;
+            }
+            uint a;
+            uint b = 10;
+            B c;
+        }
+    )";
+
+    const auto &ast = *parseAndAnalyse(text);
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    ostringstream actual, expect;
+    FunctionConverter(ast, converter, false).print(actual);
+    expect << "struct A Init_A()" << endl
+           << "{" << endl
+           << "struct A tmp;" << endl
+           << "tmp.d_a = 0;" << endl
+           << "tmp.d_b = 10;" << endl
+           << "tmp.d_c = Init_A_B();" << endl
+           << "return tmp;" << endl
+           << "}" << endl
+           << "struct A_B Init_A_B(unsigned int a = 0)" << endl
+           << "{" << endl
+           << "struct A_B tmp;" << endl
+           << "tmp.d_a = a;" << endl
+           << "return tmp;" << endl
+           << "}" << endl;
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
 
 // Attempts a full translation of a contract which highlights most features of
@@ -575,8 +621,21 @@ BOOST_AUTO_TEST_CASE(full_declaration)
                << "unsigned int m_curr;" << endl
                << "struct A_S d_;" << endl
                << "};" << endl;
-    func_expect << "struct A Init_A();" << endl
-                << "struct A_S Init_A_S(int owner, unsigned int val);" << endl
+    func_expect << "struct A Init_A()" << endl
+                << "{" << endl
+                << "struct A tmp;" << endl
+                << "tmp.d_min_amt = 42;" << endl
+                << "tmp.d_accs = Init_A_accs_submap1();" << endl
+                << "return tmp;" << endl
+                << "}" << endl
+                << "struct A_S Init_A_S(int owner = 0, unsigned int val = 0)" << endl
+                << "{" << endl
+                << "struct A_S tmp;" << endl
+                << "tmp.d_owner = owner;" << endl
+                << "tmp.d_val = val;" << endl
+                << "return tmp;" << endl
+                << "}" << endl
+                << "struct A_accs_submap1 Init_A_accs_submap1();" << endl
                 << "struct A_S Read_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx);" << endl
                 << "void Write_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx, struct A_S d);" << endl
                 << "struct A_S *Ref_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx);" << endl

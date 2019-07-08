@@ -53,10 +53,12 @@ private:
 	// Formats all declarations as a C-function argument list. The given order
 	// of arguments is maintained. If a scope is provided, then the arguments
 	// are assumed to be of a stateful Solidity method, bound to structures of
-	// the given type.
+	// the given type. If values are defaulted to zero, then the constructor
+	// will have a default value of zero for each parameter.
 	void print_args(
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
-		ASTNode const* _scope
+		ASTNode const* _scope,
+		bool _default_to_zero
 	);
 };
 
