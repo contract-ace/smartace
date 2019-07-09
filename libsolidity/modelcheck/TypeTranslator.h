@@ -30,6 +30,32 @@ struct Translation
 };
 
 /*
+ * Helper method to calculate the depth of an array index access.
+ */
+class AccessDepthResolver : public ASTConstVisitor
+{
+public:
+    // Sets up a resolver for a mapping index access at AST node _base.
+    AccessDepthResolver(IndexAccess const& _base);
+
+    // Returns the Mapping TypeName used in the declaration of _base's mapping
+    // expression. If this cannot be resolved, null is returned.
+    Mapping const* resolve();
+
+protected:
+	bool visit(Conditional const&) override;
+	bool visit(MemberAccess const& _node) override;
+	bool visit(IndexAccess const& _node) override;
+	bool visit(Identifier const& _node);
+
+private:
+	Expression const& m_base;
+
+	unsigned int m_submap_count;
+    VariableDeclaration const* m_decl;
+};
+
+/*
  * Maintains a dictionary from AST Node addresses to type annotations. The
  * mapping is restricted to AST Nodes for which types are practical, and records
  * must be generated on a per-source-unit basis.
@@ -53,6 +79,8 @@ public:
     // Translates a member access, if it is to a declaration of type struct or
     // contract.
     Translation translate(MemberAccess const& _access) const;
+    // Translates an index access, if it is to a mapping.
+    Translation translate(IndexAccess const& _id) const;
 
 protected:
     bool visit(VariableDeclaration const& _node) override;
@@ -65,6 +93,7 @@ protected:
     void endVisit(ParameterList const& _node) override;
 	void endVisit(Mapping const& _node) override;
     void endVisit(MemberAccess const& _node) override;
+    void endVisit(IndexAccess const& _node) override;
 	void endVisit(Identifier const& _node) override;
 
 private:

@@ -333,6 +333,38 @@ BOOST_AUTO_TEST_CASE(struct_access)
     BOOST_CHECK_EQUAL(converter.translate(mmbr).name, "A_B_arr_submap1");
 }
 
+BOOST_AUTO_TEST_CASE(map_access)
+{
+    using ExprStmtPtr = ExpressionStatement const*;
+    using IndxExprPtr = IndexAccess const*;
+
+    char const* text = R"(
+        contract A {
+            mapping (int => mapping (int => int)) arr;
+            function f() public {
+                arr[1][1];
+            }
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(ast, "A");
+    auto const& func = *ctrt.definedFunctions()[0];
+
+    auto const& stmt = *func.body().statements()[0];
+    auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
+    auto const& idx1 = *dynamic_cast<IndxExprPtr>(&expr);
+    auto const& idx2 = *dynamic_cast<IndxExprPtr>(&idx1.baseExpression());
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    BOOST_CHECK_EQUAL(converter.translate(idx1).name, "A_arr_submap2");
+    BOOST_CHECK_EQUAL(converter.translate(idx1).type, "int");
+    BOOST_CHECK_EQUAL(converter.translate(idx2).name, "A_arr_submap1");
+    BOOST_CHECK_EQUAL(converter.translate(idx2).type, "struct A_arr_submap2");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }
