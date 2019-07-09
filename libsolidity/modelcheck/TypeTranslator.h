@@ -50,6 +50,9 @@ public:
     Translation translate(FunctionDefinition const& _fun) const;
     Translation translate(ModifierDefinition const& _mod) const;
     Translation translate(Identifier const& _id) const;
+    // Translates a member access, if it is to a declaration of type struct or
+    // contract.
+    Translation translate(MemberAccess const& _access) const;
 
 protected:
     bool visit(VariableDeclaration const& _node) override;
@@ -58,10 +61,11 @@ protected:
 	bool visit(FunctionTypeName const& _node) override;
     bool visit(Mapping const&) override;
 	bool visit(ArrayTypeName const& _node) override;
-	bool visit(Identifier const& _node) override;
 
     void endVisit(ParameterList const& _node) override;
 	void endVisit(Mapping const& _node) override;
+    void endVisit(MemberAccess const& _node) override;
+	void endVisit(Identifier const& _node) override;
 
 private:
     static std::map<std::string, Translation> const m_global_context;

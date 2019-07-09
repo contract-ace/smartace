@@ -175,23 +175,40 @@ Translation TypeConverter::translate(Identifier const& _id) const
     return translate_impl(&_id);
 }
 
+Translation TypeConverter::translate(MemberAccess const& _access) const
+{
+    switch (_access.expression().annotation().type->category())
+    {
+    case Type::Category::Struct:
+    case Type::Category::Contract:
+        return translate_impl(&_access);
+    default:
+        throw runtime_error("MemberAccess translations limited to ADT.");
+    }
+}
+
 // -------------------------------------------------------------------------- //
 
 bool TypeConverter::visit(VariableDeclaration const& _node)
 {
-    m_curr_decl = &_node;
     if (!_node.typeName())
     {
         throw runtime_error("`var` type unsupported.");
     }
     else
     {
+        m_curr_decl = &_node;
         _node.typeName()->accept(*this);
+        m_curr_decl = nullptr;
+
+        if (_node.value())
+        {
+            _node.value()->accept(*this);
+        }
 
         auto translation = translate_impl(_node.typeName());
         m_dictionary.insert({&_node, translation});
     }
-    m_curr_decl = nullptr;
 
     return false;
 }
@@ -256,39 +273,6 @@ bool TypeConverter::visit(ArrayTypeName const& _node)
     throw runtime_error("Array type unsupported.");
 }
 
-bool TypeConverter::visit(Identifier const& _node)
-{
-    auto magic_res = m_global_context.find(_node.name());
-    if (magic_res != m_global_context.end())
-    {
-        m_dictionary.insert({&_node, magic_res->second});
-    }
-    else
-    {
-        ASTNode const* ref = nullptr;
-
-        if (_node.name() == "this")
-        {
-            ref = m_curr_contract;
-        }
-        else if (_node.name() == "super")
-        {
-            // Note: ContractDefinitionAnnotation::linearizedBaseContracts.
-            // TODO(scottwe): resolve super; not needed for MVP prototype.
-            throw runtime_error("super is currently unsupported.");
-        }
-        else
-        {
-            ref = _node.annotation().referencedDeclaration;
-        }
-
-        auto actual_res = translate_impl(ref);
-        m_dictionary.insert({&_node, actual_res});
-    }
-
-    return false;
-}
-
 // -------------------------------------------------------------------------- //
 
 void TypeConverter::endVisit(ParameterList const& _node)
@@ -324,6 +308,66 @@ void TypeConverter::endVisit(Mapping const& _node)
     m_dictionary.insert({&_node, translation});
 
     --m_rectype_depth;
+}
+
+void TypeConverter::endVisit(MemberAccess const& _node)
+{
+	auto expr_type = _node.expression().annotation().type;
+    if (auto contract_type = dynamic_cast<ContractType const*>(expr_type))
+    {
+        for (auto member : contract_type->contractDefinition().stateVariables())
+        {
+            if (member->name() == _node.memberName())
+            {
+                Translation translation = translate_impl(member);
+                m_dictionary.insert({&_node, translation});
+                return;
+            }
+        }
+    }
+    else if (auto struct_type = dynamic_cast<StructType const*>(expr_type))
+	{
+        for (auto member : struct_type->structDefinition().members())
+        {
+            if (member->name() == _node.memberName())
+            {
+                Translation translation = translate_impl(member.get());
+                m_dictionary.insert({&_node, translation});
+                return;
+            }
+        }
+	}
+}
+
+void TypeConverter::endVisit(Identifier const& _node)
+{
+    auto magic_res = m_global_context.find(_node.name());
+    if (magic_res != m_global_context.end())
+    {
+        m_dictionary.insert({&_node, magic_res->second});
+    }
+    else
+    {
+        ASTNode const* ref = nullptr;
+
+        if (_node.name() == "this")
+        {
+            ref = m_curr_contract;
+        }
+        else if (_node.name() == "super")
+        {
+            // Note: ContractDefinitionAnnotation::linearizedBaseContracts.
+            // TODO(scottwe): resolve super; not needed for MVP prototype.
+            throw runtime_error("super is currently unsupported.");
+        }
+        else
+        {
+            ref = _node.annotation().referencedDeclaration;
+        }
+
+        auto actual_res = translate_impl(ref);
+        m_dictionary.insert({&_node, actual_res});
+    }
 }
 
 // -------------------------------------------------------------------------- //
