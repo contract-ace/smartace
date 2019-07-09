@@ -94,6 +94,8 @@ private:
 
 	std::hash<std::string> m_hasher;
 
+	unsigned int m_index_depth = 0;
+
 	static std::map<std::pair<MagicType::Kind, std::string>, std::string> const
 		m_magic_members;
 

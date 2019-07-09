@@ -217,9 +217,32 @@ bool ExpressionConverter::visit(MemberAccess const& _node)
 
 bool ExpressionConverter::visit(IndexAccess const& _node)
 {
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Index access not yet supported.");
+	++m_index_depth;
+	switch (_node.baseExpression().annotation().type->category())
+	{
+	case Type::Category::Mapping:
+		{
+			(*m_ostream) << (m_index_depth == 1 ? "Read_" : "Ref_")
+			             << m_converter.translate(_node).name << "(";
+			if (NodeSniffer<IndexAccess>(_node.baseExpression()).find())
+			{
+				_node.baseExpression().accept(*this);
+			}
+			else
+			{
+				(*m_ostream) << "&";
+				print_subexpression(_node.baseExpression());
+			}
+			(*m_ostream) << ", ";
+			_node.indexExpression()->accept(*this);
+			(*m_ostream) << ")";
+		}
+		break;
+	default:
+		throw runtime_error("IndexAccess applied to unsupported type.");
+	}
+	--m_index_depth;
+	return false;
 }
 
 bool ExpressionConverter::visit(Identifier const& _node)

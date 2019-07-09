@@ -629,6 +629,42 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(read_only_index_access)
+{
+    char const* text = R"(
+        contract A {
+            struct B { mapping(int => mapping(int => int)) arr2; }
+            struct C { B b; }
+            mapping(int => mapping(int => int)) arr1;
+            B b;
+            C c;
+            function f() public {
+                arr1[1 + 2];
+                b.arr2[3 + 4];
+                c.b.arr2[5 + 6];
+                arr1[10][10];
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expected;
+    BlockConverter(func, converter).print(actual);
+    expected << "{" << endl
+             << "Read_A_arr1_submap1(&(self->d_arr1), (1)+(2));" << endl
+             << "Read_A_B_arr2_submap1(&((self->d_b).d_arr2), (3)+(4));" << endl
+             << "Read_A_B_arr2_submap1(&(((self->d_c).d_b).d_arr2), (5)+(6));" << endl
+             << "Read_A_arr1_submap2(Ref_A_arr1_submap1(&(self->d_arr1), 10), 10);" << endl
+             << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

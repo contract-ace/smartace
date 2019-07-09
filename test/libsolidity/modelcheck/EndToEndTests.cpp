@@ -608,7 +608,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
             uint constant min_amt = 42;
             mapping (uint => S) accs;
             function Open(uint idx) public {
-                // require(accs[idx].owner == 0);
+                // require(accs[idx].owner == address(0));
                 // accs[idx] = S(msg.sender, 0);
             }
             function Deposit(uint idx) public payable {
@@ -618,14 +618,14 @@ BOOST_AUTO_TEST_CASE(full_declaration)
                 // entry.val += msg.value;
             }
             function Withdraw(uint idx) public payable {
-                // require(accs[idx].owner == msg.sender);
-                // uint amt = accs[idx].amt;
+                require(accs[idx].owner == msg.sender);
+                uint amt = accs[idx].val;
                 // accs[idx] = S(msg.sender, 0);
                 // assert(accs[idx].val == 0);
-                // msg.sender.transfer(amt);
+                msg.sender.transfer(amt);
             }
             function View(uint idx) public returns (uint amt) {
-                // amt = accs[idx]
+                amt = accs[idx].val;
             }
         }
     )";
@@ -683,10 +683,14 @@ BOOST_AUTO_TEST_CASE(full_declaration)
                 << "}" << endl
                 << "void Method_A_Withdraw(struct A *self, struct CallState *state, unsigned int idx)" << endl
                 << "{" << endl
+                << "assume(((Read_A_accs_submap1(&(self->d_accs), idx)).d_owner)==(state->sender));" << endl
+                << "unsigned int amt = (Read_A_accs_submap1(&(self->d_accs), idx)).d_val;" << endl
+                << "_pay(state, state->sender, amt);" << endl
                 << "}" << endl
                 << "unsigned int Method_A_View(struct A *self, struct CallState *state, unsigned int idx)" << endl
                 << "{" << endl
                 << "unsigned int amt;" << endl
+                << "(amt)=((Read_A_accs_submap1(&(self->d_accs), idx)).d_val);" << endl
                 << "return amt;" << endl
                 << "}" << endl;
 
