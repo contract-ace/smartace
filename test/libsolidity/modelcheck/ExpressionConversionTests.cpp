@@ -107,7 +107,7 @@ string _convert_literal(
 
 BOOST_AUTO_TEST_SUITE(ExpressionConversion)
 
-BOOST_AUTO_TEST_CASE(member_access_sniffer)
+BOOST_AUTO_TEST_CASE(node_sniffer)
 {
     auto id = make_shared<Identifier>(
         SourceLocation(), make_shared<string>("a"));
@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(identifier_expression_output)
 
     BOOST_CHECK_EQUAL(a_oss.str(), "a");
     BOOST_CHECK_EQUAL(b_oss.str(), "self->d_b");
-    BOOST_CHECK_EQUAL(msg_oss.str(), "state");
+    BOOST_CHECK_EQUAL(msg_oss.str(), "*state");
 }
 
 BOOST_AUTO_TEST_CASE(literal_expression_output)

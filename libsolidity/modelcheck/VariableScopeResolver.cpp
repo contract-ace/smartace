@@ -45,11 +45,19 @@ string VariableScopeResolver::resolve_identifier(Identifier const& _id) const
 
     if (name == "this")
     {
-        return "self";
+        return "*self";
+    }
+    else if (name == "super")
+    {
+        throw runtime_error("Keyword super not supported.");
     }
     else if (name == "block" || name == "msg" || name == "tx")
     {
-        return "state";
+        return "*state";
+    }
+    else if (name == "now")
+    {
+        return "state->blocknum";
     }
     else
     {

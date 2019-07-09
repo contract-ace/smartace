@@ -114,10 +114,12 @@ BOOST_AUTO_TEST_CASE(state_resolution)
     Identifier msg(langutil::SourceLocation(), make_shared<string>("msg"));
     Identifier blk(langutil::SourceLocation(), make_shared<string>("block"));
     Identifier ths(langutil::SourceLocation(), make_shared<string>("this"));
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(txn), "state");
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(msg), "state");
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(blk), "state");
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(ths), "self");
+    Identifier now(langutil::SourceLocation(), make_shared<string>("now"));
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(txn), "*state");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(msg), "*state");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(blk), "*state");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(ths), "*self");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(now), "state->blocknum");
 }
 
 BOOST_AUTO_TEST_SUITE_END();

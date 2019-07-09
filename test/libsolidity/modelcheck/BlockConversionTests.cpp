@@ -366,12 +366,15 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
 {
     char const* text = R"(
         contract A {
-            struct B { int c; }
+            struct B { int i; }
+            struct C { B b; }
             B b;
-            int public c;
+            C c;
+            int public d;
             function f() public payable {
-                this.c;
-                b.c;
+                this.d;
+                b.i;
+                c.b.i;
                 block.number;
                 block.timestamp;
                 msg.sender;
@@ -390,8 +393,9 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
     expected << "{" << endl
-             << "(self)->d_c;" << endl
-             << "(self->d_b)->d_c;" << endl
+             << "(*self).d_d;" << endl
+             << "(self->d_b).d_i;" << endl
+             << "((self->d_c).d_b).d_i;" << endl
              << "state->blocknum;" << endl
              << "state->blocknum;" << endl
              << "state->sender;" << endl
@@ -487,11 +491,11 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
             ostringstream actual, expected;
             BlockConverter(*func_ptr, converter).print(actual);
             expected << "{" << endl
-                    << "Method_A_f(self->d_a, state);" << endl
+                    << "Method_A_f(&(self->d_a), state);" << endl
                     << "Method_A_g();" << endl
-                    << "Method_B_f(self->d_b, state);" << endl
-                    << "Method_B_f(self, state);" << endl
-                    << "Method_B_f(self, state);" << endl
+                    << "Method_B_f(&(self->d_b), state);" << endl
+                    << "Method_B_f(&(*self), state);" << endl
+                    << "Method_B_f(&(*self), state);" << endl
                     << "}";
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;

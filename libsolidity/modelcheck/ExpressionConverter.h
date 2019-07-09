@@ -118,7 +118,7 @@ private:
 	);
 	void print_method(
 		FunctionType const& _type,
-		Expression const& _ctx,
+		Expression const* _ctx,
 		std::vector<ASTPointer<Expression const>> const& _args
 	);
 	void print_ext_method(

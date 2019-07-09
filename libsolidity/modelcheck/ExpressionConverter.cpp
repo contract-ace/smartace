@@ -383,8 +383,6 @@ void ExpressionConverter::print_function(
 	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
 )
 {
-	Identifier self(langutil::SourceLocation(), make_shared<string>("this"));
-
 	auto ftype = dynamic_cast<FunctionType const*>(_call.annotation().type);
 	if (!ftype)
 	{
@@ -394,7 +392,7 @@ void ExpressionConverter::print_function(
 	switch (ftype->kind())
 	{
 	case FunctionType::Kind::Internal:
-		print_method(*ftype, self, _args);
+		print_method(*ftype, nullptr, _args);
 		break;
 	case FunctionType::Kind::External:
 	case FunctionType::Kind::BareCall:
@@ -508,7 +506,7 @@ void ExpressionConverter::print_ext_method(
 {
 	if (auto call = NodeSniffer<MemberAccess>(_call).find())
 	{
-		print_method(_type, call->expression(), _args);	
+		print_method(_type, &call->expression(), _args);
 	}
 	else
 	{
@@ -518,7 +516,7 @@ void ExpressionConverter::print_ext_method(
 
 void ExpressionConverter::print_method(
 	FunctionType const& _type,
-	Expression const& _ctx,
+	Expression const* _ctx,
 	vector<ASTPointer<Expression const>> const& _args
 )
 {
@@ -529,7 +527,15 @@ void ExpressionConverter::print_method(
 
 	if (is_mutable)
 	{
-		_ctx.accept(*this);
+		if (_ctx)
+		{
+			(*m_ostream) << "&";
+			print_subexpression(*_ctx);
+		}
+		else
+		{
+			(*m_ostream) << "self";
+		}
 		(*m_ostream) << ", state";
 	}
 
@@ -654,7 +660,7 @@ void ExpressionConverter::print_adt_member(
 )
 {
 	print_subexpression(_node);
-	(*m_ostream) << "->d_" << _member;
+	(*m_ostream) << ".d_" << _member;
 }
 
 void ExpressionConverter::print_magic_member(
