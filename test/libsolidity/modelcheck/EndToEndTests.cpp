@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(custom_ctor)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;" << endl;
-    func_expect << "struct A Init_A();" << endl;
+    func_expect << "struct A Init_A(struct A *self, struct CallState *state, unsigned int _a);" << endl;
     func_expect << "void Ctor_A(struct A *self, struct CallState *state, unsigned int _a);" << endl;
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -558,6 +558,41 @@ BOOST_AUTO_TEST_CASE(default_constructors)
            << "struct A_B tmp;" << endl
            << "tmp.d_a = a;" << endl
            << "return tmp;" << endl
+           << "}" << endl;
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(custom_constructors)
+{
+    char const* text = R"(
+        contract A {
+            constructor(uint _a) public {
+                a = _a;
+            }
+            uint a;
+            uint b;
+        }
+    )";
+
+    const auto &ast = *parseAndAnalyse(text);
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    ostringstream actual, expect;
+    FunctionConverter(ast, converter, false).print(actual);
+    expect << "struct A Init_A(struct A *self, struct CallState *state, unsigned int _a)" << endl
+           << "{" << endl
+           << "struct A tmp;" << endl
+           << "tmp.d_a = 0;" << endl
+           << "tmp.d_b = 0;" << endl
+           << "Ctor_A(&tmp, state, _a);" << endl
+           << "return tmp;" << endl
+           << "}" << endl
+           << "void Ctor_A(struct A *self, struct CallState *state, unsigned int _a)" << endl
+           << "{" << endl
+           << "(self->d_a)=(_a);" << endl
            << "}" << endl;
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());

@@ -41,7 +41,14 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
     auto translation = m_converter.translate(_node);
 
     (*m_ostream) << translation.type << " Init_" << translation.name;
-    print_args({}, nullptr, false);
+    if (auto ctor = _node.constructor())
+    {
+        print_args(ctor->parameters(), &_node, false);
+    }
+    else
+    {
+        print_args({}, nullptr, false);
+    }
 
     if (m_forward_declare)
     {
@@ -79,6 +86,16 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
                 }
             }
             (*m_ostream) << ";" << endl;
+        }
+
+        if (auto ctor = _node.constructor())
+        {
+            (*m_ostream) << "Ctor_" << translation.name << "(&tmp, state";
+            for (auto decl : ctor->parameters())
+            {
+                (*m_ostream) << ", " << decl->name();
+            }
+            (*m_ostream) << ");" << endl;
         }
 
         (*m_ostream) << "return tmp;" << endl

@@ -116,12 +116,9 @@ private:
 		Expression const& _call,
 		std::vector<ASTPointer<Expression const>> const& _args
 	);
-	void print_assertion(
-		std::string _type,
-		std::vector<ASTPointer<Expression const>> const& _args
-	);
-	void print_payment(
-		Expression const& _call,
+	void print_method(
+		FunctionType const& _type,
+		Expression const& _ctx,
 		std::vector<ASTPointer<Expression const>> const& _args
 	);
 	void print_ext_method(
@@ -129,9 +126,16 @@ private:
 		Expression const& _call,
 		std::vector<ASTPointer<Expression const>> const& _args
 	);
-	void print_method(
-		FunctionType const& _type,
-		Expression const& _ctx,
+	void print_contract_ctor(
+		Expression const& _call,
+		std::vector<ASTPointer<Expression const>> const& _args
+	);
+	void print_payment(
+		Expression const& _call,
+		std::vector<ASTPointer<Expression const>> const& _args
+	);
+	void print_assertion(
+		std::string _type,
 		std::vector<ASTPointer<Expression const>> const& _args
 	);
 

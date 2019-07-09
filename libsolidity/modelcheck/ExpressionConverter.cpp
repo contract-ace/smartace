@@ -411,8 +411,8 @@ void ExpressionConverter::print_function(
 		// TODO(scottwe): report that calls to DELEGATECALL are not supported.
 		throw runtime_error("Delegate calls are unsupported.");
 	case FunctionType::Kind::Creation:
-		// TODO(scottwe): what functions map to CREATE type?
-		throw runtime_error("CREATE call not yet supported.");
+		print_contract_ctor(_call, _args);
+		break;
 	case FunctionType::Kind::Send:
 	case FunctionType::Kind::Transfer:
 		print_payment(_call, _args);
@@ -500,42 +500,6 @@ void ExpressionConverter::print_function(
 	}
 }
 
-void ExpressionConverter::print_assertion(
-	string _type, vector<ASTPointer<Expression const>> const& _args
-)
-{
-	if (_args.empty())
-	{
-		throw runtime_error("Assertion requires condition.");
-	}
-
-	(*m_ostream) << _type << "(";
-	(_args[0])->accept(*this);
-	(*m_ostream) << ")";
-}
-
-void ExpressionConverter::print_payment(
-	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
-)
-{
-	if (_args.size() != 1)
-	{
-		throw runtime_error("Payment calls require payment amount.");
-	}
-	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
-	{
-		(*m_ostream) << "_pay(state, ";
-		call->expression().accept(*this);
-		(*m_ostream) << ", ";
-		(_args[0])->accept(*this);
-		(*m_ostream) << ")";	
-	}
-	else
-	{
-		throw runtime_error("Unable to extract address from payment call.");
-	}
-}
-
 void ExpressionConverter::print_ext_method(
 	FunctionType const& _type,
 	Expression const& _call,
@@ -578,6 +542,76 @@ void ExpressionConverter::print_method(
 		_args[i]->accept(*this);
 	}
 
+	(*m_ostream) << ")";
+}
+
+void ExpressionConverter::print_contract_ctor(
+	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
+)
+{
+	if (auto contract_type = NodeSniffer<UserDefinedTypeName>(_call).find())
+	{
+		auto translation = m_converter.translate(*contract_type);
+		(*m_ostream) << "Init_" << translation.name << "(";
+
+		auto decl = contract_type->annotation().referencedDeclaration;
+		if (auto contract = dynamic_cast<ContractDefinition const*>(decl))
+		{
+			if (contract->constructor())
+			{
+				(*m_ostream) << "nullptr, state";
+				for (unsigned int i = 0; i < _args.size(); ++i)
+				{
+					(*m_ostream) << ", ";
+					_args[i]->accept(*this);
+				}
+			}
+		}
+		else
+		{
+			throw runtime_error("Unable to resolve contract from TypeName.");
+		}
+		(*m_ostream) << ")";
+	}
+	else
+	{
+		throw runtime_error("Contract constructor called without TypeName.");
+	}
+}
+
+void ExpressionConverter::print_payment(
+	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
+)
+{
+	if (_args.size() != 1)
+	{
+		throw runtime_error("Payment calls require payment amount.");
+	}
+	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
+	{
+		(*m_ostream) << "_pay(state, ";
+		call->expression().accept(*this);
+		(*m_ostream) << ", ";
+		(_args[0])->accept(*this);
+		(*m_ostream) << ")";	
+	}
+	else
+	{
+		throw runtime_error("Unable to extract address from payment call.");
+	}
+}
+
+void ExpressionConverter::print_assertion(
+	string _type, vector<ASTPointer<Expression const>> const& _args
+)
+{
+	if (_args.empty())
+	{
+		throw runtime_error("Assertion requires condition.");
+	}
+
+	(*m_ostream) << _type << "(";
+	(_args[0])->accept(*this);
 	(*m_ostream) << ")";
 }
 

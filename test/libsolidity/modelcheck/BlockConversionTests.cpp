@@ -591,6 +591,40 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(contract_ctor_calls)
+{
+    char const* text = R"(
+        contract A { }
+        contract B {
+            int a;
+            constructor(int _a) public {
+                a = _a;
+            }
+        }
+		contract C {
+			function f() public {
+                new A();
+                new B(10);
+            }
+		}
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "C");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expected;
+    BlockConverter(func, converter).print(actual);
+    expected << "{" << endl
+             << "Init_A();" << endl
+             << "Init_B(nullptr, state, 10);" << endl
+             << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }
