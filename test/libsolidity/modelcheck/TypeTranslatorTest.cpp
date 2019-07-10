@@ -5,8 +5,9 @@
 
 #include <libsolidity/modelcheck/TypeTranslator.h>
 
-#include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
+#include <test/libsolidity/AnalysisFramework.h>
+
 #include <libsolidity/analysis/GlobalContext.h>
 #include <sstream>
 
@@ -22,8 +23,14 @@ namespace modelcheck
 namespace test
 {
 
-BOOST_FIXTURE_TEST_SUITE(TypeTranslations, ::dev::solidity::test::AnalysisFramework)
+BOOST_FIXTURE_TEST_SUITE(
+    TypeTranslations,
+    ::dev::solidity::test::AnalysisFramework
+)
 
+// Ensures that special structures are annotated with the proper names. Two
+// contracts, one containing structures, are defined. They are annotated, and
+// then queried to ensure the naming is as expected
 BOOST_AUTO_TEST_CASE(contract_and_structs)
 {
     char const* text = R"(
@@ -32,22 +39,32 @@ BOOST_AUTO_TEST_CASE(contract_and_structs)
             struct B { int b; }
             struct C { int c; }
         }
+        contract B { }
     )";
 
     auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
+    auto const& ctrt_a = *retrieveContractByName(ast, "A");
+    auto const& ctrt_b = *retrieveContractByName(ast, "B");
 
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(ctrt).name, ctrt.name());
-    for (auto structure : ctrt.definedStructs())
+    BOOST_CHECK_EQUAL(converter.translate(ctrt_a).name, "A");
+    BOOST_CHECK_EQUAL(converter.translate(ctrt_a).type, "struct A");
+    BOOST_CHECK_EQUAL(converter.translate(ctrt_b).name, "B");
+    BOOST_CHECK_EQUAL(converter.translate(ctrt_b).type, "struct B");
+    for (auto structure : ctrt_a.definedStructs())
     {
-        string expt = ctrt.name() + "_" + structure->name();
-        BOOST_CHECK_EQUAL(converter.translate(*structure).name, expt);
+        string expt_name = ctrt_a.name() + "_" + structure->name();
+        string expt_type = "struct " + expt_name;
+        BOOST_CHECK_EQUAL(converter.translate(*structure).name, expt_name);
+        BOOST_CHECK_EQUAL(converter.translate(*structure).type, expt_type);
     }
 }
 
+// Creates a single contract with several state variables. The name and kind of
+// each state variable is checked. The state variables are integral to ensure
+// that integer annotations are handled.
 BOOST_AUTO_TEST_CASE(contract_state_variable)
 {
     char const* text = "contract A { int a; int b; int c; }";
@@ -60,14 +77,18 @@ BOOST_AUTO_TEST_CASE(contract_state_variable)
     for (auto decl : ctrt.stateVariables())
     {
         BOOST_CHECK_EQUAL(converter.translate(*decl).name, "int");
+        BOOST_CHECK_EQUAL(converter.translate(*decl).type, "int");
     }
 }
 
+// Creates a single contract/struct pair with several state variables. The name
+// and kind of each state variable is checked. The state variables are floating
+// point types to ensure that integer annotations are handled.
 BOOST_AUTO_TEST_CASE(struct_member_variable)
 {
     char const* text = R"(
         contract A {
-            struct A { int a; int b; int c; }
+            struct B { fixed128x8 a; fixed128x2 b; fixed128x8 c; }
         }
     )";
 
@@ -80,15 +101,18 @@ BOOST_AUTO_TEST_CASE(struct_member_variable)
 
     for (auto decl : strt.members())
     {
-        BOOST_CHECK_EQUAL(converter.translate(*decl).name, "int");
+        BOOST_CHECK_EQUAL(converter.translate(*decl).name, "double");
+        BOOST_CHECK_EQUAL(converter.translate(*decl).type, "double");
     }
 }
 
+// Tests that map variables are annotated correctly, including in the recursive
+// case.
 BOOST_AUTO_TEST_CASE(map_variable)
 {
     char const* text = R"(
         contract A {
-            mapping (uint => mapping (uint => uint)) arr;
+            mapping(uint => mapping(uint => uint)) arr;
         }
     )";
 
@@ -107,6 +131,8 @@ BOOST_AUTO_TEST_CASE(map_variable)
     BOOST_CHECK_EQUAL(converter.translate(submap2).name, "A_arr_submap2");
 }
 
+// Tests that function names and return values are annotated properly. This
+// includes functions of void return types.
 BOOST_AUTO_TEST_CASE(function)
 {
     char const* text = R"(
@@ -132,6 +158,28 @@ BOOST_AUTO_TEST_CASE(function)
     BOOST_CHECK_EQUAL(converter.translate(f2).type, "void");
 }
 
+// Tests that constructors are annotated properly.
+BOOST_AUTO_TEST_CASE(constructor)
+{
+    char const* text = R"(
+        contract A {
+            int a;
+            constructor() public { a = 5; }
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(ast, "A");
+    auto const& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    BOOST_CHECK_EQUAL(converter.translate(func).name, "Ctor_A");
+    BOOST_CHECK_EQUAL(converter.translate(func).type, "void");
+}
+
+// Tests that modifiers are annotated properly.
 BOOST_AUTO_TEST_CASE(modifier)
 {
     char const* text = R"(
@@ -186,7 +234,8 @@ BOOST_AUTO_TEST_CASE(global_context_ids)
         auto stmt = make_shared<ExpressionStatement>(
             SourceLocation(),
             nullptr,
-            make_shared<Identifier>(SourceLocation(), name));
+            make_shared<Identifier>(SourceLocation(), name)
+        );
 
         stmts.push_back(stmt);
     }
@@ -202,7 +251,8 @@ BOOST_AUTO_TEST_CASE(global_context_ids)
         make_shared<ParameterList>(SourceLocation(), params),
         invocs,
         make_shared<ParameterList>(SourceLocation(), params),
-        make_shared<Block>(SourceLocation(), nullptr, stmts));
+        make_shared<Block>(SourceLocation(), nullptr, stmts)
+    );
     BOOST_CHECK_EQUAL(func->body().statements().size(), stmts.size());
 
     auto contract = make_shared<ContractDefinition>(
@@ -210,7 +260,8 @@ BOOST_AUTO_TEST_CASE(global_context_ids)
         make_shared<string>("A"),
         nullptr,
         parents,
-        vector<ASTPointer<ASTNode>>{func});
+        vector<ASTPointer<ASTNode>>{func}
+    );
     BOOST_CHECK_EQUAL(contract->definedFunctions().size(), 1);
 
     SourceUnit unit(SourceLocation(), {contract});
@@ -220,6 +271,7 @@ BOOST_AUTO_TEST_CASE(global_context_ids)
     converter.record(unit);
 }
 
+// Tests that the "this" special keyword is mapped back to the present contract.
 BOOST_AUTO_TEST_CASE(this_keyword_ids)
 {
     using ExprStmtPtr = ExpressionStatement const*;
@@ -247,6 +299,7 @@ BOOST_AUTO_TEST_CASE(this_keyword_ids)
     BOOST_CHECK_EQUAL(converter.translate(iden).name, "A");
 }
 
+// Tests that identifiers are mapped back to their referenced declarations.
 BOOST_AUTO_TEST_CASE(regular_id)
 {
     using ExprStmtPtr = ExpressionStatement const*;
@@ -275,6 +328,8 @@ BOOST_AUTO_TEST_CASE(regular_id)
     BOOST_CHECK_EQUAL(converter.translate(iden).name, "unsigned int");
 }
 
+// Tests that when resolving identifiers, contract member access is taken into
+// account.
 BOOST_AUTO_TEST_CASE(contract_access)
 {
     using ExprStmtPtr = ExpressionStatement const*;
@@ -304,6 +359,8 @@ BOOST_AUTO_TEST_CASE(contract_access)
     BOOST_CHECK_EQUAL(converter.translate(mmbr).name, "unsigned int");
 }
 
+// Tests that when resolving identifiers, struct member access is taken into
+// account.
 BOOST_AUTO_TEST_CASE(struct_access)
 {
     using ExprStmtPtr = ExpressionStatement const*;
@@ -333,6 +390,9 @@ BOOST_AUTO_TEST_CASE(struct_access)
     BOOST_CHECK_EQUAL(converter.translate(mmbr).name, "A_B_arr_submap1");
 }
 
+// Tests that map index access calls are treated as function calls, with their
+// name being the base to the function call name, and their kind being the
+// return value type of said method.
 BOOST_AUTO_TEST_CASE(map_access)
 {
     using ExprStmtPtr = ExpressionStatement const*;
@@ -340,7 +400,7 @@ BOOST_AUTO_TEST_CASE(map_access)
 
     char const* text = R"(
         contract A {
-            mapping (int => mapping (int => int)) arr;
+            mapping(int => mapping(int => int)) arr;
             function f() public {
                 arr[1][1];
             }

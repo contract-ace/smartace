@@ -50,6 +50,12 @@ private:
 
 	const bool m_forward_declare;
 
+	// Helper functions to partition complex from primitive types, and to set
+	// said values with either default or non-deterministic data.
+	static bool is_basic_type(Type const& _type);
+	static std::string to_init_value(std::string _name, Type const& _type);
+	static std::string to_nd_value(std::string _name, Type const& _type);
+
 	// Formats all declarations as a C-function argument list. The given order
 	// of arguments is maintained. If a scope is provided, then the arguments
 	// are assumed to be of a stateful Solidity method, bound to structures of

@@ -321,6 +321,7 @@ bool TypeConverter::visit(ElementaryTypeName const& _node)
         break;
     case Type::Category::RationalNumber:
     case Type::Category::FixedPoint:
+        // TODO(scottwe): fixed point numbers have fixed percision
         translation.name = "double";
         break;
     default:

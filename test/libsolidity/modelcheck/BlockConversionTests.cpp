@@ -5,8 +5,9 @@
 
 #include <libsolidity/modelcheck/BlockConverter.h>
 
-#include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
+#include <test/libsolidity/AnalysisFramework.h>
+
 #include <sstream>
 
 using namespace std;
@@ -21,7 +22,10 @@ namespace modelcheck
 namespace test
 {
 
-BOOST_FIXTURE_TEST_SUITE(BlockConversion, ::dev::solidity::test::AnalysisFramework)
+BOOST_FIXTURE_TEST_SUITE(
+    BlockConversion,
+    ::dev::solidity::test::AnalysisFramework
+)
 
 // Tests that input parameters are registered as declarations.
 BOOST_AUTO_TEST_CASE(argument_registration)
@@ -44,10 +48,10 @@ BOOST_AUTO_TEST_CASE(argument_registration)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "a;" << endl
-             << "b;" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "a;" << endl;
+    expected << "b;" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
@@ -85,37 +89,37 @@ BOOST_AUTO_TEST_CASE(if_statement)
 
     ostringstream actual_if, expected_if;
     BlockConverter(*if_stmt, converter).print(actual_if);
-    expected_if << "{" << endl
-                << "if ((self->d_a)==(1))" << endl
-                << "{" << endl
-                << "}" << endl
-                << "if ((self->d_a)==(1))" << endl
-                << "{" << endl
-                << "int a;" << endl
-                << "}" << endl
-                << "self->d_a;" << endl
-                << "}";
+    expected_if << "{" << endl;
+    expected_if << "if ((self->d_a)==(1))" << endl;
+    expected_if << "{" << endl;
+    expected_if << "}" << endl;
+    expected_if << "if ((self->d_a)==(1))" << endl;
+    expected_if << "{" << endl;
+    expected_if << "int a;" << endl;
+    expected_if << "}" << endl;
+    expected_if << "self->d_a;" << endl;
+    expected_if << "}";
     BOOST_CHECK_EQUAL(actual_if.str(), expected_if.str());
 
     ostringstream actual_else, expected_else;
     BlockConverter(*else_stmt, converter).print(actual_else);
-    expected_else << "{" << endl
-                  << "if ((self->d_a)==(1))" << endl
-                  << "{" << endl
-                  << "}" << endl
-                  << "else" << endl
-                  << "{" << endl
-                  << "}" << endl
-                  << "if ((self->d_a)==(1))" << endl
-                  << "{" << endl
-                  << "int a;" << endl
-                  << "}" << endl
-                  << "else" << endl
-                  << "{" << endl
-                  << "int a;" << endl
-                  << "}" << endl
-                  << "self->d_a;" << endl
-                  << "}";
+    expected_else << "{" << endl;
+    expected_else << "if ((self->d_a)==(1))" << endl;
+    expected_else << "{" << endl;
+    expected_else << "}" << endl;
+    expected_else << "else" << endl;
+    expected_else << "{" << endl;
+    expected_else << "}" << endl;
+    expected_else << "if ((self->d_a)==(1))" << endl;
+    expected_else << "{" << endl;
+    expected_else << "int a;" << endl;
+    expected_else << "}" << endl;
+    expected_else << "else" << endl;
+    expected_else << "{" << endl;
+    expected_else << "int a;" << endl;
+    expected_else << "}" << endl;
+    expected_else << "self->d_a;" << endl;
+    expected_else << "}";
     BOOST_CHECK_EQUAL(actual_else.str(), expected_else.str());
 }
 
@@ -152,42 +156,43 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     auto while_stmt = (fncs[0]->name() == "while_stmt") ? fncs[0] : fncs[1];
     ostringstream actual_while, expected_while;
     BlockConverter(*while_stmt, converter).print(actual_while);
-    expected_while << "{" << endl
-                   << "while ((self->d_a)!=(self->d_a))" << endl
-                   << "{" << endl
-                   << "}" << endl
-                   << "while ((self->d_a)!=(self->d_a))" << endl
-                   << "{" << endl
-                   << "int i;" << endl
-                   << "}" << endl
-                   << "self->d_i;" << endl
-                   << "}";
+    expected_while << "{" << endl;
+    expected_while << "while ((self->d_a)!=(self->d_a))" << endl;
+    expected_while << "{" << endl;
+    expected_while << "}" << endl;
+    expected_while << "while ((self->d_a)!=(self->d_a))" << endl;
+    expected_while << "{" << endl;
+    expected_while << "int i;" << endl;
+    expected_while << "}" << endl;
+    expected_while << "self->d_i;" << endl;
+    expected_while << "}";
     BOOST_CHECK_EQUAL(actual_while.str(), expected_while.str());
 
     auto for_stmt = (fncs[0]->name() == "while_stmt") ? fncs[1] : fncs[0];
     ostringstream actual_for, expected_for;
     BlockConverter(*for_stmt, converter).print(actual_for);
-    expected_for << "{" << endl
-                 << "for (; (self->d_a)<(10); ++(self->d_a))" << endl
-                 << "{" << endl
-                 << "int i;" << endl
-                 << "}" << endl
-                 << "for (int i = 0; ; ++(i))" << endl
-                 << "{" << endl
-                 << "i;" << endl
-                 << "}" << endl
-                 << "for (int i = 0; (i)<(10); )" << endl
-                 << "{" << endl
-                 << "++(i);" << endl
-                 << "}" << endl
-                 << "for (int i = 0; (i)<(10); ++(i))" << endl
-                 << "{" << endl
-                 << "}" << endl
-                 << "self->d_i;" << endl
-                 << "}";
+    expected_for << "{" << endl;
+    expected_for << "for (; (self->d_a)<(10); ++(self->d_a))" << endl;
+    expected_for << "{" << endl;
+    expected_for << "int i;" << endl;
+    expected_for << "}" << endl;
+    expected_for << "for (int i = 0; ; ++(i))" << endl;
+    expected_for << "{" << endl;
+    expected_for << "i;" << endl;
+    expected_for << "}" << endl;
+    expected_for << "for (int i = 0; (i)<(10); )" << endl;
+    expected_for << "{" << endl;
+    expected_for << "++(i);" << endl;
+    expected_for << "}" << endl;
+    expected_for << "for (int i = 0; (i)<(10); ++(i))" << endl;
+    expected_for << "{" << endl;
+    expected_for << "}" << endl;
+    expected_for << "self->d_i;" << endl;
+    expected_for << "}";
     BOOST_CHECK_EQUAL(actual_for.str(), expected_for.str());
 }
 
+// Ensures continue statements remain unchanged.
 BOOST_AUTO_TEST_CASE(continue_statement)
 {
     char const* text = R"(
@@ -207,15 +212,16 @@ BOOST_AUTO_TEST_CASE(continue_statement)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "while (0)" << endl
-             << "{" << endl
-             << "continue;" << endl
-             << "}" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "while (0)" << endl;
+    expected << "{" << endl;
+    expected << "continue;" << endl;
+    expected << "}" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+// Ensures break statements remain unchanged.
 BOOST_AUTO_TEST_CASE(break_statement)
 {
     char const* text = R"(
@@ -235,15 +241,16 @@ BOOST_AUTO_TEST_CASE(break_statement)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "while (0)" << endl
-             << "{" << endl
-             << "break;" << endl
-             << "}" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "while (0)" << endl;
+    expected << "{" << endl;
+    expected << "break;" << endl;
+    expected << "}" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+// Ensures return statements remain unchanged.
 BOOST_AUTO_TEST_CASE(return_statement)
 {
     char const* text = R"(
@@ -263,20 +270,24 @@ BOOST_AUTO_TEST_CASE(return_statement)
     auto void_func = (fncs[0]->name() == "void_func") ? fncs[0] : fncs[1];
     ostringstream actual_void, expected_void;
     BlockConverter(*void_func, converter).print(actual_void);
-    expected_void << "{" << endl
-                  << "return;" << endl
-                  << "}";
+    expected_void << "{" << endl;
+    expected_void << "return;" << endl;
+    expected_void << "}";
     BOOST_CHECK_EQUAL(actual_void.str(), expected_void.str());
 
     auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int, expected_int;
     BlockConverter(*int_func, converter).print(actual_int);
-    expected_int << "{" << endl
-                 << "return (10)+(5);" << endl
-                 << "}";
+    expected_int << "{" << endl;
+    expected_int << "return (10)+(5);" << endl;
+    expected_int << "}";;
     BOOST_CHECK_EQUAL(actual_int.str(), expected_int.str());
 }
 
+// Ensures that variable declarations will generate C declarations, and that
+// these declarations will be added to the internal state of the block
+// converter. Also ensures that these variables will be popped once said scope
+// is exited.
 BOOST_AUTO_TEST_CASE(variable_declaration_statement)
 {
     char const* text = R"(
@@ -304,26 +315,28 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "int b;" << endl
-             << "{" << endl
-             << "int c;" << endl
-             << "self->d_a;" << endl
-             << "b;" << endl
-             << "c;" << endl
-             << "}" << endl
-             << "{" << endl
-             << "self->d_a;" << endl
-             << "b;" << endl
-             << "self->d_c;" << endl
-             << "}" << endl
-             << "self->d_a;" << endl
-             << "b;" << endl
-             << "self->d_c;" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "int b;" << endl;
+    expected << "{" << endl;
+    expected << "int c;" << endl;
+    expected << "self->d_a;" << endl;
+    expected << "b;" << endl;
+    expected << "c;" << endl;
+    expected << "}" << endl;
+    expected << "{" << endl;
+    expected << "self->d_a;" << endl;
+    expected << "b;" << endl;
+    expected << "self->d_c;" << endl;
+    expected << "}" << endl;
+    expected << "self->d_a;" << endl;
+    expected << "b;" << endl;
+    expected << "self->d_c;" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+// Ensures that if a function has named return values, that those variables will
+// be implicitly declared.
 BOOST_AUTO_TEST_CASE(named_function_retvars)
 {
     char const* text = R"(
@@ -343,19 +356,19 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     auto unnamed = (fncs[0]->name() == "f") ? fncs[0] : fncs[1];
     ostringstream actual_unnamed, expected_unnamed;
     BlockConverter(*unnamed, converter).print(actual_unnamed);
-    expected_unnamed << "{" << endl
-                     << "return 5;" << endl
-                     << "}";
+    expected_unnamed << "{" << endl;
+    expected_unnamed << "return 5;" << endl;
+    expected_unnamed << "}";
     BOOST_CHECK_EQUAL(actual_unnamed.str(), expected_unnamed.str());
 
     auto named = (fncs[0]->name() == "f") ? fncs[1] : fncs[0];
     ostringstream actual_named, expected_named;
     BlockConverter(*named, converter).print(actual_named);
-    expected_named << "{" << endl
-                   << "int a;" << endl
-                   << "(a)=(5);" << endl
-                   << "return a;" << endl
-                   << "}";
+    expected_named << "{" << endl;
+    expected_named << "int a;" << endl;
+    expected_named << "(a)=(5);" << endl;
+    expected_named << "return a;" << endl;
+    expected_named << "}";
     BOOST_CHECK_EQUAL(actual_named.str(), expected_named.str());
 }
 
@@ -392,15 +405,15 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "(*self).d_d;" << endl
-             << "(self->d_b).d_i;" << endl
-             << "((self->d_c).d_b).d_i;" << endl
-             << "state->blocknum;" << endl
-             << "state->blocknum;" << endl
-             << "state->sender;" << endl
-             << "state->value;" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "(*self).d_d;" << endl;
+    expected << "(self->d_b).d_i;" << endl;
+    expected << "((self->d_c).d_b).d_i;" << endl;
+    expected << "state->blocknum;" << endl;
+    expected << "state->blocknum;" << endl;
+    expected << "state->sender;" << endl;
+    expected << "state->value;" << endl;
+    expected << "}";;
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
@@ -440,14 +453,14 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
         {
             ostringstream actual, expected;
             BlockConverter(*func_ptr, converter).print(actual);
-            expected << "{" << endl
-                    << "Method_A_f(self, state);" << endl
-                    << "Method_A_g(self, state, 1);" << endl
-                    << "Method_A_h(self, state, 1, 2);" << endl
-                    << "Method_A_p();" << endl
-                    << "Method_A_q(1);" << endl
-                    << "Method_A_r(1, 2);" << endl
-                    << "}";
+            expected << "{" << endl;
+            expected << "Method_A_f(self, state);" << endl;
+            expected << "Method_A_g(self, state, 1);" << endl;
+            expected << "Method_A_h(self, state, 1, 2);" << endl;
+            expected << "Method_A_p();" << endl;
+            expected << "Method_A_q(1);" << endl;
+            expected << "Method_A_r(1, 2);" << endl;
+            expected << "}";;
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;
         }
@@ -490,13 +503,13 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
         {
             ostringstream actual, expected;
             BlockConverter(*func_ptr, converter).print(actual);
-            expected << "{" << endl
-                    << "Method_A_f(&(self->d_a), state);" << endl
-                    << "Method_A_g();" << endl
-                    << "Method_B_f(&(self->d_b), state);" << endl
-                    << "Method_B_f(&(*self), state);" << endl
-                    << "Method_B_f(&(*self), state);" << endl
-                    << "}";
+            expected << "{" << endl;
+            expected << "Method_A_f(&(self->d_a), state);" << endl;
+            expected << "Method_A_g();" << endl;
+            expected << "Method_B_f(&(self->d_b), state);" << endl;
+            expected << "Method_B_f(&(*self), state);" << endl;
+            expected << "Method_B_f(&(*self), state);" << endl;
+            expected << "}";;
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;
         }
@@ -526,11 +539,11 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "_pay(state, dst, 5);" << endl
-             << "_pay(state, dst, 10);" << endl
-             << "_pay(state, dst, 15);" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "_pay(state, dst, 5);" << endl;
+    expected << "_pay(state, dst, 10);" << endl;
+    expected << "_pay(state, dst, 15);" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
@@ -557,14 +570,16 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "assume(1);" << endl
-             << "assume(1);" << endl
-             << "assert(1);" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "assume(1);" << endl;
+    expected << "assume(1);" << endl;
+    expected << "assert(1);" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+// Ensures that `<struct>(<v1>, ..., <vn>)` will be mapped to
+// `Init_<contract>_<struct>(<v1>, ..., <vn>)`.
 BOOST_AUTO_TEST_CASE(struct_ctor_calls)
 {
     char const* text = R"(
@@ -587,14 +602,16 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "Init_A_B();" << endl
-             << "Init_A_C(1);" << endl
-             << "Init_A_D(1, 2);" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "Init_A_B();" << endl;
+    expected << "Init_A_C(1);" << endl;
+    expected << "Init_A_D(1, 2);" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+// Ensures that `new <contract>(<v1>, ..., <vn>)` will be mapped to
+// `Init_<contract>(<v1>, ..., <vn>)`.
 BOOST_AUTO_TEST_CASE(contract_ctor_calls)
 {
     char const* text = R"(
@@ -622,13 +639,16 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "Init_A();" << endl
-             << "Init_B(nullptr, state, 10);" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "Init_A();" << endl;
+    expected << "Init_B(nullptr, state, 10);" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+// Ensure that when not caught by another expression (ie, assignmet), that an
+// index access to a map will be replaced by a Read_ call. Furthermore, this
+// ensures that nested index accesses will be replaced by Ref_ calls.
 BOOST_AUTO_TEST_CASE(read_only_index_access)
 {
     char const* text = R"(
@@ -665,6 +685,8 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+// Ensures that when the l-value of an assignment is an IndexAccess, that the
+// forementioned assignment will be rewritten as a Write_ call.
 BOOST_AUTO_TEST_CASE(map_assignment)
 {
     char const* text = R"(
@@ -694,13 +716,16 @@ BOOST_AUTO_TEST_CASE(map_assignment)
 
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
-    expected << "{" << endl
-             << "Write_A_a_submap1(&(self->d_a), 1, (2));" << endl
-             << "Write_A_a_submap1(&(self->d_a), 1, ((Read_A_a_submap1(&(self->d_a), 1))+(2)));" << endl
-             << "((*Ref_A_b_submap1(&(self->d_b), 1)).d_m)=(((Read_A_b_submap1(&(self->d_b), 1)).d_m)+(2));" << endl
-             << "Write_A_C_m_submap1(&((self->d_c).d_m), 1, (2));" << endl
-             << "Write_A_d_submap2(Ref_A_d_submap1(&(self->d_d), 1), 2, (3));" << endl
-             << "}";
+    expected << "{" << endl;
+    expected << "Write_A_a_submap1(&(self->d_a), 1, (2));" << endl;
+    expected << "Write_A_a_submap1(&(self->d_a), 1"
+             << ", ((Read_A_a_submap1(&(self->d_a), 1))+(2)));" << endl;
+    expected << "((*Ref_A_b_submap1(&(self->d_b), 1)).d_m)=("
+             << "((Read_A_b_submap1(&(self->d_b), 1)).d_m)+(2));" << endl;
+    expected << "Write_A_C_m_submap1(&((self->d_c).d_m), 1, (2));" << endl;
+    expected << "Write_A_d_submap2(Ref_A_d_submap1(&(self->d_d), 1)"
+             << ", 2, (3));" << endl;
+    expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 

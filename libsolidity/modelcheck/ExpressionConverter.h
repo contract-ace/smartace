@@ -86,7 +86,7 @@ public:
 	static_assert(
 		std::is_same<T, MemberAccess>::value ||
 		std::is_same<T, IndexAccess>::value ||
-		std::is_same<T, IndexAccess>::value
+		std::is_same<T, Identifier>::value
 	);
 
 	// Wraps an AST node from which the LValue is located.

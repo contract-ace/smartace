@@ -63,6 +63,7 @@ bool ADTConverter::visit(Mapping const& _node)
         (*m_ostream) << "int m_set;" << endl;
         (*m_ostream) << key_type << " m_curr;" << endl;
         (*m_ostream) << val_type << " d_;" << endl;
+        (*m_ostream) << val_type << " d_nd;" << endl;
         (*m_ostream) << "}";
     }
     (*m_ostream) << ";" << endl;
