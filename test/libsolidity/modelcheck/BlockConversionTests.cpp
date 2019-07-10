@@ -665,6 +665,45 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(map_assignment)
+{
+    char const* text = R"(
+        contract A {
+            struct B { int m; }
+            struct C { mapping(int => int) m; }
+            mapping(int => int) a;
+            mapping(int => B) b;
+            C c;
+            mapping(int => mapping(int => int)) d;
+            function f() public {
+                a[1] = 2;
+                a[1] += 2;
+                b[1].m += 2;
+                c.m[1] = 2;
+                d[1][2] = 3;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expected;
+    BlockConverter(func, converter).print(actual);
+    expected << "{" << endl
+             << "Write_A_a_submap1(&(self->d_a), 1, (2));" << endl
+             << "Write_A_a_submap1(&(self->d_a), 1, ((Read_A_a_submap1(&(self->d_a), 1))+(2)));" << endl
+             << "((*Ref_A_b_submap1(&(self->d_b), 1)).d_m)=(((Read_A_b_submap1(&(self->d_b), 1)).d_m)+(2));" << endl
+             << "Write_A_C_m_submap1(&((self->d_c).d_m), 1, (2));" << endl
+             << "Write_A_d_submap2(Ref_A_d_submap1(&(self->d_d), 1), 2, (3));" << endl
+             << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

@@ -609,7 +609,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
             mapping (uint => S) accs;
             function Open(uint idx) public {
                 // require(accs[idx].owner == address(0));
-                // accs[idx] = S(msg.sender, 0);
+                accs[idx] = S(msg.sender, 0);
             }
             function Deposit(uint idx) public payable {
                 require(msg.value > min_amt);
@@ -620,8 +620,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
             function Withdraw(uint idx) public payable {
                 require(accs[idx].owner == msg.sender);
                 uint amt = accs[idx].val;
-                // accs[idx] = S(msg.sender, 0);
-                // assert(accs[idx].val == 0);
+                accs[idx] = S(msg.sender, 0);
+                assert(accs[idx].val == 0);
                 msg.sender.transfer(amt);
             }
             function View(uint idx) public returns (uint amt) {
@@ -676,6 +676,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
                 << "struct A_S *Ref_A_accs_submap1(struct A_accs_submap1 *a, unsigned int idx);" << endl
                 << "void Method_A_Open(struct A *self, struct CallState *state, unsigned int idx)" << endl
                 << "{" << endl
+                << "Write_A_accs_submap1(&(self->d_accs), idx, (Init_A_S(state->sender, 0)));" << endl
                 << "}" << endl
                 << "void Method_A_Deposit(struct A *self, struct CallState *state, unsigned int idx)" << endl
                 << "{" << endl
@@ -685,6 +686,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
                 << "{" << endl
                 << "assume(((Read_A_accs_submap1(&(self->d_accs), idx)).d_owner)==(state->sender));" << endl
                 << "unsigned int amt = (Read_A_accs_submap1(&(self->d_accs), idx)).d_val;" << endl
+                << "Write_A_accs_submap1(&(self->d_accs), idx, (Init_A_S(state->sender, 0)));" << endl
+                << "assert(((Read_A_accs_submap1(&(self->d_accs), idx)).d_val)==(0));" << endl
                 << "_pay(state, state->sender, amt);" << endl
                 << "}" << endl
                 << "unsigned int Method_A_View(struct A *self, struct CallState *state, unsigned int idx)" << endl

@@ -11,6 +11,7 @@
 #include <array>
 #include <functional>
 #include <ostream>
+#include <type_traits>
 #include <utility>
 
 namespace dev
@@ -23,16 +24,20 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
- * Utility to find top-most MemberAccess within an expression AST.
+ * Utility to find the top-most instance of T along some branch of an
+ * expression AST. Sub-expressions used in decisions shell be pruned from the
+ * tree.
  */
 template <class T>
 class NodeSniffer : public ASTConstVisitor
 {
 public:
-	// Wraps an AST node from which the member access is located.
+	static_assert(std::is_base_of<ASTNode, T>::value);
+
+	// Wraps an AST node from which a node of type T is located.
 	NodeSniffer(Expression const& _expr): m_expr(_expr) {}
 
-	// Returns the member accessor if possible, or nullptr.
+	// Returns the node of type T if possible, or nullptr.
 	T const* find()
 	{
 		m_ret = nullptr;
@@ -41,11 +46,78 @@ public:
 	}
 
 protected:
+	bool visit(Conditional const& _node) override
+	{
+		_node.falseExpression().accept(*this);
+		_node.trueExpression().accept(*this);
+		return false;
+	}
+
+	bool visit(IndexAccess const& _node) override
+	{
+		_node.baseExpression().accept(*this);
+		return false;
+	}
+
+	bool visit(FunctionCall const& _node) override
+	{
+		_node.expression().accept(*this);
+		return false;
+	}
+
 	void endVisit(T const& _node) override { m_ret = &_node; }
 
 private:
     Expression const& m_expr;
     T const* m_ret;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * This utility will consume an expression node. If this expression node
+ * contains a potential LVal, it will be located, and if it is of type T, it
+ * will be returned.
+ */
+template <class T>
+class LValueSniffer : public ASTConstVisitor
+{
+public:
+	static_assert(
+		std::is_same<T, MemberAccess>::value ||
+		std::is_same<T, IndexAccess>::value ||
+		std::is_same<T, IndexAccess>::value
+	);
+
+	// Wraps an AST node from which the LValue is located.
+	LValueSniffer(Expression const& _expr): m_expr(_expr) {}
+
+	// Returns the LValue of type T if possible, or nullptr.
+	T const* find()
+	{
+		m_ret = nullptr;
+		m_expr.accept(*this);
+		return m_ret;
+	}
+
+protected:
+	bool visit(Conditional const& _node) override
+	{
+		_node.falseExpression().accept(*this);
+		_node.trueExpression().accept(*this);
+		return false;
+	}
+
+	bool visit(FunctionCall const&) override { return false; }
+	bool visit(MemberAccess const&) override { return false; }
+	bool visit(IndexAccess const&) override { return false; }
+	bool visit(Identifier const&) override { return false; }
+
+	void endVisit(T const& _node) override { m_ret = &_node; }
+
+private:
+	Expression const& m_expr;
+	T const* m_ret;
 };
 
 // -------------------------------------------------------------------------- //
@@ -95,6 +167,7 @@ private:
 	std::hash<std::string> m_hasher;
 
 	unsigned int m_index_depth = 0;
+	bool m_lval = false;
 
 	static std::map<std::pair<MagicType::Kind, std::string>, std::string> const
 		m_magic_members;
@@ -108,6 +181,9 @@ private:
 	void print_binary_op(
 		Expression const& _lhs, Token _op, Expression const& _rhs
 	);
+
+	// Helper functions to format mapping operations.
+	void print_map_idx_pair(IndexAccess const& _map);
 
 	// Helper functions to produce specialized function calls.
 	void print_struct_consructor(

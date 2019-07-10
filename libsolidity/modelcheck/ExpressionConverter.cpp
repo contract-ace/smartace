@@ -80,9 +80,22 @@ bool ExpressionConverter::visit(Conditional const& _node)
 
 bool ExpressionConverter::visit(Assignment const& _node)
 {
-	print_subexpression(_node.leftHandSide());
+	auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find();
 
-	(*m_ostream) << "=";
+	bool entry_lval = m_lval;
+	m_lval = true;
+	if (map)
+	{
+		(*m_ostream) << "Write_" << m_converter.translate(*map).name << "(";
+		print_map_idx_pair(*map);
+		(*m_ostream) << ", ";
+	}
+	else
+	{
+		print_subexpression(_node.leftHandSide());
+		(*m_ostream) << "=";
+	}
+	m_lval = entry_lval;
 
 	if (_node.assignmentOperator() != Token::Assign)
 	{
@@ -96,6 +109,11 @@ bool ExpressionConverter::visit(Assignment const& _node)
 	else
 	{
 		print_subexpression(_node.rightHandSide());
+	}
+
+	if (map)
+	{
+		(*m_ostream) << ")";
 	}
 
 	return false;
@@ -217,31 +235,30 @@ bool ExpressionConverter::visit(MemberAccess const& _node)
 
 bool ExpressionConverter::visit(IndexAccess const& _node)
 {
-	++m_index_depth;
 	switch (_node.baseExpression().annotation().type->category())
 	{
 	case Type::Category::Mapping:
 		{
-			(*m_ostream) << (m_index_depth == 1 ? "Read_" : "Ref_")
-			             << m_converter.translate(_node).name << "(";
-			if (NodeSniffer<IndexAccess>(_node.baseExpression()).find())
+			if (m_index_depth)
 			{
-				_node.baseExpression().accept(*this);
+				(*m_ostream) << "Ref_";
+			}
+			else if (m_lval)
+			{
+				(*m_ostream) << "*Ref_";
 			}
 			else
 			{
-				(*m_ostream) << "&";
-				print_subexpression(_node.baseExpression());
+				(*m_ostream) << "Read_";
 			}
-			(*m_ostream) << ", ";
-			_node.indexExpression()->accept(*this);
+			(*m_ostream) << m_converter.translate(_node).name << "(";
+			print_map_idx_pair(_node);
 			(*m_ostream) << ")";
 		}
 		break;
 	default:
 		throw runtime_error("IndexAccess applied to unsupported type.");
 	}
-	--m_index_depth;
 	return false;
 }
 
@@ -373,6 +390,25 @@ void ExpressionConverter::print_binary_op(
 	}
 
 	print_subexpression(_rhs);
+}
+
+// -------------------------------------------------------------------------- //
+
+void ExpressionConverter::print_map_idx_pair(IndexAccess const& _map)
+{
+	++m_index_depth;
+	if (NodeSniffer<IndexAccess>(_map.baseExpression()).find())
+	{
+		_map.baseExpression().accept(*this);
+	}
+	else
+	{
+		(*m_ostream) << "&";
+		print_subexpression(_map.baseExpression());
+	}
+	--m_index_depth;
+	(*m_ostream) << ", ";
+	_map.indexExpression()->accept(*this);
 }
 
 // -------------------------------------------------------------------------- //
