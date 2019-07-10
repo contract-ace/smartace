@@ -188,7 +188,8 @@ bool ExpressionConverter::visit(FunctionCall const& _node)
 		print_function(_node.expression(), _node.arguments());
 		break;
 	case FunctionCallKind::TypeConversion:
-		throw runtime_error("Type conversion not yet supported.");
+		print_cast(_node);
+		break;
 	case FunctionCallKind::StructConstructorCall:
 		print_struct_consructor(_node.expression(), _node.arguments());
 		break;
@@ -266,13 +267,6 @@ bool ExpressionConverter::visit(Identifier const& _node)
 {
 	(*m_ostream) << m_decls.resolve_identifier(_node);
 	return false;
-}
-
-bool ExpressionConverter::visit(ElementaryTypeNameExpression const& _node)
-{
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Elementary type name expressions not yet supported.");
 }
 
 bool ExpressionConverter::visit(Literal const& _node)
@@ -435,6 +429,163 @@ void ExpressionConverter::print_struct_consructor(
 	else
 	{
 		throw runtime_error("Struct constructor called without identifier.");
+	}
+}
+
+void ExpressionConverter::print_cast(FunctionCall const& _call)
+{
+	if (_call.arguments().size() != 1)
+	{
+		throw runtime_error("Unable to typecast multiple values in one call.");
+	}
+
+	auto const& base_expr = *_call.arguments()[0];
+	auto base_type = base_expr.annotation().type;
+	auto cast_type = _call.annotation().type;
+
+	if (auto base_rat = dynamic_cast<RationalNumberType const*>(base_type))
+	{
+		base_type = base_rat->integerType();
+	}
+	if (auto cast_rat = dynamic_cast<RationalNumberType const*>(cast_type))
+	{
+		cast_type = cast_rat->integerType();
+	}
+
+	if (!base_type || cast_type->category() == Type::Category::FixedPoint ||
+		!cast_type || base_type->category() == Type::Category::FixedPoint)
+	{
+		throw runtime_error("FixedPoint conversion is unsupported in solc.");
+	}
+
+	if (base_type->category() == Type::Category::Address)
+	{
+		if (auto cast_int = dynamic_cast<IntegerType const*>(cast_type))
+		{
+			if (cast_int->isSigned())
+			{
+				base_expr.accept(*this);
+			}
+			else
+			{
+				(*m_ostream) << "((unsigned int)(";
+				base_expr.accept(*this);
+				(*m_ostream) << "))";
+			}
+		}
+		else if (cast_type->category() == Type::Category::Address)
+		{
+			base_expr.accept(*this);
+		}
+		else if (cast_type->category() == Type::Category::Enum)
+		{
+			// TODO(scottwe): implement.
+			throw runtime_error("Enums are not yet supported.");
+		}
+		else
+		{
+			throw runtime_error("Unsupported address cast.");
+		}
+	}
+	else if (auto base_int = dynamic_cast<IntegerType const*>(base_type))
+	{
+		if (auto cast_int = dynamic_cast<IntegerType const*>(cast_type))
+		{
+			// TODO(scottwe): take into account bitwidth.
+			// TODO(scottwe): are sign semantics the same in Solidity?
+			if (base_int->isSigned() != cast_int->isSigned())
+			{
+				if (cast_int->isSigned())
+				{
+					(*m_ostream) << "((int)(";
+				}
+				else
+				{
+					(*m_ostream) << "((unsigned int)(";
+				}
+				base_expr.accept(*this);
+				(*m_ostream) << "))";
+			}
+			else
+			{
+				base_expr.accept(*this);
+			}
+		}
+		else if (cast_type->category() == Type::Category::Address)
+		{
+				if (base_int->isSigned())
+				{
+					base_expr.accept(*this);
+				}
+				else
+				{
+					(*m_ostream) << "((int)(";
+					base_expr.accept(*this);
+					(*m_ostream) << "))";
+				}
+		}
+		else if (cast_type->category() == Type::Category::Enum)
+		{
+			// TODO(scottwe): implement.
+			throw runtime_error("Enums are not yet supported.");
+		}
+		else
+		{
+			throw runtime_error("Unsupported integer cast.");
+		}
+		
+	}
+	else if (base_type->category() == Type::Category::StringLiteral)
+	{
+		// TODO(scottwe): implement.
+		throw runtime_error("String conversion is unsupported.");
+	}
+	else if (base_type->category() == Type::Category::FixedBytes)
+	{
+		// TODO(scottwe): implement.
+		throw runtime_error("Byte arrays are not yet supported.");
+	}
+	else if (base_type->category() == Type::Category::Bool)
+	{
+		if (cast_type->category() == Type::Category::Bool)
+		{
+			base_expr.accept(*this);
+		}
+		else
+		{
+			throw runtime_error("Unsupported bool cast.");
+		}
+	}
+	else if (base_type->category() == Type::Category::Array)
+	{
+		// TODO(scottwe): implement.
+		throw runtime_error("Arrays are not yet supported.");
+	}
+	else if (base_type->category() == Type::Category::Contract)
+	{
+		if (cast_type->category() == Type::Category::Contract)
+		{
+			// TODO(scottwe): which casts should be allowed?
+			throw runtime_error("Contract/Contract casts unimplemented.");
+		}
+		else if (cast_type->category() == Type::Category::Address)
+		{
+			// TODO(scottwe): implement Address/Contract association.
+			throw runtime_error("Contract/Address casts unimplemented");
+		}
+		else
+		{
+			throw runtime_error("Unsupported Contract cast.");
+		}
+	}
+	else if (base_type->category() == Type::Category::Enum)
+	{
+		// TODO(scottwe): implement.
+		throw runtime_error("Enums are not yet supported.");
+	}
+	else
+	{
+		throw runtime_error("Conversion applied to unexpected type.");
 	}
 }
 

@@ -154,7 +154,6 @@ protected:
 	bool visit(MemberAccess const& _node) override;
 	bool visit(IndexAccess const& _node) override;
 	bool visit(Identifier const& _node) override;
-	bool visit(ElementaryTypeNameExpression const& _node) override;
 	bool visit(Literal const& _node) override;
 
 private:
@@ -190,6 +189,7 @@ private:
 		Expression const& _struct,
 		std::vector<ASTPointer<Expression const>> const& _args
 	);
+	void print_cast(FunctionCall const& _call);
 	void print_function(
 		Expression const& _call,
 		std::vector<ASTPointer<Expression const>> const& _args

@@ -602,7 +602,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
             uint constant min_amt = 42;
             mapping (uint => S) accs;
             function Open(uint idx) public {
-                // require(accs[idx].owner == address(0));
+                require(accs[idx].owner == address(0));
                 accs[idx] = S(msg.sender, 0);
             }
             function Deposit(uint idx) public payable {
@@ -709,6 +709,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
                 << "(struct A *self, struct CallState *state"
                 << ", unsigned int idx)" << endl;
     func_expect << "{" << endl;
+    func_expect << "assume(((Read_A_accs_submap1(&(self->d_accs), idx)).d_owner"
+                << ")==(((int)(0))));" << endl;
     func_expect << "Write_A_accs_submap1(&(self->d_accs), idx"
                 << ", (Init_A_S(state->sender, 0)));" << endl;
     func_expect << "}" << endl;

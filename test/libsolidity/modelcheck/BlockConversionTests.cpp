@@ -729,6 +729,50 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+// Tests all supported typecasts in their most explicit forms.
+BOOST_AUTO_TEST_CASE(type_casting)
+{
+    char const* text = R"(
+        contract A {
+            address a;
+            int s;
+            uint u;
+            bool b;
+            function f() public view {
+                address(5.0);
+                address(a); int(a); uint(a);
+                address(s); int(s); uint(s);
+                address(u); int(u); uint(u);
+                bool(b);
+            }
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expected;
+    BlockConverter(func, converter).print(actual);
+    expected << "{" << endl;
+    expected << "((int)(5));" << endl;
+    expected << "self->d_a;" << endl;
+    expected << "self->d_a;" << endl;
+    expected << "((unsigned int)(self->d_a));" << endl;
+    expected << "self->d_s;" << endl;
+    expected << "self->d_s;" << endl;
+    expected << "((unsigned int)(self->d_s));" << endl;
+    expected << "((int)(self->d_u));" << endl;
+    expected << "((int)(self->d_u));" << endl;
+    expected << "self->d_u;" << endl;
+    expected << "self->d_b;" << endl;
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }
