@@ -272,6 +272,12 @@ Translation TypeConverter::translate(IndexAccess const& _access) const
     }
 }
 
+bool TypeConverter::is_pointer(Identifier const& _id) const
+{
+    auto const& res = m_in_storage.find(&_id);
+    return res != m_in_storage.end() && res->second;
+}
+
 // -------------------------------------------------------------------------- //
 
 bool TypeConverter::visit(VariableDeclaration const& _node)
@@ -445,14 +451,17 @@ void TypeConverter::endVisit(Identifier const& _node)
     if (magic_res != m_global_context.end())
     {
         m_dictionary.insert({&_node, magic_res->second});
+        m_in_storage.insert({&_node, false});
     }
     else
     {
         ASTNode const* ref = nullptr;
+        VariableDeclaration::Location loc;
 
         if (_node.name() == "this")
         {
             ref = m_curr_contract;
+            loc = VariableDeclaration::Storage;
         }
         else if (_node.name() == "super")
         {
@@ -463,10 +472,16 @@ void TypeConverter::endVisit(Identifier const& _node)
         else
         {
             ref = _node.annotation().referencedDeclaration;
+
+            if (auto var = dynamic_cast<VariableDeclaration const*>(ref))
+            {
+                loc = var->referenceLocation();
+            }
         }
 
         auto actual_res = translate_impl(ref);
         m_dictionary.insert({&_node, actual_res});
+        m_in_storage.insert({&_node, loc == VariableDeclaration::Storage});
     }
 }
 

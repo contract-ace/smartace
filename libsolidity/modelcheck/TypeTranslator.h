@@ -82,6 +82,10 @@ public:
     // Translates an index access, if it is to a mapping.
     Translation translate(IndexAccess const& _id) const;
 
+    // Returns true is an identifier is a pointer. If this cannot be resolved,
+    // false is returned.
+    bool is_pointer(Identifier const& _id) const;
+
 protected:
     bool visit(VariableDeclaration const& _node) override;
 	bool visit(ElementaryTypeName const& _node) override;
@@ -98,14 +102,14 @@ protected:
 
 private:
     static std::map<std::string, Translation> const m_global_context;
+
     std::map<ASTNode const*, Translation> m_dictionary;
+    std::map<Identifier const*, bool> m_in_storage;
 
     ContractDefinition const* m_curr_contract = nullptr;
     VariableDeclaration const* m_curr_decl = nullptr;
     unsigned int m_rectype_depth = 0;
     bool m_is_retval = false;
-
-    static std::set<std::string> const m_evm_functions;
 
     // Searches for the given address within the type dictionary. If no entry is
     // found, then a runtime exception is raised.

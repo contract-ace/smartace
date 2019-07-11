@@ -425,6 +425,45 @@ BOOST_AUTO_TEST_CASE(map_access)
     BOOST_CHECK_EQUAL(converter.translate(idx2).type, "struct A_arr_submap2");
 }
 
+// Ensures that storage variable identifiers are mapped to pointers, while
+// memory variable identifiers are mapped to new values on the stack.
+BOOST_AUTO_TEST_CASE(identifiers_as_pointers)
+{
+    using ExprStmtPtr = ExpressionStatement const*;
+    using IndnExprPtr = Identifier const*;
+
+    char const* text = R"(
+        contract A {
+            struct B { int i; }
+            B b;
+            function f() public {
+                B storage my_ref = b;
+                B memory my_val = B(1);
+                my_ref;
+                my_val;
+            }
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(ast, "A");
+    auto const& func = *ctrt.definedFunctions()[0];
+
+    auto const& stmt_3 = *func.body().statements()[2];
+    auto const& expr_3 = dynamic_cast<ExprStmtPtr>(&stmt_3)->expression();
+    auto const& idx1 = *dynamic_cast<IndnExprPtr>(&expr_3);
+
+    auto const& stmt_4 = *func.body().statements()[3];
+    auto const& expr_4 = dynamic_cast<ExprStmtPtr>(&stmt_4)->expression();
+    auto const& idx2 = *dynamic_cast<IndnExprPtr>(&expr_4);
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    BOOST_CHECK_EQUAL(converter.is_pointer(idx1), true);
+    BOOST_CHECK_EQUAL(converter.is_pointer(idx2), false);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }
