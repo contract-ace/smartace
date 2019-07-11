@@ -23,19 +23,19 @@ ADTConverter::ADTConverter(
     ASTNode const& _ast,
     TypeConverter const& _converter,
     bool _forward_declare
-): m_ast(&_ast), m_converter(_converter), m_forward_declare(_forward_declare)
+): m_ast(_ast), m_converter(_converter), m_forward_declare(_forward_declare)
 {
 }
 
 void ADTConverter::print(ostream& _stream)
 {
 	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
-    m_ast->accept(*this);
+    m_ast.accept(*this);
 }
 
 // -------------------------------------------------------------------------- //
 
-bool ADTConverter::visit(ContractDefinition const& _node)
+void ADTConverter::endVisit(ContractDefinition const& _node)
 {
     (*m_ostream) << m_converter.translate(_node).type;
     if (!m_forward_declare)
@@ -49,10 +49,9 @@ bool ADTConverter::visit(ContractDefinition const& _node)
         (*m_ostream) << "}";
     }
     (*m_ostream) << ";" << endl;
-    return true;
 }
 
-bool ADTConverter::visit(Mapping const& _node)
+void ADTConverter::endVisit(Mapping const& _node)
 {
     (*m_ostream) << m_converter.translate(_node).type;
     if (!m_forward_declare)
@@ -68,10 +67,9 @@ bool ADTConverter::visit(Mapping const& _node)
         (*m_ostream) << "}";
     }
     (*m_ostream) << ";" << endl;
-    return true;
 }
 
-bool ADTConverter::visit(StructDefinition const& _node)
+void ADTConverter::endVisit(StructDefinition const& _node)
 {
     (*m_ostream) << m_converter.translate(_node).type;
     if (!m_forward_declare)
@@ -85,7 +83,6 @@ bool ADTConverter::visit(StructDefinition const& _node)
         (*m_ostream) << "}";
     }
     (*m_ostream) << ";" << endl;
-    return true;
 }
 
 // -------------------------------------------------------------------------- //

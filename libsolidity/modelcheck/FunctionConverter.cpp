@@ -25,14 +25,14 @@ FunctionConverter::FunctionConverter(
     ASTNode const& _ast,
 	TypeConverter const& _converter,
     bool _forward_declare
-): m_ast(&_ast), m_converter(_converter), m_forward_declare(_forward_declare)
+): m_ast(_ast), m_converter(_converter), m_forward_declare(_forward_declare)
 {
 }
 
 void FunctionConverter::print(ostream& _stream)
 {
 	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
-    m_ast->accept(*this);
+    m_ast.accept(*this);
 }
 
 // -------------------------------------------------------------------------- //

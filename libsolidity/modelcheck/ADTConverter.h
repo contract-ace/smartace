@@ -9,7 +9,7 @@
 #include <libsolidity/modelcheck/TypeTranslator.h>
 #include <list>
 #include <ostream>
-#include <string>
+#include <set>
 
 namespace dev
 {
@@ -37,18 +37,20 @@ public:
     // Prints each ADT declaration once, in some order.
     void print(std::ostream& _stream);
 
-	bool visit(ContractDefinition const& _node) override;
-	bool visit(Mapping const& _node) override;
-	bool visit(StructDefinition const& _node) override;
+	void endVisit(ContractDefinition const& _node) override;
+	void endVisit(Mapping const& _node) override;
+	void endVisit(StructDefinition const& _node) override;
 
 	bool visit(EventDefinition const& _node) override;
 	bool visit(FunctionDefinition const& _node) override;
 	bool visit(ModifierDefinition const& _node) override;
 
 private:
-	ASTNode const* m_ast;
+	ASTNode const& m_ast;
 	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
+
+	std::set<ContractDefinition const*> m_built;
 
 	const bool m_forward_declare;
 };

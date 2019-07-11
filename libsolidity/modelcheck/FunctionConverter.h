@@ -44,7 +44,7 @@ public:
 	bool visit(Mapping const& _node) override;
 
 private:
-	ASTNode const* m_ast;
+	ASTNode const& m_ast;
 	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
 

@@ -75,8 +75,8 @@ BOOST_AUTO_TEST_CASE(simple_map)
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A;" << endl;
     adt_expect << "struct A_a_submap1;" << endl;
+    adt_expect << "struct A;" << endl;
     func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_a_submap1 Init_A_a_submap1();" << endl;
     func_expect << "struct A_a_submap1 ND_A_a_submap1();" << endl;
@@ -119,8 +119,8 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
+    adt_expect << "struct A;" << endl;
     func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_B Init_A_B"
                 << "(unsigned int a = 0, unsigned int b = 0);" << endl;
@@ -322,10 +322,10 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A;" << endl;
-    adt_expect << "struct A_B;" << endl;
-    adt_expect << "struct A_B_a_submap1;" << endl;
     adt_expect << "struct A_B_a_submap2;" << endl;
+    adt_expect << "struct A_B_a_submap1;" << endl;
+    adt_expect << "struct A_B;" << endl;
+    adt_expect << "struct A;" << endl;
     func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_B Init_A_B();" << endl;
     func_expect << "struct A_B ND_A_B();" << endl;
@@ -380,11 +380,11 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A;" << endl;
-    adt_expect << "struct A_B;" << endl;
     adt_expect << "struct A_B_a_submap1;" << endl;
-    adt_expect << "struct C;" << endl;
+    adt_expect << "struct A_B;" << endl;
+    adt_expect << "struct A;" << endl;
     adt_expect << "struct C_b_submap1;" << endl;
+    adt_expect << "struct C;" << endl;
     func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_B Init_A_B();" << endl;
     func_expect << "struct A_B ND_A_B();" << endl;
@@ -434,10 +434,10 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A;" << endl;
-    adt_expect << "struct A_a_submap1;" << endl;
-    adt_expect << "struct A_a_submap2;" << endl;
     adt_expect << "struct A_a_submap3;" << endl;
+    adt_expect << "struct A_a_submap2;" << endl;
+    adt_expect << "struct A_a_submap1;" << endl;
+    adt_expect << "struct A;" << endl;
     func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_a_submap1 Init_A_a_submap1();" << endl;
     func_expect << "struct A_a_submap1 ND_A_a_submap1();" << endl;
@@ -498,8 +498,8 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     FunctionConverter(ast, converter, true).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A;" << endl;
     adt_expect << "struct A_B;" << endl;
+    adt_expect << "struct A;" << endl;
     func_expect << "struct A Init_A();" << endl;
     func_expect << "struct A_B Init_A_B(unsigned int a = 0);" << endl;
     func_expect << "struct A_B ND_A_B();" << endl;
@@ -644,12 +644,6 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     FunctionConverter(ast, converter, false).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    // -- A
-    adt_expect << "struct A" << endl;
-    adt_expect << "{" << endl;
-    adt_expect << "unsigned int d_min_amt;" << endl;
-    adt_expect << "struct A_accs_submap1 d_accs;" << endl;
-    adt_expect << "};" << endl;
     // -- A_S
     adt_expect << "struct A_S" << endl;
     adt_expect << "{" << endl;
@@ -663,6 +657,12 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     adt_expect << "unsigned int m_curr;" << endl;
     adt_expect << "struct A_S d_;" << endl;
     adt_expect << "struct A_S d_nd;" << endl;
+    adt_expect << "};" << endl;
+    // -- A
+    adt_expect << "struct A" << endl;
+    adt_expect << "{" << endl;
+    adt_expect << "unsigned int d_min_amt;" << endl;
+    adt_expect << "struct A_accs_submap1 d_accs;" << endl;
     adt_expect << "};" << endl;
     // -- Init_A
     func_expect << "struct A Init_A()" << endl;
