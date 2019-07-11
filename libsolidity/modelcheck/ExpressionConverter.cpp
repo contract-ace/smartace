@@ -4,6 +4,8 @@
  */
 
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+
+#include <libsolidity/modelcheck/Utility.h>
 #include <stdexcept>
 
 using namespace std;
@@ -38,8 +40,9 @@ map<pair<MagicType::Kind, string>, string> const
 ExpressionConverter::ExpressionConverter(
 	Expression const& _expr,
 	TypeConverter const& _converter,
-	VariableScopeResolver const& _decls
-): m_expr(&_expr), m_converter(_converter), m_decls(_decls)
+	VariableScopeResolver const& _decls,
+	bool _is_ref
+): m_expr(&_expr), m_converter(_converter), m_decls(_decls), m_find_ref(_is_ref)
 {
 }
 
@@ -82,20 +85,23 @@ bool ExpressionConverter::visit(Assignment const& _node)
 {
 	auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find();
 
-	bool entry_lval = m_lval;
-	m_lval = true;
-	if (map)
 	{
-		(*m_ostream) << "Write_" << m_converter.translate(*map).name << "(";
-		print_map_idx_pair(*map);
-		(*m_ostream) << ", ";
+		ScopedSwap<bool> swap(m_lval, true);
+		if (map)
+		{
+			(*m_ostream) << "Write_" << m_converter.translate(*map).name << "(";
+			print_map_idx_pair(*map);
+			(*m_ostream) << ", ";
+		}
+		else
+		{
+			print_subexpression(_node.leftHandSide());
+			(*m_ostream) << "=";
+		}
 	}
-	else
-	{
-		print_subexpression(_node.leftHandSide());
-		(*m_ostream) << "=";
-	}
-	m_lval = entry_lval;
+
+	auto id = LValueSniffer<Identifier>(_node.leftHandSide()).find();
+	ScopedSwap<bool> swap(m_find_ref, id && m_converter.is_pointer(*id));
 
 	if (_node.assignmentOperator() != Token::Assign)
 	{
@@ -103,7 +109,8 @@ bool ExpressionConverter::visit(Assignment const& _node)
 		print_binary_op(
 			_node.leftHandSide(),
 			TokenTraits::AssignmentToBinaryOp(_node.assignmentOperator()),
-			_node.rightHandSide());
+			_node.rightHandSide()
+		);
 		(*m_ostream) << ")";
 	}
 	else
@@ -176,7 +183,8 @@ bool ExpressionConverter::visit(BinaryOperation const& _node)
 	print_binary_op(
 		_node.leftExpression(),
 		_node.getOperator(),
-		_node.rightExpression());
+		_node.rightExpression()
+	);
 	return false;
 }
 
@@ -191,7 +199,7 @@ bool ExpressionConverter::visit(FunctionCall const& _node)
 		print_cast(_node);
 		break;
 	case FunctionCallKind::StructConstructorCall:
-		print_struct_consructor(_node.expression(), _node.arguments());
+		print_struct_constructor(_node.expression(), _node.arguments());
 		break;
 	default:
 		throw runtime_error("FunctionCall encountered of unknown kind.");
@@ -240,7 +248,8 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 	{
 	case Type::Category::Mapping:
 		{
-			if (m_index_depth)
+			ScopedSwap<bool> swap_find_ref(m_find_ref, false);
+			if (m_index_depth || swap_find_ref.old())
 			{
 				(*m_ostream) << "Ref_";
 			}
@@ -265,7 +274,15 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 
 bool ExpressionConverter::visit(Identifier const& _node)
 {
+	if (m_find_ref)
+	{
+		(*m_ostream) << "&(";
+	}
 	(*m_ostream) << m_decls.resolve_identifier(_node);
+	if (m_find_ref)
+	{
+		(*m_ostream) << ")";
+	}
 	return false;
 }
 
@@ -390,24 +407,21 @@ void ExpressionConverter::print_binary_op(
 
 void ExpressionConverter::print_map_idx_pair(IndexAccess const& _map)
 {
-	++m_index_depth;
-	if (NodeSniffer<IndexAccess>(_map.baseExpression()).find())
 	{
+		ScopedSwap<unsigned int> depth_swap(m_index_depth, m_index_depth + 1);
+		ScopedSwap<bool> ref_swap(m_find_ref, true);
 		_map.baseExpression().accept(*this);
 	}
-	else
-	{
-		(*m_ostream) << "&";
-		print_subexpression(_map.baseExpression());
-	}
-	--m_index_depth;
 	(*m_ostream) << ", ";
-	_map.indexExpression()->accept(*this);
+	{
+		ScopedSwap<unsigned int> swap(m_index_depth, 0);
+		_map.indexExpression()->accept(*this);
+	}
 }
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConverter::print_struct_consructor(
+void ExpressionConverter::print_struct_constructor(
 	Expression const& _struct,
 	vector<ASTPointer<Expression const>> const& _args
 )
@@ -739,8 +753,16 @@ void ExpressionConverter::print_method(
 	{
 		if (_ctx)
 		{
-			(*m_ostream) << "&";
-			print_subexpression(*_ctx);
+			auto id = LValueSniffer<Identifier>(*_ctx).find();
+			if (id && m_converter.is_pointer(*id))
+			{
+				_ctx->accept(*this);
+			}
+			else
+			{
+				(*m_ostream) << "&";
+				print_subexpression(*_ctx);
+			}
 		}
 		else
 		{
@@ -869,8 +891,27 @@ void ExpressionConverter::print_adt_member(
 	Expression const& _node, string const& _member
 )
 {
+	ScopedSwap<bool> swap(m_find_ref, false);
+
+	if (swap.old())
+	{
+		(*m_ostream) << "&(";
+	}
+
 	print_subexpression(_node);
-	(*m_ostream) << ".d_" << _member;
+
+	bool in_storage = false;
+	if (auto id = LValueSniffer<Identifier>(_node).find())
+	{
+		in_storage = m_converter.is_pointer(*id);
+	}
+
+	(*m_ostream) << (in_storage ? "->" : ".") << "d_" << _member;
+
+	if (swap.old())
+	{
+		(*m_ostream) << ")";
+	}
 }
 
 void ExpressionConverter::print_magic_member(

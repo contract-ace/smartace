@@ -607,9 +607,9 @@ BOOST_AUTO_TEST_CASE(full_declaration)
             }
             function Deposit(uint idx) public payable {
                 require(msg.value > min_amt);
-                // S storage entry = accs[idx];
-                // if (entry.owner != msg.sender) { Open(idx); }
-                // entry.val += msg.value;
+                S storage entry = accs[idx];
+                if (entry.owner != msg.sender) { Open(idx); }
+                entry.val += msg.value;
             }
             function Withdraw(uint idx) public payable {
                 require(accs[idx].owner == msg.sender);
@@ -634,16 +634,19 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     FunctionConverter(ast, converter, false).print(func_actual);
 
     ostringstream adt_expect, func_expect;
+    // -- A
     adt_expect << "struct A" << endl;
     adt_expect << "{" << endl;
     adt_expect << "unsigned int d_min_amt;" << endl;
     adt_expect << "struct A_accs_submap1 d_accs;" << endl;
     adt_expect << "};" << endl;
+    // -- A_S
     adt_expect << "struct A_S" << endl;
     adt_expect << "{" << endl;
     adt_expect << "int d_owner;" << endl;
     adt_expect << "unsigned int d_val;" << endl;
     adt_expect << "};" << endl;
+    // -- A_accs_submap1
     adt_expect << "struct A_accs_submap1" << endl;
     adt_expect << "{" << endl;
     adt_expect << "int m_set;" << endl;
@@ -651,6 +654,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     adt_expect << "struct A_S d_;" << endl;
     adt_expect << "struct A_S d_nd;" << endl;
     adt_expect << "};" << endl;
+    // -- Init_A
     func_expect << "struct A Init_A()" << endl;
     func_expect << "{" << endl;
     func_expect << "struct A tmp;" << endl;
@@ -658,6 +662,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "tmp.d_accs = Init_A_accs_submap1();" << endl;
     func_expect << "return tmp;" << endl;
     func_expect << "}" << endl;
+    // -- Init_A_S
     func_expect << "struct A_S Init_A_S(int owner = 0"
                 << ", unsigned int val = 0)" << endl;
     func_expect << "{" << endl;
@@ -666,7 +671,9 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "tmp.d_val = val;" << endl;
     func_expect << "return tmp;" << endl;
     func_expect << "}" << endl;
+    // -- ND_A_S
     func_expect << "struct A_S ND_A_S();" << endl;
+    // -- Init_A_accs_submap1
     func_expect << "struct A_accs_submap1 Init_A_accs_submap1()" << endl;
     func_expect << "{" << endl;
     func_expect << "struct A_accs_submap1 tmp;" << endl;
@@ -676,7 +683,9 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "tmp.d_nd = Init_A_S();" << endl;
     func_expect << "return tmp;" << endl;
     func_expect << "}" << endl;
+    // -- ND_A_accs_submap1
     func_expect << "struct A_accs_submap1 ND_A_accs_submap1();" << endl;
+    // -- Read_A_accs_submap1
     func_expect << "struct A_S Read_A_accs_submap1"
                 << "(struct A_accs_submap1 *a, unsigned int idx)" << endl;
     func_expect << "{" << endl;
@@ -685,6 +694,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "if (idx != a->m_curr) return ND_A_S();" << endl;
     func_expect << "return a->d_;" << endl;
     func_expect << "}" << endl;
+    // -- Write_A_accs_submap1
     func_expect << "void Write_A_accs_submap1"
                 << "(struct A_accs_submap1 *a, unsigned int idx"
                 << ", struct A_S d)" << endl;
@@ -693,6 +703,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
                 << "{ a->m_curr = idx; a->m_set = 1; }" << endl;
     func_expect << "if (idx == a->m_curr) { a->d_ = d; }" << endl;
     func_expect << "}" << endl;
+    // -- Ref_A_accs_submap1
     func_expect << "struct A_S *Ref_A_accs_submap1"
                 << "(struct A_accs_submap1 *a, unsigned int idx)" << endl;
     func_expect << "{" << endl;
@@ -705,6 +716,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "}" << endl;
     func_expect << "return &a->d_;" << endl;
     func_expect << "}" << endl;
+    // -- Method_A_Open
     func_expect << "void Method_A_Open"
                 << "(struct A *self, struct CallState *state"
                 << ", unsigned int idx)" << endl;
@@ -714,12 +726,22 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "Write_A_accs_submap1(&(self->d_accs), idx"
                 << ", (Init_A_S(state->sender, 0)));" << endl;
     func_expect << "}" << endl;
+    // -- Method_A_Deposit
     func_expect << "void Method_A_Deposit"
                 << "(struct A *self, struct CallState *state"
                 << ", unsigned int idx)" << endl;
     func_expect << "{" << endl;
     func_expect << "assume((state->value)>(self->d_min_amt));" << endl;
+    func_expect << "struct A_S* entry = Ref_A_accs_submap1(&(self->d_accs)"
+                << ", idx);" << endl;
+    func_expect << "if (((entry)->d_owner)!=(state->sender))" << endl;
+    func_expect << "{" << endl;
+    func_expect << "Method_A_Open(self, state, idx);" << endl;
     func_expect << "}" << endl;
+    func_expect << "((entry)->d_val)=(((entry)->d_val)"
+                << "+(state->value));" << endl;
+    func_expect << "}" << endl;
+    // -- Method_A_Withdraw
     func_expect << "void Method_A_Withdraw"
                 << "(struct A *self, struct CallState *state"
                 << ", unsigned int idx)" << endl;
@@ -734,6 +756,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
                 << ")==(0));" << endl;
     func_expect << "_pay(state, state->sender, amt);" << endl;
     func_expect << "}" << endl;
+    // -- Method_A_View
     func_expect << "unsigned int Method_A_View"
                 << "(struct A *self, struct CallState *state"
                 << ", unsigned int idx)" << endl;
@@ -752,7 +775,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
 // large contract is used for comprehensive results. Furthermore, this sanity
 // checks that the conversion algorithm is not stochastic through some
 // implementaiton error.
-BOOST_AUTO_TEST_CASE(full_declaration)
+BOOST_AUTO_TEST_CASE(reproducible)
 {
     char const* text = R"(
         contract A {

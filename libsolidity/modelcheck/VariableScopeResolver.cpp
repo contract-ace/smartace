@@ -45,7 +45,7 @@ string VariableScopeResolver::resolve_identifier(Identifier const& _id) const
 
     if (name == "this")
     {
-        return "*self";
+        return "self";
     }
     else if (name == "super")
     {
@@ -53,7 +53,7 @@ string VariableScopeResolver::resolve_identifier(Identifier const& _id) const
     }
     else if (name == "block" || name == "msg" || name == "tx")
     {
-        return "*state";
+        return "state";
     }
     else if (name == "now")
     {

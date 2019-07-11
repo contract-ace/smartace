@@ -61,8 +61,8 @@ private:
 
 	std::ostream* m_ostream = nullptr;
 
-	bool m_is_loop_statement;
-	bool m_is_top_level;
+	bool m_is_loop_statement = false;
+	bool m_is_top_level = true;
 
 	void print_loop_statement(Statement const* _node);
 	void end_statement();

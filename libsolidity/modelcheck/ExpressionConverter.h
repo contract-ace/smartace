@@ -135,7 +135,8 @@ public:
     ExpressionConverter(
         Expression const& _expr,
         TypeConverter const& _converter,
-        VariableScopeResolver const& _decls
+        VariableScopeResolver const& _decls,
+		bool _is_ref = false
     );
 
     // Generates a human-readable block of C code, from the given expression.
@@ -167,6 +168,7 @@ private:
 
 	unsigned int m_index_depth = 0;
 	bool m_lval = false;
+	bool m_find_ref;
 
 	static std::map<std::pair<MagicType::Kind, std::string>, std::string> const
 		m_magic_members;
@@ -185,7 +187,7 @@ private:
 	void print_map_idx_pair(IndexAccess const& _map);
 
 	// Helper functions to produce specialized function calls.
-	void print_struct_consructor(
+	void print_struct_constructor(
 		Expression const& _struct,
 		std::vector<ASTPointer<Expression const>> const& _args
 	);

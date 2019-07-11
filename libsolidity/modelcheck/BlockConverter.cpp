@@ -4,7 +4,9 @@
  */
 
 #include <libsolidity/modelcheck/BlockConverter.h>
+
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+#include <libsolidity/modelcheck/Utility.h>
 #include <stdexcept>
 
 using namespace std;
@@ -48,28 +50,25 @@ BlockConverter::BlockConverter(
 
 void BlockConverter::print(ostream& _stream)
 {
-	m_ostream = &_stream;
-	m_is_top_level = true;
-	m_is_loop_statement = false;
+	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
 	m_body->accept(*this);
-	m_ostream = nullptr;
 }
 
 // -------------------------------------------------------------------------- //
 
 bool BlockConverter::visit(Block const& _node)
 {
-	bool print_returns = (m_is_top_level && m_retvar);
-	m_is_top_level = false;
+	ScopedSwap<bool> top_level_swap(m_is_top_level, false);
 
 	m_decls.enter();
 	(*m_ostream) << "{" << endl;
 
-	if (print_returns)
+	if (top_level_swap.old() && m_retvar)
 	{
 		vector<ASTPointer<VariableDeclaration>> decls({m_retvar});
 		VariableDeclarationStatement decl_stmt(
-			langutil::SourceLocation(), nullptr, decls, nullptr);
+			langutil::SourceLocation(), nullptr, decls, nullptr
+		);
 		decl_stmt.accept(*this);
 		(*m_ostream) << endl;
 	}
@@ -80,10 +79,11 @@ bool BlockConverter::visit(Block const& _node)
 		(*m_ostream) << endl;
 	}
 
-	if (print_returns)
+	if (top_level_swap.old() && m_retvar)
 	{
 		auto id = make_shared<Identifier>(
-			langutil::SourceLocation(), make_shared<string>(m_retvar->name()));
+			langutil::SourceLocation(), make_shared<string>(m_retvar->name())
+		);
 		Return ret_stmt(langutil::SourceLocation(), nullptr, id);
 		ret_stmt.accept(*this);
 		(*m_ostream) << endl;
@@ -230,15 +230,17 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 	else if (!_node.declarations().empty())
 	{
 		const auto &decl = *_node.declarations()[0];
+		bool is_ref = decl.referenceLocation() == VariableDeclaration::Storage;
 		m_decls.record_declaration(decl);
 
-		(*m_ostream) << m_converter.translate(decl).type  << " " << decl.name();
+		(*m_ostream) << m_converter.translate(decl).type
+		             << (is_ref ? "* " : " ") << decl.name();
 
 		if (_node.initialValue())
 		{
 			(*m_ostream) << " = ";
 			ExpressionConverter(
-				*_node.initialValue(), m_converter, m_decls
+				*_node.initialValue(), m_converter, m_decls, is_ref
 			).print(*m_ostream);
 		}
 
@@ -263,9 +265,8 @@ void BlockConverter::print_loop_statement(Statement const* _node)
 {
 	if (_node)
 	{
-		m_is_loop_statement = true;
+		ScopedSwap<bool> loop_statement_swap(m_is_loop_statement, true);
 		_node->accept(*this);
-		m_is_loop_statement = false;
 	}
 }
 

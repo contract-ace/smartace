@@ -1,4 +1,4 @@
-/*
+/**
  * @date 2019
  * Test suite targeting expression conversion. These tests are outside of the
  * context of any statements, allowing for simplification and fine-tuning.
@@ -347,7 +347,7 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
 
     BOOST_CHECK_EQUAL(a_oss.str(), "a");
     BOOST_CHECK_EQUAL(b_oss.str(), "self->d_b");
-    BOOST_CHECK_EQUAL(msg_oss.str(), "*state");
+    BOOST_CHECK_EQUAL(msg_oss.str(), "state");
 }
 
 // Ensures all literal types are converted in the expected way, and that all

@@ -406,7 +406,7 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
     expected << "{" << endl;
-    expected << "(*self).d_d;" << endl;
+    expected << "(self)->d_d;" << endl;
     expected << "(self->d_b).d_i;" << endl;
     expected << "((self->d_c).d_b).d_i;" << endl;
     expected << "state->blocknum;" << endl;
@@ -507,8 +507,8 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
             expected << "Method_A_f(&(self->d_a), state);" << endl;
             expected << "Method_A_g();" << endl;
             expected << "Method_B_f(&(self->d_b), state);" << endl;
-            expected << "Method_B_f(&(*self), state);" << endl;
-            expected << "Method_B_f(&(*self), state);" << endl;
+            expected << "Method_B_f(self, state);" << endl;
+            expected << "Method_B_f(self, state);" << endl;
             expected << "}";;
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;
@@ -769,6 +769,99 @@ BOOST_AUTO_TEST_CASE(type_casting)
     expected << "((int)(self->d_u));" << endl;
     expected << "self->d_u;" << endl;
     expected << "self->d_b;" << endl;
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
+// Tests that storage variables may be declared within a function, and that they
+// are deferencable.
+BOOST_AUTO_TEST_CASE(storage_variable_resolution)
+{
+    char const* text = R"(
+        contract A {
+            struct B { int i; }
+            B b;
+            function f() public view {
+                B storage b_ref = b;
+                b_ref.i;
+            }
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expected;
+    BlockConverter(func, converter).print(actual);
+    expected << "{" << endl;
+    expected << "struct A_B* b_ref = &(self->d_b);" << endl;
+    expected << "(b_ref)->d_i;" << endl;
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
+// Tests that storage variables may be assigned to from storage. A reference to
+// said storage must be acquired.
+BOOST_AUTO_TEST_CASE(storage_variable_assignment)
+{
+    char const* text = R"(
+        contract A {
+            struct B { int i; }
+            B b;
+            function f() public view {
+                B storage b_ref = b;
+                b_ref = b;
+            }
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expected;
+    BlockConverter(func, converter).print(actual);
+    expected << "{" << endl;
+    expected << "struct A_B* b_ref = &(self->d_b);" << endl;
+    expected << "(b_ref)=(&(self->d_b));" << endl;
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
+// Tests that storage variables may be assigned to from a mapping. A reference
+// to said map must be acquired.
+BOOST_AUTO_TEST_CASE(storage_variable_to_map)
+{
+    char const* text = R"(
+        contract A {
+            struct B { int i; }
+            mapping(int => B) a;
+            function f() public view {
+                B storage b_ref = a[0];
+                b_ref = a[0];
+            }
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expected;
+    BlockConverter(func, converter).print(actual);
+    expected << "{" << endl;
+    expected << "struct A_B* b_ref = Ref_A_a_submap1(&(self->d_a), 0);" << endl;
+    expected << "(b_ref)=(Ref_A_a_submap1(&(self->d_a), 0));" << endl;
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

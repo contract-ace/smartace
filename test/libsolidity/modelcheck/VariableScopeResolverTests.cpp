@@ -1,6 +1,6 @@
 /**
  * @date 2019
- * Tests resolution of variable names within function translations.
+ * Targets libsolidity/modelcheck/VariableScopeResolver.{cpp,h}.
  */
 
 #include <libsolidity/modelcheck/VariableScopeResolver.h>
@@ -148,10 +148,10 @@ BOOST_AUTO_TEST_CASE(state_resolution)
     Identifier blk(langutil::SourceLocation(), make_shared<string>("block"));
     Identifier ths(langutil::SourceLocation(), make_shared<string>("this"));
     Identifier now(langutil::SourceLocation(), make_shared<string>("now"));
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(txn), "*state");
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(msg), "*state");
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(blk), "*state");
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(ths), "*self");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(txn), "state");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(msg), "state");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(blk), "state");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(ths), "self");
     BOOST_CHECK_EQUAL(resolver.resolve_identifier(now), "state->blocknum");
 }
 
