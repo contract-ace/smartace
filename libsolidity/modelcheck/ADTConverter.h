@@ -37,6 +37,9 @@ public:
     // Prints each ADT declaration once, in some order.
     void print(std::ostream& _stream);
 
+protected:
+	bool visit(ContractDefinition const& _node) override;
+
 	void endVisit(ContractDefinition const& _node) override;
 	void endVisit(Mapping const& _node) override;
 	void endVisit(StructDefinition const& _node) override;

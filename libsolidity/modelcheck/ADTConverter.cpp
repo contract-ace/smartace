@@ -35,6 +35,23 @@ void ADTConverter::print(ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
+bool ADTConverter::visit(ContractDefinition const& _node)
+{
+    for (auto structure : _node.definedStructs())
+    {
+        structure->accept(*this);
+    }
+
+    for (auto decl : _node.stateVariables())
+    {
+        decl->accept(*this);
+    }
+
+    return false;
+}
+
+// -------------------------------------------------------------------------- //
+
 void ADTConverter::endVisit(ContractDefinition const& _node)
 {
     (*m_ostream) << m_converter.translate(_node).type;
