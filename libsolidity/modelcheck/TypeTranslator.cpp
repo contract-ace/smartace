@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/TypeTranslator.h>
 
+#include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 #include <stdexcept>
 
@@ -132,7 +133,7 @@ void TypeConverter::record(SourceUnit const& _unit)
 
     for (auto contract : contracts)
     {
-        m_curr_contract = contract;
+        ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
 
         for (auto structure : contract->definedStructs())
         {
@@ -149,13 +150,11 @@ void TypeConverter::record(SourceUnit const& _unit)
         contract_entry.name = contract->name();
         contract_entry.type = "struct " + contract_entry.name;
         m_dictionary.insert({contract, contract_entry});
-
-        m_curr_contract = nullptr;
     }
 
     for (auto contract : contracts)
     {
-        m_curr_contract = contract;
+        ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
 
         for (auto structure : contract->definedStructs())
         {
@@ -174,9 +173,10 @@ void TypeConverter::record(SourceUnit const& _unit)
         {
             auto const* returnParams = fun->returnParameterList().get();
 
-            m_is_retval = true;
-            returnParams->accept(*this);
-            m_is_retval = false;
+            {
+                ScopedSwap<bool> swap(m_is_retval, true);
+                returnParams->accept(*this);
+            }
 
             ostringstream fun_oss;
             fun_oss << (fun->isConstructor() ? "Ctor" : "Method")
@@ -207,8 +207,6 @@ void TypeConverter::record(SourceUnit const& _unit)
 
             mod->parameterList().accept(*this);
         }
-
-        m_curr_contract = nullptr;
     }
 }
 
@@ -288,15 +286,13 @@ bool TypeConverter::visit(VariableDeclaration const& _node)
     }
     else
     {
-        m_curr_decl = &_node;
-        _node.typeName()->accept(*this);
-        m_curr_decl = nullptr;
-
         if (_node.value())
         {
             _node.value()->accept(*this);
         }
 
+        ScopedSwap<VariableDeclaration const*> decl_swap(m_curr_decl, &_node);
+        _node.typeName()->accept(*this);
         auto translation = translate_impl(_node.typeName());
         m_dictionary.insert({&_node, translation});
     }

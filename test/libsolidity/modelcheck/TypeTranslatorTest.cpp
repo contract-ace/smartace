@@ -1,6 +1,6 @@
-/*
+/**
  * @date 2019
- * A partial test suite to validate key features in the type translation unit.
+ * Targets libsolidity/modelcheck/TypeTranslator.{h,cpp}.
  */
 
 #include <libsolidity/modelcheck/TypeTranslator.h>

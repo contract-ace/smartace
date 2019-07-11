@@ -4,6 +4,8 @@
  */
 
 #include <libsolidity/modelcheck/ADTConverter.h>
+
+#include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 
 using namespace std;
@@ -27,9 +29,8 @@ ADTConverter::ADTConverter(
 
 void ADTConverter::print(ostream& _stream)
 {
-    m_ostream = &_stream;
+	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
     m_ast->accept(*this);
-    m_ostream = nullptr;
 }
 
 // -------------------------------------------------------------------------- //

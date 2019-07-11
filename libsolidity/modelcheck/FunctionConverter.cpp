@@ -4,8 +4,10 @@
  */
 
 #include <libsolidity/modelcheck/BlockConverter.h>
+
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
+#include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 
 using namespace std;
@@ -29,9 +31,8 @@ FunctionConverter::FunctionConverter(
 
 void FunctionConverter::print(ostream& _stream)
 {
-    m_ostream = &_stream;
+	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
     m_ast->accept(*this);
-    m_ostream = nullptr;
 }
 
 // -------------------------------------------------------------------------- //

@@ -746,7 +746,55 @@ BOOST_AUTO_TEST_CASE(full_declaration)
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
+}
 
+// Ensures that applying the same visitor twice produces the same results. A
+// large contract is used for comprehensive results. Furthermore, this sanity
+// checks that the conversion algorithm is not stochastic through some
+// implementaiton error.
+BOOST_AUTO_TEST_CASE(full_declaration)
+{
+    char const* text = R"(
+        contract A {
+            struct S { address owner; uint val; }
+            uint constant min_amt = 42;
+            mapping (uint => S) accs;
+            function Open(uint idx) public {
+                require(accs[idx].owner == address(0));
+                accs[idx] = S(msg.sender, 0);
+            }
+            function Deposit(uint idx) public payable {
+                require(msg.value > min_amt);
+                S storage entry = accs[idx];
+                if (entry.owner != msg.sender) { Open(idx); }
+                entry.val += msg.value;
+            }
+            function Withdraw(uint idx) public payable {
+                require(accs[idx].owner == msg.sender);
+                uint amt = accs[idx].val;
+                accs[idx] = S(msg.sender, 0);
+                assert(accs[idx].val == 0);
+                msg.sender.transfer(amt);
+            }
+            function View(uint idx) public returns (uint amt) {
+                amt = accs[idx].val;
+            }
+        }
+    )";
+
+    auto const &ast = *parseAndAnalyse(text);
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    ostringstream adt_1, adt_2, func_1, func_2;
+    ADTConverter(ast, converter, false).print(adt_1);
+    ADTConverter(ast, converter, false).print(adt_2);
+    FunctionConverter(ast, converter, false).print(func_1);
+    FunctionConverter(ast, converter, false).print(func_2);
+
+    BOOST_CHECK_EQUAL(adt_1.str(), adt_2.str());
+    BOOST_CHECK_EQUAL(func_1.str(), func_2.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

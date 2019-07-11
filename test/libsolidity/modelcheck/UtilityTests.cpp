@@ -1,7 +1,9 @@
-/*
+/**
  * @date 2019
  * Basic tests to detect faulty utilities. As most utilities are generated
  * through template metaprogramming, the test suite is likely incomplete.
+ * 
+ * Targets libsolidity/modelcheck/Utility.h.
  */
 
 #include <libsolidity/modelcheck/Utility.h>
