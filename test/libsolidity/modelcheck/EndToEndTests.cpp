@@ -534,6 +534,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
 
     ostringstream actual, expect;
     FunctionConverter(ast, converter, false).print(actual);
+    // -- Init_A
     expect << "struct A Init_A()" << endl;
     expect << "{" << endl;
     expect << "struct A tmp;" << endl;
@@ -542,13 +543,20 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "tmp.d_c = Init_A_B();" << endl;
     expect << "return tmp;" << endl;
     expect << "}" << endl;
+    // -- Init_A_B
     expect << "struct A_B Init_A_B(unsigned int a = 0)" << endl;
     expect << "{" << endl;
     expect << "struct A_B tmp;" << endl;
     expect << "tmp.d_a = a;" << endl;
     expect << "return tmp;" << endl;
     expect << "}" << endl;
-    expect << "struct A_B ND_A_B();" << endl;
+    // -- ND_A_B
+    expect << "struct A_B ND_A_B()" << endl;
+    expect << "{" << endl;
+    expect << "struct A_B tmp;" << endl;
+    expect << "tmp.d_a = ND_Init_Val();" << endl;
+    expect << "return tmp;" << endl;
+    expect << "}" << endl;
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
@@ -574,6 +582,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
 
     ostringstream actual, expect;
     FunctionConverter(ast, converter, false).print(actual);
+    // -- Init_A
     expect << "struct A Init_A(struct A *self, struct CallState *state"
            << ", unsigned int _a)" << endl;
     expect << "{" << endl;
@@ -583,6 +592,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     expect << "Ctor_A(&tmp, state, _a);" << endl;
     expect << "return tmp;" << endl;
     expect << "}" << endl;
+    // -- Ctor_A
     expect << "void Ctor_A(struct A *self, struct CallState *state"
            << ", unsigned int _a)" << endl;
     expect << "{" << endl;
@@ -672,7 +682,13 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "return tmp;" << endl;
     func_expect << "}" << endl;
     // -- ND_A_S
-    func_expect << "struct A_S ND_A_S();" << endl;
+    func_expect << "struct A_S ND_A_S()" << endl;
+    func_expect << "{" << endl;
+    func_expect << "struct A_S tmp;" << endl;
+    func_expect << "tmp.d_owner = ND_Init_Val();" << endl;
+    func_expect << "tmp.d_val = ND_Init_Val();" << endl;
+    func_expect << "return tmp;" << endl;
+    func_expect << "}" << endl;
     // -- Init_A_accs_submap1
     func_expect << "struct A_accs_submap1 Init_A_accs_submap1()" << endl;
     func_expect << "{" << endl;
@@ -684,7 +700,15 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "return tmp;" << endl;
     func_expect << "}" << endl;
     // -- ND_A_accs_submap1
-    func_expect << "struct A_accs_submap1 ND_A_accs_submap1();" << endl;
+    func_expect << "struct A_accs_submap1 ND_A_accs_submap1()" << endl;
+    func_expect << "{" << endl;
+    func_expect << "struct A_accs_submap1 tmp;" << endl;
+    func_expect << "tmp.m_set = ND_Init_Val();" << endl;
+    func_expect << "tmp.m_curr = ND_Init_Val();" << endl;
+    func_expect << "tmp.d_ = ND_A_S();" << endl;
+    func_expect << "tmp.d_nd = Init_A_S();" << endl;
+    func_expect << "return tmp;" << endl;
+    func_expect << "}" << endl;
     // -- Read_A_accs_submap1
     func_expect << "struct A_S Read_A_accs_submap1"
                 << "(struct A_accs_submap1 *a, unsigned int idx)" << endl;
