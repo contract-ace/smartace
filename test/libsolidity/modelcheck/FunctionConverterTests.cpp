@@ -49,28 +49,28 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     ostringstream actual, expect;
     FunctionConverter(ast, converter, false).print(actual);
     // -- Init_A
-    expect << "struct A Init_A()" << endl;
-    expect << "{" << endl;
-    expect << "struct A tmp;" << endl;
-    expect << "tmp.d_a = 0;" << endl;
-    expect << "tmp.d_b = 10;" << endl;
-    expect << "tmp.d_c = Init_A_B();" << endl;
-    expect << "return tmp;" << endl;
-    expect << "}" << endl;
+    expect << "struct A Init_A()";
+    expect << "{";
+    expect << "struct A tmp;";
+    expect << "tmp.d_a=0;";
+    expect << "tmp.d_b=10;";
+    expect << "tmp.d_c=Init_A_B();";
+    expect << "return tmp;";
+    expect << "}";
     // -- Init_A_B
-    expect << "struct A_B Init_A_B(unsigned int a = 0)" << endl;
-    expect << "{" << endl;
-    expect << "struct A_B tmp;" << endl;
-    expect << "tmp.d_a = a;" << endl;
-    expect << "return tmp;" << endl;
-    expect << "}" << endl;
+    expect << "struct A_B Init_A_B(unsigned int a=0)";
+    expect << "{";
+    expect << "struct A_B tmp;";
+    expect << "tmp.d_a=a;";
+    expect << "return tmp;";
+    expect << "}";
     // -- ND_A_B
-    expect << "struct A_B ND_A_B()" << endl;
-    expect << "{" << endl;
-    expect << "struct A_B tmp;" << endl;
-    expect << "tmp.d_a = ND_Init_Val();" << endl;
-    expect << "return tmp;" << endl;
-    expect << "}" << endl;
+    expect << "struct A_B ND_A_B()";
+    expect << "{";
+    expect << "struct A_B tmp;";
+    expect << "tmp.d_a=ND_Init_Val();";
+    expect << "return tmp;";
+    expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
@@ -97,21 +97,21 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     ostringstream actual, expect;
     FunctionConverter(ast, converter, false).print(actual);
     // -- Init_A
-    expect << "struct A Init_A(struct A *self, struct CallState *state"
-           << ", unsigned int _a)" << endl;
-    expect << "{" << endl;
-    expect << "struct A tmp;" << endl;
-    expect << "tmp.d_a = 0;" << endl;
-    expect << "tmp.d_b = 0;" << endl;
-    expect << "Ctor_A(&tmp, state, _a);" << endl;
-    expect << "return tmp;" << endl;
-    expect << "}" << endl;
+    expect << "struct A Init_A(struct A *self,struct CallState *state"
+           << ",unsigned int _a)";
+    expect << "{";
+    expect << "struct A tmp;";
+    expect << "tmp.d_a=0;";
+    expect << "tmp.d_b=0;";
+    expect << "Ctor_A(&tmp,state,_a);";
+    expect << "return tmp;";
+    expect << "}";
     // -- Ctor_A
-    expect << "void Ctor_A(struct A *self, struct CallState *state"
-           << ", unsigned int _a)" << endl;
-    expect << "{" << endl;
-    expect << "(self->d_a)=(_a);" << endl;
-    expect << "}" << endl;
+    expect << "void Ctor_A(struct A *self,struct CallState *state"
+           << ",unsigned int _a)";
+    expect << "{";
+    expect << "(self->d_a)=(_a);";
+    expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }

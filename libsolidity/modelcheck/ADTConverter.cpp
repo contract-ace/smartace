@@ -57,15 +57,15 @@ void ADTConverter::endVisit(ContractDefinition const& _node)
     (*m_ostream) << m_converter.translate(_node).type;
     if (!m_forward_declare)
     {
-        (*m_ostream) << endl << "{" << endl;
+        (*m_ostream) << "{";
         for (auto decl : _node.stateVariables())
         {
             auto type = m_converter.translate(*decl).type;
-            (*m_ostream) << type << " d_" << decl->name() << ";" << endl;
+            (*m_ostream) << type << " d_" << decl->name() << ";";
         }
         (*m_ostream) << "}";
     }
-    (*m_ostream) << ";" << endl;
+    (*m_ostream) << ";";
 }
 
 void ADTConverter::endVisit(Mapping const& _node)
@@ -76,14 +76,14 @@ void ADTConverter::endVisit(Mapping const& _node)
         string key_type = m_converter.translate(_node.keyType()).type;
         string val_type = m_converter.translate(_node.valueType()).type;
 
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << "int m_set;" << endl;
-        (*m_ostream) << key_type << " m_curr;" << endl;
-        (*m_ostream) << val_type << " d_;" << endl;
-        (*m_ostream) << val_type << " d_nd;" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << "int m_set;";
+        (*m_ostream) << key_type << " m_curr;";
+        (*m_ostream) << val_type << " d_;";
+        (*m_ostream) << val_type << " d_nd;";
         (*m_ostream) << "}";
     }
-    (*m_ostream) << ";" << endl;
+    (*m_ostream) << ";";
 }
 
 void ADTConverter::endVisit(StructDefinition const& _node)
@@ -91,32 +91,15 @@ void ADTConverter::endVisit(StructDefinition const& _node)
     (*m_ostream) << m_converter.translate(_node).type;
     if (!m_forward_declare)
     {
-        (*m_ostream) << endl << "{" << endl;
+        (*m_ostream) << "{";
         for (auto decl : _node.members())
         {
             auto type = m_converter.translate(*decl).type;
-            (*m_ostream) << type << " d_" << decl->name() << ";" << endl;
+            (*m_ostream) << type << " d_" << decl->name() << ";";
         }
         (*m_ostream) << "}";
     }
-    (*m_ostream) << ";" << endl;
-}
-
-// -------------------------------------------------------------------------- //
-
-bool ADTConverter::visit(EventDefinition const&)
-{
-    return false;
-}
-
-bool ADTConverter::visit(FunctionDefinition const&)
-{
-    return false;
-}
-
-bool ADTConverter::visit(ModifierDefinition const&)
-{
-    return false;
+    (*m_ostream) << ";";
 }
 
 // -------------------------------------------------------------------------- //

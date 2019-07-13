@@ -91,7 +91,7 @@ bool ExpressionConverter::visit(Assignment const& _node)
 		{
 			(*m_ostream) << "Write_" << m_converter.translate(*map).name << "(";
 			print_map_idx_pair(*map);
-			(*m_ostream) << ", ";
+			(*m_ostream) << ",";
 		}
 		else
 		{
@@ -412,7 +412,7 @@ void ExpressionConverter::print_map_idx_pair(IndexAccess const& _map)
 		ScopedSwap<bool> ref_swap(m_find_ref, true);
 		_map.baseExpression().accept(*this);
 	}
-	(*m_ostream) << ", ";
+	(*m_ostream) << ",";
 	{
 		ScopedSwap<unsigned int> swap(m_index_depth, 0);
 		_map.indexExpression()->accept(*this);
@@ -434,7 +434,7 @@ void ExpressionConverter::print_struct_constructor(
 		{
 			if (i > 0)
 			{
-				(*m_ostream) << ", ";
+				(*m_ostream) << ",";
 			}
 			_args[i]->accept(*this);
 		}
@@ -768,14 +768,14 @@ void ExpressionConverter::print_method(
 		{
 			(*m_ostream) << "self";
 		}
-		(*m_ostream) << ", state";
+		(*m_ostream) << ",state";
 	}
 
 	for (unsigned int i = 0; i < _args.size(); ++i)
 	{
 		if (is_mutable || i > 0)
 		{
-			(*m_ostream) << ", ";
+			(*m_ostream) << ",";
 		}
 		_args[i]->accept(*this);
 	}
@@ -797,10 +797,10 @@ void ExpressionConverter::print_contract_ctor(
 		{
 			if (contract->constructor())
 			{
-				(*m_ostream) << "nullptr, state";
+				(*m_ostream) << "nullptr,state";
 				for (unsigned int i = 0; i < _args.size(); ++i)
 				{
-					(*m_ostream) << ", ";
+					(*m_ostream) << ",";
 					_args[i]->accept(*this);
 				}
 			}
@@ -827,9 +827,9 @@ void ExpressionConverter::print_payment(
 	}
 	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
 	{
-		(*m_ostream) << "_pay(state, ";
+		(*m_ostream) << "_pay(state,";
 		call->expression().accept(*this);
-		(*m_ostream) << ", ";
+		(*m_ostream) << ",";
 		(_args[0])->accept(*this);
 		(*m_ostream) << ")";	
 	}

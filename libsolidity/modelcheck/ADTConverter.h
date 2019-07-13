@@ -44,10 +44,6 @@ protected:
 	void endVisit(Mapping const& _node) override;
 	void endVisit(StructDefinition const& _node) override;
 
-	bool visit(EventDefinition const& _node) override;
-	bool visit(FunctionDefinition const& _node) override;
-	bool visit(ModifierDefinition const& _node) override;
-
 private:
 	ASTNode const& m_ast;
 	TypeConverter const& m_converter;

@@ -1173,10 +1173,11 @@ void CommandLineInterface::handleCModel()
 	}
 	else
 	{
-		sout() << endl << "======= cmodel.h =======" << endl;
+		sout() << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(asts, converter, sout());
-		sout() << endl << "======= cmodel.c =======" << endl;
+		sout() << endl << endl << "======= cmodel.c =======" << endl;
 		handleCModelBody(asts, converter, sout());
+		sout() << endl;
 	}
 }
 

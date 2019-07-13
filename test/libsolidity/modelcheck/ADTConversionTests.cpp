@@ -56,15 +56,15 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
 
     ostringstream actual, expect;
     ADTConverter(ast, converter, true).print(actual);
-    expect << "struct A_B_map1_submap2;" << endl;
-    expect << "struct A_B_map1_submap1;" << endl;
-    expect << "struct A_B;" << endl;
-    expect << "struct A_C_map2_submap1;" << endl;
-    expect << "struct A_C;" << endl;
-    expect << "struct A_map3_submap3;" << endl;
-    expect << "struct A_map3_submap2;" << endl;
-    expect << "struct A_map3_submap1;" << endl;
-    expect << "struct A_map4_submap1;" << endl;
+    expect << "struct A_B_map1_submap2;";
+    expect << "struct A_B_map1_submap1;";
+    expect << "struct A_B;";
+    expect << "struct A_C_map2_submap1;";
+    expect << "struct A_C;";
+    expect << "struct A_map3_submap3;";
+    expect << "struct A_map3_submap2;";
+    expect << "struct A_map3_submap1;";
+    expect << "struct A_map4_submap1;";
 }
 
 BOOST_AUTO_TEST_SUITE_END();

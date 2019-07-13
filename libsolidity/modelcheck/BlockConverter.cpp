@@ -61,7 +61,7 @@ bool BlockConverter::visit(Block const& _node)
 	ScopedSwap<bool> top_level_swap(m_is_top_level, false);
 
 	m_decls.enter();
-	(*m_ostream) << "{" << endl;
+	(*m_ostream) << "{";
 
 	if (top_level_swap.old() && m_retvar)
 	{
@@ -70,13 +70,11 @@ bool BlockConverter::visit(Block const& _node)
 			langutil::SourceLocation(), nullptr, decls, nullptr
 		);
 		decl_stmt.accept(*this);
-		(*m_ostream) << endl;
 	}
 
 	for (auto const& stmt : _node.statements())
 	{
 		stmt->accept(*this);
-		(*m_ostream) << endl;
 	}
 
 	if (top_level_swap.old() && m_retvar)
@@ -86,7 +84,6 @@ bool BlockConverter::visit(Block const& _node)
 		);
 		Return ret_stmt(langutil::SourceLocation(), nullptr, id);
 		ret_stmt.accept(*this);
-		(*m_ostream) << endl;
 	}
 
 	(*m_ostream) << "}";
@@ -104,15 +101,17 @@ bool BlockConverter::visit(PlaceholderStatement const& _node)
 
 bool BlockConverter::visit(IfStatement const& _node)
 {
-	(*m_ostream) << "if (";
+	ScopedSwap<bool> if_statement_swap(m_is_if_statement_body, true);
+
+	(*m_ostream) << (if_statement_swap.old() ? " " : "") << "if(";
 	ExpressionConverter(
 		_node.condition(), m_converter, m_decls
 	).print(*m_ostream);
-	(*m_ostream) << ")" << endl;
+	(*m_ostream) << ")";
 	_node.trueStatement().accept(*this);
 	if (_node.falseStatement())
 	{
-		(*m_ostream) << endl << "else" << endl;
+		(*m_ostream) << "else";
 		_node.falseStatement()->accept(*this);
 	}
 
@@ -128,18 +127,18 @@ bool BlockConverter::visit(WhileStatement const& _node)
 
 	if (_node.isDoWhile())
 	{
-		(*m_ostream) << "do" << endl;
+		(*m_ostream) << "do";
 		_node.body().accept(*this);
-		(*m_ostream) << endl << "while (";
+		(*m_ostream) << "while(";
 		condition_visitor.print(*m_ostream);
 		(*m_ostream) << ")";
 		end_statement();
 	}
 	else
 	{
-		(*m_ostream) << "while (";
+		(*m_ostream) << "while(";
 		condition_visitor.print(*m_ostream);
-		(*m_ostream) << ")" << endl;
+		(*m_ostream) << ")";
 		_node.body().accept(*this);
 	}
 
@@ -150,9 +149,9 @@ bool BlockConverter::visit(ForStatement const& _node)
 {
 	m_decls.enter();
 
-	(*m_ostream) << "for (";
+	(*m_ostream) << "for(";
 	print_loop_statement(_node.initializationExpression());
-	(*m_ostream) << "; ";
+	(*m_ostream) << ";";
 
 	// TODO(scottwe): Ensure number of interations has finite bound.
 	if (_node.condition())
@@ -162,9 +161,9 @@ bool BlockConverter::visit(ForStatement const& _node)
 		).print(*m_ostream);
 	}
 
-	(*m_ostream) << "; ";
+	(*m_ostream) << ";";
 	print_loop_statement(_node.loopExpression());
-	(*m_ostream) << ")" << endl;
+	(*m_ostream) << ")";
 	_node.body().accept(*this);
 
 	m_decls.exit();
@@ -234,11 +233,11 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 		m_decls.record_declaration(decl);
 
 		(*m_ostream) << m_converter.translate(decl).type
-		             << (is_ref ? "* " : " ") << decl.name();
+		             << (is_ref ? "*" : " ") << decl.name();
 
 		if (_node.initialValue())
 		{
-			(*m_ostream) << " = ";
+			(*m_ostream) << "=";
 			ExpressionConverter(
 				*_node.initialValue(), m_converter, m_decls, is_ref
 			).print(*m_ostream);

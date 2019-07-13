@@ -53,16 +53,16 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << translation.type << " tmp;" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << translation.type << " tmp;";
 
         for (auto decl : _node.stateVariables())
         {
-            (*m_ostream) << "tmp.d_" << decl->name() << " = ";
+            (*m_ostream) << "tmp.d_" << decl->name() << "=";
             if (decl->value())
             {
                 ExpressionConverter(*decl->value(), {}, {}).print(*m_ostream);
@@ -72,21 +72,21 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
                 auto decl_name = m_converter.translate(*decl).name;
                 (*m_ostream) << to_init_value(decl_name, *decl->type());
             }
-            (*m_ostream) << ";" << endl;
+            (*m_ostream) << ";";
         }
 
         if (auto ctor = _node.constructor())
         {
-            (*m_ostream) << "Ctor_" << translation.name << "(&tmp, state";
+            (*m_ostream) << "Ctor_" << translation.name << "(&tmp,state";
             for (auto decl : ctor->parameters())
             {
-                (*m_ostream) << ", " << decl->name();
+                (*m_ostream) << "," << decl->name();
             }
-            (*m_ostream) << ");" << endl;
+            (*m_ostream) << ");";
         }
 
-        (*m_ostream) << "return tmp;" << endl;
-        (*m_ostream) << "}" << endl;
+        (*m_ostream) << "return tmp;";
+        (*m_ostream) << "}";
     }
 
     return true;
@@ -115,48 +115,47 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << translation.type << " tmp;" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << translation.type << " tmp;";
 
-        for (auto decl : initializable_members)
+        for (auto m : initializable_members)
         {
-            (*m_ostream) << "tmp.d_" << decl->name() << " = " << decl->name()
-                         << ";" << endl;
+            (*m_ostream) << "tmp.d_" << m->name() << "=" << m->name() << ";";
         }
-        for (auto decl : unitializable_members)
+        for (auto m : unitializable_members)
         {
-            (*m_ostream) << "tmp.d_" << decl->name() << " = Init_"
-                         << m_converter.translate(*decl).name << "();" << endl;
+            (*m_ostream) << "tmp.d_" << m->name() << "=Init_"
+                         << m_converter.translate(*m).name << "();";
         }
 
-        (*m_ostream) << "return tmp;" << endl;
-        (*m_ostream) << "}" << endl;
+        (*m_ostream) << "return tmp;";
+        (*m_ostream) << "}";
     }
 
     (*m_ostream) << translation.type << " ND_" << translation.name << "()";
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << translation.type << " tmp;" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << translation.type << " tmp;";
 
         for (auto decl : _node.members())
         {
             auto decl_name = m_converter.translate(*decl).name;
-            (*m_ostream) << "tmp.d_" << decl->name() << " = "
-                         << to_nd_value(decl_name, *decl->type()) << ";" << endl;
+            (*m_ostream) << "tmp.d_" << decl->name() << "="
+                         << to_nd_value(decl_name, *decl->type()) << ";";
         }
 
-        (*m_ostream) << "return tmp;" << endl;
-        (*m_ostream) << "}" << endl;
+        (*m_ostream) << "return tmp;";
+        (*m_ostream) << "}";
     }
 
     return true;
@@ -172,13 +171,11 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl;
         BlockConverter(_node, m_converter).print(*m_ostream);
-        (*m_ostream) << endl;
     }
 
     return false;
@@ -190,7 +187,7 @@ bool FunctionConverter::visit(ModifierDefinition const& _node)
 
     (*m_ostream) << translation.type << " " << translation.name;
     print_args(_node.parameters(), _node.scope(), false);
-    (*m_ostream) << ";" << endl;
+    (*m_ostream) << ";";
 
     return false;
 }
@@ -208,99 +205,89 @@ bool FunctionConverter::visit(Mapping const& _node)
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << map_trans.type << " tmp;" << endl;
-        (*m_ostream) << "tmp.m_set = 0;" << endl;
-        (*m_ostream) << "tmp.m_curr = " << to_init_value(key_trans.name, k_type)
-                     << ";" << endl;
-        (*m_ostream) << "tmp.d_ = " << to_init_value(val_trans.name, v_type)
-                     << ";" << endl;
-        (*m_ostream) << "tmp.d_nd = " << to_init_value(val_trans.name, v_type)
-                     << ";" << endl;
-        (*m_ostream) << "return tmp;" << endl;
-        (*m_ostream) << "}" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << map_trans.type << " tmp;";
+        (*m_ostream) << "tmp.m_set=0;";
+        (*m_ostream) << "tmp.m_curr=" << to_init_value(key_trans.name, k_type) << ";";
+        (*m_ostream) << "tmp.d_=" << to_init_value(val_trans.name, v_type) << ";";
+        (*m_ostream) << "tmp.d_nd=" << to_init_value(val_trans.name, v_type) << ";";
+        (*m_ostream) << "return tmp;";
+        (*m_ostream) << "}";
     }
 
     (*m_ostream) << map_trans.type << " " << "ND_" << map_trans.name << "()";
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << map_trans.type << " tmp;" << endl;
-        (*m_ostream) << "tmp.m_set = ND_Init_Val();" << endl;
-        (*m_ostream) << "tmp.m_curr = " << to_nd_value(key_trans.name, k_type)
-                     << ";" << endl;
-        (*m_ostream) << "tmp.d_ = " << to_nd_value(val_trans.name, v_type)
-                     << ";" << endl;
-        (*m_ostream) << "tmp.d_nd = " << to_init_value(val_trans.name, v_type)
-                     << ";" << endl;
-        (*m_ostream) << "return tmp;" << endl;
-        (*m_ostream) << "}" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << map_trans.type << " tmp;";
+        (*m_ostream) << "tmp.m_set=ND_Init_Val();";
+        (*m_ostream) << "tmp.m_curr=" << to_nd_value(key_trans.name, k_type) << ";";
+        (*m_ostream) << "tmp.d_=" << to_nd_value(val_trans.name, v_type) << ";";
+        (*m_ostream) << "tmp.d_nd=" << to_init_value(val_trans.name, v_type) << ";";
+        (*m_ostream) << "return tmp;";
+        (*m_ostream) << "}";
     }
 
     (*m_ostream) << val_trans.type << " Read_" << map_trans.name << "("
-                 << map_trans.type << " *a, " << key_trans.type << " idx)";
+                 << map_trans.type << "*a," << key_trans.type << " idx)";
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << "if (a->m_set == 0) { a->m_curr = idx; a->m_set = 1; }"
-                     << endl;
-        (*m_ostream) << "if (idx != a->m_curr) return "
-                     << to_nd_value(val_trans.name, v_type) << ";" << endl;
-        (*m_ostream) << "return a->d_;" << endl;
-        (*m_ostream) << "}" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
+        (*m_ostream) << "if(idx!=a->m_curr)return "
+                     << to_nd_value(val_trans.name, v_type) << ";";
+        (*m_ostream) << "return a->d_;";
+        (*m_ostream) << "}";
     }
 
     (*m_ostream) << "void Write_" << map_trans.name << "("
-                 << map_trans.type << " *a, " << key_trans.type << " idx, "
+                 << map_trans.type << "*a," << key_trans.type << " idx,"
                  << val_trans.type << " d)";
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << "if (a->m_set == 0) { a->m_curr = idx; a->m_set = 1; }"
-                     << endl;
-        (*m_ostream) << "if (idx == a->m_curr) { a->d_ = d; }" << endl;
-        (*m_ostream) << "}" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
+        (*m_ostream) << "if(idx==a->m_curr){a->d_=d;}";
+        (*m_ostream) << "}";
     }
 
-    (*m_ostream) << val_trans.type << " *Ref_" << map_trans.name << "("
-                 << map_trans.type << " *a, " << key_trans.type << " idx)";
+    (*m_ostream) << val_trans.type << "*Ref_" << map_trans.name << "("
+                 << map_trans.type << "*a," << key_trans.type << " idx)";
 
     if (m_forward_declare)
     {
-        (*m_ostream) << ";" << endl;
+        (*m_ostream) << ";";
     }
     else
     {
-        (*m_ostream) << endl << "{" << endl;
-        (*m_ostream) << "if (a->m_set == 0) { a->m_curr = idx; a->m_set = 1; }"
-                     << endl;
-        (*m_ostream) << "if (idx != a->m_curr)" << endl;
-        (*m_ostream) << "{" << endl;
-        (*m_ostream) << "a->d_nd = " << to_nd_value(val_trans.name, v_type)
-                     << ";" << endl;
-        (*m_ostream) << "return &a->d_nd;" << endl;
-        (*m_ostream) << "}" << endl;
-        (*m_ostream) << "return &a->d_;" << endl;
-        (*m_ostream) << "}" << endl;
+        (*m_ostream) << "{";
+        (*m_ostream) << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
+        (*m_ostream) << "if(idx!=a->m_curr)";
+        (*m_ostream) << "{";
+        (*m_ostream) << "a->d_nd=" << to_nd_value(val_trans.name, v_type) << ";";
+        (*m_ostream) << "return &a->d_nd;";
+        (*m_ostream) << "}";
+        (*m_ostream) << "return &a->d_;";
+        (*m_ostream) << "}";
     }
 
     return true;
@@ -348,14 +335,14 @@ void FunctionConverter::print_args(
     if (contract_scope)
     {
         auto type = m_converter.translate(*contract_scope).type;
-        (*m_ostream) << type << " *self, struct CallState *state";
+        (*m_ostream) << type << "*self,struct CallState*state";
     }
 
     for (unsigned int idx = 0; idx < _args.size(); ++idx)
     {
         if (contract_scope || idx > 0)
         {
-            (*m_ostream) << ", ";
+            (*m_ostream) << ",";
         }
 
         auto const& arg = *_args[idx];
@@ -363,7 +350,7 @@ void FunctionConverter::print_args(
 
         if (_default_to_zero)
         {
-            (*m_ostream) << " = 0";
+            (*m_ostream) << "=0";
         }
     }
 
