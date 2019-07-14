@@ -131,6 +131,7 @@ void TypeConverter::record(SourceUnit const& _unit)
 {
     auto contracts = ASTNode::filteredNodes<ContractDefinition>(_unit.nodes());
 
+    // Pass 1: assign types to all contracts and structures.
     for (auto contract : contracts)
     {
         ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
@@ -152,6 +153,8 @@ void TypeConverter::record(SourceUnit const& _unit)
         m_dictionary.insert({contract, contract_entry});
     }
 
+    // Pass 2: assign types to all member fields and methods, such that their
+    // types may be referenced within function bodies.
     for (auto contract : contracts)
     {
         ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
@@ -192,7 +195,6 @@ void TypeConverter::record(SourceUnit const& _unit)
             m_dictionary.insert({fun, fun_entry});
 
             fun->parameterList().accept(*this);
-            fun->body().accept(*this);
         }
 
         for (auto mod : contract->functionModifiers())
@@ -206,6 +208,15 @@ void TypeConverter::record(SourceUnit const& _unit)
             m_dictionary.insert({mod, mod_entry});
 
             mod->parameterList().accept(*this);
+        }
+    }
+
+    // Pass 3: assign types to Solidity expressions, where applicable.
+    for (auto contract : contracts)
+    {
+        for (auto fun : contract->definedFunctions())
+        {
+            fun->body().accept(*this);
         }
     }
 }

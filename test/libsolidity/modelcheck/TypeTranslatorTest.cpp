@@ -464,6 +464,38 @@ BOOST_AUTO_TEST_CASE(identifiers_as_pointers)
     BOOST_CHECK_EQUAL(converter.is_pointer(idx2), false);
 }
 
+// In Solidity, a function identifier may be encountered before said function is
+// declared. This regression test ensures that the TypeConverter handles this
+// case by resolving all (relevant) functions before resolving identifiers.
+BOOST_AUTO_TEST_CASE(function_and_identifier_oreder_regression)
+{
+    using ExprStmtPtr = ExpressionStatement const*;
+    using FuncExprPtr = FunctionCall const*;
+    using MmbrExprPtr = MemberAccess const*;
+    using IndnExprPtr = Identifier const*;
+
+    char const* text = R"(
+        contract A {
+            function f() public { g(); }
+            function g() public { }
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(ast, "A");
+    auto const& func = *ctrt.definedFunctions()[0];
+
+    auto const& stmt = *func.body().statements()[0];
+    auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
+    auto const& call = *dynamic_cast<FuncExprPtr>(&expr);
+    auto const& indx = *dynamic_cast<IndnExprPtr>(&call.expression());
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    BOOST_CHECK_EQUAL(converter.translate(indx).name, "Method_A_g");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }
