@@ -248,8 +248,7 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 	{
 	case Type::Category::Mapping:
 		{
-			ScopedSwap<bool> swap_find_ref(m_find_ref, false);
-			if (m_index_depth || swap_find_ref.old())
+			if (m_find_ref)
 			{
 				(*m_ostream) << "Ref_";
 			}
@@ -408,13 +407,12 @@ void ExpressionConverter::print_binary_op(
 void ExpressionConverter::print_map_idx_pair(IndexAccess const& _map)
 {
 	{
-		ScopedSwap<unsigned int> depth_swap(m_index_depth, m_index_depth + 1);
-		ScopedSwap<bool> ref_swap(m_find_ref, true);
+		ScopedSwap<bool> swap(m_find_ref, true);
 		_map.baseExpression().accept(*this);
 	}
 	(*m_ostream) << ",";
 	{
-		ScopedSwap<unsigned int> swap(m_index_depth, 0);
+		ScopedSwap<bool> swap(m_find_ref, false);
 		_map.indexExpression()->accept(*this);
 	}
 }
@@ -892,7 +890,6 @@ void ExpressionConverter::print_adt_member(
 )
 {
 	ScopedSwap<bool> swap(m_find_ref, false);
-
 	if (swap.old())
 	{
 		(*m_ostream) << "&(";

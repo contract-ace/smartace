@@ -166,7 +166,6 @@ private:
 
 	std::hash<std::string> m_hasher;
 
-	unsigned int m_index_depth = 0;
 	bool m_lval = false;
 	bool m_find_ref;
 
