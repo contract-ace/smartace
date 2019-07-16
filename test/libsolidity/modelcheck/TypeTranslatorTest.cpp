@@ -471,7 +471,6 @@ BOOST_AUTO_TEST_CASE(function_and_identifier_oreder_regression)
 {
     using ExprStmtPtr = ExpressionStatement const*;
     using FuncExprPtr = FunctionCall const*;
-    using MmbrExprPtr = MemberAccess const*;
     using IndnExprPtr = Identifier const*;
 
     char const* text = R"(

@@ -214,6 +214,8 @@ void TypeConverter::record(SourceUnit const& _unit)
     // Pass 3: assign types to Solidity expressions, where applicable.
     for (auto contract : contracts)
     {
+        ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
+
         for (auto fun : contract->definedFunctions())
         {
             fun->body().accept(*this);
