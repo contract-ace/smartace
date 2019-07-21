@@ -63,8 +63,7 @@ private:
 	// will have a default value of zero for each parameter.
 	void print_args(
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
-		ASTNode const* _scope,
-		bool _default_to_zero
+		ASTNode const* _scope
 	);
 };
 

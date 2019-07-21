@@ -44,11 +44,11 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
     (*m_ostream) << translation.type << " Init_" << translation.name;
     if (auto ctor = _node.constructor())
     {
-        print_args(ctor->parameters(), &_node, false);
+        print_args(ctor->parameters(), &_node);
     }
     else
     {
-        print_args({}, nullptr, false);
+        print_args({}, nullptr);
     }
 
     if (m_forward_declare)
@@ -95,23 +95,18 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 bool FunctionConverter::visit(StructDefinition const& _node)
 {
     vector<ASTPointer<VariableDeclaration>> initializable_members;
-    vector<ASTPointer<VariableDeclaration>> unitializable_members;
     for (auto const& member : _node.members())
     {
         if (is_basic_type(*member->type()))
         {
             initializable_members.push_back(member);
         }
-        else
-        {
-            unitializable_members.push_back(member);
-        }
     }
 
     auto translation = m_converter.translate(_node);
 
-    (*m_ostream) << translation.type << " Init_" << translation.name;
-    print_args(initializable_members, nullptr, true);
+    // Zero Initialization.
+    (*m_ostream) << translation.type << " Init_0_" << translation.name  << "()";
 
     if (m_forward_declare)
     {
@@ -122,20 +117,41 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         (*m_ostream) << "{";
         (*m_ostream) << translation.type << " tmp;";
 
-        for (auto m : initializable_members)
+        for (auto decl : _node.members())
         {
-            (*m_ostream) << "tmp.d_" << m->name() << "=" << m->name() << ";";
-        }
-        for (auto m : unitializable_members)
-        {
-            (*m_ostream) << "tmp.d_" << m->name() << "=Init_"
-                         << m_converter.translate(*m).name << "();";
+            auto decl_name = m_converter.translate(*decl).name;
+            (*m_ostream) << "tmp.d_" << decl->name() << "="
+                         << to_init_value(decl_name, *decl->type()) << ";";
         }
 
         (*m_ostream) << "return tmp;";
         (*m_ostream) << "}";
     }
 
+    // Manual Initialization.
+    (*m_ostream) << translation.type << " Init_" << translation.name;
+    print_args(initializable_members, nullptr);
+
+    if (m_forward_declare)
+    {
+        (*m_ostream) << ";";
+    }
+    else
+    {
+        (*m_ostream) << "{";
+        (*m_ostream) << translation.type << " tmp="
+                     << "Init_0_" << translation.name  << "();";
+
+        for (auto m : initializable_members)
+        {
+            (*m_ostream) << "tmp.d_" << m->name() << "=" << m->name() << ";";
+        }
+
+        (*m_ostream) << "return tmp;";
+        (*m_ostream) << "}";
+    }
+
+    // ND Initialization.
     (*m_ostream) << translation.type << " ND_" << translation.name << "()";
 
     if (m_forward_declare)
@@ -167,7 +183,7 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     (*m_ostream) << translation.type << " " << translation.name;
 
     bool is_mutable = _node.stateMutability() != StateMutability::Pure;
-    print_args(_node.parameters(), is_mutable ? _node.scope() : nullptr, false);
+    print_args(_node.parameters(), is_mutable ? _node.scope() : nullptr);
 
     if (m_forward_declare)
     {
@@ -186,7 +202,7 @@ bool FunctionConverter::visit(ModifierDefinition const& _node)
     auto translation = m_converter.translate(_node);
 
     (*m_ostream) << translation.type << " " << translation.name;
-    print_args(_node.parameters(), _node.scope(), false);
+    print_args(_node.parameters(), _node.scope());
     (*m_ostream) << ";";
 
     return false;
@@ -201,7 +217,8 @@ bool FunctionConverter::visit(Mapping const& _node)
     auto const& k_type = *_node.keyType().annotation().type;
     auto const& v_type = *_node.valueType().annotation().type;
 
-    (*m_ostream) << map_trans.type << " " << "Init_" << map_trans.name << "()";
+    // Default Initialization
+    (*m_ostream) << map_trans.type << " " << "Init_0_" << map_trans.name << "()";
 
     if (m_forward_declare)
     {
@@ -219,6 +236,7 @@ bool FunctionConverter::visit(Mapping const& _node)
         (*m_ostream) << "}";
     }
 
+    // ND Initialization
     (*m_ostream) << map_trans.type << " " << "ND_" << map_trans.name << "()";
 
     if (m_forward_declare)
@@ -237,6 +255,7 @@ bool FunctionConverter::visit(Mapping const& _node)
         (*m_ostream) << "}";
     }
 
+    // Read
     (*m_ostream) << val_trans.type << " Read_" << map_trans.name << "("
                  << map_trans.type << "*a," << key_trans.type << " idx)";
 
@@ -254,6 +273,7 @@ bool FunctionConverter::visit(Mapping const& _node)
         (*m_ostream) << "}";
     }
 
+    // Write
     (*m_ostream) << "void Write_" << map_trans.name << "("
                  << map_trans.type << "*a," << key_trans.type << " idx,"
                  << val_trans.type << " d)";
@@ -270,6 +290,7 @@ bool FunctionConverter::visit(Mapping const& _node)
         (*m_ostream) << "}";
     }
 
+    // Ref
     (*m_ostream) << val_trans.type << "*Ref_" << map_trans.name << "("
                  << map_trans.type << "*a," << key_trans.type << " idx)";
 
@@ -313,7 +334,7 @@ bool FunctionConverter::is_basic_type(Type const& _type)
 
 string FunctionConverter::to_init_value(string _name, Type const& _type)
 {
-    return (is_basic_type(_type) ? "0" : "Init_" + _name + "()");
+    return (is_basic_type(_type) ? "0" : "Init_0_" + _name + "()");
 }
 
 string FunctionConverter::to_nd_value(string _name, Type const& _type)
@@ -324,9 +345,7 @@ string FunctionConverter::to_nd_value(string _name, Type const& _type)
 // -------------------------------------------------------------------------- //
 
 void FunctionConverter::print_args(
-    vector<ASTPointer<VariableDeclaration>> const& _args,
-    ASTNode const* _scope,
-    bool _default_to_zero
+    vector<ASTPointer<VariableDeclaration>> const& _args, ASTNode const* _scope
 )
 {
     (*m_ostream) << "(";
@@ -347,11 +366,6 @@ void FunctionConverter::print_args(
 
         auto const& arg = *_args[idx];
         (*m_ostream) << m_converter.translate(arg).type << " " << arg.name();
-
-        if (_default_to_zero)
-        {
-            (*m_ostream) << "=0";
-        }
     }
 
     (*m_ostream) << ")";

@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_a_submap1;" << "struct A;";
     func_expect << "struct A Init_A();";
-    func_expect << "struct A_a_submap1 Init_A_a_submap1();";
+    func_expect << "struct A_a_submap1 Init_0_A_a_submap1();";
     func_expect << "struct A_a_submap1 ND_A_a_submap1();";
     func_expect << "unsigned int Read_A_a_submap1"
                 << "(struct A_a_submap1*a,unsigned int idx);";
@@ -112,7 +112,8 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_B;" << "struct A;";
     func_expect << "struct A Init_A();";
-    func_expect << "struct A_B Init_A_B(unsigned int a=0,unsigned int b=0);";
+    func_expect << "struct A_B Init_0_A_B();";
+    func_expect << "struct A_B Init_A_B(unsigned int a,unsigned int b);";
     func_expect << "struct A_B ND_A_B();";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -308,9 +309,10 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     adt_expect << "struct A_B;";
     adt_expect << "struct A;";
     func_expect << "struct A Init_A();";
+    func_expect << "struct A_B Init_0_A_B();";
     func_expect << "struct A_B Init_A_B();";
     func_expect << "struct A_B ND_A_B();";
-    func_expect << "struct A_B_a_submap1 Init_A_B_a_submap1();";
+    func_expect << "struct A_B_a_submap1 Init_0_A_B_a_submap1();";
     func_expect << "struct A_B_a_submap1 ND_A_B_a_submap1();";
     func_expect << "struct A_B_a_submap2 Read_A_B_a_submap1"
                 << "(struct A_B_a_submap1*a,unsigned int idx);";
@@ -318,7 +320,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
                 << ",unsigned int idx,struct A_B_a_submap2 d);";
     func_expect << "struct A_B_a_submap2*Ref_A_B_a_submap1"
                 << "(struct A_B_a_submap1*a,unsigned int idx);";
-    func_expect << "struct A_B_a_submap2 Init_A_B_a_submap2();";
+    func_expect << "struct A_B_a_submap2 Init_0_A_B_a_submap2();";
     func_expect << "struct A_B_a_submap2 ND_A_B_a_submap2();";
     func_expect << "unsigned int Read_A_B_a_submap2"
                 << "(struct A_B_a_submap2*a,unsigned int idx);";
@@ -365,9 +367,10 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct C_b_submap1;";
     adt_expect << "struct C;";
     func_expect << "struct A Init_A();";
+    func_expect << "struct A_B Init_0_A_B();";
     func_expect << "struct A_B Init_A_B();";
     func_expect << "struct A_B ND_A_B();";
-    func_expect << "struct A_B_a_submap1 Init_A_B_a_submap1();";
+    func_expect << "struct A_B_a_submap1 Init_0_A_B_a_submap1();";
     func_expect << "struct A_B_a_submap1 ND_A_B_a_submap1();";
     func_expect << "unsigned int Read_A_B_a_submap1"
                 << "(struct A_B_a_submap1*a,unsigned int idx);";
@@ -376,7 +379,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     func_expect << "unsigned int*Ref_A_B_a_submap1"
                 << "(struct A_B_a_submap1*a,unsigned int idx);";
     func_expect << "struct C Init_C();";
-    func_expect << "struct C_b_submap1 Init_C_b_submap1();";
+    func_expect << "struct C_b_submap1 Init_0_C_b_submap1();";
     func_expect << "struct C_b_submap1 ND_C_b_submap1();";
     func_expect << "unsigned int Read_C_b_submap1"
                 << "(struct C_b_submap1*a,unsigned int idx);";
@@ -415,7 +418,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     adt_expect << "struct A_a_submap1;";
     adt_expect << "struct A;";
     func_expect << "struct A Init_A();";
-    func_expect << "struct A_a_submap1 Init_A_a_submap1();";
+    func_expect << "struct A_a_submap1 Init_0_A_a_submap1();";
     func_expect << "struct A_a_submap1 ND_A_a_submap1();";
     func_expect << "struct A_a_submap2 Read_A_a_submap1"
                 << "(struct A_a_submap1*a,unsigned int idx);";
@@ -423,7 +426,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
                 << ",unsigned int idx,struct A_a_submap2 d);";
     func_expect << "struct A_a_submap2*Ref_A_a_submap1"
                 << "(struct A_a_submap1*a,unsigned int idx);";
-    func_expect << "struct A_a_submap2 Init_A_a_submap2();";
+    func_expect << "struct A_a_submap2 Init_0_A_a_submap2();";
     func_expect << "struct A_a_submap2 ND_A_a_submap2();";
     func_expect << "struct A_a_submap3 Read_A_a_submap2"
                 << "(struct A_a_submap2*a,unsigned int idx);";
@@ -431,7 +434,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
                 << ",unsigned int idx,struct A_a_submap3 d);";
     func_expect << "struct A_a_submap3*Ref_A_a_submap2"
                 << "(struct A_a_submap2*a,unsigned int idx);";
-    func_expect << "struct A_a_submap3 Init_A_a_submap3();";
+    func_expect << "struct A_a_submap3 Init_0_A_a_submap3();";
     func_expect << "struct A_a_submap3 ND_A_a_submap3();";
     func_expect << "unsigned int Read_A_a_submap3"
                 << "(struct A_a_submap3*a,unsigned int idx);";
@@ -473,7 +476,8 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_B;" << "struct A;";
     func_expect << "struct A Init_A();";
-    func_expect << "struct A_B Init_A_B(unsigned int a=0);";
+    func_expect << "struct A_B Init_0_A_B();";
+    func_expect << "struct A_B Init_A_B(unsigned int a);";
     func_expect << "struct A_B ND_A_B();";
     func_expect << "struct A_B Method_A_advFunc"
                 << "(struct A*self,struct CallState*state,unsigned int _in);";
@@ -549,13 +553,21 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "{";
     func_expect << "struct A tmp;";
     func_expect << "tmp.d_min_amt=42;";
-    func_expect << "tmp.d_accs=Init_A_accs_submap1();";
+    func_expect << "tmp.d_accs=Init_0_A_accs_submap1();";
+    func_expect << "return tmp;";
+    func_expect << "}";
+    // -- Init_0_A_S
+    func_expect << "struct A_S Init_0_A_S()";
+    func_expect << "{";
+    func_expect << "struct A_S tmp;";
+    func_expect << "tmp.d_owner=0;";
+    func_expect << "tmp.d_val=0;";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_S
-    func_expect << "struct A_S Init_A_S(int owner=0,unsigned int val=0)";
+    func_expect << "struct A_S Init_A_S(int owner,unsigned int val)";
     func_expect << "{";
-    func_expect << "struct A_S tmp;";
+    func_expect << "struct A_S tmp=Init_0_A_S();";
     func_expect << "tmp.d_owner=owner;";
     func_expect << "tmp.d_val=val;";
     func_expect << "return tmp;";
@@ -569,13 +581,13 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_accs_submap1
-    func_expect << "struct A_accs_submap1 Init_A_accs_submap1()";
+    func_expect << "struct A_accs_submap1 Init_0_A_accs_submap1()";
     func_expect << "{";
     func_expect << "struct A_accs_submap1 tmp;";
     func_expect << "tmp.m_set=0;";
     func_expect << "tmp.m_curr=0;";
-    func_expect << "tmp.d_=Init_A_S();";
-    func_expect << "tmp.d_nd=Init_A_S();";
+    func_expect << "tmp.d_=Init_0_A_S();";
+    func_expect << "tmp.d_nd=Init_0_A_S();";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- ND_A_accs_submap1
@@ -585,7 +597,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "tmp.m_set=ND_Init_Val();";
     func_expect << "tmp.m_curr=ND_Init_Val();";
     func_expect << "tmp.d_=ND_A_S();";
-    func_expect << "tmp.d_nd=Init_A_S();";
+    func_expect << "tmp.d_nd=Init_0_A_S();";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Read_A_accs_submap1
