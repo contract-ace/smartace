@@ -465,7 +465,7 @@ void TypeConverter::endVisit(Identifier const& _node)
     else
     {
         ASTNode const* ref = nullptr;
-        VariableDeclaration::Location loc;
+        auto loc = VariableDeclaration::Location::Unspecified;
 
         if (_node.name() == "this")
         {
