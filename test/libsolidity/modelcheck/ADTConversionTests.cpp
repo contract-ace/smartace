@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
     char const* text = R"(
         contract A {
             mapping(int => mapping(int => mapping(int => int))) map3;
-            struct B { mapping(int => mapping(ing => int)) map1; }
+            struct B { mapping(int => mapping(int => int)) map1; }
             mapping(int => A) map4;
             struct C { mapping(int => int) map2; }
             B b;

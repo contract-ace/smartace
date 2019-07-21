@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "struct A tmp;";
     expect << "tmp.d_a=0;";
     expect << "tmp.d_b=10;";
-    expect << "tmp.d_c=Init_A_B();";
+    expect << "tmp.d_c=Init_0_A_B();";
     expect << "return tmp;";
     expect << "}";
     // -- Init_0_A_B
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     ostringstream actual, expect;
     FunctionConverter(ast, converter, false).print(actual);
     // -- Init_A
-    expect << "struct A Init_A(struct A *self,struct CallState *state"
+    expect << "struct A Init_A(struct A*self,struct CallState*state"
            << ",unsigned int _a)";
     expect << "{";
     expect << "struct A tmp;";
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     expect << "return tmp;";
     expect << "}";
     // -- Ctor_A
-    expect << "void Ctor_A(struct A *self,struct CallState *state"
+    expect << "void Ctor_A(struct A*self,struct CallState*state"
            << ",unsigned int _a)";
     expect << "{";
     expect << "(self->d_a)=(_a);";
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     ostringstream actual, expect;
     FunctionConverter(ast, converter, false).print(actual);
     // -- Init_A
-    expect << "struct A Init_A(struct A *self,struct CallState *state)";
+    expect << "struct A Init_A(struct A*self,struct CallState*state)";
     expect << "{";
     expect << "struct A tmp;";
     expect << "return tmp;";
