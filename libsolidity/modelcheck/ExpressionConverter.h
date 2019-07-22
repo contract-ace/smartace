@@ -6,13 +6,13 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/SimpleCCore.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
 #include <libsolidity/modelcheck/VariableScopeResolver.h>
-#include <array>
-#include <functional>
-#include <ostream>
+#include <map>
+#include <string>
+#include <vector>
 #include <type_traits>
-#include <utility>
 
 namespace dev
 {
@@ -122,6 +122,8 @@ private:
 
 // -------------------------------------------------------------------------- //
 
+using SolArgList = std::vector<ASTPointer<Expression const>>;
+
 /**
  * A utility visitor, designed to convert Solidity statements into executable
  * C code. This is meant to be used a utility when converting a full Solidity
@@ -139,8 +141,8 @@ public:
 		bool _is_ref = false
     );
 
-    // Generates a human-readable block of C code, from the given expression.
-    void print(std::ostream& _stream);
+    // Generates a SimpleCGenerator representation of the expression.
+    CExprPtr convert();
 
 protected:
 	bool visit(EnumValue const& _node) override;
@@ -159,12 +161,10 @@ protected:
 
 private:
     Expression const* m_expr;
-    TypeConverter const& m_converter;
+    TypeConverter const& m_types;
 	VariableScopeResolver const& m_decls;
 
-	std::ostream* m_ostream = nullptr;
-
-	std::hash<std::string> m_hasher;
+	CExprPtr m_subexpr;
 
 	bool m_lval = false;
 	bool m_find_ref;
@@ -176,47 +176,34 @@ private:
 	// produces such integers from Solidity literals.
 	static long long int literal_to_number(Literal const& _node);
 
-	// Helper functions to produce common sub-expressions of the expression AST.
-	void print_subexpression(Expression const& _node);
-	void print_binary_op(
+	// Helper functions to format mapping operations.
+	void generate_binary_op(
 		Expression const& _lhs, Token _op, Expression const& _rhs
 	);
-
-	// Helper functions to format mapping operations.
-	void print_map_idx_pair(IndexAccess const& _map);
+	void generate_mapping_call(
+		std::string const& _op,
+		std::string const& _id,
+		IndexAccess const& _map,
+		CExprPtr _v
+	);
 
 	// Helper functions to produce specialized function calls.
-	void print_struct_constructor(
-		Expression const& _struct,
-		std::vector<ASTPointer<Expression const>> const& _args
-	);
+	void print_struct_ctor(Expression const& _struct, SolArgList const& _args);
 	void print_cast(FunctionCall const& _call);
-	void print_function(
-		Expression const& _call,
-		std::vector<ASTPointer<Expression const>> const& _args
-	);
+	void print_function(Expression const& _call, SolArgList const& _args);
 	void print_method(
 		FunctionType const& _type,
 		Expression const* _ctx,
-		std::vector<ASTPointer<Expression const>> const& _args
+		SolArgList const& _args
 	);
 	void print_ext_method(
 		FunctionType const& _type,
 		Expression const& _call,
-		std::vector<ASTPointer<Expression const>> const& _args
+		SolArgList const& _args
 	);
-	void print_contract_ctor(
-		Expression const& _call,
-		std::vector<ASTPointer<Expression const>> const& _args
-	);
-	void print_payment(
-		Expression const& _call,
-		std::vector<ASTPointer<Expression const>> const& _args
-	);
-	void print_assertion(
-		std::string _type,
-		std::vector<ASTPointer<Expression const>> const& _args
-	);
+	void print_contract_ctor(Expression const& _call, SolArgList const& _args);
+	void print_payment(Expression const& _call, SolArgList const& _args);
+	void print_assertion(std::string _type, SolArgList const& _args);
 
 	// Helpe functions to handle certain member access cases.
 	void print_address_member(

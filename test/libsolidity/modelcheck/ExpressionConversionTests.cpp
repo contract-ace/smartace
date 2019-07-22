@@ -27,47 +27,39 @@ namespace test
 
 // -------------------------------------------------------------------------- //
 
+using SubD = Literal::SubDenomination;
+
+VariableScopeResolver _prime_resolver(shared_ptr<string> name)
+{
+    using DeclVis = Declaration::Visibility;
+    VariableScopeResolver resolver;
+    resolver.enter();
+    resolver.record_declaration(VariableDeclaration(
+        SourceLocation(), nullptr, name, nullptr, DeclVis::Public
+    ));
+    return resolver;
+}
+
 string _convert_assignment(Token tok)
 {
     auto id_name = make_shared<string>("a");
     auto id = make_shared<Identifier>(SourceLocation(), id_name);
 
-    VariableScopeResolver resolver;
-    resolver.enter();
-    resolver.record_declaration(VariableDeclaration(
-        SourceLocation(),
-        nullptr,
-        id_name,
-        nullptr,
-        Declaration::Visibility::Public)
-    );
-
     auto op = make_shared<BinaryOperation>(
         SourceLocation(), id, Token::BitXor, id
     );
 
-    Assignment assignment(SourceLocation(), id, tok, op);
+    Assignment assgn(SourceLocation(), id, tok, op);
 
     ostringstream oss;
-    ExpressionConverter(assignment, {}, resolver).print(oss);
+    oss << *ExpressionConverter(assgn, {}, _prime_resolver(id_name)).convert();
     return oss.str();
 }
 
 string _convert_binop(Token tok)
 {
-    VariableScopeResolver resolver;
-    resolver.enter();
-    resolver.record_declaration(VariableDeclaration(
-        SourceLocation(),
-        nullptr,
-        make_shared<string>("a"),
-        nullptr,
-        Declaration::Visibility::Public)
-    );
-
-    auto id_a = make_shared<Identifier>(
-        SourceLocation(), make_shared<string>("a")
-    );
+    auto name_a = make_shared<string>("a");
+    auto id_a = make_shared<Identifier>(SourceLocation(), name_a);
     auto id_b = make_shared<Identifier>(
         SourceLocation(), make_shared<string>("b")
     );
@@ -75,39 +67,26 @@ string _convert_binop(Token tok)
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
 
     ostringstream oss;
-    ExpressionConverter(op, {}, resolver).print(oss);
+    oss << *ExpressionConverter(op, {}, _prime_resolver(name_a)).convert();
     return oss.str();
 }
 
 string _convert_unaryop(Token tok, shared_ptr<Expression> expr, bool prefix)
 {
-    VariableScopeResolver resolver;
-    resolver.enter();
-    resolver.record_declaration(VariableDeclaration(
-        SourceLocation(),
-        nullptr,
-        make_shared<string>("a"),
-        nullptr,
-        Declaration::Visibility::Public)
-    );
-
     UnaryOperation op(SourceLocation(), tok, expr, prefix);
 
     ostringstream oss;
-    ExpressionConverter(op, {}, resolver).print(oss);
+    auto resolver = _prime_resolver(make_shared<string>("a"));
+    oss << *ExpressionConverter(op, {}, resolver).convert();
     return oss.str();
 }
 
-string _convert_literal(
-    Token tok,
-    string src,
-    Literal::SubDenomination subdom = Literal::SubDenomination::None
-)
+string _convert_literal(Token tok, string src, SubD subdom = SubD::None)
 {
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
 
     ostringstream oss;
-    ExpressionConverter(lit, {}, {}).print(oss);
+    oss << *ExpressionConverter(lit, {}, {}).convert();
     return oss.str();
 }
 
@@ -127,10 +106,7 @@ BOOST_AUTO_TEST_CASE(node_sniffer)
     auto m2 = make_shared<MemberAccess>(SourceLocation(), m1, nullptr);
 
     auto lit = make_shared<Literal>(
-        SourceLocation(),
-        langutil::Token::As,
-        nullptr,
-        Literal::SubDenomination::None
+        SourceLocation(), Token::As, nullptr, SubD::None
     );
 
     TupleExpression tuple(SourceLocation(), {m2}, false);
@@ -163,10 +139,7 @@ BOOST_AUTO_TEST_CASE(lvalue_sniffer)
     );
 
     auto lit = make_shared<Literal>(
-        SourceLocation(),
-        langutil::Token::As,
-        nullptr,
-        Literal::SubDenomination::None
+        SourceLocation(), Token::As, nullptr, SubD::None
     );
 
     auto m1 = make_shared<MemberAccess>(SourceLocation(), id, nullptr);
@@ -182,7 +155,7 @@ BOOST_AUTO_TEST_CASE(lvalue_sniffer)
     BOOST_CHECK_EQUAL(LValueSniffer<IndexAccess>(indx).find(), &indx);
     BOOST_CHECK_EQUAL(LValueSniffer<Identifier>(*id).find(), id.get());
 
-    // Ensures that only the first l-value is checked.
+    // Ensur1es that only the first l-value is checked.
     BOOST_CHECK_EQUAL(LValueSniffer<Identifier>(*m1).find(), nullptr);
     BOOST_CHECK_EQUAL(LValueSniffer<Identifier>(indx).find(), nullptr);
 
@@ -194,9 +167,8 @@ BOOST_AUTO_TEST_CASE(lvalue_sniffer)
 // Ensures that conditional expressions are mapped into C conditionals.
 BOOST_AUTO_TEST_CASE(conditional_expression)
 {
-    auto var_a = make_shared<Identifier>(
-        SourceLocation(), make_shared<string>("a")
-    );
+    auto name_a = make_shared<string>("a");
+    auto var_a = make_shared<Identifier>(SourceLocation(), name_a);
     auto var_b = make_shared<Identifier>(
         SourceLocation(), make_shared<string>("b")
     );
@@ -206,18 +178,8 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
 
     Conditional cond(SourceLocation(), var_a, var_b, var_c);
 
-    VariableScopeResolver resolver;
-    resolver.enter();
-    resolver.record_declaration(VariableDeclaration(
-        SourceLocation(),
-        nullptr,
-        make_shared<string>("a"),
-        nullptr,
-        Declaration::Visibility::Public)
-    );
-
     ostringstream oss;
-    ExpressionConverter(cond, {}, resolver).print(oss);
+    oss << *ExpressionConverter(cond, {}, _prime_resolver(name_a)).convert();
     BOOST_CHECK_EQUAL(oss.str(), "(a)?(self->d_b):(self->d_c)");
 }
 
@@ -270,7 +232,7 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
     // TODO(scottwe): n element array, large n
 
     ostringstream oss;
-    ExpressionConverter(one_tuple, {}, {}).print(oss);
+    oss << *ExpressionConverter(one_tuple, {}, {}).convert();
     BOOST_CHECK_EQUAL(oss.str(), "self->d_a");
 }
 
@@ -326,24 +288,17 @@ BOOST_AUTO_TEST_CASE(binary_expression)
 // Ensures that identifiers are resolved, using the current scope.
 BOOST_AUTO_TEST_CASE(identifier_expression)
 {
-    Identifier id_a(SourceLocation(), make_shared<string>("a"));
+    auto name_a = make_shared<string>("a");
+    Identifier id_a(SourceLocation(), name_a);
     Identifier id_b(SourceLocation(), make_shared<string>("b"));
     Identifier msg(SourceLocation(), make_shared<string>("msg"));
 
-    VariableScopeResolver resolver;
-    resolver.enter();
-    resolver.record_declaration(VariableDeclaration(
-        SourceLocation(),
-        nullptr,
-        make_shared<string>("a"),
-        nullptr,
-        Declaration::Visibility::Public)
-    );
+    auto resolver = _prime_resolver(name_a);
 
     ostringstream a_oss, b_oss, msg_oss;
-    ExpressionConverter(id_a, {}, resolver).print(a_oss);
-    ExpressionConverter(id_b, {}, resolver).print(b_oss);
-    ExpressionConverter(msg, {}, resolver).print(msg_oss);
+    a_oss << *ExpressionConverter(id_a, {}, resolver).convert();
+    b_oss << *ExpressionConverter(id_b, {}, resolver).convert();
+    msg_oss << *ExpressionConverter(msg, {}, resolver).convert();
 
     BOOST_CHECK_EQUAL(a_oss.str(), "a");
     BOOST_CHECK_EQUAL(b_oss.str(), "self->d_b");
@@ -354,46 +309,43 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
 // valid sub-denominations are taken into account while encoding said literal.
 BOOST_AUTO_TEST_CASE(literal_expression)
 {
-    using SubDom = Literal::SubDenomination;
-
     BOOST_CHECK_EQUAL(_convert_literal(Token::TrueLiteral, "true"), "1");
     BOOST_CHECK_EQUAL(_convert_literal(Token::FalseLiteral, "false"), "0");
     BOOST_CHECK_EQUAL(
         _convert_literal(Token::StringLiteral, "string"),
-        to_string(hash<string>()("string"))
+        to_string((long long int)(hash<string>()("string")))
     );
     BOOST_CHECK_EQUAL(_convert_literal(Token::Number, "432"), "432");
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "432 seconds", SubDom::Second), "432"
+        _convert_literal(Token::Number, "432 seconds", SubD::Second), "432"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "432 wei", SubDom::Wei), "432"
+        _convert_literal(Token::Number, "432 wei", SubD::Wei), "432"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "2 minutes", SubDom::Minute), "120"
+        _convert_literal(Token::Number, "2 minutes", SubD::Minute), "120"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "2 hours", SubDom::Hour), "7200"
+        _convert_literal(Token::Number, "2 hours", SubD::Hour), "7200"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "2 days", SubDom::Day), "172800"
+        _convert_literal(Token::Number, "2 days", SubD::Day), "172800"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "2 weeks", SubDom::Week), "1209600"
+        _convert_literal(Token::Number, "2 weeks", SubD::Week), "1209600"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "2 years", SubDom::Year), "63072000"
+        _convert_literal(Token::Number, "2 years", SubD::Year), "63072000"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "2 szabo", SubDom::Szabo),
-        "2000000000000"
+        _convert_literal(Token::Number, "2 szabo", SubD::Szabo), "2000000000000"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "2 finney", SubDom::Finney),
+        _convert_literal(Token::Number, "2 finney", SubD::Finney),
         "2000000000000000"
     );
     BOOST_CHECK_EQUAL(
-        _convert_literal(Token::Number, "2 ether", SubDom::Ether),
+        _convert_literal(Token::Number, "2 ether", SubD::Ether),
         "2000000000000000000"
     );
 }

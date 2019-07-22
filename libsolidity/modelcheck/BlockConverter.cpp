@@ -21,9 +21,8 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 BlockConverter::BlockConverter(
-	FunctionDefinition const& _func,
-	TypeConverter const& _converter
-): m_body(&_func.body()), m_converter(_converter)
+	FunctionDefinition const& _func, TypeConverter const& _types
+): m_body(&_func.body()), m_types(_types)
 {
 	// TODO(scottwe): support multiple return types.
 	if (_func.returnParameters().size() > 1)
@@ -103,11 +102,10 @@ bool BlockConverter::visit(IfStatement const& _node)
 {
 	ScopedSwap<bool> if_statement_swap(m_is_if_statement_body, true);
 
-	(*m_ostream) << (if_statement_swap.old() ? " " : "") << "if(";
-	ExpressionConverter(
-		_node.condition(), m_converter, m_decls
-	).print(*m_ostream);
-	(*m_ostream) << ")";
+	(*m_ostream)
+		<< (if_statement_swap.old() ? " " : "") << "if("
+		<< *ExpressionConverter(_node.condition(), m_types, m_decls).convert()
+		<< ")";
 	_node.trueStatement().accept(*this);
 	if (_node.falseStatement())
 	{
@@ -121,24 +119,18 @@ bool BlockConverter::visit(IfStatement const& _node)
 bool BlockConverter::visit(WhileStatement const& _node)
 {
 	// TODO(scottwe): Ensure number of interations has finite bound.
-	ExpressionConverter condition_visitor(
-		_node.condition(), m_converter, m_decls
-	);
+	ExpressionConverter cond(_node.condition(), m_types, m_decls);
 
 	if (_node.isDoWhile())
 	{
 		(*m_ostream) << "do";
 		_node.body().accept(*this);
-		(*m_ostream) << "while(";
-		condition_visitor.print(*m_ostream);
-		(*m_ostream) << ")";
+		(*m_ostream) << "while(" << *cond.convert() << ")";
 		end_statement();
 	}
 	else
 	{
-		(*m_ostream) << "while(";
-		condition_visitor.print(*m_ostream);
-		(*m_ostream) << ")";
+		(*m_ostream) << "while(" << *cond.convert() << ")";
 		_node.body().accept(*this);
 	}
 
@@ -156,9 +148,8 @@ bool BlockConverter::visit(ForStatement const& _node)
 	// TODO(scottwe): Ensure number of interations has finite bound.
 	if (_node.condition())
 	{
-		ExpressionConverter(
-			*_node.condition(), m_converter, m_decls
-		).print(*m_ostream);
+		ExpressionConverter cond(*_node.condition(), m_types, m_decls);
+		(*m_ostream) << *cond.convert();
 	}
 
 	(*m_ostream) << ";";
@@ -197,10 +188,8 @@ bool BlockConverter::visit(Return const& _node)
 	(*m_ostream) << "return";
 	if (_node.expression())
 	{
-		(*m_ostream) << " ";
-		ExpressionConverter(
-			*_node.expression(), m_converter, m_decls
-		).print(*m_ostream);
+		ExpressionConverter retval(*_node.expression(), m_types, m_decls);
+		(*m_ostream) << " " << *retval.convert();
 	}
 	end_statement();
 	return false;
@@ -232,15 +221,13 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 		bool is_ref = decl.referenceLocation() == VariableDeclaration::Storage;
 		m_decls.record_declaration(decl);
 
-		(*m_ostream) << m_converter.translate(decl).type
+		(*m_ostream) << m_types.translate(decl).type
 		             << (is_ref ? "*" : " ") << decl.name();
 
 		if (_node.initialValue())
 		{
-			(*m_ostream) << "=";
-			ExpressionConverter(
-				*_node.initialValue(), m_converter, m_decls, is_ref
-			).print(*m_ostream);
+			ExpressionConverter value(*_node.initialValue(), m_types, m_decls, is_ref);
+			(*m_ostream) << "=" << *value.convert();
 		}
 
 		end_statement();
@@ -251,9 +238,8 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 
 bool BlockConverter::visit(ExpressionStatement const& _node)
 {
-	ExpressionConverter(
-		_node.expression(), m_converter, m_decls
-	).print(*m_ostream);
+	ExpressionConverter expr(_node.expression(), m_types, m_decls);
+	(*m_ostream) << *expr.convert();
 	end_statement();
 	return false;
 }

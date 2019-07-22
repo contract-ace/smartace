@@ -634,7 +634,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "assume(((Read_A_accs_submap1(&(self->d_accs),idx)).d_owner"
                 << ")==(((int)(0))));";
     func_expect << "Write_A_accs_submap1(&(self->d_accs),idx"
-                << ",(Init_A_S(state->sender,0)));";
+                << ",Init_A_S(state->sender,0));";
     func_expect << "}";
     // -- Method_A_Deposit
     func_expect << "void Method_A_Deposit"
@@ -657,7 +657,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "unsigned int amt="
                 << "(Read_A_accs_submap1(&(self->d_accs),idx)).d_val;";
     func_expect << "Write_A_accs_submap1(&(self->d_accs),idx"
-                << ",(Init_A_S(state->sender,0)));";
+                << ",Init_A_S(state->sender,0));";
     func_expect << "assert(((Read_A_accs_submap1(&(self->d_accs),idx)).d_val"
                 << ")==(0));";
     func_expect << "_pay(state,state->sender,amt);";

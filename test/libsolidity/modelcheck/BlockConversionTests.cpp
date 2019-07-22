@@ -666,13 +666,13 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     ostringstream actual, expected;
     BlockConverter(func, converter).print(actual);
     expected << "{";
-    expected << "Write_A_a_submap1(&(self->d_a),1,(2));";
+    expected << "Write_A_a_submap1(&(self->d_a),1,2);";
     expected << "Write_A_a_submap1(&(self->d_a),1"
-             << ",((Read_A_a_submap1(&(self->d_a),1))+(2)));";
-    expected << "((*Ref_A_b_submap1(&(self->d_b),1)).d_m)=("
+             << ",(Read_A_a_submap1(&(self->d_a),1))+(2));";
+    expected << "((*(Ref_A_b_submap1(&(self->d_b),1))).d_m)=("
              << "((Read_A_b_submap1(&(self->d_b),1)).d_m)+(2));";
-    expected << "Write_A_C_m_submap1(&((self->d_c).d_m),1,(2));";
-    expected << "Write_A_d_submap2(Ref_A_d_submap1(&(self->d_d),1),2,(3));";
+    expected << "Write_A_C_m_submap1(&((self->d_c).d_m),1,2);";
+    expected << "Write_A_d_submap2(Ref_A_d_submap1(&(self->d_d),1),2,3);";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

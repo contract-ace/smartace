@@ -29,8 +29,7 @@ public:
     // Constructs a printer for the C code corresponding to a Solidity function.
 	// The converter should provide translations for all typed ASTNodes.
     BlockConverter(
-        FunctionDefinition const& _func,
-		TypeConverter const& _converter
+        FunctionDefinition const& _func, TypeConverter const& _types
     );
 
     // Streams a human-readable block of C code, from the given Solidity
@@ -54,7 +53,7 @@ protected:
 
 private:
     Block const* m_body;
-	TypeConverter const& m_converter;
+	TypeConverter const& m_types;
 	VariableScopeResolver m_decls;
 
 	ASTPointer<VariableDeclaration> m_retvar = nullptr;

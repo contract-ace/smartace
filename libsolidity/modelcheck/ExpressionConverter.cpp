@@ -5,6 +5,7 @@
 
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 
+#include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <stdexcept>
 
@@ -39,20 +40,20 @@ map<pair<MagicType::Kind, string>, string> const
 
 ExpressionConverter::ExpressionConverter(
 	Expression const& _expr,
-	TypeConverter const& _converter,
+	TypeConverter const& _types,
 	VariableScopeResolver const& _decls,
 	bool _is_ref
-): m_expr(&_expr), m_converter(_converter), m_decls(_decls), m_find_ref(_is_ref)
+): m_expr(&_expr), m_types(_types), m_decls(_decls), m_find_ref(_is_ref)
 {
 }
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConverter::print(ostream& _stream)
+CExprPtr ExpressionConverter::convert()
 {
-	m_ostream = &_stream;
+	m_subexpr = nullptr;
 	m_expr->accept(*this);
-	m_ostream = nullptr;
+	return m_subexpr;
 }
 
 // -------------------------------------------------------------------------- //
@@ -73,54 +74,47 @@ bool ExpressionConverter::visit(ModifierInvocation const& _node)
 
 bool ExpressionConverter::visit(Conditional const& _node)
 {
-	print_subexpression(_node.condition());
-	(*m_ostream) << "?";
-	print_subexpression(_node.trueExpression());
-	(*m_ostream) << ":";
-	print_subexpression(_node.falseExpression());
+	_node.condition().accept(*this);
+	auto subexpr1 = m_subexpr;
+	_node.trueExpression().accept(*this);
+	auto subexpr2 = m_subexpr;
+	_node.falseExpression().accept(*this);
+	m_subexpr = make_shared<CCond>(subexpr1, subexpr2, m_subexpr);
 	return false;
 }
 
 bool ExpressionConverter::visit(Assignment const& _node)
 {
-	auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find();
-
 	{
-		ScopedSwap<bool> swap(m_lval, true);
-		if (map)
+		auto id = LValueSniffer<Identifier>(_node.leftHandSide()).find();
+		ScopedSwap<bool> swap(m_find_ref, id && m_types.is_pointer(*id));
+		if (_node.assignmentOperator() != Token::Assign)
 		{
-			(*m_ostream) << "Write_" << m_converter.translate(*map).name << "(";
-			print_map_idx_pair(*map);
-			(*m_ostream) << ",";
+			generate_binary_op(
+				_node.leftHandSide(),
+				TokenTraits::AssignmentToBinaryOp(_node.assignmentOperator()),
+				_node.rightHandSide()
+			);
 		}
 		else
 		{
-			print_subexpression(_node.leftHandSide());
-			(*m_ostream) << "=";
+			_node.rightHandSide().accept(*this);
 		}
 	}
+	auto rhs = m_subexpr;
 
-	auto id = LValueSniffer<Identifier>(_node.leftHandSide()).find();
-	ScopedSwap<bool> swap(m_find_ref, id && m_converter.is_pointer(*id));
-
-	if (_node.assignmentOperator() != Token::Assign)
 	{
-		(*m_ostream) << "(";
-		print_binary_op(
-			_node.leftHandSide(),
-			TokenTraits::AssignmentToBinaryOp(_node.assignmentOperator()),
-			_node.rightHandSide()
-		);
-		(*m_ostream) << ")";
-	}
-	else
-	{
-		print_subexpression(_node.rightHandSide());
-	}
-
-	if (map)
-	{
-		(*m_ostream) << ")";
+		ScopedSwap<bool> swap(m_lval, true);
+		if (auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find())
+		{
+			string name = m_types.translate(*map).name;
+			generate_mapping_call("Write", name, *map, rhs);
+		}
+		else
+		{
+			_node.leftHandSide().accept(*this);
+			m_subexpr = make_shared<CBinaryOp>(m_subexpr, "=", rhs);
+		}
 	}
 
 	return false;
@@ -147,44 +141,35 @@ bool ExpressionConverter::visit(TupleExpression const& _node)
 
 bool ExpressionConverter::visit(UnaryOperation const& _node)
 {
-	if (!_node.isPrefixOperation())
-	{
-		print_subexpression(_node.subExpression());
-	}
-
-	Token op_tok = _node.getOperator();
-	switch (op_tok)
+	string op;
+	switch (_node.getOperator())
 	{
 	case Token::Not:
 	case Token::BitNot:
-		(*m_ostream) << "!";
+		op = "!";
 		break;
 	case Token::Delete:
 		// TODO(scottwe)
 		throw runtime_error("Delete not yet supported.");
 	case Token::Inc:
 	case Token::Dec:
-		(*m_ostream) << TokenTraits::friendlyName(op_tok);
+		op = TokenTraits::friendlyName(_node.getOperator());
 		break;
 	default:
 		throw runtime_error("UnaryOp not yet supported.");
 	}
-
-	if (_node.isPrefixOperation())
-	{
-		print_subexpression(_node.subExpression());
-	}
+	
+	_node.subExpression().accept(*this);
+	m_subexpr = make_shared<CUnaryOp>(op, m_subexpr, _node.isPrefixOperation());
 
 	return false;
 }
 
 bool ExpressionConverter::visit(BinaryOperation const& _node)
 {
-	print_binary_op(
-		_node.leftExpression(),
-		_node.getOperator(),
-		_node.rightExpression()
-	);
+	auto const& lhs = _node.leftExpression();
+	auto const& rhs = _node.rightExpression();
+	generate_binary_op(lhs, _node.getOperator(), rhs);
 	return false;
 }
 
@@ -199,7 +184,7 @@ bool ExpressionConverter::visit(FunctionCall const& _node)
 		print_cast(_node);
 		break;
 	case FunctionCallKind::StructConstructorCall:
-		print_struct_constructor(_node.expression(), _node.arguments());
+		print_struct_ctor(_node.expression(), _node.arguments());
 		break;
 	default:
 		throw runtime_error("FunctionCall encountered of unknown kind.");
@@ -248,21 +233,20 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 	{
 	case Type::Category::Mapping:
 		{
+			string map_name = m_types.translate(_node).name;
 			if (m_find_ref)
 			{
-				(*m_ostream) << "Ref_";
+				generate_mapping_call("Ref", map_name, _node, nullptr);
 			}
 			else if (m_lval)
 			{
-				(*m_ostream) << "*Ref_";
+				generate_mapping_call("Ref", map_name, _node, nullptr);
+				m_subexpr = make_shared<CDereference>(m_subexpr);
 			}
 			else
 			{
-				(*m_ostream) << "Read_";
+				generate_mapping_call("Read", map_name, _node, nullptr);
 			}
-			(*m_ostream) << m_converter.translate(_node).name << "(";
-			print_map_idx_pair(_node);
-			(*m_ostream) << ")";
 		}
 		break;
 	default:
@@ -273,14 +257,12 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 
 bool ExpressionConverter::visit(Identifier const& _node)
 {
+	m_subexpr = make_shared<CIdentifier>(
+		m_decls.resolve_identifier(_node), m_types.is_pointer(_node)
+	);
 	if (m_find_ref)
 	{
-		(*m_ostream) << "&(";
-	}
-	(*m_ostream) << m_decls.resolve_identifier(_node);
-	if (m_find_ref)
-	{
-		(*m_ostream) << ")";
+		m_subexpr = make_shared<CReference>(m_subexpr);
 	}
 	return false;
 }
@@ -290,16 +272,16 @@ bool ExpressionConverter::visit(Literal const& _node)
 	switch (_node.token())
 	{
 	case Token::TrueLiteral:
-		(*m_ostream) << "1";
+		m_subexpr = make_shared<CIntLiteral>(1);
 		break;
 	case Token::FalseLiteral:
-		(*m_ostream) << "0";
+		m_subexpr = make_shared<CIntLiteral>(0);
 		break;
 	case Token::Number:
-		(*m_ostream) << literal_to_number(_node);
+		m_subexpr = make_shared<CIntLiteral>(literal_to_number(_node));
 		break;
 	case Token::StringLiteral:
-		(*m_ostream) << m_hasher(_node.value());
+		m_subexpr = make_shared<CIntLiteral>(hash<string>()(_node.value()));
 		break;
 	default:
 		throw runtime_error("Literal type derived from unsupported token.");
@@ -312,57 +294,41 @@ bool ExpressionConverter::visit(Literal const& _node)
 long long int ExpressionConverter::literal_to_number(Literal const& _node)
 {
 	long long int num;
-
 	istringstream iss(_node.value());
 	iss >> num;
 
 	switch(_node.subDenomination())
 	{
 	case Literal::SubDenomination::Szabo:
-		num *= 1000000000000;
-		break;
+		return (num * 1000000000000);
 	case Literal::SubDenomination::Finney:
-		num *= 1000000000000000;
-		break;
+		return (num * 1000000000000000);
 	case Literal::SubDenomination::Ether:
-		num *= 1000000000000000000;
-		break;
+		return (num * 1000000000000000000);
 	case Literal::SubDenomination::Minute:
-		num *= 60;
-		break;
+		return (num * 60);
 	case Literal::SubDenomination::Hour:
-		num *= 60 * 60;
-		break;
+		return (num * 60 * 60);
 	case Literal::SubDenomination::Day:
-		num *= 60 * 60 * 24;
-		break;
+		return (num * 60 * 60 * 24);
 	case Literal::SubDenomination::Week:
-		num *= 60 * 60 * 24 * 7;
-		break;
+		return (num * 60 * 60 * 24 * 7);
 	case Literal::SubDenomination::Year:
-		num *= 60 * 60 * 24 * 365;
-		break;
+		return (num * 60 * 60 * 24 * 365);
 	default:
-		break;
+		return num;
 	}
-
-	return num;
 }
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConverter::print_subexpression(Expression const& _node)
-{
-	(*m_ostream) << "(";
-	_node.accept(*this);
-	(*m_ostream) << ")";
-}
-
-void ExpressionConverter::print_binary_op(
+void ExpressionConverter::generate_binary_op(
 	Expression const& _lhs, Token _op, Expression const& _rhs
 )
 {
-	print_subexpression(_lhs);
+	_lhs.accept(*this);
+	auto subexpr1 = m_subexpr;
+	_rhs.accept(*this);
 
 	switch (_op)
 	{
@@ -393,50 +359,51 @@ void ExpressionConverter::print_binary_op(
 	case Token::GreaterThan:
 	case Token::LessThanOrEqual:
 	case Token::GreaterThanOrEqual:
-		(*m_ostream) << TokenTraits::friendlyName(_op);
+		m_subexpr = make_shared<CBinaryOp>(
+			subexpr1, TokenTraits::friendlyName(_op), m_subexpr
+		);
 		break;
 	default:
 		throw runtime_error("BinOp not yet supported.");
-	}
-
-	print_subexpression(_rhs);
+	}	
 }
 
-// -------------------------------------------------------------------------- //
-
-void ExpressionConverter::print_map_idx_pair(IndexAccess const& _map)
+void ExpressionConverter::generate_mapping_call(
+	string const& _op, string const& _id, IndexAccess const& _map, CExprPtr _v
+)
 {
+	CArgList cargs;
 	{
 		ScopedSwap<bool> swap(m_find_ref, true);
 		_map.baseExpression().accept(*this);
+		cargs.push_back(m_subexpr);
 	}
-	(*m_ostream) << ",";
 	{
 		ScopedSwap<bool> swap(m_find_ref, false);
 		_map.indexExpression()->accept(*this);
+		cargs.push_back(m_subexpr);
 	}
+	if (_v) cargs.push_back(move(_v));
+	m_subexpr = make_shared<CFuncCall>(_op + "_" + _id, cargs);
 }
 
 // -------------------------------------------------------------------------- //
 
-void ExpressionConverter::print_struct_constructor(
-	Expression const& _struct,
-	vector<ASTPointer<Expression const>> const& _args
+void ExpressionConverter::print_struct_ctor(
+	Expression const& _struct, SolArgList const& _args
 )
 {
 	if (auto struct_id = NodeSniffer<Identifier>(_struct).find())
 	{
-		auto translation = m_converter.translate(*struct_id);
-		(*m_ostream) << "Init_" << translation.name << "(";
-		for (unsigned int i = 0; i < _args.size(); ++i)
+		CArgList cargs;
+		for (auto arg : _args)
 		{
-			if (i > 0)
-			{
-				(*m_ostream) << ",";
-			}
-			_args[i]->accept(*this);
+			arg->accept(*this);
+			cargs.push_back(m_subexpr);
 		}
-		(*m_ostream) << ")";
+
+		auto translation = m_types.translate(*struct_id);
+		m_subexpr = make_shared<CFuncCall>("Init_" + translation.name, cargs);
 	}
 	else
 	{
@@ -470,6 +437,7 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		throw runtime_error("FixedPoint conversion is unsupported in solc.");
 	}
 
+	base_expr.accept(*this);
 	if (base_type->category() == Type::Category::Address)
 	{
 		if (auto cast_int = dynamic_cast<IntegerType const*>(cast_type))
@@ -480,21 +448,15 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 			}
 			else
 			{
-				(*m_ostream) << "((unsigned int)(";
-				base_expr.accept(*this);
-				(*m_ostream) << "))";
+				m_subexpr = make_shared<CCast>(m_subexpr, "unsigned int");
 			}
-		}
-		else if (cast_type->category() == Type::Category::Address)
-		{
-			base_expr.accept(*this);
 		}
 		else if (cast_type->category() == Type::Category::Enum)
 		{
 			// TODO(scottwe): implement.
 			throw runtime_error("Enums are not yet supported.");
 		}
-		else
+		else if (cast_type->category() != Type::Category::Address)
 		{
 			throw runtime_error("Unsupported address cast.");
 		}
@@ -509,32 +471,20 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 			{
 				if (cast_int->isSigned())
 				{
-					(*m_ostream) << "((int)(";
+					m_subexpr = make_shared<CCast>(m_subexpr, "int");
 				}
 				else
 				{
-					(*m_ostream) << "((unsigned int)(";
+					m_subexpr = make_shared<CCast>(m_subexpr, "unsigned int");
 				}
-				base_expr.accept(*this);
-				(*m_ostream) << "))";
-			}
-			else
-			{
-				base_expr.accept(*this);
 			}
 		}
 		else if (cast_type->category() == Type::Category::Address)
 		{
-				if (base_int->isSigned())
-				{
-					base_expr.accept(*this);
-				}
-				else
-				{
-					(*m_ostream) << "((int)(";
-					base_expr.accept(*this);
-					(*m_ostream) << "))";
-				}
+			if (!base_int->isSigned())
+			{
+				m_subexpr = make_shared<CCast>(m_subexpr, "int");
+			}
 		}
 		else if (cast_type->category() == Type::Category::Enum)
 		{
@@ -559,11 +509,7 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 	}
 	else if (base_type->category() == Type::Category::Bool)
 	{
-		if (cast_type->category() == Type::Category::Bool)
-		{
-			base_expr.accept(*this);
-		}
-		else
+		if (cast_type->category() != Type::Category::Bool)
 		{
 			throw runtime_error("Unsupported bool cast.");
 		}
@@ -602,7 +548,7 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 }
 
 void ExpressionConverter::print_function(
-	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
+	Expression const& _call, SolArgList const& _args
 )
 {
 	auto ftype = dynamic_cast<FunctionType const*>(_call.annotation().type);
@@ -721,85 +667,70 @@ void ExpressionConverter::print_function(
 }
 
 void ExpressionConverter::print_ext_method(
-	FunctionType const& _type,
-	Expression const& _call,
-	vector<ASTPointer<Expression const>> const& _args
+	FunctionType const& _type, Expression const& _call, SolArgList const& _args
 )
 {
-	if (auto call = NodeSniffer<MemberAccess>(_call).find())
-	{
-		print_method(_type, &call->expression(), _args);
-	}
-	else
+	auto call = NodeSniffer<MemberAccess>(_call).find();
+	if (!call)
 	{
 		throw runtime_error("Unable to extract address from external call.");
 	}
+	print_method(_type, &call->expression(), _args);
 }
 
 void ExpressionConverter::print_method(
-	FunctionType const& _type,
-	Expression const* _ctx,
-	vector<ASTPointer<Expression const>> const& _args
+	FunctionType const& _type, Expression const* _ctx, SolArgList const& _args
 )
 {
 	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
 	const bool is_mutable = (decl.stateMutability() != StateMutability::Pure);
 
-	(*m_ostream) << m_converter.translate(decl).name << "(";
-
+	CArgList carg;
 	if (is_mutable)
 	{
 		if (_ctx)
 		{
+			_ctx->accept(*this);
 			auto id = LValueSniffer<Identifier>(*_ctx).find();
-			if (id && m_converter.is_pointer(*id))
+			if (!(id && m_types.is_pointer(*id)))
 			{
-				_ctx->accept(*this);
+				m_subexpr = make_shared<CReference>(m_subexpr);
 			}
-			else
-			{
-				(*m_ostream) << "&";
-				print_subexpression(*_ctx);
-			}
+			carg.push_back(m_subexpr);
 		}
 		else
 		{
-			(*m_ostream) << "self";
+			carg.push_back(make_shared<CIdentifier>("self", true));
 		}
-		(*m_ostream) << ",state";
+		carg.push_back(make_shared<CIdentifier>("state", true));
 	}
-
-	for (unsigned int i = 0; i < _args.size(); ++i)
+	for (auto arg : _args)
 	{
-		if (is_mutable || i > 0)
-		{
-			(*m_ostream) << ",";
-		}
-		_args[i]->accept(*this);
+		arg->accept(*this);
+		carg.push_back(m_subexpr);
 	}
 
-	(*m_ostream) << ")";
+	m_subexpr = make_shared<CFuncCall>(m_types.translate(decl).name, carg);
 }
 
 void ExpressionConverter::print_contract_ctor(
-	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
+	Expression const& _call, SolArgList const& _args
 )
 {
 	if (auto contract_type = NodeSniffer<UserDefinedTypeName>(_call).find())
 	{
-		auto translation = m_converter.translate(*contract_type);
-		(*m_ostream) << "Init_" << translation.name << "(";
-
+		CArgList cargs;
 		auto decl = contract_type->annotation().referencedDeclaration;
 		if (auto contract = dynamic_cast<ContractDefinition const*>(decl))
 		{
 			if (contract->constructor())
 			{
-				(*m_ostream) << "nullptr,state";
-				for (unsigned int i = 0; i < _args.size(); ++i)
+				cargs.push_back(make_shared<CIdentifier>("nullptr", true));
+				cargs.push_back(make_shared<CIdentifier>("state", true));
+				for (auto arg : _args)
 				{
-					(*m_ostream) << ",";
-					_args[i]->accept(*this);
+					arg->accept(*this);
+					cargs.push_back(m_subexpr);
 				}
 			}
 		}
@@ -807,7 +738,9 @@ void ExpressionConverter::print_contract_ctor(
 		{
 			throw runtime_error("Unable to resolve contract from TypeName.");
 		}
-		(*m_ostream) << ")";
+
+		auto translation = m_types.translate(*contract_type);
+		m_subexpr = make_shared<CFuncCall>("Init_" + translation.name, cargs);
 	}
 	else
 	{
@@ -816,7 +749,7 @@ void ExpressionConverter::print_contract_ctor(
 }
 
 void ExpressionConverter::print_payment(
-	Expression const& _call, vector<ASTPointer<Expression const>> const& _args
+	Expression const& _call, SolArgList const& _args
 )
 {
 	if (_args.size() != 1)
@@ -825,11 +758,12 @@ void ExpressionConverter::print_payment(
 	}
 	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
 	{
-		(*m_ostream) << "_pay(state,";
+		CArgList cargs{make_shared<CIdentifier>("state", true)};
 		call->expression().accept(*this);
-		(*m_ostream) << ",";
+		cargs.push_back(m_subexpr);
 		(_args[0])->accept(*this);
-		(*m_ostream) << ")";	
+		cargs.push_back(m_subexpr);
+		m_subexpr = make_shared<CFuncCall>("_pay", cargs);
 	}
 	else
 	{
@@ -837,18 +771,15 @@ void ExpressionConverter::print_payment(
 	}
 }
 
-void ExpressionConverter::print_assertion(
-	string _type, vector<ASTPointer<Expression const>> const& _args
-)
+void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 {
 	if (_args.empty())
 	{
 		throw runtime_error("Assertion requires condition.");
 	}
 
-	(*m_ostream) << _type << "(";
 	(_args[0])->accept(*this);
-	(*m_ostream) << ")";
+	m_subexpr = make_shared<CFuncCall>(_type, CArgList{m_subexpr});
 }
 
 // -------------------------------------------------------------------------- //
@@ -890,24 +821,12 @@ void ExpressionConverter::print_adt_member(
 )
 {
 	ScopedSwap<bool> swap(m_find_ref, false);
+	_node.accept(*this);
+
+	m_subexpr = make_shared<CMemberAccess>(m_subexpr, "d_" + _member);
 	if (swap.old())
 	{
-		(*m_ostream) << "&(";
-	}
-
-	print_subexpression(_node);
-
-	bool in_storage = false;
-	if (auto id = LValueSniffer<Identifier>(_node).find())
-	{
-		in_storage = m_converter.is_pointer(*id);
-	}
-
-	(*m_ostream) << (in_storage ? "->" : ".") << "d_" << _member;
-
-	if (swap.old())
-	{
-		(*m_ostream) << ")";
+		m_subexpr = make_shared<CReference>(m_subexpr);
 	}
 }
 
@@ -915,19 +834,17 @@ void ExpressionConverter::print_magic_member(
 	TypePointer _type, string const& _member
 )
 {
-	if (auto magic_type = dynamic_cast<MagicType const*>(_type))
-	{
-		auto res = m_magic_members.find({magic_type->kind(), _member});
-		if (res == m_magic_members.end() || res->second == "")
-		{
-			throw runtime_error("Unable to resolve member of Magic type.");
-		}
-		(*m_ostream) << res->second;	
-	}
-	else
+	auto magic_type = dynamic_cast<MagicType const*>(_type);
+	if (!magic_type)
 	{
 		throw runtime_error("Resolution of MagicType failed in MemberAccess.");
 	}
+	auto res = m_magic_members.find({magic_type->kind(), _member});
+	if (res == m_magic_members.end() || res->second == "")
+	{
+		throw runtime_error("Unable to resolve member of Magic type.");
+	}
+	m_subexpr = make_shared<CIdentifier>(res->second, false);
 }
 
 // -------------------------------------------------------------------------- //

@@ -65,7 +65,8 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             (*m_ostream) << "tmp.d_" << decl->name() << "=";
             if (decl->value())
             {
-                ExpressionConverter(*decl->value(), {}, {}).print(*m_ostream);
+                ExpressionConverter value(*decl->value(), {}, {});
+                (*m_ostream) << *value.convert();
             }
             else
             {
