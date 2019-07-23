@@ -86,7 +86,7 @@ bool CCond::is_pointer() const
 
 // -------------------------------------------------------------------------- //
 
-CMemberAccess::CMemberAccess(CExprPtr const _expr, string _member)
+CMemberAccess::CMemberAccess(CExprPtr _expr, string _member)
 : m_expr(move(_expr)), m_member(move(_member)) {}
 
 void CMemberAccess::print(ostream & _out) const
@@ -97,10 +97,10 @@ void CMemberAccess::print(ostream & _out) const
 
 // -------------------------------------------------------------------------- //
 
-CCast::CCast(CExprPtr const _expr, string _type)
+CCast::CCast(CExprPtr _expr, string _type)
 : m_expr(move(_expr)), m_type(move(_type)) {}
 
-void CCast::print(std::ostream & _out) const
+void CCast::print(ostream & _out) const
 {
     _out << "((" << m_type << ")(" << *m_expr << "))";
 }
@@ -124,6 +124,121 @@ void CFuncCall::print(ostream & _out) const
         _out << *(*arg);
     }
     _out << ")";
+}
+
+// -------------------------------------------------------------------------- //
+
+CBlock::CBlock(CBlockList _stmts) : m_stmts(move(_stmts))
+{
+    nest();
+}
+
+void CBlock::print_impl(std::ostream & _out) const
+{
+    _out << "{";
+    for (auto stmt : m_stmts) _out << *stmt;
+    _out << "}";
+}
+
+// -------------------------------------------------------------------------- //
+
+CExprStmt::CExprStmt(CExprPtr _expr): m_expr(move(_expr)) {}
+
+void CExprStmt::print_impl(ostream & _out) const
+{
+    _out << *m_expr;
+}
+
+// -------------------------------------------------------------------------- //
+
+CVarDecl::CVarDecl(string _type, string _name, bool _ptr, CExprPtr _init)
+: m_type(move(_type)), m_name(move(_name)), m_ptr(_ptr), m_init(move(_init)) {}
+
+void CVarDecl::print_impl(ostream & _out) const
+{
+    _out << m_type << (m_ptr ? "*" : " ") << m_name;
+    if (m_init) _out << "=" << *m_init;
+}
+
+// -------------------------------------------------------------------------- //
+
+CIf::CIf(CExprPtr _cond, CStmtPtr _tstmt, CStmtPtr _fstmt)
+: m_cond(move(_cond)), m_tstmt(move(_tstmt)), m_fstmt(move(_fstmt))
+{
+    nest();
+}
+
+void CIf::print_impl(ostream & _out) const
+{
+    _out << "if(" << *m_cond << ")" << *m_tstmt;
+    if (m_fstmt) _out << "else " << *m_fstmt;
+}
+
+// -------------------------------------------------------------------------- //
+
+CWhileLoop::CWhileLoop(CStmtPtr _body, CExprPtr _cond, bool _atleast_once)
+: m_body(move(_body)), m_cond(move(_cond)), m_dowhile(_atleast_once)
+{
+    if (!_atleast_once) nest();
+}
+
+void CWhileLoop::print_impl(ostream & _out) const
+{
+    if (m_dowhile)
+    {
+        _out << "do" << *m_body << "while(" << *m_cond << ")";
+    }
+    else
+    {
+        _out << "while(" << *m_cond << ")" << *m_body;
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+CForLoop::CForLoop(
+    CStmtPtr _init, CExprPtr _cond, CStmtPtr _loop, CStmtPtr _body
+): m_init(move(_init)),
+   m_cond(move(_cond)),
+   m_loop(move(_loop)),
+   m_body(move(_body))
+{
+    nest();
+    if (m_init) m_init->nest();
+    if (m_loop) m_loop->nest();
+}
+
+void CForLoop::print_impl(ostream & _out) const
+{
+    _out << "for(";
+    if (m_init) _out << *m_init;
+    _out << ";";
+    if (m_cond) _out << *m_cond;
+    _out << ";";
+    if (m_loop) _out << *m_loop;
+    _out << ")" << *m_body;
+}
+
+// -------------------------------------------------------------------------- //
+
+void CBreak::print_impl(ostream & _out) const
+{
+    _out << "break";
+}
+
+void CContinue::print_impl(ostream & _out) const
+{
+    _out << "continue";
+}
+
+// -------------------------------------------------------------------------- //
+
+CReturn::CReturn(CExprPtr _retval): m_retval(move(_retval)) {}
+
+void CReturn::print_impl(ostream & _out) const
+{
+    _out << "return";
+    if (m_retval) _out << " " << *m_retval;
 }
 
 // -------------------------------------------------------------------------- //

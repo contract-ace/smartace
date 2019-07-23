@@ -3,10 +3,10 @@
  * First-pass visitor for converting Solidity methods into functions in C.
  */
 
-#include <libsolidity/modelcheck/BlockConverter.h>
-
-#include <libsolidity/modelcheck/ExpressionConverter.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
+
+#include <libsolidity/modelcheck/BlockConverter.h>
+#include <libsolidity/modelcheck/ExpressionConverter.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 
@@ -192,7 +192,7 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     }
     else
     {
-        BlockConverter(_node, m_converter).print(*m_ostream);
+        (*m_ostream) << *BlockConverter(_node, m_converter).convert();
     }
 
     return false;

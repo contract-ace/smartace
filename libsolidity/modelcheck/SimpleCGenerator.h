@@ -142,7 +142,7 @@ class CMemberAccess : public CExpr
 {
 public:
     // Encodes one of (_expr)._member or (_expr)->_member, based on context.
-    CMemberAccess(CExprPtr const _expr, std::string _member);
+    CMemberAccess(CExprPtr _expr, std::string _member);
 
     void print(std::ostream & _out) const override;
 
@@ -160,7 +160,7 @@ class CCast : public CExpr
 {
 public:
     // Encodes the C expression ((_type)(_expr)).
-    CCast(CExprPtr const _expr, std::string _type);
+    CCast(CExprPtr _expr, std::string _type);
 
     void print(std::ostream & _out) const override;
     bool is_pointer() const override;
@@ -186,6 +186,159 @@ public:
 private:
     std::string const m_name;
     CArgList const m_args;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Represents a C block.
+ */
+class CBlock : public CStmt
+{
+public:
+    // Wraps a list of statements inside a brace-enclosed block.
+    CBlock(CBlockList _stmts);
+
+private:
+    CBlockList const m_stmts;
+
+    void print_impl(std::ostream & _out) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * The class of statements with reduce to a single expression.
+ */
+class CExprStmt : public CStmt
+{
+public:
+    // Wraps the expression with a statement.
+    CExprStmt(CExprPtr _expr);
+
+private:
+    CExprPtr const m_expr;
+
+    void print_impl(std::ostream & _out) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * The class of one variable declaration statements, with opt. initialization.
+ */
+class CVarDecl : public CStmt
+{
+public:
+    // Declares a variable of given base type and name. It may be set as a
+    // a pointer, adding * to the declaration, and may take an initial value.
+    CVarDecl(std::string _type, std::string _name, bool _ptr, CExprPtr _init);
+
+private:
+    std::string const m_type;
+    std::string const m_name;
+    bool const m_ptr;
+    CExprPtr const m_init;
+
+    void print_impl(std::ostream & _out) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * The class of if and if/else statements.
+ */
+class CIf : public CStmt
+{
+public:
+    // Represents the statement if(_cond)_tsmtm[ else _fstmt], where _fstmt is
+    // optional.
+    CIf(CExprPtr _cond, CStmtPtr _tstmt, CStmtPtr _fstmt);
+
+private:
+    CExprPtr const m_cond;
+    CStmtPtr const m_tstmt;
+    CStmtPtr const m_fstmt;
+
+    void print_impl(std::ostream & _out) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Corresponds to a while loop in C. Both the while and do/while variants.
+ */
+class CWhileLoop : public CStmt
+{
+public:
+    // Constructs a while loop with given condition and body. If set to run at
+    // least once, a do/while loop is generated.
+    CWhileLoop(CStmtPtr _body, CExprPtr _cond, bool _atleast_once);
+
+private:
+    CStmtPtr const m_body;
+    CExprPtr const m_cond;
+    bool const m_dowhile;
+
+    void print_impl(std::ostream & _out) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Corresponds to a for loop in C, in which all sub-stmts are optional.
+ */
+class CForLoop : public CStmt
+{
+public:
+    // Constructs a while loop with given condition and body. If set to run at
+    // least once, a do/while loop is generated.
+    CForLoop(CStmtPtr _init, CExprPtr _cond, CStmtPtr _loop, CStmtPtr _body);
+
+private:
+    CStmtPtr const m_init;
+    CExprPtr const m_cond;
+    CStmtPtr const m_loop;
+    CStmtPtr const m_body;
+
+    void print_impl(std::ostream & _out) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Corresponds to a break statement in C.
+ */
+class CBreak : public CStmt
+{
+private:
+    void print_impl(std::ostream & _out) const override;
+};
+
+/**
+ * Corresponds to a break statement in C.
+ */
+class CContinue : public CStmt
+{
+private:
+    void print_impl(std::ostream & _out) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Generalizes a return call, with or without return value.
+ */
+class CReturn : public CStmt
+{
+public:
+    // Creates a return statement with a return value.
+    CReturn(CExprPtr _retval);
+
+private:
+    CExprPtr const m_retval;
+
+    void print_impl(std::ostream & _out) const override;
 };
 
 // -------------------------------------------------------------------------- //

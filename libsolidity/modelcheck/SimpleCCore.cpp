@@ -25,6 +25,17 @@ bool CExpr::is_pointer() const
     return false;
 }
 
+void CStmt::nest()
+{
+    m_is_nested = true;
+}
+
+void CStmt::print(std::ostream & _out) const
+{
+    print_impl(_out);
+    if (!m_is_nested) _out << ";";
+}
+
 }
 }
 }

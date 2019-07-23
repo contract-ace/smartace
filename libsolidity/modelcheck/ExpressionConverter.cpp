@@ -384,7 +384,7 @@ void ExpressionConverter::generate_mapping_call(
 		cargs.push_back(m_subexpr);
 	}
 	if (_v) cargs.push_back(move(_v));
-	m_subexpr = make_shared<CFuncCall>(_op + "_" + _id, cargs);
+	m_subexpr = make_shared<CFuncCall>(_op + "_" + _id, move(cargs));
 }
 
 // -------------------------------------------------------------------------- //
@@ -402,8 +402,8 @@ void ExpressionConverter::print_struct_ctor(
 			cargs.push_back(m_subexpr);
 		}
 
-		auto translation = m_types.translate(*struct_id);
-		m_subexpr = make_shared<CFuncCall>("Init_" + translation.name, cargs);
+		auto name = m_types.translate(*struct_id).name;
+		m_subexpr = make_shared<CFuncCall>("Init_" + name, move(cargs));
 	}
 	else
 	{
@@ -710,7 +710,8 @@ void ExpressionConverter::print_method(
 		carg.push_back(m_subexpr);
 	}
 
-	m_subexpr = make_shared<CFuncCall>(m_types.translate(decl).name, carg);
+	auto name = m_types.translate(decl).name;
+	m_subexpr = make_shared<CFuncCall>(name, move(carg));
 }
 
 void ExpressionConverter::print_contract_ctor(
@@ -739,8 +740,8 @@ void ExpressionConverter::print_contract_ctor(
 			throw runtime_error("Unable to resolve contract from TypeName.");
 		}
 
-		auto translation = m_types.translate(*contract_type);
-		m_subexpr = make_shared<CFuncCall>("Init_" + translation.name, cargs);
+		auto name = m_types.translate(*contract_type).name;
+		m_subexpr = make_shared<CFuncCall>("Init_" + name, move(cargs));
 	}
 	else
 	{
@@ -763,7 +764,7 @@ void ExpressionConverter::print_payment(
 		cargs.push_back(m_subexpr);
 		(_args[0])->accept(*this);
 		cargs.push_back(m_subexpr);
-		m_subexpr = make_shared<CFuncCall>("_pay", cargs);
+		m_subexpr = make_shared<CFuncCall>("_pay", move(cargs));
 	}
 	else
 	{

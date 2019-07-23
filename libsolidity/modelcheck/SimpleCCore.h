@@ -42,8 +42,30 @@ public:
     virtual bool is_pointer() const;
 };
 
+/**
+ * Extends the CElement class to handle statements and nested statements.
+ */
+class CStmt : public CElement
+{
+public:
+    virtual ~CStmt() = default;
+
+    void print(std::ostream & _o) const final;
+
+    // Once called, the stmt will print itself as if it were a nested sub-stmt.
+    void nest();
+
+private:
+    bool m_is_nested = false;
+
+    // Prints the statement, modulo any ending tokens (ie semi-colons).
+    virtual void print_impl(std::ostream & _out) const = 0;
+};
+
 using CExprPtr = std::shared_ptr<CExpr>;
+using CStmtPtr = std::shared_ptr<CStmt>;
 using CArgList = std::vector<CExprPtr>;
+using CBlockList = std::vector<CStmtPtr>;
 
 }
 }

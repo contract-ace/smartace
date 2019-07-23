@@ -6,6 +6,7 @@
 #include <libsolidity/modelcheck/BlockConverter.h>
 
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+#include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <stdexcept>
 
@@ -22,7 +23,7 @@ namespace modelcheck
 
 BlockConverter::BlockConverter(
 	FunctionDefinition const& _func, TypeConverter const& _types
-): m_body(&_func.body()), m_types(_types)
+): m_body(_func.body()), m_types(_types)
 {
 	// TODO(scottwe): support multiple return types.
 	if (_func.returnParameters().size() > 1)
@@ -47,10 +48,11 @@ BlockConverter::BlockConverter(
 
 // -------------------------------------------------------------------------- //
 
-void BlockConverter::print(ostream& _stream)
+CStmtPtr BlockConverter::convert()
 {
-	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
-	m_body->accept(*this);
+	m_substmt = nullptr;
+	m_body.accept(*this);
+	return m_substmt;
 }
 
 // -------------------------------------------------------------------------- //
@@ -58,60 +60,44 @@ void BlockConverter::print(ostream& _stream)
 bool BlockConverter::visit(Block const& _node)
 {
 	ScopedSwap<bool> top_level_swap(m_is_top_level, false);
-
 	m_decls.enter();
-	(*m_ostream) << "{";
 
+	CBlockList stmts;
 	if (top_level_swap.old() && m_retvar)
 	{
-		vector<ASTPointer<VariableDeclaration>> decls({m_retvar});
-		VariableDeclarationStatement decl_stmt(
-			langutil::SourceLocation(), nullptr, decls, nullptr
-		);
-		decl_stmt.accept(*this);
+		auto type = m_types.translate(*m_retvar).type;
+		auto name = m_retvar->name();
+		m_decls.record_declaration(*m_retvar);
+		stmts.push_back(make_shared<CVarDecl>(type, name, false, nullptr));
 	}
-
 	for (auto const& stmt : _node.statements())
 	{
 		stmt->accept(*this);
+		stmts.push_back(m_substmt);
 	}
-
 	if (top_level_swap.old() && m_retvar)
 	{
-		auto id = make_shared<Identifier>(
-			langutil::SourceLocation(), make_shared<string>(m_retvar->name())
-		);
-		Return ret_stmt(langutil::SourceLocation(), nullptr, id);
-		ret_stmt.accept(*this);
+		auto retvar = make_shared<CIdentifier>(m_retvar->name(), false);
+		stmts.push_back(make_shared<CReturn>(move(retvar)));
 	}
+	m_substmt = make_shared<CBlock>(move(stmts));
 
-	(*m_ostream) << "}";
 	m_decls.exit();
 
 	return false;
 }
 
-bool BlockConverter::visit(PlaceholderStatement const& _node)
-{
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Placeholder statement not yet supported.");
-}
-
 bool BlockConverter::visit(IfStatement const& _node)
 {
-	ScopedSwap<bool> if_statement_swap(m_is_if_statement_body, true);
-
-	(*m_ostream)
-		<< (if_statement_swap.old() ? " " : "") << "if("
-		<< *ExpressionConverter(_node.condition(), m_types, m_decls).convert()
-		<< ")";
-	_node.trueStatement().accept(*this);
+	ExpressionConverter cond(_node.condition(), m_types, m_decls);
+	CStmtPtr opt_substmt = nullptr;
 	if (_node.falseStatement())
 	{
-		(*m_ostream) << "else";
 		_node.falseStatement()->accept(*this);
+		opt_substmt = m_substmt;
 	}
+	_node.trueStatement().accept(*this);
+	m_substmt = make_shared<CIf>(cond.convert(), m_substmt, opt_substmt);
 
 	return false;
 }
@@ -119,20 +105,10 @@ bool BlockConverter::visit(IfStatement const& _node)
 bool BlockConverter::visit(WhileStatement const& _node)
 {
 	// TODO(scottwe): Ensure number of interations has finite bound.
+	bool is_do_while = _node.isDoWhile();
 	ExpressionConverter cond(_node.condition(), m_types, m_decls);
-
-	if (_node.isDoWhile())
-	{
-		(*m_ostream) << "do";
-		_node.body().accept(*this);
-		(*m_ostream) << "while(" << *cond.convert() << ")";
-		end_statement();
-	}
-	else
-	{
-		(*m_ostream) << "while(" << *cond.convert() << ")";
-		_node.body().accept(*this);
-	}
+	_node.body().accept(*this);
+	m_substmt = make_shared<CWhileLoop>(m_substmt, cond.convert(), is_do_while);
 
 	return false;
 }
@@ -141,31 +117,30 @@ bool BlockConverter::visit(ForStatement const& _node)
 {
 	m_decls.enter();
 
-	(*m_ostream) << "for(";
-	print_loop_statement(_node.initializationExpression());
-	(*m_ostream) << ";";
-
 	// TODO(scottwe): Ensure number of interations has finite bound.
+	CStmtPtr init = nullptr;
+	if (_node.initializationExpression())
+	{
+		_node.initializationExpression()->accept(*this);
+		init = m_substmt;
+	}
+	CExprPtr cond = nullptr;
 	if (_node.condition())
 	{
-		ExpressionConverter cond(*_node.condition(), m_types, m_decls);
-		(*m_ostream) << *cond.convert();
+		ExpressionConverter condexpr(*_node.condition(), m_types, m_decls);
+		cond = condexpr.convert();
 	}
-
-	(*m_ostream) << ";";
-	print_loop_statement(_node.loopExpression());
-	(*m_ostream) << ")";
+	CStmtPtr loop = nullptr;
+	if (_node.loopExpression())
+	{
+		_node.loopExpression()->accept(*this);
+		loop = m_substmt;
+	}
 	_node.body().accept(*this);
+	m_substmt = make_shared<CForLoop>(init, cond, loop, m_substmt);
 
 	m_decls.exit();
 
-	return false;
-}
-
-bool BlockConverter::visit(Continue const&)
-{
-	(*m_ostream) << "continue";
-	end_statement();
 	return false;
 }
 
@@ -176,22 +151,15 @@ bool BlockConverter::visit(InlineAssembly const& _node)
 	throw runtime_error("Inline assembly statement not yet supported.");
 }
 
-bool BlockConverter::visit(Break const&)
-{
-	(*m_ostream) << "break";
-	end_statement();
-	return false;
-}
-
 bool BlockConverter::visit(Return const& _node)
 {
-	(*m_ostream) << "return";
+	CExprPtr retval_expr = nullptr;
 	if (_node.expression())
 	{
 		ExpressionConverter retval(*_node.expression(), m_types, m_decls);
-		(*m_ostream) << " " << *retval.convert();
+		retval_expr = retval.convert();
 	}
-	end_statement();
+	m_substmt = make_shared<CReturn>(retval_expr);
 	return false;
 }
 
@@ -218,19 +186,17 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 	else if (!_node.declarations().empty())
 	{
 		const auto &decl = *_node.declarations()[0];
+		auto type = m_types.translate(decl).type;
 		bool is_ref = decl.referenceLocation() == VariableDeclaration::Storage;
 		m_decls.record_declaration(decl);
 
-		(*m_ostream) << m_types.translate(decl).type
-		             << (is_ref ? "*" : " ") << decl.name();
-
+		CExprPtr val_expr = nullptr;
 		if (_node.initialValue())
 		{
-			ExpressionConverter value(*_node.initialValue(), m_types, m_decls, is_ref);
-			(*m_ostream) << "=" << *value.convert();
+			ExpressionConverter val(*_node.initialValue(), m_types, m_decls, is_ref);
+			val_expr = val.convert();
 		}
-
-		end_statement();
+		m_substmt = make_shared<CVarDecl>(type, decl.name(), is_ref, val_expr);
 	}
 
 	return false;
@@ -239,28 +205,27 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 bool BlockConverter::visit(ExpressionStatement const& _node)
 {
 	ExpressionConverter expr(_node.expression(), m_types, m_decls);
-	(*m_ostream) << *expr.convert();
-	end_statement();
+	m_substmt = make_shared<CExprStmt>(expr.convert());
 	return false;
 }
 
 // -------------------------------------------------------------------------- //
 
-void BlockConverter::print_loop_statement(Statement const* _node)
+void BlockConverter::endVisit(Continue const&)
 {
-	if (_node)
-	{
-		ScopedSwap<bool> loop_statement_swap(m_is_loop_statement, true);
-		_node->accept(*this);
-	}
+	m_substmt = make_shared<CContinue>();
 }
 
-void BlockConverter::end_statement()
+void BlockConverter::endVisit(Break const&)
 {
-	if (!m_is_loop_statement)
-	{
-		(*m_ostream) << ";";
-	}
+	m_substmt = make_shared<CBreak>();
+}
+
+void BlockConverter::endVisit(PlaceholderStatement const& _node)
+{
+	(void) _node;
+	// TODO(scottwe): implement.
+	throw runtime_error("Placeholder statement not yet supported.");
 }
 
 // -------------------------------------------------------------------------- //
