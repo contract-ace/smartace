@@ -285,6 +285,23 @@ void CFuncDef::print(ostream & _out) const
 
 // -------------------------------------------------------------------------- //
 
+CStructDef::CStructDef(string _name, shared_ptr<CParams> _fields)
+: m_name(_name), m_fields(_fields) {}
+
+void CStructDef::print(ostream & _out) const
+{
+    _out << "struct " << m_name;
+    if (m_fields)
+    {
+        _out << "{";
+        for (auto field : *m_fields) _out << *field;
+        _out << "}";
+    }
+    _out << ";";
+}
+
+// -------------------------------------------------------------------------- //
+
 }
 }
 }

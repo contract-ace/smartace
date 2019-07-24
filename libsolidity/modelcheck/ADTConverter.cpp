@@ -5,6 +5,7 @@
 
 #include <libsolidity/modelcheck/ADTConverter.h>
 
+#include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 
@@ -37,16 +38,8 @@ void ADTConverter::print(ostream& _stream)
 
 bool ADTConverter::visit(ContractDefinition const& _node)
 {
-    for (auto structure : _node.definedStructs())
-    {
-        structure->accept(*this);
-    }
-
-    for (auto decl : _node.stateVariables())
-    {
-        decl->accept(*this);
-    }
-
+    for (auto structure : _node.definedStructs()) structure->accept(*this);
+    for (auto decl : _node.stateVariables()) decl->accept(*this);
     return false;
 }
 
@@ -54,52 +47,52 @@ bool ADTConverter::visit(ContractDefinition const& _node)
 
 void ADTConverter::endVisit(ContractDefinition const& _node)
 {
-    (*m_ostream) << m_converter.translate(_node).type;
+    shared_ptr<CParams> fields;
     if (!m_forward_declare)
     {
-        (*m_ostream) << "{";
+        fields = make_shared<CParams>();
         for (auto decl : _node.stateVariables())
         {
             auto type = m_converter.translate(*decl).type;
-            (*m_ostream) << type << " d_" << decl->name() << ";";
+            fields->push_back(make_shared<CVarDecl>(type, "d_" + decl->name()));
         }
-        (*m_ostream) << "}";
     }
-    (*m_ostream) << ";";
+    CStructDef contract(m_converter.translate(_node).name, move(fields));
+    (*m_ostream) << contract;
 }
 
 void ADTConverter::endVisit(Mapping const& _node)
 {
-    (*m_ostream) << m_converter.translate(_node).type;
+    shared_ptr<CParams> fields;
     if (!m_forward_declare)
     {
         string key_type = m_converter.translate(_node.keyType()).type;
-        string val_type = m_converter.translate(_node.valueType()).type;
-
-        (*m_ostream) << "{";
-        (*m_ostream) << "int m_set;";
-        (*m_ostream) << key_type << " m_curr;";
-        (*m_ostream) << val_type << " d_;";
-        (*m_ostream) << val_type << " d_nd;";
-        (*m_ostream) << "}";
+        string val_type = m_converter.translate(_node.valueType()).type; 
+        fields = make_shared<CParams>(CParams{
+            make_shared<CVarDecl>("int", "m_set"),
+            make_shared<CVarDecl>(key_type, "m_curr"),
+            make_shared<CVarDecl>(val_type, "d_"),
+            make_shared<CVarDecl>(val_type, "d_nd")
+        });
     }
-    (*m_ostream) << ";";
+    CStructDef mapping(m_converter.translate(_node).name, move(fields));
+    (*m_ostream) << mapping;
 }
 
 void ADTConverter::endVisit(StructDefinition const& _node)
 {
-    (*m_ostream) << m_converter.translate(_node).type;
+    shared_ptr<CParams> fields;
     if (!m_forward_declare)
     {
-        (*m_ostream) << "{";
+        fields = make_shared<CParams>();
         for (auto decl : _node.members())
         {
             auto type = m_converter.translate(*decl).type;
-            (*m_ostream) << type << " d_" << decl->name() << ";";
+            fields->push_back(make_shared<CVarDecl>(type, "d_" + decl->name()));
         }
-        (*m_ostream) << "}";
     }
-    (*m_ostream) << ";";
+    CStructDef structure(m_converter.translate(_node).name, move(fields));
+    (*m_ostream) << structure;
 }
 
 // -------------------------------------------------------------------------- //

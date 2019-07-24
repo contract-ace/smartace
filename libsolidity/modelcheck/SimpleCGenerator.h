@@ -383,6 +383,24 @@ private:
 
 // -------------------------------------------------------------------------- //
 
+/**
+ *
+ */
+class CStructDef : public CElement
+{
+public:
+    // TODO
+    CStructDef(std::string _name, std::shared_ptr<CParams> _fields);
+
+    void print(std::ostream & _out) const override;
+
+private:
+    std::string m_name;
+    std::shared_ptr<CParams> m_fields;
+};
+
+// -------------------------------------------------------------------------- //
+
 }
 }
 }
