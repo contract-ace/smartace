@@ -113,6 +113,17 @@ private:
     std::string const m_op;
 };
 
+/**
+ * Helper class to generate the (_lhs)=(_rhs) binary operation, due to its
+ * frequency.
+ */
+class CAssign : public CBinaryOp
+{
+public:
+    // Encodes the C expression (_lhs)_op(_rhs).
+    CAssign(CExprPtr _lhs, CExprPtr _rhs);
+};
+
 // -------------------------------------------------------------------------- //
 
 /**
@@ -233,6 +244,11 @@ public:
     // Declares a variable of given base type and name. It may be set as a
     // a pointer, adding * to the declaration, and may take an initial value.
     CVarDecl(std::string _type, std::string _name, bool _ptr, CExprPtr _init);
+    CVarDecl(std::string _type, std::string _name, bool _ptr);
+    CVarDecl(std::string _type, std::string _name);
+
+    // Generates an identifier for this declaration.
+    std::shared_ptr<CIdentifier> id() const;
 
 private:
     std::string const m_type;

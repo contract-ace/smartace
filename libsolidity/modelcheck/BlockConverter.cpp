@@ -33,10 +33,7 @@ BlockConverter::BlockConverter(
 	else if (!_func.returnParameters().empty())
 	{
 		auto const& retvar = _func.returnParameters()[0];
-		if (retvar->name() != "")
-		{
-			m_retvar = retvar;
-		}
+		if (retvar->name() != "") m_rv = retvar;
 	}
 
 	m_decls.enter();
@@ -48,11 +45,12 @@ BlockConverter::BlockConverter(
 
 // -------------------------------------------------------------------------- //
 
-CStmtPtr BlockConverter::convert()
+shared_ptr<CBlock> BlockConverter::convert()
 {
 	m_substmt = nullptr;
+	m_last_block = nullptr;
 	m_body.accept(*this);
-	return m_substmt;
+	return m_last_block;
 }
 
 // -------------------------------------------------------------------------- //
@@ -63,24 +61,24 @@ bool BlockConverter::visit(Block const& _node)
 	m_decls.enter();
 
 	CBlockList stmts;
-	if (top_level_swap.old() && m_retvar)
+	shared_ptr<CVarDecl> rv;
+	if (top_level_swap.old() && m_rv)
 	{
-		auto type = m_types.translate(*m_retvar).type;
-		auto name = m_retvar->name();
-		m_decls.record_declaration(*m_retvar);
-		stmts.push_back(make_shared<CVarDecl>(type, name, false, nullptr));
+		m_decls.record_declaration(*m_rv);
+		rv = make_shared<CVarDecl>(m_types.translate(*m_rv).type, m_rv->name());
+		stmts.push_back(rv);
 	}
 	for (auto const& stmt : _node.statements())
 	{
 		stmt->accept(*this);
 		stmts.push_back(m_substmt);
 	}
-	if (top_level_swap.old() && m_retvar)
+	if (top_level_swap.old() && m_rv)
 	{
-		auto retvar = make_shared<CIdentifier>(m_retvar->name(), false);
-		stmts.push_back(make_shared<CReturn>(move(retvar)));
+		stmts.push_back(make_shared<CReturn>(rv->id()));
 	}
-	m_substmt = make_shared<CBlock>(move(stmts));
+	m_last_block = make_shared<CBlock>(move(stmts));
+	m_substmt = m_last_block;
 
 	m_decls.exit();
 
@@ -190,13 +188,14 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 		bool is_ref = decl.referenceLocation() == VariableDeclaration::Storage;
 		m_decls.record_declaration(decl);
 
-		CExprPtr val_expr = nullptr;
+		CExprPtr val = nullptr;
 		if (_node.initialValue())
 		{
-			ExpressionConverter val(*_node.initialValue(), m_types, m_decls, is_ref);
-			val_expr = val.convert();
+			auto const& expr = *_node.initialValue(); 
+			ExpressionConverter val_converter(expr, m_types, m_decls, is_ref);
+			val = val_converter.convert();
 		}
-		m_substmt = make_shared<CVarDecl>(type, decl.name(), is_ref, val_expr);
+		m_substmt = make_shared<CVarDecl>(type, decl.name(), is_ref, val);
 	}
 
 	return false;

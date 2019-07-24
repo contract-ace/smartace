@@ -6,7 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/SimpleCCore.h>
+#include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
 #include <libsolidity/modelcheck/VariableScopeResolver.h>
 #include <ostream>
@@ -34,7 +34,7 @@ public:
     );
 
 	// Generates a SimpleCGenerator representation of the Solidity function.
-    CStmtPtr convert();
+    std::shared_ptr<CBlock> convert();
 
 protected:
 	bool visit(Block const& _node) override;
@@ -57,8 +57,9 @@ private:
 	TypeConverter const& m_types;
 	VariableScopeResolver m_decls;
 
-	ASTPointer<VariableDeclaration> m_retvar = nullptr;
+	ASTPointer<VariableDeclaration> m_rv = nullptr;
 	CStmtPtr m_substmt;
+	std::shared_ptr<CBlock> m_last_block;
 
 	bool m_is_top_level = true;
 };

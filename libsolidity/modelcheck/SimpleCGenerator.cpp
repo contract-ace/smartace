@@ -69,6 +69,8 @@ void CBinaryOp::print(ostream & _out) const
     _out << "(" << *m_lhs << ")" << m_op << "(" << *m_rhs << ")";
 }
 
+CAssign::CAssign(CExprPtr _lhs, CExprPtr _rhs): CBinaryOp(_lhs, "=", _rhs) {}
+
 // -------------------------------------------------------------------------- //
 
 CCond::CCond(CExprPtr _cond, CExprPtr _tcase, CExprPtr _fcase)
@@ -153,6 +155,17 @@ void CExprStmt::print_impl(ostream & _out) const
 
 CVarDecl::CVarDecl(string _type, string _name, bool _ptr, CExprPtr _init)
 : m_type(move(_type)), m_name(move(_name)), m_ptr(_ptr), m_init(move(_init)) {}
+
+CVarDecl::CVarDecl(string _type, string _name, bool _ptr)
+: CVarDecl(move(_type), move(_name), _ptr, nullptr) {}
+
+CVarDecl::CVarDecl(string _type, string _name)
+: CVarDecl(move(_type), move(_name), false) {}
+
+shared_ptr<CIdentifier> CVarDecl::id() const
+{
+    return make_shared<CIdentifier>(m_name, m_ptr);
+}
 
 void CVarDecl::print_impl(ostream & _out) const
 {
