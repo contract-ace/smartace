@@ -359,6 +359,30 @@ private:
 
 // -------------------------------------------------------------------------- //
 
+/**
+ * Generalizes the definition of a standard C function. The function may be made
+ * a forward declaration by providing no body.
+ */
+class CFuncDef : public CElement
+{
+public:
+    // Represents the function, _id.type _id.name(_args[0],...,args[k]){_body}.
+    CFuncDef(
+        std::shared_ptr<CVarDecl> _id,
+        CParams _args,
+        std::shared_ptr<CBlock> _body
+    );
+
+    void print(std::ostream & _out) const override;
+
+private:
+    std::shared_ptr<CVarDecl> m_id;
+    CParams m_args;
+    std::shared_ptr<CBlock> m_body;
+};
+
+// -------------------------------------------------------------------------- //
+
 }
 }
 }

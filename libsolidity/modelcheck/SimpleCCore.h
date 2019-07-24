@@ -62,10 +62,12 @@ private:
     virtual void print_impl(std::ostream & _out) const = 0;
 };
 
+class CVarDecl;
 using CExprPtr = std::shared_ptr<CExpr>;
 using CStmtPtr = std::shared_ptr<CStmt>;
 using CArgList = std::vector<CExprPtr>;
 using CBlockList = std::vector<CStmtPtr>;
+using CParams = std::vector<std::shared_ptr<CVarDecl>>;
 
 }
 }

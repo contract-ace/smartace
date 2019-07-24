@@ -52,30 +52,30 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "struct A Init_A()";
     expect << "{";
     expect << "struct A tmp;";
-    expect << "tmp.d_a=0;";
-    expect << "tmp.d_b=10;";
-    expect << "tmp.d_c=Init_0_A_B();";
+    expect << "((tmp).d_a)=(0);";
+    expect << "((tmp).d_b)=(10);";
+    expect << "((tmp).d_c)=(Init_0_A_B());";
     expect << "return tmp;";
     expect << "}";
     // -- Init_0_A_B
     expect << "struct A_B Init_0_A_B()";
     expect << "{";
     expect << "struct A_B tmp;";
-    expect << "tmp.d_a=0;";
+    expect << "((tmp).d_a)=(0);";
     expect << "return tmp;";
     expect << "}";
     // -- Init_A_B
     expect << "struct A_B Init_A_B(unsigned int a)";
     expect << "{";
     expect << "struct A_B tmp=Init_0_A_B();";
-    expect << "tmp.d_a=a;";
+    expect << "((tmp).d_a)=(a);";
     expect << "return tmp;";
     expect << "}";
     // -- ND_A_B
     expect << "struct A_B ND_A_B()";
     expect << "{";
     expect << "struct A_B tmp;";
-    expect << "tmp.d_a=ND_Init_Val();";
+    expect << "((tmp).d_a)=(ND_Init_Val());";
     expect << "return tmp;";
     expect << "}";
 
@@ -108,9 +108,9 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
            << ",unsigned int _a)";
     expect << "{";
     expect << "struct A tmp;";
-    expect << "tmp.d_a=0;";
-    expect << "tmp.d_b=0;";
-    expect << "Ctor_A(&tmp,state,_a);";
+    expect << "((tmp).d_a)=(0);";
+    expect << "((tmp).d_b)=(0);";
+    expect << "Ctor_A(&(tmp),state,_a);";
     expect << "return tmp;";
     expect << "}";
     // -- Ctor_A
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     ostringstream actual, expect;
     FunctionConverter(ast, converter, false).print(actual);
     // -- Init_A
-    expect << "struct A Init_A(struct A*self,struct CallState*state)";
+    expect << "struct A Init_A()";
     expect << "{";
     expect << "struct A tmp;";
     expect << "return tmp;";
@@ -158,36 +158,56 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "struct A_B Init_0_A_B()";
     expect << "{";
     expect << "struct A_B tmp;";
-    expect << "tmp.d_i1=0";
+    expect << "((tmp).d_i1)=(0);";
     expect << "return tmp;";
     expect << "}";
     // -- Init_A_B
     expect << "struct A_B Init_A_B(int i1)";
     expect << "{";
     expect << "struct A_B tmp=Init_0_A_B();";
-    expect << "tmp.d_i1=i1;";
+    expect << "((tmp).d_i1)=(i1);";
+    expect << "return tmp;";
+    expect << "}";
+    // -- ND_A_B
+    expect << "struct A_B ND_A_B()";
+    expect << "{";
+    expect << "struct A_B tmp;";
+    expect << "((tmp).d_i1)=(ND_Init_Val());";
     expect << "return tmp;";
     expect << "}";
     // -- Init_0_A_C
-    expect << "struct A_B Init_0_A_C()";
+    expect << "struct A_C Init_0_A_C()";
     expect << "{";
     expect << "struct A_C tmp;";
-    expect << "tmp.d_i1=0;";
-    expect << "tmp.d_b1=Init_0_A_B();";
-    expect << "tmp.d_i2=0;";
-    expect << "tmp.d_i3=0;";
-    expect << "tmp.d_b2=Init_0_A_B();";
+    expect << "((tmp).d_i1)=(0);";
+    expect << "((tmp).d_b1)=(Init_0_A_B());";
+    expect << "((tmp).d_i2)=(0);";
+    expect << "((tmp).d_ui1)=(0);";
+    expect << "((tmp).d_b2)=(Init_0_A_B());";
     expect << "return tmp;";
     expect << "}";
     // -- Init_A_C
-    expect << "struct A_B Init_0_A_C(int i1,int i2,unsigned int i3)";
+    expect << "struct A_C Init_A_C(int i1,int i2,unsigned int ui1)";
     expect << "{";
-    expect << "struct A_C tmp;";
-    expect << "tmp.d_i1=i1;";
-    expect << "tmp.d_i2=i2;";
-    expect << "tmp.d_i3=i3;";
+    expect << "struct A_C tmp=Init_0_A_C();";
+    expect << "((tmp).d_i1)=(i1);";
+    expect << "((tmp).d_i2)=(i2);";
+    expect << "((tmp).d_ui1)=(ui1);";
     expect << "return tmp;";
     expect << "}";
+    // -- ND_A_B
+    expect << "struct A_C ND_A_C()";
+    expect << "{";
+    expect << "struct A_C tmp;";
+    expect << "((tmp).d_i1)=(ND_Init_Val());";
+    expect << "((tmp).d_b1)=(ND_A_B());";
+    expect << "((tmp).d_i2)=(ND_Init_Val());";
+    expect << "((tmp).d_ui1)=(ND_Init_Val());";
+    expect << "((tmp).d_b2)=(ND_A_B());";
+    expect << "return tmp;";
+    expect << "}";
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END();

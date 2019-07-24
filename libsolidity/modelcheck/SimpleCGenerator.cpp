@@ -256,6 +256,35 @@ void CReturn::print_impl(ostream & _out) const
 
 // -------------------------------------------------------------------------- //
 
+CFuncDef::CFuncDef(
+    shared_ptr<CVarDecl> _id, CParams _args, shared_ptr<CBlock> _body
+): m_id(move(_id)), m_args(move(_args)), m_body(move(_body))
+{
+    m_id->nest();
+    for (auto arg : m_args) arg->nest();
+}
+
+void CFuncDef::print(ostream & _out) const
+{
+    _out << *m_id << "(";
+    for (auto itr = m_args.begin(); itr != m_args.end(); ++itr)
+    {
+        if (itr != m_args.begin()) _out << ",";
+        _out << *(*itr);
+    }
+    _out << ")";
+    if (m_body)
+    {
+        _out << *m_body;
+    }
+    else
+    {
+        _out << ";";
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
 }
 }
 }

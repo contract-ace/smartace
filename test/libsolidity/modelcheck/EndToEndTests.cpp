@@ -120,70 +120,6 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
-// Ensures that when no arguments are given, a modifier will produce a void
-// function, with only state params, and the name `Modifier_<struct>_<func>`.
-BOOST_AUTO_TEST_CASE(simple_modifier)
-{
-    char const* text = R"(
-        contract A {
-			uint a;
-            uint b;
-            modifier simpleModifier {
-                require(a >= 100, "Placeholder");
-                _;
-            }
-        }
-    )";
-
-    auto const &ast = *parseAndAnalyse(text);
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
-
-    ostringstream func_expect;
-    func_expect << "struct A Init_A();";
-    func_expect << "void Modifier_A_simpleModifier"
-                << "(struct A*self,struct CallState*state);";
-
-    BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
-    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
-}
-
-// Ensures that if a modifier has arguments, that these arguments are added to
-// its signature.
-BOOST_AUTO_TEST_CASE(modifier_with_args)
-{
-    char const* text = R"(
-        contract A {
-            modifier simpleModifier(uint _a, int _b) {
-                require(_a >= 100 && _b >= 100,  "Placeholder");
-                _;
-            }
-        }
-    )";
-
-    auto const &ast = *parseAndAnalyse(text);
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
-
-    ostringstream func_expect;
-    func_expect << "struct A Init_A();";
-    func_expect << "void Modifier_A_simpleModifier(struct A*self,"
-                << "struct CallState*state,unsigned int _a,int _b);";
-
-    BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
-    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
-}
-
 BOOST_AUTO_TEST_CASE(simple_func)
 {
     char const* text = R"(
@@ -552,80 +488,80 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "struct A Init_A()";
     func_expect << "{";
     func_expect << "struct A tmp;";
-    func_expect << "tmp.d_min_amt=42;";
-    func_expect << "tmp.d_accs=Init_0_A_accs_submap1();";
+    func_expect << "((tmp).d_min_amt)=(42);";
+    func_expect << "((tmp).d_accs)=(Init_0_A_accs_submap1());";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_0_A_S
     func_expect << "struct A_S Init_0_A_S()";
     func_expect << "{";
     func_expect << "struct A_S tmp;";
-    func_expect << "tmp.d_owner=0;";
-    func_expect << "tmp.d_val=0;";
+    func_expect << "((tmp).d_owner)=(0);";
+    func_expect << "((tmp).d_val)=(0);";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_S
     func_expect << "struct A_S Init_A_S(int owner,unsigned int val)";
     func_expect << "{";
     func_expect << "struct A_S tmp=Init_0_A_S();";
-    func_expect << "tmp.d_owner=owner;";
-    func_expect << "tmp.d_val=val;";
+    func_expect << "((tmp).d_owner)=(owner);";
+    func_expect << "((tmp).d_val)=(val);";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- ND_A_S
     func_expect << "struct A_S ND_A_S()";
     func_expect << "{";
     func_expect << "struct A_S tmp;";
-    func_expect << "tmp.d_owner=ND_Init_Val();";
-    func_expect << "tmp.d_val=ND_Init_Val();";
+    func_expect << "((tmp).d_owner)=(ND_Init_Val());";
+    func_expect << "((tmp).d_val)=(ND_Init_Val());";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_accs_submap1
     func_expect << "struct A_accs_submap1 Init_0_A_accs_submap1()";
     func_expect << "{";
     func_expect << "struct A_accs_submap1 tmp;";
-    func_expect << "tmp.m_set=0;";
-    func_expect << "tmp.m_curr=0;";
-    func_expect << "tmp.d_=Init_0_A_S();";
-    func_expect << "tmp.d_nd=Init_0_A_S();";
+    func_expect << "((tmp).m_set)=(0);";
+    func_expect << "((tmp).m_curr)=(0);";
+    func_expect << "((tmp).d_)=(Init_0_A_S());";
+    func_expect << "((tmp).d_nd)=(Init_0_A_S());";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- ND_A_accs_submap1
     func_expect << "struct A_accs_submap1 ND_A_accs_submap1()";
     func_expect << "{";
     func_expect << "struct A_accs_submap1 tmp;";
-    func_expect << "tmp.m_set=ND_Init_Val();";
-    func_expect << "tmp.m_curr=ND_Init_Val();";
-    func_expect << "tmp.d_=ND_A_S();";
-    func_expect << "tmp.d_nd=Init_0_A_S();";
+    func_expect << "((tmp).m_set)=(ND_Init_Val());";
+    func_expect << "((tmp).m_curr)=(ND_Init_Val());";
+    func_expect << "((tmp).d_)=(ND_A_S());";
+    func_expect << "((tmp).d_nd)=(Init_0_A_S());";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Read_A_accs_submap1
     func_expect << "struct A_S Read_A_accs_submap1"
                 << "(struct A_accs_submap1*a,unsigned int idx)";
     func_expect << "{";
-    func_expect << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
-    func_expect << "if(idx!=a->m_curr)return ND_A_S();";
-    func_expect << "return a->d_;";
+    func_expect << "if(((a)->m_set)==(0)){((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if((idx)!=((a)->m_curr))return ND_A_S();";
+    func_expect << "return (a)->d_;";
     func_expect << "}";
     // -- Write_A_accs_submap1
     func_expect << "void Write_A_accs_submap1"
                 << "(struct A_accs_submap1*a,unsigned int idx,struct A_S d)";
     func_expect << "{";
-    func_expect << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
-    func_expect << "if(idx==a->m_curr){a->d_=d;}";
+    func_expect << "if(((a)->m_set)==(0)){((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if((idx)==((a)->m_curr))((a)->d_)=(d);";
     func_expect << "}";
     // -- Ref_A_accs_submap1
     func_expect << "struct A_S*Ref_A_accs_submap1"
                 << "(struct A_accs_submap1*a,unsigned int idx)";
     func_expect << "{";
-    func_expect << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
-    func_expect << "if(idx!=a->m_curr)";
+    func_expect << "if(((a)->m_set)==(0)){((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if((idx)!=((a)->m_curr))";
     func_expect << "{";
-    func_expect << "a->d_nd=ND_A_S();";
-    func_expect << "return &a->d_nd;";
+    func_expect << "((a)->d_nd)=(ND_A_S());";
+    func_expect << "return &((a)->d_nd);";
     func_expect << "}";
-    func_expect << "return &a->d_;";
+    func_expect << "return &((a)->d_);";
     func_expect << "}";
     // -- Method_A_Open
     func_expect << "void Method_A_Open"

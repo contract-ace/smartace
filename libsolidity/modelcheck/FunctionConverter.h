@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
 #include <list>
 #include <ostream>
@@ -40,10 +41,12 @@ public:
 	bool visit(ContractDefinition const& _node) override;
 	bool visit(StructDefinition const& _node) override;
 	bool visit(FunctionDefinition const& _node) override;
-	bool visit(ModifierDefinition const& _node) override;
+	bool visit(ModifierDefinition const&) override;
 	bool visit(Mapping const& _node) override;
 
 private:
+	static const std::shared_ptr<CIdentifier> TMP;
+
 	ASTNode const& m_ast;
 	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
@@ -53,15 +56,14 @@ private:
 	// Helper functions to partition complex from primitive types, and to set
 	// said values with either default or non-deterministic data.
 	static bool is_basic_type(Type const& _type);
-	static std::string to_init_value(std::string _name, Type const& _type);
-	static std::string to_nd_value(std::string _name, Type const& _type);
+	static CExprPtr to_init_expr(std::string const& _name, Type const& _type);
+	static CExprPtr to_nd_expr(std::string const& _name, Type const& _type);
 
 	// Formats all declarations as a C-function argument list. The given order
 	// of arguments is maintained. If a scope is provided, then the arguments
 	// are assumed to be of a stateful Solidity method, bound to structures of
-	// the given type. If values are defaulted to zero, then the constructor
-	// will have a default value of zero for each parameter.
-	void print_args(
+	// the given type.
+	CParams generate_params(
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
 		ASTNode const* _scope
 	);

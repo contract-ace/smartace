@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/BlockConverter.h>
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+#include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 
@@ -18,6 +19,11 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+const shared_ptr<CIdentifier> FunctionConverter::TMP =
+    make_shared<CIdentifier>("tmp", false);
 
 // -------------------------------------------------------------------------- //
 
@@ -39,62 +45,67 @@ void FunctionConverter::print(ostream& _stream)
 
 bool FunctionConverter::visit(ContractDefinition const& _node)
 {
-    auto translation = m_converter.translate(_node);
+    auto tranl = m_converter.translate(_node);
 
-    (*m_ostream) << translation.type << " Init_" << translation.name;
+    CParams params;
     if (auto ctor = _node.constructor())
     {
-        print_args(ctor->parameters(), &_node);
-    }
-    else
-    {
-        print_args({}, nullptr);
+        params = generate_params(ctor->parameters(), &_node);
     }
 
-    if (m_forward_declare)
+    shared_ptr<CBlock> body;
+    if (!m_forward_declare)
     {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << translation.type << " tmp;";
-
+        // Declares a temporary contract to initialize.
+        CBlockList stmts{make_shared<CVarDecl>(tranl.type, "tmp")};
+        // Initializes all fields of the contract.
         for (auto decl : _node.stateVariables())
         {
-            (*m_ostream) << "tmp.d_" << decl->name() << "=";
+            auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
+            CExprPtr init;
             if (decl->value())
             {
-                ExpressionConverter value(*decl->value(), {}, {});
-                (*m_ostream) << *value.convert();
+                init = ExpressionConverter(*decl->value(), {}, {}).convert();
             }
             else
             {
                 auto decl_name = m_converter.translate(*decl).name;
-                (*m_ostream) << to_init_value(decl_name, *decl->type());
+                init = to_init_expr(decl_name, *decl->type());
             }
-            (*m_ostream) << ";";
+            auto asgn = make_shared<CAssign>(move(member), move(init));
+            stmts.push_back(make_shared<CExprStmt>(move(asgn)));
         }
-
+        // Invokes the user-define constructor, if possible.
         if (auto ctor = _node.constructor())
         {
-            (*m_ostream) << "Ctor_" << translation.name << "(&tmp,state";
+            CArgList args;
+            args.push_back(make_shared<CReference>(TMP));
+            args.push_back(make_shared<CIdentifier>("state", true));
             for (auto decl : ctor->parameters())
             {
-                (*m_ostream) << "," << decl->name();
+                args.push_back(make_shared<CIdentifier>(decl->name(), false));
             }
-            (*m_ostream) << ");";
+            auto ctor_call = make_shared<CFuncCall>(
+                "Ctor_" + tranl.name, move(args)
+            );
+            stmts.push_back(make_shared<CExprStmt>(ctor_call));
         }
+        // Returns the temporary contract.
+        stmts.push_back(make_shared<CReturn>(TMP));
 
-        (*m_ostream) << "return tmp;";
-        (*m_ostream) << "}";
+        body = make_shared<CBlock>(move(stmts));
     }
+
+    auto id = make_shared<CVarDecl>(tranl.type, "Init_" + tranl.name);
+    CFuncDef init(id, move(params), move(body));
+    (*m_ostream) << init;
 
     return true;
 }
 
 bool FunctionConverter::visit(StructDefinition const& _node)
 {
+    auto trasl = m_converter.translate(_node);
     vector<ASTPointer<VariableDeclaration>> initializable_members;
     for (auto const& member : _node.members())
     {
@@ -104,213 +115,187 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         }
     }
 
-    auto translation = m_converter.translate(_node);
+    auto zero_id = make_shared<CVarDecl>(trasl.type, "Init_0_" + trasl.name);
+    auto init_id = make_shared<CVarDecl>(trasl.type, "Init_" + trasl.name);
+    auto nd_id = make_shared<CVarDecl>(trasl.type, "ND_" + trasl.name);
 
+    auto init_params = generate_params(initializable_members, nullptr);
+
+    shared_ptr<CBlock> zero_body, init_body, nd_body;
     // Zero Initialization.
-    (*m_ostream) << translation.type << " Init_0_" << translation.name  << "()";
-
-    if (m_forward_declare)
+    if (!m_forward_declare)
     {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << translation.type << " tmp;";
-
+        CBlockList stmts;
+        stmts.push_back(make_shared<CVarDecl>(trasl.type, "tmp"));
         for (auto decl : _node.members())
         {
             auto decl_name = m_converter.translate(*decl).name;
-            (*m_ostream) << "tmp.d_" << decl->name() << "="
-                         << to_init_value(decl_name, *decl->type()) << ";";
+            auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
+            auto init = to_init_expr(decl_name, *decl->type());
+            auto asgn = make_shared<CAssign>(move(member), move(init));
+            stmts.push_back(make_shared<CExprStmt>(move(asgn)));
         }
+        stmts.push_back(make_shared<CReturn>(TMP));
+        zero_body = make_shared<CBlock>(move(stmts));
 
-        (*m_ostream) << "return tmp;";
-        (*m_ostream) << "}";
-    }
-
-    // Manual Initialization.
-    (*m_ostream) << translation.type << " Init_" << translation.name;
-    print_args(initializable_members, nullptr);
-
-    if (m_forward_declare)
-    {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << translation.type << " tmp="
-                     << "Init_0_" << translation.name  << "();";
-
+        auto zinit = make_shared<CFuncCall>("Init_0_" + trasl.name, CArgList{});
+        stmts.push_back(make_shared<CVarDecl>(trasl.type, "tmp", false, zinit));
         for (auto m : initializable_members)
         {
-            (*m_ostream) << "tmp.d_" << m->name() << "=" << m->name() << ";";
+            auto member = make_shared<CMemberAccess>(TMP, "d_" + m->name());
+            auto param = make_shared<CIdentifier>(m->name(), false);
+            auto asgn = make_shared<CAssign>(move(member), move(param));
+            stmts.push_back(make_shared<CExprStmt>(move(asgn)));
         }
-
-        (*m_ostream) << "return tmp;";
-        (*m_ostream) << "}";
-    }
-
-    // ND Initialization.
-    (*m_ostream) << translation.type << " ND_" << translation.name << "()";
-
-    if (m_forward_declare)
-    {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << translation.type << " tmp;";
-
+        stmts.push_back(make_shared<CReturn>(TMP));
+        init_body = make_shared<CBlock>(move(stmts));
+        
+        stmts.push_back(make_shared<CVarDecl>(trasl.type, "tmp"));
         for (auto decl : _node.members())
         {
             auto decl_name = m_converter.translate(*decl).name;
-            (*m_ostream) << "tmp.d_" << decl->name() << "="
-                         << to_nd_value(decl_name, *decl->type()) << ";";
+            auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
+            auto init = to_nd_expr(decl_name, *decl->type());
+            auto asgn = make_shared<CAssign>(move(member), move(init));
+            stmts.push_back(make_shared<CExprStmt>(move(asgn)));
         }
-
-        (*m_ostream) << "return tmp;";
-        (*m_ostream) << "}";
+        stmts.push_back(make_shared<CReturn>(TMP));
+        nd_body = make_shared<CBlock>(move(stmts));
     }
+
+    CFuncDef zero(zero_id, CParams{}, move(zero_body));
+    CFuncDef init(init_id, move(init_params), move(init_body));
+    CFuncDef nd(nd_id, CParams{}, move(nd_body));
+
+    (*m_ostream) << zero << init << nd;
 
     return true;
 }
 
 bool FunctionConverter::visit(FunctionDefinition const& _node)
 {
-    auto translation = m_converter.translate(_node);
-    (*m_ostream) << translation.type << " " << translation.name;
-
     bool is_mutable = _node.stateMutability() != StateMutability::Pure;
-    print_args(_node.parameters(), is_mutable ? _node.scope() : nullptr);
+    auto params = generate_params(
+        _node.parameters(), is_mutable ? _node.scope() : nullptr
+    );
 
-    if (m_forward_declare)
+    shared_ptr<CBlock> body;
+    if (!m_forward_declare)
     {
-        (*m_ostream) << ";";
+        body = BlockConverter(_node, m_converter).convert();
     }
-    else
-    {
-        (*m_ostream) << *BlockConverter(_node, m_converter).convert();
-    }
+
+    auto trasl = m_converter.translate(_node);
+    auto id = make_shared<CVarDecl>(trasl.type, trasl.name);
+    CFuncDef func(id, move(params), move(body));
+
+    (*m_ostream) << func;
 
     return false;
 }
 
-bool FunctionConverter::visit(ModifierDefinition const& _node)
+bool FunctionConverter::visit(ModifierDefinition const&)
 {
-    auto translation = m_converter.translate(_node);
-
-    (*m_ostream) << translation.type << " " << translation.name;
-    print_args(_node.parameters(), _node.scope());
-    (*m_ostream) << ";";
-
     return false;
 }
 
 bool FunctionConverter::visit(Mapping const& _node)
 {
-    Translation map_trans = m_converter.translate(_node);
-    Translation key_trans = m_converter.translate(_node.keyType());
-    Translation val_trans = m_converter.translate(_node.valueType());
+    Translation map_t = m_converter.translate(_node);
+    Translation key_t = m_converter.translate(_node.keyType());
+    Translation val_t = m_converter.translate(_node.valueType());
 
     auto const& k_type = *_node.keyType().annotation().type;
     auto const& v_type = *_node.valueType().annotation().type;
 
-    // Default Initialization
-    (*m_ostream) << map_trans.type << " " << "Init_0_" << map_trans.name << "()";
+    auto arr = make_shared<CVarDecl>(map_t.type, "a", true);
+    auto indx = make_shared<CVarDecl>(key_t.type, "idx");
+    auto data = make_shared<CVarDecl>(val_t.type, "d");
 
-    if (m_forward_declare)
+    auto zinit_id = make_shared<CVarDecl>(map_t.type, "Init_0_" + map_t.name);
+    auto nd_id = make_shared<CVarDecl>(map_t.type, "ND_" + map_t.name);
+    auto read_id = make_shared<CVarDecl>(val_t.type, "Read_" + map_t.name);
+    auto write_id = make_shared<CVarDecl>("void", "Write_" + map_t.name);
+    auto ref_id = make_shared<CVarDecl>(val_t.type, "Ref_" + map_t.name, true);
+
+    shared_ptr<CBlock> zinit_body, nd_body, read_body, write_body, ref_body;
+    if (!m_forward_declare)
     {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << map_trans.type << " tmp;";
-        (*m_ostream) << "tmp.m_set=0;";
-        (*m_ostream) << "tmp.m_curr=" << to_init_value(key_trans.name, k_type) << ";";
-        (*m_ostream) << "tmp.d_=" << to_init_value(val_trans.name, v_type) << ";";
-        (*m_ostream) << "tmp.d_nd=" << to_init_value(val_trans.name, v_type) << ";";
-        (*m_ostream) << "return tmp;";
-        (*m_ostream) << "}";
+        auto tmp_set = make_shared<CMemberAccess>(TMP, "m_set");
+        auto tmp_cur = make_shared<CMemberAccess>(TMP, "m_curr");
+        auto tmp_dat = make_shared<CMemberAccess>(TMP, "d_");
+        auto tmp_ndd = make_shared<CMemberAccess>(TMP, "d_nd");
+        auto a_set = make_shared<CMemberAccess>(arr->id(), "m_set");
+        auto a_cur = make_shared<CMemberAccess>(arr->id(), "m_curr");
+        auto a_dat = make_shared<CMemberAccess>(arr->id(), "d_");
+        auto a_ndd = make_shared<CMemberAccess>(arr->id(), "d_nd");
+
+        auto init_set = to_init_expr("int", BoolType{});
+        auto init_key = to_init_expr(key_t.name, k_type);
+        auto init_val = to_init_expr(val_t.name, v_type);
+        auto nd_set = to_nd_expr("int", BoolType{});
+        auto nd_key = to_nd_expr(key_t.name, k_type);
+        auto nd_val = to_nd_expr(val_t.name, v_type);
+
+        auto true_val = make_shared<CIntLiteral>(1);
+        auto update_curr = make_shared<CIf>(
+            make_shared<CBinaryOp>(a_set, "==", init_set),
+            make_shared<CBlock>(CBlockList{
+                make_shared<CExprStmt>(make_shared<CAssign>(a_cur, indx->id())),
+                make_shared<CExprStmt>(make_shared<CAssign>(a_set, true_val)),
+            }
+        ), nullptr);
+        auto is_not_cur = make_shared<CBinaryOp>(indx->id(), "!=", a_cur);
+
+        zinit_body = make_shared<CBlock>(CBlockList{
+            make_shared<CVarDecl>(map_t.type, "tmp", false, nullptr),
+            make_shared<CExprStmt>(make_shared<CAssign>(tmp_set, init_set)),
+            make_shared<CExprStmt>(make_shared<CAssign>(tmp_cur, init_key)),
+            make_shared<CExprStmt>(make_shared<CAssign>(tmp_dat, init_val)),
+            make_shared<CExprStmt>(make_shared<CAssign>(tmp_ndd, init_val)),
+            make_shared<CReturn>(TMP)
+        });
+
+        nd_body = make_shared<CBlock>(CBlockList{
+            make_shared<CVarDecl>(map_t.type, "tmp", false, nullptr),
+            make_shared<CExprStmt>(make_shared<CAssign>(tmp_set, nd_set)),
+            make_shared<CExprStmt>(make_shared<CAssign>(tmp_cur, nd_key)),
+            make_shared<CExprStmt>(make_shared<CAssign>(tmp_dat, nd_val)),
+            make_shared<CExprStmt>(make_shared<CAssign>(tmp_ndd, init_val)),
+            make_shared<CReturn>(TMP)
+        });
+
+        read_body = make_shared<CBlock>(CBlockList{
+            update_curr,
+            make_shared<CIf>(is_not_cur, make_shared<CReturn>(nd_val), nullptr),
+            make_shared<CReturn>(a_dat)
+        });
+
+        write_body = make_shared<CBlock>(CBlockList{
+            update_curr,
+            make_shared<CIf>(
+                make_shared<CBinaryOp>(indx->id(), "==", a_cur),
+                make_shared<CExprStmt>(make_shared<CAssign>(a_dat, data->id())
+            ), nullptr)
+        });
+
+        ref_body = make_shared<CBlock>(CBlockList{
+            update_curr,
+            make_shared<CIf>(is_not_cur, make_shared<CBlock>(CBlockList{
+                make_shared<CExprStmt>(make_shared<CAssign>(a_ndd, nd_val)),
+                make_shared<CReturn>(make_shared<CReference>(a_ndd))
+            }), nullptr),
+            make_shared<CReturn>(make_shared<CReference>(a_dat))
+        });
     }
 
-    // ND Initialization
-    (*m_ostream) << map_trans.type << " " << "ND_" << map_trans.name << "()";
+    CFuncDef zinit(zinit_id, CParams{}, move(zinit_body));
+    CFuncDef nd(nd_id, CParams{}, move(nd_body));
+    CFuncDef read(read_id, CParams{arr, indx}, move(read_body));
+    CFuncDef write(write_id, CParams{arr, indx, data}, move(write_body));
+    CFuncDef ref(ref_id, CParams{arr, indx}, move(ref_body));
 
-    if (m_forward_declare)
-    {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << map_trans.type << " tmp;";
-        (*m_ostream) << "tmp.m_set=ND_Init_Val();";
-        (*m_ostream) << "tmp.m_curr=" << to_nd_value(key_trans.name, k_type) << ";";
-        (*m_ostream) << "tmp.d_=" << to_nd_value(val_trans.name, v_type) << ";";
-        (*m_ostream) << "tmp.d_nd=" << to_init_value(val_trans.name, v_type) << ";";
-        (*m_ostream) << "return tmp;";
-        (*m_ostream) << "}";
-    }
-
-    // Read
-    (*m_ostream) << val_trans.type << " Read_" << map_trans.name << "("
-                 << map_trans.type << "*a," << key_trans.type << " idx)";
-
-    if (m_forward_declare)
-    {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
-        (*m_ostream) << "if(idx!=a->m_curr)return "
-                     << to_nd_value(val_trans.name, v_type) << ";";
-        (*m_ostream) << "return a->d_;";
-        (*m_ostream) << "}";
-    }
-
-    // Write
-    (*m_ostream) << "void Write_" << map_trans.name << "("
-                 << map_trans.type << "*a," << key_trans.type << " idx,"
-                 << val_trans.type << " d)";
-
-    if (m_forward_declare)
-    {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
-        (*m_ostream) << "if(idx==a->m_curr){a->d_=d;}";
-        (*m_ostream) << "}";
-    }
-
-    // Ref
-    (*m_ostream) << val_trans.type << "*Ref_" << map_trans.name << "("
-                 << map_trans.type << "*a," << key_trans.type << " idx)";
-
-    if (m_forward_declare)
-    {
-        (*m_ostream) << ";";
-    }
-    else
-    {
-        (*m_ostream) << "{";
-        (*m_ostream) << "if(a->m_set==0){a->m_curr=idx;a->m_set=1;}";
-        (*m_ostream) << "if(idx!=a->m_curr)";
-        (*m_ostream) << "{";
-        (*m_ostream) << "a->d_nd=" << to_nd_value(val_trans.name, v_type) << ";";
-        (*m_ostream) << "return &a->d_nd;";
-        (*m_ostream) << "}";
-        (*m_ostream) << "return &a->d_;";
-        (*m_ostream) << "}";
-    }
+    (*m_ostream) << zinit << nd << read << write << ref;
 
     return true;
 }
@@ -333,43 +318,40 @@ bool FunctionConverter::is_basic_type(Type const& _type)
     }
 }
 
-string FunctionConverter::to_init_value(string _name, Type const& _type)
+CExprPtr FunctionConverter::to_init_expr(string const& _name, Type const& _type)
 {
-    return (is_basic_type(_type) ? "0" : "Init_0_" + _name + "()");
+    return is_basic_type(_type)
+        ? (CExprPtr)(make_shared<CIntLiteral>(0))
+        : (CExprPtr)(make_shared<CFuncCall>("Init_0_" + _name, CArgList{}));
 }
 
-string FunctionConverter::to_nd_value(string _name, Type const& _type)
+CExprPtr FunctionConverter::to_nd_expr(string const& _name, Type const& _type)
 {
-    return (is_basic_type(_type) ? "ND_Init_Val()" : "ND_" + _name + "()");
+    return is_basic_type(_type)
+        ? make_shared<CFuncCall>("ND_Init_Val", CArgList{})
+        : make_shared<CFuncCall>("ND_" + _name, CArgList{});
 }
 
 // -------------------------------------------------------------------------- //
 
-void FunctionConverter::print_args(
+CParams FunctionConverter::generate_params(
     vector<ASTPointer<VariableDeclaration>> const& _args, ASTNode const* _scope
 )
 {
-    (*m_ostream) << "(";
-
-    auto contract_scope = dynamic_cast<ContractDefinition const*>(_scope);
-    if (contract_scope)
+    CParams params;
+    if (auto contract_scope = dynamic_cast<ContractDefinition const*>(_scope))
     {
-        auto type = m_converter.translate(*contract_scope).type;
-        (*m_ostream) << type << "*self,struct CallState*state";
+        auto self_type = m_converter.translate(*contract_scope).type;
+        auto state_type = "struct CallState";
+        params.push_back(make_shared<CVarDecl>(self_type, "self", true));
+        params.push_back(make_shared<CVarDecl>(state_type, "state", true));
     }
-
-    for (unsigned int idx = 0; idx < _args.size(); ++idx)
+    for (auto arg : _args)
     {
-        if (contract_scope || idx > 0)
-        {
-            (*m_ostream) << ",";
-        }
-
-        auto const& arg = *_args[idx];
-        (*m_ostream) << m_converter.translate(arg).type << " " << arg.name();
+        auto type = m_converter.translate(*arg).type;
+        params.push_back(make_shared<CVarDecl>(type, arg->name()));
     }
-
-    (*m_ostream) << ")";
+    return move(params);
 }
 
 // -------------------------------------------------------------------------- //
