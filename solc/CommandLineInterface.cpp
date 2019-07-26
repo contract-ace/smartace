@@ -1187,13 +1187,17 @@ void CommandLineInterface::handleCModelHeaders(
 	ostream& _os
 )
 {
+	using dev::solidity::modelcheck::ADTConverter;
+	using dev::solidity::modelcheck::FunctionConverter;
 	for (auto const& ast : _asts)
 	{
-		modelcheck::ADTConverter(*ast, _con, true).print(_os);
+		ADTConverter cov(*ast, _con, true);
+		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
-		modelcheck::FunctionConverter(*ast, _con, true).print(_os);
+		FunctionConverter cov(*ast, _con, FunctionConverter::View::EXT, true);
+		cov.print(_os);
 	}
 }
 
@@ -1203,13 +1207,22 @@ void CommandLineInterface::handleCModelBody(
 	ostream& _os
 )
 {
+	using dev::solidity::modelcheck::ADTConverter;
+	using dev::solidity::modelcheck::FunctionConverter;
 	for (auto const& ast : _asts)
 	{
-		modelcheck::ADTConverter(*ast, _con, false).print(_os);
+		FunctionConverter cov(*ast, _con, FunctionConverter::View::INT, true);
+		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
-		modelcheck::FunctionConverter(*ast, _con, false).print(_os);
+		ADTConverter cov(*ast, _con, false);
+		cov.print(_os);
+	}
+	for (auto const& ast : _asts)
+	{
+		FunctionConverter cov(*ast, _con, FunctionConverter::View::FULL, false);
+		cov.print(_os);
 	}
 }
 

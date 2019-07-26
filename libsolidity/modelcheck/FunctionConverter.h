@@ -27,11 +27,15 @@ namespace modelcheck
 class FunctionConverter : public ASTConstVisitor
 {
 public:
+	// Specifies the class of methods to print.
+	enum class View { FULL, INT, EXT };
+
     // Constructs a printer for all function forward decl's required by the ast.
     FunctionConverter(
         ASTNode const& _ast,
 		TypeConverter const& _converter,
-		bool _forward_declare
+		View _view,
+		bool _fwd_dcl
     );
 
     // Prints each function-like declaration once, in some order. Special
@@ -47,11 +51,13 @@ public:
 private:
 	static const std::shared_ptr<CIdentifier> TMP;
 
-	ASTNode const& m_ast;
-	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
 
-	const bool m_forward_declare;
+	ASTNode const& M_AST;
+	TypeConverter const& M_CONVERTER;
+
+	View const M_VIEW;
+	bool const M_FWD_DCL;
 
 	// Helper functions to partition complex from primitive types, and to set
 	// said values with either default or non-deterministic data.

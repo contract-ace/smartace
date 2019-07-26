@@ -21,17 +21,13 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 ADTConverter::ADTConverter(
-    ASTNode const& _ast,
-    TypeConverter const& _converter,
-    bool _forward_declare
-): m_ast(_ast), m_converter(_converter), m_forward_declare(_forward_declare)
-{
-}
+    ASTNode const& _ast, TypeConverter const& _converter, bool _fwd_dcl
+): M_AST(_ast), M_CONVERTER(_converter), M_FWD_DCL(_fwd_dcl) {}
 
 void ADTConverter::print(ostream& _stream)
 {
 	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
-    m_ast.accept(*this);
+    M_AST.accept(*this);
 }
 
 // -------------------------------------------------------------------------- //
@@ -48,50 +44,50 @@ bool ADTConverter::visit(ContractDefinition const& _node)
 void ADTConverter::endVisit(ContractDefinition const& _node)
 {
     shared_ptr<CParams> fields;
-    if (!m_forward_declare)
+    if (!M_FWD_DCL)
     {
         fields = make_shared<CParams>();
         for (auto decl : _node.stateVariables())
         {
-            auto type = m_converter.translate(*decl).type;
-            fields->push_back(make_shared<CVarDecl>(type, "d_" + decl->name()));
+            auto const TYPE = M_CONVERTER.translate(*decl).type;
+            fields->push_back(make_shared<CVarDecl>(TYPE, "d_" + decl->name()));
         }
     }
-    CStructDef contract(m_converter.translate(_node).name, move(fields));
+    CStructDef contract(M_CONVERTER.translate(_node).name, move(fields));
     (*m_ostream) << contract;
 }
 
 void ADTConverter::endVisit(Mapping const& _node)
 {
     shared_ptr<CParams> fields;
-    if (!m_forward_declare)
+    if (!M_FWD_DCL)
     {
-        string key_type = m_converter.translate(_node.keyType()).type;
-        string val_type = m_converter.translate(_node.valueType()).type; 
+        string const KEY_TYPE = M_CONVERTER.translate(_node.keyType()).type;
+        string const VAL_TYPE = M_CONVERTER.translate(_node.valueType()).type;
         fields = make_shared<CParams>(CParams{
             make_shared<CVarDecl>("int", "m_set"),
-            make_shared<CVarDecl>(key_type, "m_curr"),
-            make_shared<CVarDecl>(val_type, "d_"),
-            make_shared<CVarDecl>(val_type, "d_nd")
+            make_shared<CVarDecl>(KEY_TYPE, "m_curr"),
+            make_shared<CVarDecl>(VAL_TYPE, "d_"),
+            make_shared<CVarDecl>(VAL_TYPE, "d_nd")
         });
     }
-    CStructDef mapping(m_converter.translate(_node).name, move(fields));
+    CStructDef mapping(M_CONVERTER.translate(_node).name, move(fields));
     (*m_ostream) << mapping;
 }
 
 void ADTConverter::endVisit(StructDefinition const& _node)
 {
     shared_ptr<CParams> fields;
-    if (!m_forward_declare)
+    if (!M_FWD_DCL)
     {
         fields = make_shared<CParams>();
         for (auto decl : _node.members())
         {
-            auto type = m_converter.translate(*decl).type;
-            fields->push_back(make_shared<CVarDecl>(type, "d_" + decl->name()));
+            auto const TYPE = M_CONVERTER.translate(*decl).type;
+            fields->push_back(make_shared<CVarDecl>(TYPE, "d_" + decl->name()));
         }
     }
-    CStructDef structure(m_converter.translate(_node).name, move(fields));
+    CStructDef structure(M_CONVERTER.translate(_node).name, move(fields));
     (*m_ostream) << structure;
 }
 

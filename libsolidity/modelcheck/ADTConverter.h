@@ -29,9 +29,7 @@ public:
 	// converter should provide translations for all typed ASTNodes. If forward
 	// declare is set, then the structure bodies are not generated.
     ADTConverter(
-        ASTNode const& _ast,
-		TypeConverter const& _converter,
-		bool _forward_declare
+        ASTNode const& _ast, TypeConverter const& _converter, bool _fwd_dcl
     );
 
     // Prints each ADT declaration once, in some order.
@@ -45,13 +43,14 @@ protected:
 	void endVisit(StructDefinition const& _node) override;
 
 private:
-	ASTNode const& m_ast;
-	TypeConverter const& m_converter;
+	ASTNode const& M_AST;
+	TypeConverter const& M_CONVERTER;
+
+	const bool M_FWD_DCL;
+
 	std::ostream* m_ostream = nullptr;
 
 	std::set<ContractDefinition const*> m_built;
-
-	const bool m_forward_declare;
 };
 
 }

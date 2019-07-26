@@ -30,22 +30,23 @@ const shared_ptr<CIdentifier> FunctionConverter::TMP =
 FunctionConverter::FunctionConverter(
     ASTNode const& _ast,
 	TypeConverter const& _converter,
-    bool _forward_declare
-): m_ast(_ast), m_converter(_converter), m_forward_declare(_forward_declare)
-{
-}
+    View _view,
+    bool _fwd_dcl
+): M_AST(_ast), M_CONVERTER(_converter), M_VIEW(_view), M_FWD_DCL(_fwd_dcl) {}
 
 void FunctionConverter::print(ostream& _stream)
 {
 	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
-    m_ast.accept(*this);
+    M_AST.accept(*this);
 }
 
 // -------------------------------------------------------------------------- //
 
 bool FunctionConverter::visit(ContractDefinition const& _node)
 {
-    auto tranl = m_converter.translate(_node);
+    if (M_VIEW == View::INT) return true;
+
+    auto const TRASL = M_CONVERTER.translate(_node);
 
     CParams params;
     if (auto ctor = _node.constructor())
@@ -54,11 +55,9 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
     }
 
     shared_ptr<CBlock> body;
-    if (!m_forward_declare)
+    if (!M_FWD_DCL)
     {
-        // Declares a temporary contract to initialize.
-        CBlockList stmts{make_shared<CVarDecl>(tranl.type, "tmp")};
-        // Initializes all fields of the contract.
+        CBlockList stmts{make_shared<CVarDecl>(TRASL.type, "tmp")};
         for (auto decl : _node.stateVariables())
         {
             auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
@@ -69,13 +68,12 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             }
             else
             {
-                auto decl_name = m_converter.translate(*decl).name;
+                auto decl_name = M_CONVERTER.translate(*decl).name;
                 init = to_init_expr(decl_name, *decl->type());
             }
             auto asgn = make_shared<CAssign>(move(member), move(init));
             stmts.push_back(make_shared<CExprStmt>(move(asgn)));
         }
-        // Invokes the user-define constructor, if possible.
         if (auto ctor = _node.constructor())
         {
             CArgList args;
@@ -86,17 +84,16 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
                 args.push_back(make_shared<CIdentifier>(decl->name(), false));
             }
             auto ctor_call = make_shared<CFuncCall>(
-                "Ctor_" + tranl.name, move(args)
+                "Ctor_" + TRASL.name, move(args)
             );
             stmts.push_back(make_shared<CExprStmt>(ctor_call));
         }
-        // Returns the temporary contract.
         stmts.push_back(make_shared<CReturn>(TMP));
 
         body = make_shared<CBlock>(move(stmts));
     }
 
-    auto id = make_shared<CVarDecl>(tranl.type, "Init_" + tranl.name);
+    auto id = make_shared<CVarDecl>(TRASL.type, "Init_" + TRASL.name);
     CFuncDef init(id, move(params), move(body));
     (*m_ostream) << init;
 
@@ -105,7 +102,9 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 
 bool FunctionConverter::visit(StructDefinition const& _node)
 {
-    auto trasl = m_converter.translate(_node);
+    if (M_VIEW == View::EXT) return false;
+
+    auto const TRASL = M_CONVERTER.translate(_node);
     vector<ASTPointer<VariableDeclaration>> initializable_members;
     for (auto const& member : _node.members())
     {
@@ -115,21 +114,20 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         }
     }
 
-    auto zero_id = make_shared<CVarDecl>(trasl.type, "Init_0_" + trasl.name);
-    auto init_id = make_shared<CVarDecl>(trasl.type, "Init_" + trasl.name);
-    auto nd_id = make_shared<CVarDecl>(trasl.type, "ND_" + trasl.name);
+    auto zero_id = make_shared<CVarDecl>(TRASL.type, "Init_0_" + TRASL.name);
+    auto init_id = make_shared<CVarDecl>(TRASL.type, "Init_" + TRASL.name);
+    auto nd_id = make_shared<CVarDecl>(TRASL.type, "ND_" + TRASL.name);
 
     auto init_params = generate_params(initializable_members, nullptr);
 
     shared_ptr<CBlock> zero_body, init_body, nd_body;
-    // Zero Initialization.
-    if (!m_forward_declare)
+    if (!M_FWD_DCL)
     {
         CBlockList stmts;
-        stmts.push_back(make_shared<CVarDecl>(trasl.type, "tmp"));
+        stmts.push_back(make_shared<CVarDecl>(TRASL.type, "tmp"));
         for (auto decl : _node.members())
         {
-            auto decl_name = m_converter.translate(*decl).name;
+            auto decl_name = M_CONVERTER.translate(*decl).name;
             auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
             auto init = to_init_expr(decl_name, *decl->type());
             auto asgn = make_shared<CAssign>(move(member), move(init));
@@ -138,8 +136,8 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CReturn>(TMP));
         zero_body = make_shared<CBlock>(move(stmts));
 
-        auto zinit = make_shared<CFuncCall>("Init_0_" + trasl.name, CArgList{});
-        stmts.push_back(make_shared<CVarDecl>(trasl.type, "tmp", false, zinit));
+        auto zinit = make_shared<CFuncCall>("Init_0_" + TRASL.name, CArgList{});
+        stmts.push_back(make_shared<CVarDecl>(TRASL.type, "tmp", false, zinit));
         for (auto m : initializable_members)
         {
             auto member = make_shared<CMemberAccess>(TMP, "d_" + m->name());
@@ -150,10 +148,10 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CReturn>(TMP));
         init_body = make_shared<CBlock>(move(stmts));
         
-        stmts.push_back(make_shared<CVarDecl>(trasl.type, "tmp"));
+        stmts.push_back(make_shared<CVarDecl>(TRASL.type, "tmp"));
         for (auto decl : _node.members())
         {
-            auto decl_name = m_converter.translate(*decl).name;
+            auto decl_name = M_CONVERTER.translate(*decl).name;
             auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
             auto init = to_nd_expr(decl_name, *decl->type());
             auto asgn = make_shared<CAssign>(move(member), move(init));
@@ -174,19 +172,24 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 
 bool FunctionConverter::visit(FunctionDefinition const& _node)
 {
-    bool is_mutable = _node.stateMutability() != StateMutability::Pure;
+    const bool IS_PUB = _node.visibility() == Declaration::Visibility::Public;
+    const bool IS_EXT = _node.visibility() == Declaration::Visibility::External;
+    if (!(IS_PUB || IS_EXT) && M_VIEW == View::EXT) return false;
+    if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return false;
+
+    const bool IS_MUTABLE = _node.stateMutability() != StateMutability::Pure;
     auto params = generate_params(
-        _node.parameters(), is_mutable ? _node.scope() : nullptr
+        _node.parameters(), IS_MUTABLE ? _node.scope() : nullptr
     );
 
     shared_ptr<CBlock> body;
-    if (!m_forward_declare)
+    if (!M_FWD_DCL)
     {
-        body = BlockConverter(_node, m_converter).convert();
+        body = BlockConverter(_node, M_CONVERTER).convert();
     }
 
-    auto trasl = m_converter.translate(_node);
-    auto id = make_shared<CVarDecl>(trasl.type, trasl.name);
+    auto const TRASL = M_CONVERTER.translate(_node);
+    auto id = make_shared<CVarDecl>(TRASL.type, TRASL.name);
     CFuncDef func(id, move(params), move(body));
 
     (*m_ostream) << func;
@@ -194,32 +197,31 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     return false;
 }
 
-bool FunctionConverter::visit(ModifierDefinition const&)
-{
-    return false;
-}
+bool FunctionConverter::visit(ModifierDefinition const&) { return false; }
 
 bool FunctionConverter::visit(Mapping const& _node)
 {
-    Translation map_t = m_converter.translate(_node);
-    Translation key_t = m_converter.translate(_node.keyType());
-    Translation val_t = m_converter.translate(_node.valueType());
+    if (M_VIEW == View::EXT) return false;
 
-    auto const& k_type = *_node.keyType().annotation().type;
-    auto const& v_type = *_node.valueType().annotation().type;
+    Translation const MAP_T = M_CONVERTER.translate(_node);
+    Translation const KEY_T = M_CONVERTER.translate(_node.keyType());
+    Translation const VAL_T = M_CONVERTER.translate(_node.valueType());
 
-    auto arr = make_shared<CVarDecl>(map_t.type, "a", true);
-    auto indx = make_shared<CVarDecl>(key_t.type, "idx");
-    auto data = make_shared<CVarDecl>(val_t.type, "d");
+    auto const& K_TYPE = *_node.keyType().annotation().type;
+    auto const& V_TYPE = *_node.valueType().annotation().type;
 
-    auto zinit_id = make_shared<CVarDecl>(map_t.type, "Init_0_" + map_t.name);
-    auto nd_id = make_shared<CVarDecl>(map_t.type, "ND_" + map_t.name);
-    auto read_id = make_shared<CVarDecl>(val_t.type, "Read_" + map_t.name);
-    auto write_id = make_shared<CVarDecl>("void", "Write_" + map_t.name);
-    auto ref_id = make_shared<CVarDecl>(val_t.type, "Ref_" + map_t.name, true);
+    auto arr = make_shared<CVarDecl>(MAP_T.type, "a", true);
+    auto indx = make_shared<CVarDecl>(KEY_T.type, "idx");
+    auto data = make_shared<CVarDecl>(VAL_T.type, "d");
+
+    auto zinit_id = make_shared<CVarDecl>(MAP_T.type, "Init_0_" + MAP_T.name);
+    auto nd_id = make_shared<CVarDecl>(MAP_T.type, "ND_" + MAP_T.name);
+    auto read_id = make_shared<CVarDecl>(VAL_T.type, "Read_" + MAP_T.name);
+    auto write_id = make_shared<CVarDecl>("void", "Write_" + MAP_T.name);
+    auto ref_id = make_shared<CVarDecl>(VAL_T.type, "Ref_" + MAP_T.name, true);
 
     shared_ptr<CBlock> zinit_body, nd_body, read_body, write_body, ref_body;
-    if (!m_forward_declare)
+    if (!M_FWD_DCL)
     {
         auto tmp_set = make_shared<CMemberAccess>(TMP, "m_set");
         auto tmp_cur = make_shared<CMemberAccess>(TMP, "m_curr");
@@ -231,11 +233,11 @@ bool FunctionConverter::visit(Mapping const& _node)
         auto a_ndd = make_shared<CMemberAccess>(arr->id(), "d_nd");
 
         auto init_set = to_init_expr("int", BoolType{});
-        auto init_key = to_init_expr(key_t.name, k_type);
-        auto init_val = to_init_expr(val_t.name, v_type);
+        auto init_key = to_init_expr(KEY_T.name, K_TYPE);
+        auto init_val = to_init_expr(VAL_T.name, V_TYPE);
         auto nd_set = to_nd_expr("int", BoolType{});
-        auto nd_key = to_nd_expr(key_t.name, k_type);
-        auto nd_val = to_nd_expr(val_t.name, v_type);
+        auto nd_key = to_nd_expr(KEY_T.name, K_TYPE);
+        auto nd_val = to_nd_expr(VAL_T.name, V_TYPE);
 
         auto true_val = make_shared<CIntLiteral>(1);
         auto update_curr = make_shared<CIf>(
@@ -248,7 +250,7 @@ bool FunctionConverter::visit(Mapping const& _node)
         auto is_not_cur = make_shared<CBinaryOp>(indx->id(), "!=", a_cur);
 
         zinit_body = make_shared<CBlock>(CBlockList{
-            make_shared<CVarDecl>(map_t.type, "tmp", false, nullptr),
+            make_shared<CVarDecl>(MAP_T.type, "tmp", false, nullptr),
             make_shared<CExprStmt>(make_shared<CAssign>(tmp_set, init_set)),
             make_shared<CExprStmt>(make_shared<CAssign>(tmp_cur, init_key)),
             make_shared<CExprStmt>(make_shared<CAssign>(tmp_dat, init_val)),
@@ -257,7 +259,7 @@ bool FunctionConverter::visit(Mapping const& _node)
         });
 
         nd_body = make_shared<CBlock>(CBlockList{
-            make_shared<CVarDecl>(map_t.type, "tmp", false, nullptr),
+            make_shared<CVarDecl>(MAP_T.type, "tmp", false, nullptr),
             make_shared<CExprStmt>(make_shared<CAssign>(tmp_set, nd_set)),
             make_shared<CExprStmt>(make_shared<CAssign>(tmp_cur, nd_key)),
             make_shared<CExprStmt>(make_shared<CAssign>(tmp_dat, nd_val)),
@@ -341,15 +343,15 @@ CParams FunctionConverter::generate_params(
     CParams params;
     if (auto contract_scope = dynamic_cast<ContractDefinition const*>(_scope))
     {
-        auto self_type = m_converter.translate(*contract_scope).type;
-        auto state_type = "struct CallState";
-        params.push_back(make_shared<CVarDecl>(self_type, "self", true));
-        params.push_back(make_shared<CVarDecl>(state_type, "state", true));
+        auto const SELF_TYPE = M_CONVERTER.translate(*contract_scope).type;
+        auto const STATE_TYPE = "struct CallState";
+        params.push_back(make_shared<CVarDecl>(SELF_TYPE, "self", true));
+        params.push_back(make_shared<CVarDecl>(STATE_TYPE, "state", true));
     }
     for (auto arg : _args)
     {
-        auto type = m_converter.translate(*arg).type;
-        params.push_back(make_shared<CVarDecl>(type, arg->name()));
+        auto const ARG_TYPE = M_CONVERTER.translate(*arg).type;
+        params.push_back(make_shared<CVarDecl>(ARG_TYPE, arg->name()));
     }
     return move(params);
 }

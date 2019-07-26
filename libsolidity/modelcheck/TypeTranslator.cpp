@@ -53,11 +53,8 @@ map<string, Translation> const TypeConverter::m_global_context({
 
 // -------------------------------------------------------------------------- //
 
-AccessDepthResolver::AccessDepthResolver(
-    IndexAccess const& _base
-): m_base(_base)
-{
-}
+AccessDepthResolver::AccessDepthResolver(IndexAccess const& _base)
+: m_base(_base) {}
 
 Mapping const* AccessDepthResolver::resolve()
 {
@@ -84,8 +81,8 @@ bool AccessDepthResolver::visit(Conditional const&)
 
 bool AccessDepthResolver::visit(MemberAccess const& _node)
 {
-    auto expr_type = _node.expression().annotation().type;
-    if (auto contract_type = dynamic_cast<ContractType const*>(expr_type))
+    auto const EXPR_TYPE = _node.expression().annotation().type;
+    if (auto contract_type = dynamic_cast<ContractType const*>(EXPR_TYPE))
     {
         for (auto member : contract_type->contractDefinition().stateVariables())
         {
@@ -96,7 +93,7 @@ bool AccessDepthResolver::visit(MemberAccess const& _node)
             }
         }
     }
-    else if (auto struct_type = dynamic_cast<StructType const*>(expr_type))
+    else if (auto struct_type = dynamic_cast<StructType const*>(EXPR_TYPE))
     {
         for (auto member : struct_type->structDefinition().members())
         {
@@ -184,10 +181,8 @@ void TypeConverter::record(SourceUnit const& _unit)
             ostringstream fun_oss;
             fun_oss << (fun->isConstructor() ? "Ctor" : "Method")
                     << "_" << contract->name();
-            if (!fun->isConstructor())
-            {
-                fun_oss << "_" << fun->name();
-            }
+
+            if (!fun->isConstructor()) fun_oss << "_" << fun->name();
 
             Translation fun_entry;
             fun_entry.name = fun_oss.str();
@@ -413,8 +408,8 @@ void TypeConverter::endVisit(Mapping const& _node)
 
 void TypeConverter::endVisit(MemberAccess const& _node)
 {
-	auto expr_type = _node.expression().annotation().type;
-    if (auto contract_type = dynamic_cast<ContractType const*>(expr_type))
+	auto const EXPR_TYPE = _node.expression().annotation().type;
+    if (auto contract_type = dynamic_cast<ContractType const*>(EXPR_TYPE))
     {
         for (auto member : contract_type->contractDefinition().stateVariables())
         {
@@ -426,7 +421,7 @@ void TypeConverter::endVisit(MemberAccess const& _node)
             }
         }
     }
-    else if (auto struct_type = dynamic_cast<StructType const*>(expr_type))
+    else if (auto struct_type = dynamic_cast<StructType const*>(EXPR_TYPE))
 	{
         for (auto member : struct_type->structDefinition().members())
         {
@@ -456,10 +451,10 @@ void TypeConverter::endVisit(IndexAccess const& _node)
 
 void TypeConverter::endVisit(Identifier const& _node)
 {
-    auto magic_res = m_global_context.find(_node.name());
-    if (magic_res != m_global_context.end())
+    auto const MAGIC_RES = m_global_context.find(_node.name());
+    if (MAGIC_RES != m_global_context.end())
     {
-        m_dictionary.insert({&_node, magic_res->second});
+        m_dictionary.insert({&_node, MAGIC_RES->second});
         m_in_storage.insert({&_node, false});
     }
     else
@@ -488,8 +483,8 @@ void TypeConverter::endVisit(Identifier const& _node)
             }
         }
 
-        auto actual_res = translate_impl(ref);
-        m_dictionary.insert({&_node, actual_res});
+        auto const ACTUAL_RES = translate_impl(ref);
+        m_dictionary.insert({&_node, ACTUAL_RES});
         m_in_storage.insert({&_node, loc == VariableDeclaration::Storage});
     }
 }
@@ -498,12 +493,12 @@ void TypeConverter::endVisit(Identifier const& _node)
 
 Translation TypeConverter::translate_impl(ASTNode const* _node) const
 {
-    auto res = m_dictionary.find(_node);
-    if (res == m_dictionary.end())
+    auto const RES = m_dictionary.find(_node);
+    if (RES == m_dictionary.end())
     {
         throw logic_error("Translation request for type not in source unit.");
     }
-    return res->second;
+    return RES->second;
 }
 
 // -------------------------------------------------------------------------- //

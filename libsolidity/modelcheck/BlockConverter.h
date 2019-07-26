@@ -53,8 +53,9 @@ protected:
 	void endVisit(PlaceholderStatement const& _node) override;
 
 private:
-    Block const& m_body;
-	TypeConverter const& m_types;
+    Block const& M_BODY;
+	TypeConverter const& M_TYPES;
+
 	VariableScopeResolver m_decls;
 
 	ASTPointer<VariableDeclaration> m_rv = nullptr;

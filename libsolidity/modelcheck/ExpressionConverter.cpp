@@ -43,16 +43,14 @@ ExpressionConverter::ExpressionConverter(
 	TypeConverter const& _types,
 	VariableScopeResolver const& _decls,
 	bool _is_ref
-): m_expr(&_expr), m_types(_types), m_decls(_decls), m_find_ref(_is_ref)
-{
-}
+): M_EXPR(&_expr), M_TYPES(_types), m_decls(_decls), m_find_ref(_is_ref) {}
 
 // -------------------------------------------------------------------------- //
 
 CExprPtr ExpressionConverter::convert()
 {
 	m_subexpr = nullptr;
-	m_expr->accept(*this);
+	M_EXPR->accept(*this);
 	return m_subexpr;
 }
 
@@ -86,8 +84,8 @@ bool ExpressionConverter::visit(Conditional const& _node)
 bool ExpressionConverter::visit(Assignment const& _node)
 {
 	{
-		auto id = LValueSniffer<Identifier>(_node.leftHandSide()).find();
-		ScopedSwap<bool> swap(m_find_ref, id && m_types.is_pointer(*id));
+		auto const ID = LValueSniffer<Identifier>(_node.leftHandSide()).find();
+		ScopedSwap<bool> swap(m_find_ref, ID && M_TYPES.is_pointer(*ID));
 		if (_node.assignmentOperator() != Token::Assign)
 		{
 			generate_binary_op(
@@ -107,8 +105,8 @@ bool ExpressionConverter::visit(Assignment const& _node)
 		ScopedSwap<bool> swap(m_lval, true);
 		if (auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find())
 		{
-			string name = m_types.translate(*map).name;
-			generate_mapping_call("Write", name, *map, rhs);
+			string const NAME = M_TYPES.translate(*map).name;
+			generate_mapping_call("Write", NAME, *map, rhs);
 		}
 		else
 		{
@@ -167,9 +165,9 @@ bool ExpressionConverter::visit(UnaryOperation const& _node)
 
 bool ExpressionConverter::visit(BinaryOperation const& _node)
 {
-	auto const& lhs = _node.leftExpression();
-	auto const& rhs = _node.rightExpression();
-	generate_binary_op(lhs, _node.getOperator(), rhs);
+	auto const& LHS = _node.leftExpression();
+	auto const& RHS = _node.rightExpression();
+	generate_binary_op(LHS, _node.getOperator(), RHS);
 	return false;
 }
 
@@ -201,9 +199,9 @@ bool ExpressionConverter::visit(NewExpression const& _node)
 
 bool ExpressionConverter::visit(MemberAccess const& _node)
 {
-	auto expr_type = _node.expression().annotation().type;
+	auto const EXPR_TYPE = _node.expression().annotation().type;
 
-	switch (expr_type->category())
+	switch (EXPR_TYPE->category())
 	{
 	case Type::Category::Address:
 		print_address_member(_node.expression(), _node.memberName());
@@ -218,7 +216,7 @@ bool ExpressionConverter::visit(MemberAccess const& _node)
 		print_adt_member(_node.expression(), _node.memberName());
 		break;
 	case Type::Category::Magic:
-		print_magic_member(expr_type, _node.memberName());
+		print_magic_member(EXPR_TYPE, _node.memberName());
 		break;
 	default:
 		throw runtime_error("MemberAccess applied to invalid type.");
@@ -233,7 +231,7 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 	{
 	case Type::Category::Mapping:
 		{
-			string map_name = m_types.translate(_node).name;
+			string map_name = M_TYPES.translate(_node).name;
 			if (m_find_ref)
 			{
 				generate_mapping_call("Ref", map_name, _node, nullptr);
@@ -252,18 +250,18 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 	default:
 		throw runtime_error("IndexAccess applied to unsupported type.");
 	}
+
 	return false;
 }
 
 bool ExpressionConverter::visit(Identifier const& _node)
 {
 	m_subexpr = make_shared<CIdentifier>(
-		m_decls.resolve_identifier(_node), m_types.is_pointer(_node)
+		m_decls.resolve_identifier(_node), M_TYPES.is_pointer(_node)
 	);
-	if (m_find_ref)
-	{
-		m_subexpr = make_shared<CReference>(m_subexpr);
-	}
+
+	if (m_find_ref) m_subexpr = make_shared<CReference>(m_subexpr);
+
 	return false;
 }
 
@@ -286,6 +284,7 @@ bool ExpressionConverter::visit(Literal const& _node)
 	default:
 		throw runtime_error("Literal type derived from unsupported token.");
 	}
+
 	return false;
 }
 
@@ -402,7 +401,7 @@ void ExpressionConverter::print_struct_ctor(
 			cargs.push_back(m_subexpr);
 		}
 
-		auto name = m_types.translate(*struct_id).name;
+		auto name = M_TYPES.translate(*struct_id).name;
 		m_subexpr = make_shared<CFuncCall>("Init_" + name, move(cargs));
 	}
 	else
@@ -418,8 +417,8 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		throw runtime_error("Unable to typecast multiple values in one call.");
 	}
 
-	auto const& base_expr = *_call.arguments()[0];
-	auto base_type = base_expr.annotation().type;
+	auto const& BASE_EXPR = *_call.arguments()[0];
+	auto base_type = BASE_EXPR.annotation().type;
 	auto cast_type = _call.annotation().type;
 
 	if (auto base_rat = dynamic_cast<RationalNumberType const*>(base_type))
@@ -437,14 +436,14 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		throw runtime_error("FixedPoint conversion is unsupported in solc.");
 	}
 
-	base_expr.accept(*this);
+	BASE_EXPR.accept(*this);
 	if (base_type->category() == Type::Category::Address)
 	{
 		if (auto cast_int = dynamic_cast<IntegerType const*>(cast_type))
 		{
 			if (cast_int->isSigned())
 			{
-				base_expr.accept(*this);
+				BASE_EXPR.accept(*this);
 			}
 			else
 			{
@@ -692,7 +691,7 @@ void ExpressionConverter::print_method(
 		{
 			_ctx->accept(*this);
 			auto id = LValueSniffer<Identifier>(*_ctx).find();
-			if (!(id && m_types.is_pointer(*id)))
+			if (!(id && M_TYPES.is_pointer(*id)))
 			{
 				m_subexpr = make_shared<CReference>(m_subexpr);
 			}
@@ -710,7 +709,7 @@ void ExpressionConverter::print_method(
 		carg.push_back(m_subexpr);
 	}
 
-	auto name = m_types.translate(decl).name;
+	auto name = M_TYPES.translate(decl).name;
 	m_subexpr = make_shared<CFuncCall>(name, move(carg));
 }
 
@@ -721,8 +720,8 @@ void ExpressionConverter::print_contract_ctor(
 	if (auto contract_type = NodeSniffer<UserDefinedTypeName>(_call).find())
 	{
 		CArgList cargs;
-		auto decl = contract_type->annotation().referencedDeclaration;
-		if (auto contract = dynamic_cast<ContractDefinition const*>(decl))
+		auto const DECL = contract_type->annotation().referencedDeclaration;
+		if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
 		{
 			if (contract->constructor())
 			{
@@ -740,7 +739,7 @@ void ExpressionConverter::print_contract_ctor(
 			throw runtime_error("Unable to resolve contract from TypeName.");
 		}
 
-		auto name = m_types.translate(*contract_type).name;
+		auto name = M_TYPES.translate(*contract_type).name;
 		m_subexpr = make_shared<CFuncCall>("Init_" + name, move(cargs));
 	}
 	else
@@ -835,17 +834,17 @@ void ExpressionConverter::print_magic_member(
 	TypePointer _type, string const& _member
 )
 {
-	auto magic_type = dynamic_cast<MagicType const*>(_type);
-	if (!magic_type)
+	auto const MAGIC_TYPE = dynamic_cast<MagicType const*>(_type);
+	if (!MAGIC_TYPE)
 	{
 		throw runtime_error("Resolution of MagicType failed in MemberAccess.");
 	}
-	auto res = m_magic_members.find({magic_type->kind(), _member});
-	if (res == m_magic_members.end() || res->second == "")
+	auto const RES = m_magic_members.find({MAGIC_TYPE->kind(), _member});
+	if (RES == m_magic_members.end() || RES->second == "")
 	{
 		throw runtime_error("Unable to resolve member of Magic type.");
 	}
-	m_subexpr = make_shared<CIdentifier>(res->second, false);
+	m_subexpr = make_shared<CIdentifier>(RES->second, false);
 }
 
 // -------------------------------------------------------------------------- //

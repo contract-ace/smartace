@@ -44,7 +44,9 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
     BOOST_CHECK_EQUAL(func_actual.str(), "struct A Init_A();");
@@ -67,7 +69,9 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_a_submap1;" << "struct A;";
@@ -107,7 +111,9 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_B;" << "struct A;";
@@ -139,7 +145,9 @@ BOOST_AUTO_TEST_CASE(simple_func)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream func_expect;
     func_expect << "struct A Init_A();";
@@ -172,7 +180,9 @@ BOOST_AUTO_TEST_CASE(pure_func)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream func_expect;
     func_expect << "struct A Init_A();";
@@ -205,7 +215,9 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream func_expect;
     func_expect << "struct A Init_A();";
@@ -237,7 +249,9 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_B_a_submap2;";
@@ -294,7 +308,9 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_B_a_submap1;";
@@ -346,7 +362,9 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_a_submap3;";
@@ -407,7 +425,9 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(ast, converter, true).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, true
+    ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_B;" << "struct A;";
@@ -461,7 +481,9 @@ BOOST_AUTO_TEST_CASE(full_declaration)
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, false).print(adt_actual);
-    FunctionConverter(ast, converter, false).print(func_actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, false
+    ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     // -- A_S
@@ -653,8 +675,12 @@ BOOST_AUTO_TEST_CASE(reproducible)
     ostringstream adt_1, adt_2, func_1, func_2;
     ADTConverter(ast, converter, false).print(adt_1);
     ADTConverter(ast, converter, false).print(adt_2);
-    FunctionConverter(ast, converter, false).print(func_1);
-    FunctionConverter(ast, converter, false).print(func_2);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, false
+    ).print(func_1);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, false
+    ).print(func_2);
 
     BOOST_CHECK_EQUAL(adt_1.str(), adt_2.str());
     BOOST_CHECK_EQUAL(func_1.str(), func_2.str());

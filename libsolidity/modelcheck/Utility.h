@@ -31,15 +31,15 @@ public:
     static_assert(std::is_copy_assignable<T>::value);
 
     // Sets the value at _ref to _set until this object goes out of scope.
-	ScopedSwap(T &_ref, T _set): m_init(_ref), m_ref(_ref) { m_ref = _set; }
+	ScopedSwap(T &_ref, T _set): M_INIT(_ref), m_ref(_ref) { m_ref = _set; }
 
-	~ScopedSwap() { m_ref = m_init; }
+	~ScopedSwap() { m_ref = M_INIT; }
 
     // Allows access to the old value.
-	T const& old() { return m_init; }
+	T const& old() { return M_INIT; }
 
 private:
-	T const m_init;
+	T const M_INIT;
 	T &m_ref;
 };
 

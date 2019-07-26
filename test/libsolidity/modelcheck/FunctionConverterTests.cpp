@@ -47,7 +47,9 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     converter.record(ast);
 
     ostringstream actual, expect;
-    FunctionConverter(ast, converter, false).print(actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, false
+    ).print(actual);
     // -- Init_A
     expect << "struct A Init_A()";
     expect << "{";
@@ -102,7 +104,9 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     converter.record(ast);
 
     ostringstream actual, expect;
-    FunctionConverter(ast, converter, false).print(actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, false
+    ).print(actual);
     // -- Init_A
     expect << "struct A Init_A(struct A*self,struct CallState*state"
            << ",unsigned int _a)";
@@ -147,7 +151,9 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     converter.record(ast);
 
     ostringstream actual, expect;
-    FunctionConverter(ast, converter, false).print(actual);
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, false
+    ).print(actual);
     // -- Init_A
     expect << "struct A Init_A()";
     expect << "{";
@@ -208,6 +214,50 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
+}
+
+// Ensures the function converter can be set to hide implementation details.
+BOOST_AUTO_TEST_CASE(can_hide_internals)
+{
+    char const* text = R"(
+        contract A {
+            struct B {
+                int i;
+            }
+            mapping(int => int) m;
+            function f() public pure {}
+            function g() private pure {}
+        }
+    )";
+
+    auto const &ast = *parseAndAnalyse(text);
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    ostringstream ext_actual, ext_expect;
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::EXT, true
+    ).print(ext_actual);
+    ext_expect << "struct A Init_A();";
+    ext_expect << "void Method_A_f();";
+
+    ostringstream int_actual, int_expect;
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::INT, true
+    ).print(int_actual);
+    int_expect << "struct A_B Init_0_A_B();";
+    int_expect << "struct A_B Init_A_B(int i);";
+    int_expect << "struct A_B ND_A_B();";
+    int_expect << "struct A_m_submap1 Init_0_A_m_submap1();";
+    int_expect << "struct A_m_submap1 ND_A_m_submap1();";
+    int_expect << "int Read_A_m_submap1(struct A_m_submap1*a,int idx);";
+    int_expect << "void Write_A_m_submap1(struct A_m_submap1*a,int idx,int d);";
+    int_expect << "int*Ref_A_m_submap1(struct A_m_submap1*a,int idx);";
+    int_expect << "void Method_A_g();";
+
+    BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
+    BOOST_CHECK_EQUAL(int_actual.str(), int_expect.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END();

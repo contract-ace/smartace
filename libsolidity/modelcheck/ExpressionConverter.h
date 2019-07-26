@@ -160,8 +160,8 @@ protected:
 	bool visit(Literal const& _node) override;
 
 private:
-    Expression const* m_expr;
-    TypeConverter const& m_types;
+    Expression const* M_EXPR;
+    TypeConverter const& M_TYPES;
 	VariableScopeResolver const& m_decls;
 
 	CExprPtr m_subexpr;

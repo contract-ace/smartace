@@ -15,15 +15,9 @@ namespace solidity
 namespace modelcheck
 {
 
-void VariableScopeResolver::enter()
-{
-    m_scopes.emplace_back();
-}
+void VariableScopeResolver::enter() { m_scopes.emplace_back(); }
 
-void VariableScopeResolver::exit()
-{
-    m_scopes.pop_back();
-}
+void VariableScopeResolver::exit() { m_scopes.pop_back(); }
 
 void VariableScopeResolver::record_declaration(VariableDeclaration const& _decl)
 {
@@ -32,36 +26,33 @@ void VariableScopeResolver::record_declaration(VariableDeclaration const& _decl)
 
 string VariableScopeResolver::resolve_identifier(Identifier const& _id) const
 {
-    auto const& name = _id.name();
+    auto const& NAME = _id.name();
 
     for (auto scope = m_scopes.crbegin(); scope != m_scopes.crend(); scope++)
     {
-        auto const& match = scope->find(name);
-        if (match != scope->cend())
-        {
-            return name;
-        }
+        auto const& MATCH = scope->find(NAME);
+        if (MATCH != scope->cend()) return NAME;
     }
 
-    if (name == "this")
+    if (NAME == "this")
     {
         return "self";
     }
-    else if (name == "super")
+    else if (NAME == "super")
     {
         throw runtime_error("Keyword super not supported.");
     }
-    else if (name == "block" || name == "msg" || name == "tx")
+    else if (NAME == "block" || NAME == "msg" || NAME == "tx")
     {
         return "state";
     }
-    else if (name == "now")
+    else if (NAME == "now")
     {
         return "state->blocknum";
     }
     else
     {
-        return "self->d_" + name;
+        return "self->d_" + NAME;
     }
 }
 

@@ -23,7 +23,7 @@ namespace modelcheck
 
 BlockConverter::BlockConverter(
 	FunctionDefinition const& _func, TypeConverter const& _types
-): m_body(_func.body()), m_types(_types)
+): M_BODY(_func.body()), M_TYPES(_types)
 {
 	// TODO(scottwe): support multiple return types.
 	if (_func.returnParameters().size() > 1)
@@ -32,8 +32,8 @@ BlockConverter::BlockConverter(
 	}
 	else if (!_func.returnParameters().empty())
 	{
-		auto const& retvar = _func.returnParameters()[0];
-		if (retvar->name() != "") m_rv = retvar;
+		auto const& RETVAR = _func.returnParameters()[0];
+		if (RETVAR->name() != "") m_rv = RETVAR;
 	}
 
 	m_decls.enter();
@@ -49,7 +49,7 @@ shared_ptr<CBlock> BlockConverter::convert()
 {
 	m_substmt = nullptr;
 	m_last_block = nullptr;
-	m_body.accept(*this);
+	M_BODY.accept(*this);
 	return m_last_block;
 }
 
@@ -65,7 +65,7 @@ bool BlockConverter::visit(Block const& _node)
 	if (top_level_swap.old() && m_rv)
 	{
 		m_decls.record_declaration(*m_rv);
-		rv = make_shared<CVarDecl>(m_types.translate(*m_rv).type, m_rv->name());
+		rv = make_shared<CVarDecl>(M_TYPES.translate(*m_rv).type, m_rv->name());
 		stmts.push_back(rv);
 	}
 	for (auto const& stmt : _node.statements())
@@ -87,7 +87,7 @@ bool BlockConverter::visit(Block const& _node)
 
 bool BlockConverter::visit(IfStatement const& _node)
 {
-	ExpressionConverter cond(_node.condition(), m_types, m_decls);
+	ExpressionConverter cond(_node.condition(), M_TYPES, m_decls);
 	CStmtPtr opt_substmt = nullptr;
 	if (_node.falseStatement())
 	{
@@ -103,10 +103,10 @@ bool BlockConverter::visit(IfStatement const& _node)
 bool BlockConverter::visit(WhileStatement const& _node)
 {
 	// TODO(scottwe): Ensure number of interations has finite bound.
-	bool is_do_while = _node.isDoWhile();
-	ExpressionConverter cond(_node.condition(), m_types, m_decls);
+	bool const IS_DO_WHILE = _node.isDoWhile();
+	ExpressionConverter cond(_node.condition(), M_TYPES, m_decls);
 	_node.body().accept(*this);
-	m_substmt = make_shared<CWhileLoop>(m_substmt, cond.convert(), is_do_while);
+	m_substmt = make_shared<CWhileLoop>(m_substmt, cond.convert(), IS_DO_WHILE);
 
 	return false;
 }
@@ -125,7 +125,7 @@ bool BlockConverter::visit(ForStatement const& _node)
 	CExprPtr cond = nullptr;
 	if (_node.condition())
 	{
-		ExpressionConverter condexpr(*_node.condition(), m_types, m_decls);
+		ExpressionConverter condexpr(*_node.condition(), M_TYPES, m_decls);
 		cond = condexpr.convert();
 	}
 	CStmtPtr loop = nullptr;
@@ -154,7 +154,7 @@ bool BlockConverter::visit(Return const& _node)
 	CExprPtr retval_expr = nullptr;
 	if (_node.expression())
 	{
-		ExpressionConverter retval(*_node.expression(), m_types, m_decls);
+		ExpressionConverter retval(*_node.expression(), M_TYPES, m_decls);
 		retval_expr = retval.convert();
 	}
 	m_substmt = make_shared<CReturn>(retval_expr);
@@ -183,19 +183,21 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 	}
 	else if (!_node.declarations().empty())
 	{
-		const auto &decl = *_node.declarations()[0];
-		auto type = m_types.translate(decl).type;
-		bool is_ref = decl.referenceLocation() == VariableDeclaration::Storage;
-		m_decls.record_declaration(decl);
+		auto const &DECL = *_node.declarations()[0];
+		auto const TYPE = M_TYPES.translate(DECL).type;
+		bool const IS_REF
+			= DECL.referenceLocation() == VariableDeclaration::Storage;
+
+		m_decls.record_declaration(DECL);
 
 		CExprPtr val = nullptr;
 		if (_node.initialValue())
 		{
 			auto const& expr = *_node.initialValue(); 
-			ExpressionConverter val_converter(expr, m_types, m_decls, is_ref);
+			ExpressionConverter val_converter(expr, M_TYPES, m_decls, IS_REF);
 			val = val_converter.convert();
 		}
-		m_substmt = make_shared<CVarDecl>(type, decl.name(), is_ref, val);
+		m_substmt = make_shared<CVarDecl>(TYPE, DECL.name(), IS_REF, val);
 	}
 
 	return false;
@@ -203,7 +205,7 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 
 bool BlockConverter::visit(ExpressionStatement const& _node)
 {
-	ExpressionConverter expr(_node.expression(), m_types, m_decls);
+	ExpressionConverter expr(_node.expression(), M_TYPES, m_decls);
 	m_substmt = make_shared<CExprStmt>(expr.convert());
 	return false;
 }
