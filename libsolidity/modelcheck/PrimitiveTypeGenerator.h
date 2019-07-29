@@ -36,8 +36,11 @@ public:
     bool found_fixed(unsigned char _bytes, unsigned char _d);
     bool found_ufixed(unsigned char _bytes, unsigned char _d);
 
+    // Generates the primitive type definitions, as required by AST.
+    void print(std::ostream& _out);
+
 private:
-    // Auxliary class which can visit the AST once, and then cache all results.
+    // Auxilary class which can visit the AST once, and then cache all results.
     class Visitor : public ASTConstVisitor 
     {
     public:
@@ -62,6 +65,32 @@ private:
         // Records the usage of _type in the AST.
         void process_type(Type const* _type);
     };
+
+    // Auxilary class which generates data needed for Integers and FixedPoint.
+    class EncodingData
+    {
+    public:
+        // Generates data needed to encode the given _bytes, and _signed value.
+        EncodingData(unsigned char _bytes, bool _signed);
+
+        unsigned short bits;
+        bool is_native_width;
+        bool is_aligned_width;
+        std::string base;
+    };
+
+    // Starting from int/uint/fixed/ufixed, these methods abstract out common
+    // formatting behaviour shared between these data-types, or subsets of these
+    // data types (ie int/uint -> integer, or _bytes < 64 -> native).
+    static void declare_integer(
+        std::ostream& _out, unsigned char _bytes, bool _signed
+    );
+    static void declare_fixed(
+        std::ostream& _out, unsigned char _bytes, unsigned char _pt, bool _signed
+    );
+    static void declare_padded_native(
+        std::ostream& _out, std::string const& _sym, EncodingData const& _data
+    );
 
     Visitor const M_SUMMARY;
 };
