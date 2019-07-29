@@ -114,6 +114,8 @@ set(sources
 	modelcheck/ExpressionConverter.h
 	modelcheck/FunctionConverter.cpp
 	modelcheck/FunctionConverter.h
+	modelcheck/PrimitiveTypeGenerator.cpp
+	modelcheck/PrimitiveTypeGenerator.h
 	modelcheck/SimpleCCore.cpp
 	modelcheck/SimpleCCore.h
 	modelcheck/SimpleCGenerator.cpp

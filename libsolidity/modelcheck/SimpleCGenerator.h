@@ -28,6 +28,8 @@ public:
     // declaration corresponds to a pointer.
     CIdentifier(std::string _name, bool _ptr);
 
+    ~CIdentifier() = default;
+
     void print(std::ostream & _out) const override;
     bool is_pointer() const override;
 
@@ -46,6 +48,8 @@ class CIntLiteral : public CExpr
 public:
     // Creates a literal of signed value _val.
     CIntLiteral(long long int _val);
+
+    ~CIntLiteral() = default;
 
     void print(std::ostream & _out) const override;
 
@@ -81,6 +85,7 @@ class CReference : public CUnaryOp
 {
 public:
     CReference(CExprPtr _expr);
+    ~CReference() = default;
 
     bool is_pointer() const override;
 };
@@ -92,6 +97,7 @@ class CDereference : public CUnaryOp
 {
 public:
     CDereference(CExprPtr _expr);
+    ~CDereference() = default;
 };
 
 // -------------------------------------------------------------------------- //
@@ -104,6 +110,8 @@ class CBinaryOp : public CExpr
 public:
     // Encodes the C expression (_lhs)_op(_rhs).
     CBinaryOp(CExprPtr _lhs, std::string _op, CExprPtr _rhs);
+
+    ~CBinaryOp() = default;
 
     void print(std::ostream & _out) const override;
 
@@ -122,6 +130,8 @@ class CAssign : public CBinaryOp
 public:
     // Encodes the C expression (_lhs)_op(_rhs).
     CAssign(CExprPtr _lhs, CExprPtr _rhs);
+
+    ~CAssign() = default;
 };
 
 // -------------------------------------------------------------------------- //
@@ -134,6 +144,8 @@ class CCond : public CExpr
 public:
     // Encodes the C expression (_cond)?(_tcase):(_fcase).
     CCond(CExprPtr _cond, CExprPtr _tcase, CExprPtr _fcase);
+
+    ~CCond() = default;
 
     void print(std::ostream & _out) const override;
     bool is_pointer() const override;
@@ -155,6 +167,8 @@ public:
     // Encodes one of (_expr)._member or (_expr)->_member, based on context.
     CMemberAccess(CExprPtr _expr, std::string _member);
 
+    ~CMemberAccess() = default;
+
     void print(std::ostream & _out) const override;
 
 private:
@@ -172,6 +186,8 @@ class CCast : public CExpr
 public:
     // Encodes the C expression ((_type)(_expr)).
     CCast(CExprPtr _expr, std::string _type);
+
+    ~CCast() = default;
 
     void print(std::ostream & _out) const override;
     bool is_pointer() const override;
@@ -192,6 +208,8 @@ public:
     // Encodes the C expression _name(_args[0],_args[1],...,args[n]).
     CFuncCall(std::string _name, CArgList _args);
 
+    ~CFuncCall() = default;
+
     void print(std::ostream & _out) const override;
 
 private:
@@ -210,6 +228,8 @@ public:
     // Wraps a list of statements inside a brace-enclosed block.
     CBlock(CBlockList _stmts);
 
+    ~CBlock() = default;
+
 private:
     CBlockList const m_stmts;
 
@@ -226,6 +246,8 @@ class CExprStmt : public CStmt
 public:
     // Wraps the expression with a statement.
     CExprStmt(CExprPtr _expr);
+
+    ~CExprStmt() = default;
 
 private:
     CExprPtr const m_expr;
@@ -246,6 +268,8 @@ public:
     CVarDecl(std::string _type, std::string _name, bool _ptr, CExprPtr _init);
     CVarDecl(std::string _type, std::string _name, bool _ptr);
     CVarDecl(std::string _type, std::string _name);
+
+    ~CVarDecl() = default;
 
     // Generates an identifier for this declaration.
     std::shared_ptr<CIdentifier> id() const;
@@ -271,6 +295,8 @@ public:
     // optional.
     CIf(CExprPtr _cond, CStmtPtr _tstmt, CStmtPtr _fstmt);
 
+    ~CIf() = default;
+
 private:
     CExprPtr const m_cond;
     CStmtPtr const m_tstmt;
@@ -290,6 +316,8 @@ public:
     // Constructs a while loop with given condition and body. If set to run at
     // least once, a do/while loop is generated.
     CWhileLoop(CStmtPtr _body, CExprPtr _cond, bool _atleast_once);
+
+    ~CWhileLoop() = default;
 
 private:
     CStmtPtr const m_body;
@@ -311,6 +339,8 @@ public:
     // least once, a do/while loop is generated.
     CForLoop(CStmtPtr _init, CExprPtr _cond, CStmtPtr _loop, CStmtPtr _body);
 
+    ~CForLoop() = default;
+
 private:
     CStmtPtr const m_init;
     CExprPtr const m_cond;
@@ -327,6 +357,9 @@ private:
  */
 class CBreak : public CStmt
 {
+public:
+    ~CBreak() = default;
+
 private:
     void print_impl(std::ostream & _out) const override;
 };
@@ -336,6 +369,9 @@ private:
  */
 class CContinue : public CStmt
 {
+public:
+    ~CContinue() = default;
+
 private:
     void print_impl(std::ostream & _out) const override;
 };
@@ -350,6 +386,8 @@ class CReturn : public CStmt
 public:
     // Creates a return statement with a return value.
     CReturn(CExprPtr _retval);
+
+    ~CReturn() = default;
 
 private:
     CExprPtr const m_retval;
@@ -384,15 +422,35 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- *
+ * Generalizes a C typedef. The typedef is not verified for valid types.
+ */
+class CTypedef : public CElement
+{
+public:
+    // Declares type _type as _name.
+    CTypedef(std::string _type, std::string _name);
+
+    void print(std::ostream & _out) const override;
+
+private:
+    std::string const m_type;
+    std::string const m_name;
+};
+
+/**
+ * Generalizes the definition of a standard C structure. This function may be
+ * made a forward declaration by providing no body.
  */
 class CStructDef : public CElement
 {
 public:
-    // TODO
+    // Represents the structure, struct _name { _fields[0];,...,fields[k]; };.
     CStructDef(std::string _name, std::shared_ptr<CParams> _fields);
 
     void print(std::ostream & _out) const override;
+
+    // Automatically generates a typedef for this structure, with symbol _name.
+    std::shared_ptr<CTypedef> make_typedef(std::string _name);
 
 private:
     std::string m_name;

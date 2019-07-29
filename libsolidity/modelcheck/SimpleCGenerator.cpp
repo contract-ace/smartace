@@ -285,8 +285,16 @@ void CFuncDef::print(ostream & _out) const
 
 // -------------------------------------------------------------------------- //
 
+CTypedef::CTypedef(string _type, string _name)
+: m_type(move(_type)), m_name(move(_name)) {}
+
+void CTypedef::print(ostream & _out) const
+{
+    _out << "typedef " << m_type << " " << m_name << ";";
+}
+
 CStructDef::CStructDef(string _name, shared_ptr<CParams> _fields)
-: m_name(_name), m_fields(_fields) {}
+: m_name(move(_name)), m_fields(move(_fields)) {}
 
 void CStructDef::print(ostream & _out) const
 {
@@ -298,6 +306,11 @@ void CStructDef::print(ostream & _out) const
         _out << "}";
     }
     _out << ";";
+}
+
+shared_ptr<CTypedef> CStructDef::make_typedef(string _name)
+{
+    return make_shared<CTypedef>("struct " + m_name, _name);
 }
 
 // -------------------------------------------------------------------------- //
