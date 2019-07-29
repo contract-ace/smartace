@@ -43,6 +43,23 @@ private:
 	T &m_ref;
 };
 
+/**
+ * Determines if _x is a power of 2. Clearly T must be integral for powers to be
+ * defined. This is valid only positive powers of 2.
+ */
+template <typename T>
+inline bool is_power_of_two(T _x)
+{
+    static_assert(std::is_integral<T>::value);
+    // If _x is 2^n, then _x has binary representation b100...<n-1>...0. Then
+    // (_x - 1) has binary representation b11...<n-1>...1. Then x & (x - 1) must
+    // be 0. When _x is not a power of two, one bit after the leading bit must
+    // be 1. This gives that x & (x - 1) is not 0. It is ensured that _x > 0, as
+    // 1. there does not exist a real n such that 2^n < 0
+    // 2. there exists _x less than 1 such that _x & (_x - 1) = 0.
+    return (_x > 0) && ((_x & (_x - 1)) == 0);
+}
+
 }
 }
 }
