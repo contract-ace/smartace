@@ -108,7 +108,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
     vector<ASTPointer<VariableDeclaration>> initializable_members;
     for (auto const& member : _node.members())
     {
-        if (is_basic_type(*member->type()))
+        if (has_simple_type(*member))
         {
             initializable_members.push_back(member);
         }
@@ -304,32 +304,16 @@ bool FunctionConverter::visit(Mapping const& _node)
 
 // -------------------------------------------------------------------------- //
 
-bool FunctionConverter::is_basic_type(Type const& _type)
-{
-    switch (_type.category())
-    {
-        case Type::Category::Address:
-        case Type::Category::Integer:
-        case Type::Category::RationalNumber:
-        case Type::Category::Bool:
-        case Type::Category::FixedPoint:
-        case Type::Category::Enum:
-            return true;
-        default:
-            return false;
-    }
-}
-
 CExprPtr FunctionConverter::to_init_expr(string const& _name, Type const& _type)
 {
-    return is_basic_type(_type)
+    return is_simple_type(_type)
         ? (CExprPtr)(make_shared<CIntLiteral>(0))
         : (CExprPtr)(make_shared<CFuncCall>("Init_0_" + _name, CArgList{}));
 }
 
 CExprPtr FunctionConverter::to_nd_expr(string const& _name, Type const& _type)
 {
-    return is_basic_type(_type)
+    return is_simple_type(_type)
         ? make_shared<CFuncCall>("ND_Init_Val", CArgList{})
         : make_shared<CFuncCall>("ND_" + _name, CArgList{});
 }

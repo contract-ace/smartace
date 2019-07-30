@@ -7,6 +7,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
+#include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
 #include <list>
 #include <ostream>
@@ -61,7 +62,6 @@ private:
 
 	// Helper functions to partition complex from primitive types, and to set
 	// said values with either default or non-deterministic data.
-	static bool is_basic_type(Type const& _type);
 	static CExprPtr to_init_expr(std::string const& _name, Type const& _type);
 	static CExprPtr to_nd_expr(std::string const& _name, Type const& _type);
 

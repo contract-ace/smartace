@@ -120,6 +120,8 @@ set(sources
 	modelcheck/SimpleCCore.h
 	modelcheck/SimpleCGenerator.cpp
 	modelcheck/SimpleCGenerator.h
+	modelcheck/TypeClassification.cpp
+	modelcheck/TypeClassification.h
 	modelcheck/TypeTranslator.cpp
 	modelcheck/TypeTranslator.h
 	modelcheck/VariableScopeResolver.cpp
