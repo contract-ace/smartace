@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(contract_and_structs)
     BOOST_CHECK_EQUAL(converter.translate(ctrt_b).type, "struct B");
     for (auto structure : ctrt_a.definedStructs())
     {
-        string expt_name = ctrt_a.name() + "_" + structure->name();
+        string expt_name = ctrt_a.name() + "_Struct" + structure->name();
         string expt_type = "struct " + expt_name;
         BOOST_CHECK_EQUAL(converter.translate(*structure).name, expt_name);
         BOOST_CHECK_EQUAL(converter.translate(*structure).type, expt_type);
@@ -126,9 +126,9 @@ BOOST_AUTO_TEST_CASE(map_variable)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(map_var).name, "A_arr_submap1");
-    BOOST_CHECK_EQUAL(converter.translate(submap1).name, "A_arr_submap1");
-    BOOST_CHECK_EQUAL(converter.translate(submap2).name, "A_arr_submap2");
+    BOOST_CHECK_EQUAL(converter.translate(map_var).name, "A_Maparr_submap1");
+    BOOST_CHECK_EQUAL(converter.translate(submap1).name, "A_Maparr_submap1");
+    BOOST_CHECK_EQUAL(converter.translate(submap2).name, "A_Maparr_submap2");
 }
 
 // Tests that function names and return values are annotated properly. This
@@ -150,11 +150,11 @@ BOOST_AUTO_TEST_CASE(function)
     converter.record(ast);
 
     auto const& f1 = (funs[0]->name() == "f") ? *funs[0] : *funs[1];
-    BOOST_CHECK_EQUAL(converter.translate(f1).name, "Method_A_f");
+    BOOST_CHECK_EQUAL(converter.translate(f1).name, "Method_A_Funcf");
     BOOST_CHECK_EQUAL(converter.translate(f1).type, "int");
 
     auto const& f2 = (funs[0]->name() != "f") ? *funs[0] : *funs[1];
-    BOOST_CHECK_EQUAL(converter.translate(f2).name, "Method_A_g");
+    BOOST_CHECK_EQUAL(converter.translate(f2).name, "Method_A_Funcg");
     BOOST_CHECK_EQUAL(converter.translate(f2).type, "void");
 }
 
@@ -177,38 +177,6 @@ BOOST_AUTO_TEST_CASE(constructor)
 
     BOOST_CHECK_EQUAL(converter.translate(func).name, "Ctor_A");
     BOOST_CHECK_EQUAL(converter.translate(func).type, "void");
-}
-
-// Tests that modifiers are annotated properly.
-BOOST_AUTO_TEST_CASE(modifier)
-{
-    char const* text = R"(
-        contract A {
-            modifier mod1 {
-                require(5 == 5);
-                _;
-            }
-            modifier mod2(uint _a) {
-                require(_a == 5);
-                _;
-            }
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-    auto const& mods = ctrt.functionModifiers();
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    auto const& m1 = (mods[0]->name() == "mod1") ? *mods[0] : *mods[1];
-    BOOST_CHECK_EQUAL(converter.translate(m1).name, "Modifier_A_mod1");
-    BOOST_CHECK_EQUAL(converter.translate(m1).type, "void");
-
-    auto const& m2 = (mods[0]->name() != "mod1") ? *mods[0] : *mods[1];
-    BOOST_CHECK_EQUAL(converter.translate(m2).name, "Modifier_A_mod2");
-    BOOST_CHECK_EQUAL(converter.translate(m2).type, "void");
 }
 
 // Integration test which should fail if a new member is added to the global
@@ -387,7 +355,7 @@ BOOST_AUTO_TEST_CASE(struct_access)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(mmbr).name, "A_B_arr_submap1");
+    BOOST_CHECK_EQUAL(converter.translate(mmbr).name, "A_StructB_Maparr_submap1");
 }
 
 // Tests that map index access calls are treated as function calls, with their
@@ -419,10 +387,10 @@ BOOST_AUTO_TEST_CASE(map_access)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(idx1).name, "A_arr_submap2");
+    BOOST_CHECK_EQUAL(converter.translate(idx1).name, "A_Maparr_submap2");
     BOOST_CHECK_EQUAL(converter.translate(idx1).type, "int");
-    BOOST_CHECK_EQUAL(converter.translate(idx2).name, "A_arr_submap1");
-    BOOST_CHECK_EQUAL(converter.translate(idx2).type, "struct A_arr_submap2");
+    BOOST_CHECK_EQUAL(converter.translate(idx2).name, "A_Maparr_submap1");
+    BOOST_CHECK_EQUAL(converter.translate(idx2).type, "struct A_Maparr_submap2");
 }
 
 // Ensures that storage variable identifiers are mapped to pointers, while
@@ -492,7 +460,33 @@ BOOST_AUTO_TEST_CASE(function_and_identifier_oreder_regression)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(indx).name, "Method_A_g");
+    BOOST_CHECK_EQUAL(converter.translate(indx).name, "Method_A_Funcg");
+}
+
+// Ensures names are escaped, as per the translation specifications.
+BOOST_AUTO_TEST_CASE(name_escape)
+{
+    char const* text = R"(
+        contract A_B {
+            struct C_D { int i; }
+            function f_func() public { }
+            mapping(int => int) m_map;
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(ast, "A_B");
+    auto const& strt = *ctrt.definedStructs()[0];
+    auto const& func = *ctrt.definedFunctions()[0];
+    auto const& mapv = *ctrt.stateVariables()[0];
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    BOOST_CHECK_EQUAL(converter.translate(ctrt).name, "A__B");
+    BOOST_CHECK_EQUAL(converter.translate(strt).name, "A__B_StructC__D");
+    BOOST_CHECK_EQUAL(converter.translate(func).name, "Method_A__B_Funcf__func");
+    BOOST_CHECK_EQUAL(converter.translate(mapv).name, "A__B_Mapm__map_submap1");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

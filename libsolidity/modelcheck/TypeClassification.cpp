@@ -6,6 +6,10 @@
  */
 
 #include <libsolidity/modelcheck/TypeClassification.h>
+#include <sstream>
+#include <stdexcept>
+
+using namespace std;
 
 namespace dev
 {
@@ -20,19 +24,19 @@ bool is_simple_type(Type const& _type)
 {
     switch (_type.category())
     {
-        case Type::Category::Address:
-        case Type::Category::Integer:
-        case Type::Category::RationalNumber:
-        case Type::Category::Bool:
-        case Type::Category::FixedPoint:
-        case Type::Category::Enum:
-            return true;
-        case Type::Category::TypeType:
-            return is_simple_type(
-                *dynamic_cast<TypeType const&>(_type).actualType()
-            );
-        default:
-            return false;
+    case Type::Category::Address:
+    case Type::Category::Integer:
+    case Type::Category::RationalNumber:
+    case Type::Category::Bool:
+    case Type::Category::FixedPoint:
+    case Type::Category::Enum:
+        return true;
+    case Type::Category::TypeType:
+        return is_simple_type(
+            *dynamic_cast<TypeType const&>(_type).actualType()
+        );
+    default:
+        return false;
     }
 }
 
@@ -51,6 +55,19 @@ bool has_simple_type(TypeName const& _node)
 bool has_simple_type(Expression const& _node)
 {
     return is_simple_type(*_node.annotation().type);
+}
+
+// -------------------------------------------------------------------------- //
+
+string get_name(Declaration const& _decl)
+{
+    ostringstream oss;
+    for (char const& c : _decl.name())
+    {
+        oss << c;
+        if (c == '_') oss << '_'; 
+    }
+    return oss.str();
 }
 
 // -------------------------------------------------------------------------- //

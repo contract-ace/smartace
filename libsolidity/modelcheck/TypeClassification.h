@@ -8,6 +8,7 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
+#include <string>
 
 namespace dev
 {
@@ -26,11 +27,20 @@ bool is_simple_type(Type const& _type);
  * simple type. This is equivalent to extracting the type manually, and then
  * invoking is_simple_type.
  * 
- * This operation realize tau_{type}.
+ * This operation realize `tau_{type}` from the translation specifications.
  */
 bool has_simple_type(Declaration const& _node);
 bool has_simple_type(TypeName const& _node);
 bool has_simple_type(Expression const& _node);
+
+/**
+ * Extracts the name from a declaration. The name is rewritten such that an odd
+ * run of underscores will never occur. This is done such that if A.name()
+ * equals B.name() if and only if get_name(A) = get_name(B).
+ * 
+ * This operation realizes `name` from the translation specifications.
+ */
+std::string get_name(Declaration const& _decl);
 
 }
 }

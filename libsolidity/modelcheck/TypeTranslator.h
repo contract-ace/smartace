@@ -74,7 +74,6 @@ public:
     Translation translate(VariableDeclaration const& _decl) const;
     Translation translate(TypeName const& _type) const;
     Translation translate(FunctionDefinition const& _fun) const;
-    Translation translate(ModifierDefinition const& _mod) const;
     Translation translate(Identifier const& _id) const;
     // Translates a member access, if it is to a declaration of type struct or
     // contract.

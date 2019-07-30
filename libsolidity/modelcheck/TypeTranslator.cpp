@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/TypeTranslator.h>
 
+#include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 #include <stdexcept>
@@ -136,7 +137,8 @@ void TypeConverter::record(SourceUnit const& _unit)
         for (auto structure : contract->definedStructs())
         {
             ostringstream struct_oss;
-            struct_oss << contract->name() << "_" << structure->name();
+            struct_oss << get_name(*contract)
+                       << "_Struct" << get_name(*structure);
         
             Translation struct_entry;
             struct_entry.name = struct_oss.str();
@@ -145,7 +147,7 @@ void TypeConverter::record(SourceUnit const& _unit)
         }
 
         Translation contract_entry;
-        contract_entry.name = contract->name();
+        contract_entry.name = get_name(*contract);
         contract_entry.type = "struct " + contract_entry.name;
         m_dictionary.insert({contract, contract_entry});
     }
@@ -179,10 +181,10 @@ void TypeConverter::record(SourceUnit const& _unit)
             }
 
             ostringstream fun_oss;
-            fun_oss << (fun->isConstructor() ? "Ctor" : "Method")
-                    << "_" << contract->name();
+            fun_oss << (fun->isConstructor() ? "Ctor" : "Method") << "_"
+                    << get_name(*contract);
 
-            if (!fun->isConstructor()) fun_oss << "_" << fun->name();
+            if (!fun->isConstructor()) fun_oss << "_Func" << get_name(*fun);
 
             Translation fun_entry;
             fun_entry.name = fun_oss.str();
@@ -190,19 +192,6 @@ void TypeConverter::record(SourceUnit const& _unit)
             m_dictionary.insert({fun, fun_entry});
 
             fun->parameterList().accept(*this);
-        }
-
-        for (auto mod : contract->functionModifiers())
-        {
-            ostringstream mod_oss;
-            mod_oss << "Modifier_" << contract->name() << "_" << mod->name();
-
-            Translation mod_entry;
-            mod_entry.name = mod_oss.str();
-            mod_entry.type = "void";
-            m_dictionary.insert({mod, mod_entry});
-
-            mod->parameterList().accept(*this);
         }
     }
 
@@ -243,11 +232,6 @@ Translation TypeConverter::translate(TypeName const& _type) const
 Translation TypeConverter::translate(FunctionDefinition const& _fun) const
 {
     return translate_impl(&_fun);
-}
-
-Translation TypeConverter::translate(ModifierDefinition const& _mod) const
-{
-    return translate_impl(&_mod);
 }
 
 Translation TypeConverter::translate(Identifier const& _id) const
@@ -395,12 +379,14 @@ void TypeConverter::endVisit(ParameterList const& _node)
 
 void TypeConverter::endVisit(Mapping const& _node)
 {
-    string name = translate_impl(m_curr_decl->scope()).name;
-    name += "_" + m_curr_decl->name() + "_submap" + to_string(m_rectype_depth);
+    ostringstream name_oss;
+    name_oss << translate_impl(m_curr_decl->scope()).name
+             << "_Map" + get_name(*m_curr_decl)
+             << "_submap" << to_string(m_rectype_depth);
 
     Translation translation;
-    translation.name = name;
-    translation.type = "struct " + name;
+    translation.name = name_oss.str();
+    translation.type = "struct " + name_oss.str();
     m_dictionary.insert({&_node, translation});
 
     --m_rectype_depth;

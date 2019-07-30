@@ -63,6 +63,24 @@ BOOST_AUTO_TEST_CASE(is_basic_on_types)
     BOOST_CHECK(!is_simple_type(TypeType(&tuple_type)));
 }
 
+BOOST_AUTO_TEST_CASE(name_escaping)
+{
+    using langutil::SourceLocation;
+
+    vector<pair<shared_ptr<string>, string>> cases{
+        { make_shared<string>("aa"), "aa" },
+        { make_shared<string>("aa_"), "aa__" },
+        { make_shared<string>("aa_bb_"), "aa__bb__" },
+        { make_shared<string>("aa__bb"), "aa____bb" }
+    };
+
+    for (auto const& c : cases)
+    {
+        ContractDefinition def(SourceLocation(), c.first, nullptr, {}, {});
+        BOOST_CHECK_EQUAL(get_name(def), c.second);
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 }

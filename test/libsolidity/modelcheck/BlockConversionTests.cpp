@@ -403,12 +403,12 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
             ostringstream actual, expected;
             actual << *BlockConverter(*func_ptr, converter).convert();
             expected << "{";
-            expected << "Method_A_f(self,state);";
-            expected << "Method_A_g(self,state,1);";
-            expected << "Method_A_h(self,state,1,2);";
-            expected << "Method_A_p();";
-            expected << "Method_A_q(1);";
-            expected << "Method_A_r(1,2);";
+            expected << "Method_A_Funcf(self,state);";
+            expected << "Method_A_Funcg(self,state,1);";
+            expected << "Method_A_Funch(self,state,1,2);";
+            expected << "Method_A_Funcp();";
+            expected << "Method_A_Funcq(1);";
+            expected << "Method_A_Funcr(1,2);";
             expected << "}";
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;
@@ -453,11 +453,11 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
             ostringstream actual, expected;
             actual << *BlockConverter(*func_ptr, converter).convert();
             expected << "{";
-            expected << "Method_A_f(&(self->d_a),state);";
-            expected << "Method_A_g();";
-            expected << "Method_B_f(&(self->d_b),state);";
-            expected << "Method_B_f(self,state);";
-            expected << "Method_B_f(self,state);";
+            expected << "Method_A_Funcf(&(self->d_a),state);";
+            expected << "Method_A_Funcg();";
+            expected << "Method_B_Funcf(&(self->d_b),state);";
+            expected << "Method_B_Funcf(self,state);";
+            expected << "Method_B_Funcf(self,state);";
             expected << "}";;
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;
@@ -552,9 +552,9 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "Init_A_B();";
-    expected << "Init_A_C(1);";
-    expected << "Init_A_D(1,2);";
+    expected << "Init_A_StructB();";
+    expected << "Init_A_StructC(1);";
+    expected << "Init_A_StructD(1,2);";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -626,10 +626,10 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{"
-             << "Read_A_arr1_submap1(&(self->d_arr1),(1)+(2));"
-             << "Read_A_B_arr2_submap1(&((self->d_b).d_arr2),(3)+(4));"
-             << "Read_A_B_arr2_submap1(&(((self->d_c).d_b).d_arr2),(5)+(6));"
-             << "Read_A_arr1_submap2(Ref_A_arr1_submap1(&(self->d_arr1),10),10);"
+             << "Read_A_Maparr1_submap1(&(self->d_arr1),(1)+(2));"
+             << "Read_A_StructB_Maparr2_submap1(&((self->d_b).d_arr2),(3)+(4));"
+             << "Read_A_StructB_Maparr2_submap1(&(((self->d_c).d_b).d_arr2),(5)+(6));"
+             << "Read_A_Maparr1_submap2(Ref_A_Maparr1_submap1(&(self->d_arr1),10),10);"
              << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -666,13 +666,13 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "Write_A_a_submap1(&(self->d_a),1,2);";
-    expected << "Write_A_a_submap1(&(self->d_a),1"
-             << ",(Read_A_a_submap1(&(self->d_a),1))+(2));";
-    expected << "((*(Ref_A_b_submap1(&(self->d_b),1))).d_m)=("
-             << "((Read_A_b_submap1(&(self->d_b),1)).d_m)+(2));";
-    expected << "Write_A_C_m_submap1(&((self->d_c).d_m),1,2);";
-    expected << "Write_A_d_submap2(Ref_A_d_submap1(&(self->d_d),1),2,3);";
+    expected << "Write_A_Mapa_submap1(&(self->d_a),1,2);";
+    expected << "Write_A_Mapa_submap1(&(self->d_a),1"
+             << ",(Read_A_Mapa_submap1(&(self->d_a),1))+(2));";
+    expected << "((*(Ref_A_Mapb_submap1(&(self->d_b),1))).d_m)=("
+             << "((Read_A_Mapb_submap1(&(self->d_b),1)).d_m)+(2));";
+    expected << "Write_A_StructC_Mapm_submap1(&((self->d_c).d_m),1,2);";
+    expected << "Write_A_Mapd_submap2(Ref_A_Mapd_submap1(&(self->d_d),1),2,3);";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -746,7 +746,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_resolution)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "struct A_B*b_ref=&(self->d_b);";
+    expected << "struct A_StructB*b_ref=&(self->d_b);";
     expected << "(b_ref)->d_i;";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
@@ -777,7 +777,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "struct A_B*b_ref=&(self->d_b);";
+    expected << "struct A_StructB*b_ref=&(self->d_b);";
     expected << "(b_ref)=(&(self->d_b));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
@@ -808,8 +808,8 @@ BOOST_AUTO_TEST_CASE(storage_variable_to_map)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "struct A_B*b_ref=Ref_A_a_submap1(&(self->d_a),0);";
-    expected << "(b_ref)=(Ref_A_a_submap1(&(self->d_a),0));";
+    expected << "struct A_StructB*b_ref=Ref_A_Mapa_submap1(&(self->d_a),0);";
+    expected << "(b_ref)=(Ref_A_Mapa_submap1(&(self->d_a),0));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
