@@ -102,7 +102,8 @@ protected:
 private:
     static std::map<std::string, Translation> const m_global_context;
 
-    std::map<ASTNode const*, Translation> m_dictionary;
+    std::map<ASTNode const*, std::string> m_name_lookup;
+    std::map<ASTNode const*, std::string> m_type_lookup;
     std::map<Identifier const*, bool> m_in_storage;
 
     ContractDefinition const* m_curr_contract = nullptr;

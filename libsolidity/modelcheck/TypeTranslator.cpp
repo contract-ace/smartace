@@ -133,23 +133,19 @@ void TypeConverter::record(SourceUnit const& _unit)
     for (auto contract : contracts)
     {
         ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
+        string cname = get_name(*contract);
 
         for (auto structure : contract->definedStructs())
         {
             ostringstream struct_oss;
-            struct_oss << get_name(*contract)
-                       << "_Struct" << get_name(*structure);
-        
-            Translation struct_entry;
-            struct_entry.name = struct_oss.str();
-            struct_entry.type = "struct " + struct_entry.name;
-            m_dictionary.insert({structure, struct_entry});
+            struct_oss << cname << "_Struct" << get_name(*structure);
+
+            m_name_lookup.insert({structure, struct_oss.str()});
+            m_type_lookup.insert({structure, "struct " + struct_oss.str()});
         }
 
-        Translation contract_entry;
-        contract_entry.name = get_name(*contract);
-        contract_entry.type = "struct " + contract_entry.name;
-        m_dictionary.insert({contract, contract_entry});
+        m_name_lookup.insert({contract, cname});
+        m_type_lookup.insert({contract, "struct " + cname});
     }
 
     // Pass 2: assign types to all member fields and methods, such that their
@@ -186,10 +182,8 @@ void TypeConverter::record(SourceUnit const& _unit)
 
             if (!fun->isConstructor()) fun_oss << "_Func" << get_name(*fun);
 
-            Translation fun_entry;
-            fun_entry.name = fun_oss.str();
-            fun_entry.type = translate_impl(returnParams).type;
-            m_dictionary.insert({fun, fun_entry});
+            m_name_lookup.insert({fun, fun_oss.str()});
+            m_type_lookup.insert({fun, translate_impl(returnParams).type});
 
             fun->parameterList().accept(*this);
         }
@@ -286,7 +280,8 @@ bool TypeConverter::visit(VariableDeclaration const& _node)
         ScopedSwap<VariableDeclaration const*> decl_swap(m_curr_decl, &_node);
         _node.typeName()->accept(*this);
         auto translation = translate_impl(_node.typeName());
-        m_dictionary.insert({&_node, translation});
+        m_name_lookup.insert({&_node, translation.name});
+        m_type_lookup.insert({&_node, translation.type});
     }
 
     return false;
@@ -323,7 +318,8 @@ bool TypeConverter::visit(ElementaryTypeName const& _node)
     }
     translation.type = translation.name;
 
-    m_dictionary.insert({&_node, translation});
+    m_name_lookup.insert({&_node, translation.name});
+    m_type_lookup.insert({&_node, translation.type});
 
     return false;
 }
@@ -331,7 +327,8 @@ bool TypeConverter::visit(ElementaryTypeName const& _node)
 bool TypeConverter::visit(UserDefinedTypeName const& _node)
 {
     auto t = translate_impl(_node.annotation().referencedDeclaration);
-    m_dictionary.insert({&_node, t});
+    m_name_lookup.insert({&_node, t.name});
+    m_type_lookup.insert({&_node, t.type});
     return false;
 }
 
@@ -373,7 +370,8 @@ void TypeConverter::endVisit(ParameterList const& _node)
             translation.name = "void";
             translation.type = "void";
         }
-        m_dictionary.insert({&_node, translation});
+        m_name_lookup.insert({&_node, translation.name});
+        m_type_lookup.insert({&_node, translation.type});
     }
 }
 
@@ -387,7 +385,8 @@ void TypeConverter::endVisit(Mapping const& _node)
     Translation translation;
     translation.name = name_oss.str();
     translation.type = "struct " + name_oss.str();
-    m_dictionary.insert({&_node, translation});
+    m_name_lookup.insert({&_node, translation.name});
+    m_type_lookup.insert({&_node, translation.type});
 
     --m_rectype_depth;
 }
@@ -402,7 +401,8 @@ void TypeConverter::endVisit(MemberAccess const& _node)
             if (member->name() == _node.memberName())
             {
                 Translation translation = translate_impl(member);
-                m_dictionary.insert({&_node, translation});
+                m_name_lookup.insert({&_node, translation.name});
+                m_type_lookup.insert({&_node, translation.type});
                 return;
             }
         }
@@ -414,7 +414,8 @@ void TypeConverter::endVisit(MemberAccess const& _node)
             if (member->name() == _node.memberName())
             {
                 Translation translation = translate_impl(member.get());
-                m_dictionary.insert({&_node, translation});
+                m_name_lookup.insert({&_node, translation.name});
+                m_type_lookup.insert({&_node, translation.type});
                 return;
             }
         }
@@ -429,10 +430,8 @@ void TypeConverter::endVisit(IndexAccess const& _node)
         throw runtime_error("Cannot resolve Mapping from IndexAccess.");
     }
 
-    Translation translation;
-    translation.name = translate_impl(mapping).name;
-    translation.type = translate_impl(&mapping->valueType()).type;
-    m_dictionary.insert({&_node, translation});
+    m_name_lookup.insert({&_node, translate_impl(mapping).name});
+    m_type_lookup.insert({&_node, translate_impl(&mapping->valueType()).type});
 }
 
 void TypeConverter::endVisit(Identifier const& _node)
@@ -440,7 +439,8 @@ void TypeConverter::endVisit(Identifier const& _node)
     auto const MAGIC_RES = m_global_context.find(_node.name());
     if (MAGIC_RES != m_global_context.end())
     {
-        m_dictionary.insert({&_node, MAGIC_RES->second});
+        m_name_lookup.insert({&_node, MAGIC_RES->second.name});
+        m_type_lookup.insert({&_node, MAGIC_RES->second.type});
         m_in_storage.insert({&_node, false});
     }
     else
@@ -470,7 +470,8 @@ void TypeConverter::endVisit(Identifier const& _node)
         }
 
         auto const ACTUAL_RES = translate_impl(ref);
-        m_dictionary.insert({&_node, ACTUAL_RES});
+        m_name_lookup.insert({&_node, ACTUAL_RES.name});
+        m_type_lookup.insert({&_node, ACTUAL_RES.type});
         m_in_storage.insert({&_node, loc == VariableDeclaration::Storage});
     }
 }
@@ -479,12 +480,13 @@ void TypeConverter::endVisit(Identifier const& _node)
 
 Translation TypeConverter::translate_impl(ASTNode const* _node) const
 {
-    auto const RES = m_dictionary.find(_node);
-    if (RES == m_dictionary.end())
+    auto const NAME = m_name_lookup.find(_node);
+    auto const TYPE = m_type_lookup.find(_node);
+    if (NAME == m_name_lookup.end() || TYPE == m_type_lookup.end())
     {
         throw logic_error("Translation request for type not in source unit.");
     }
-    return RES->second;
+    return {TYPE->second, NAME->second};
 }
 
 // -------------------------------------------------------------------------- //
