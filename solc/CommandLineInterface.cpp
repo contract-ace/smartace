@@ -35,6 +35,9 @@
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/modelcheck/ADTConverter.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
+#include <libsolidity/modelcheck/MainFunction_1.h>
+#include <libsolidity/modelcheck/MainFunction_2.h>
+#include <libsolidity/modelcheck/MainFunction_3.h>
 
 #include <libyul/AssemblyStack.h>
 
@@ -1196,6 +1199,10 @@ void CommandLineInterface::handleCModelHeaders(
 	}
 	for (auto const& ast : _asts)
 	{
+		modelcheck::MainFunction_1(*ast, _con, true).print(_os);
+	}
+	for (auto const& ast : _asts)
+	{
 		FunctionConverter cov(*ast, _con, FunctionConverter::View::EXT, true);
 		cov.print(_os);
 	}
@@ -1218,6 +1225,18 @@ void CommandLineInterface::handleCModelBody(
 	{
 		ADTConverter cov(*ast, _con, false);
 		cov.print(_os);
+	}
+	for (auto const& ast : _asts)
+	{
+		modelcheck::MainFunction_1(*ast, _con, false).print(_os);
+	}
+	for (auto const& ast : _asts)
+	{
+		modelcheck::MainFunction_2(*ast, _con, false).print(_os);
+	}
+	for (auto const& ast : _asts)
+	{
+		modelcheck::MainFunction_3(*ast, _con, false).print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
