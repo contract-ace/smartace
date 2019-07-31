@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/TypeTranslator.h>
 
+#include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
@@ -24,33 +25,19 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-map<string, Translation> const TypeConverter::m_global_context({
-    {"abi", {}},
-    {"addmod", {"unsigned int", "addmod"}},
-    {"assert", {"void", "assert"}},
-    {"block", {}},
-    {"blockhash", {"", "blockhash"}}, // TODO(scottwe): byte32
-    {"ecrecover", {"int", "ecrecover"}},
-    {"gasleft", {"unsigned int", "gasleft"}},
-    {"keccak256", {"", "keccak256"}}, // TODO(scottwe): byte32
-    {"log0", {"void", "log0"}},
-    {"log1", {"void", "log1"}},
-    {"log2", {"void", "log2"}},
-    {"log3", {"void", "log3"}},
-    {"log4", {"void", "log4"}},
-    {"msg", {}},
-    {"mulmod", {"unsigned int", "mulmod"}},
-    {"now", {"unsigned int", "unsigned int"}},
-    {"require", {"void", "require"}},
-    {"revert", {"void", "revert"}},
-    {"ripemd160", {"", "ripemd160"}}, // TODO(scottwe): byte20
-    {"selfdestruct", {"void", "selfdestruct"}},
-    {"sha256", {"", "sha256"}}, // TODO(scottwe): byte32
-    {"sha3", {"", "sha3"}}, // TODO(scottwe): byte32
-    {"suicide", {"void", "suicide"}},
-    {"tx", {}},
-    {"type", {}}
+map<string, string> const TypeConverter::m_global_context_types({
+    {"abi", ""}, {"addmod", "unsigned int"}, {"assert", "void"}, {"block", ""},
+    {"blockhash", ""/*TODO(scottwe): byte32*/}, {"ecrecover", "int"},
+    {"gasleft", "unsigned int"}, {"keccak256", ""/*TODO(scottwe): byte32*/},
+    {"log0", "void"}, {"log1", "void"}, {"log2", "void"}, {"log3", "void"},
+    {"log4", "void"}, {"msg", ""}, {"mulmod", "unsigned int"},
+    {"now", "unsigned int"}, {"require", "require"}, {"revert", "void"},
+    {"ripemd160", ""/*TODO(scottwe): byte20*/}, {"selfdestruct", "void"},
+    {"sha256", ""/*TODO(scottwe): byte32*/}, {"type", ""}, {"tx", ""},
+    {"sha3", ""/*TODO(scottwe): byte32*/}, {"suicide", "void"}
 });
+
+set<string> const TypeConverter::m_global_context_simple_values({"now"});
 
 // -------------------------------------------------------------------------- //
 
@@ -133,12 +120,12 @@ void TypeConverter::record(SourceUnit const& _unit)
     for (auto contract : contracts)
     {
         ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
-        string cname = get_name(*contract);
+        string cname = escape_decl_name(*contract);
 
         for (auto structure : contract->definedStructs())
         {
             ostringstream struct_oss;
-            struct_oss << cname << "_Struct" << get_name(*structure);
+            struct_oss << cname << "_Struct" << escape_decl_name(*structure);
 
             m_name_lookup.insert({structure, struct_oss.str()});
             m_type_lookup.insert({structure, "struct " + struct_oss.str()});
@@ -178,12 +165,15 @@ void TypeConverter::record(SourceUnit const& _unit)
 
             ostringstream fun_oss;
             fun_oss << (fun->isConstructor() ? "Ctor" : "Method") << "_"
-                    << get_name(*contract);
+                    << escape_decl_name(*contract);
 
-            if (!fun->isConstructor()) fun_oss << "_Func" << get_name(*fun);
+            if (!fun->isConstructor())
+            {
+                fun_oss << "_Func" << escape_decl_name(*fun);
+            }
 
             m_name_lookup.insert({fun, fun_oss.str()});
-            m_type_lookup.insert({fun, translate_impl(returnParams).type});
+            m_type_lookup.insert({fun, get_type(*returnParams)});
 
             fun->parameterList().accept(*this);
         }
@@ -203,63 +193,98 @@ void TypeConverter::record(SourceUnit const& _unit)
 
 // -------------------------------------------------------------------------- //
 
-Translation TypeConverter::translate(ContractDefinition const& _contract) const
-{
-    return translate_impl(&_contract);
-}
-
-Translation TypeConverter::translate(StructDefinition const& _structure) const
-{
-    return translate_impl(&_structure);
-}
-
-Translation TypeConverter::translate(VariableDeclaration const& _decl) const
-{
-    return translate_impl(&_decl);
-}
-
-Translation TypeConverter::translate(TypeName const& _type) const
-{
-    return translate_impl(&_type);
-}
-
-Translation TypeConverter::translate(FunctionDefinition const& _fun) const
-{
-    return translate_impl(&_fun);
-}
-
-Translation TypeConverter::translate(Identifier const& _id) const
-{
-    return translate_impl(&_id);
-}
-
-Translation TypeConverter::translate(MemberAccess const& _access) const
-{
-    switch (_access.expression().annotation().type->category())
-    {
-    case Type::Category::Struct:
-    case Type::Category::Contract:
-        return translate_impl(&_access);
-    default:
-        throw runtime_error("MemberAccess translations limited to ADT.");
-    }
-}
-
-Translation TypeConverter::translate(IndexAccess const& _access) const
-{
-    switch (_access.baseExpression().annotation().type->category())
-    {
-    case Type::Category::Mapping:
-        return translate_impl(&_access);
-    default:
-        throw runtime_error("IndexAccess translations limited to Mapping.");
-    }
-}
-
 bool TypeConverter::is_pointer(Identifier const& _id) const
 {
-    auto const& res = m_in_storage.find(&_id);
-    return res != m_in_storage.end() && res->second;
+    auto const& RES = m_in_storage.find(&_id);
+    return RES != m_in_storage.end() && RES->second;
+}
+
+bool TypeConverter::has_record(ASTNode const& _node) const
+{
+    return m_type_lookup.find(&_node) != m_type_lookup.end();
+}
+
+string TypeConverter::get_type(ASTNode const& _node) const
+{
+    if (!has_record(_node))
+    {
+        string name = "unknown";
+        if (auto DECL = dynamic_cast<Declaration const*>(&_node))
+        {
+            name = DECL->name();
+        }
+        throw runtime_error("get_type called on unknown ASTNode: " + name);
+    }
+    return m_type_lookup.find(&_node)->second;
+}
+
+string TypeConverter::get_name(ASTNode const& _node) const
+{
+    auto const& RES = m_name_lookup.find(&_node);
+    if (RES == m_name_lookup.end())
+    {
+        string name = "unknown";
+        if (auto DECL = dynamic_cast<Declaration const*>(&_node))
+        {
+            name = DECL->name();
+        }
+        throw runtime_error("get_name called on unknown ASTNode: " + name);
+    }
+    return RES->second;
+}
+
+// -------------------------------------------------------------------------- //
+
+CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
+{
+    if (!is_simple_type(_type))
+    {
+        throw ("init_val_by_simple_type expects a simple type.");
+    }
+    return make_shared<CIntLiteral>(0);
+}
+
+CExprPtr TypeConverter::nd_val_by_simple_type(Type const& _type)
+{
+    if (!is_simple_type(_type))
+    {
+        throw ("nd_val_by_simple_type expects a simple type.");
+    }
+    return make_shared<CFuncCall>("ND_Init_Val", CArgList{});
+}
+
+CExprPtr TypeConverter::get_init_val(TypeName const& _typename) const
+{
+    if (has_simple_type(_typename))
+    {
+        return TypeConverter::init_val_by_simple_type(
+            *_typename.annotation().type
+        );
+    }
+    return make_shared<CFuncCall>("Init_0_" + get_name(_typename), CArgList{});
+}
+
+CExprPtr TypeConverter::get_init_val(Declaration const& _decl) const
+{
+    if (has_simple_type(_decl)) return init_val_by_simple_type(*_decl.type());
+    return make_shared<CFuncCall>("Init_0_" + get_name(_decl), CArgList{});
+}
+
+CExprPtr TypeConverter::get_nd_val(TypeName const& _typename) const
+{
+    if (has_simple_type(_typename))
+    {
+        return TypeConverter::nd_val_by_simple_type(
+            *_typename.annotation().type
+        );
+    }
+    return make_shared<CFuncCall>("ND_" + get_name(_typename), CArgList{});
+}
+
+CExprPtr TypeConverter::get_nd_val(Declaration const& _decl) const
+{
+    if (has_simple_type(_decl)) return nd_val_by_simple_type(*_decl.type());
+    return make_shared<CFuncCall>("ND_" + get_name(_decl), CArgList{});
 }
 
 // -------------------------------------------------------------------------- //
@@ -278,10 +303,13 @@ bool TypeConverter::visit(VariableDeclaration const& _node)
         }
 
         ScopedSwap<VariableDeclaration const*> decl_swap(m_curr_decl, &_node);
-        _node.typeName()->accept(*this);
-        auto translation = translate_impl(_node.typeName());
-        m_name_lookup.insert({&_node, translation.name});
-        m_type_lookup.insert({&_node, translation.type});
+        auto const& VAR_TYPENAME = *_node.typeName();
+        VAR_TYPENAME.accept(*this);
+        m_type_lookup.insert({&_node, get_type(VAR_TYPENAME)});
+        if (!has_simple_type(VAR_TYPENAME))
+        {
+            m_name_lookup.insert({&_node, get_name(VAR_TYPENAME)});
+        }
     }
 
     return false;
@@ -289,46 +317,46 @@ bool TypeConverter::visit(VariableDeclaration const& _node)
 
 bool TypeConverter::visit(ElementaryTypeName const& _node)
 {
-    Translation translation;
+    string ctype;
 
     auto type = _node.annotation().type;
     switch (type->category())
     {
     case Type::Category::Address:
     case Type::Category::Bool:
-        translation.name = "int";
+        ctype = "int";
         break;
     case Type::Category::Integer:
         if (dynamic_cast<IntegerType const*>(type)->isSigned())
         {
-            translation.name = "int";
+            ctype = "int";
         }
         else
         {
-            translation.name = "unsigned int";
+            ctype = "unsigned int";
         }
         break;
     case Type::Category::RationalNumber:
     case Type::Category::FixedPoint:
         // TODO(scottwe): fixed point numbers have fixed percision
-        translation.name = "double";
+        ctype = "double";
         break;
     default:
         throw runtime_error("Encountered ElementryTypeName with complex type.");
     }
-    translation.type = translation.name;
-
-    m_name_lookup.insert({&_node, translation.name});
-    m_type_lookup.insert({&_node, translation.type});
+    m_type_lookup.insert({&_node, ctype});
 
     return false;
 }
 
 bool TypeConverter::visit(UserDefinedTypeName const& _node)
 {
-    auto t = translate_impl(_node.annotation().referencedDeclaration);
-    m_name_lookup.insert({&_node, t.name});
-    m_type_lookup.insert({&_node, t.type});
+    auto const& REF = *_node.annotation().referencedDeclaration;
+    m_type_lookup.insert({&_node, get_type(REF)});
+    if (!has_simple_type(REF))
+    {
+        m_name_lookup.insert({&_node, get_name(REF)});
+    }
     return false;
 }
 
@@ -356,37 +384,37 @@ void TypeConverter::endVisit(ParameterList const& _node)
 {
     if (m_is_retval)
     {
-        Translation translation;
+        string ctype;
         if (_node.parameters().size() > 1)
         {
             throw runtime_error("Multiple return types are unsupported.");
         }
         else if (_node.parameters().size() == 1)
         {
-            translation = translate_impl(_node.parameters()[0].get());
+            auto const& PARAM = *_node.parameters()[0];
+            ctype = get_type(PARAM);
+            if (!has_simple_type(PARAM))
+            {
+                m_name_lookup.insert({&_node, get_name(PARAM)});
+            }
         }
         else
         {
-            translation.name = "void";
-            translation.type = "void";
+            ctype = "void";
         }
-        m_name_lookup.insert({&_node, translation.name});
-        m_type_lookup.insert({&_node, translation.type});
+        m_type_lookup.insert({&_node, ctype});
     }
 }
 
 void TypeConverter::endVisit(Mapping const& _node)
 {
     ostringstream name_oss;
-    name_oss << translate_impl(m_curr_decl->scope()).name
-             << "_Map" + get_name(*m_curr_decl)
+    name_oss << get_name(*m_curr_decl->scope())
+             << "_Map" + escape_decl_name(*m_curr_decl)
              << "_submap" << to_string(m_rectype_depth);
 
-    Translation translation;
-    translation.name = name_oss.str();
-    translation.type = "struct " + name_oss.str();
-    m_name_lookup.insert({&_node, translation.name});
-    m_type_lookup.insert({&_node, translation.type});
+    m_name_lookup.insert({&_node, name_oss.str()});
+    m_type_lookup.insert({&_node, "struct " + name_oss.str()});
 
     --m_rectype_depth;
 }
@@ -400,9 +428,11 @@ void TypeConverter::endVisit(MemberAccess const& _node)
         {
             if (member->name() == _node.memberName())
             {
-                Translation translation = translate_impl(member);
-                m_name_lookup.insert({&_node, translation.name});
-                m_type_lookup.insert({&_node, translation.type});
+                m_type_lookup.insert({&_node, get_type(*member)});
+                if (!has_simple_type(*member))
+                {
+                    m_name_lookup.insert({&_node, get_name(*member)});
+                }
                 return;
             }
         }
@@ -413,9 +443,11 @@ void TypeConverter::endVisit(MemberAccess const& _node)
         {
             if (member->name() == _node.memberName())
             {
-                Translation translation = translate_impl(member.get());
-                m_name_lookup.insert({&_node, translation.name});
-                m_type_lookup.insert({&_node, translation.type});
+                m_type_lookup.insert({&_node, get_type(*member)});
+                if (!has_simple_type(*member))
+                {
+                    m_name_lookup.insert({&_node, get_name(*member)});
+                }
                 return;
             }
         }
@@ -430,30 +462,36 @@ void TypeConverter::endVisit(IndexAccess const& _node)
         throw runtime_error("Cannot resolve Mapping from IndexAccess.");
     }
 
-    m_name_lookup.insert({&_node, translate_impl(mapping).name});
-    m_type_lookup.insert({&_node, translate_impl(&mapping->valueType()).type});
+    m_type_lookup.insert({&_node, get_type(mapping->valueType())});
+    m_name_lookup.insert({&_node, get_name(*mapping)});
 }
 
 void TypeConverter::endVisit(Identifier const& _node)
 {
-    auto const MAGIC_RES = m_global_context.find(_node.name());
-    if (MAGIC_RES != m_global_context.end())
+    auto const& NODE_NAME = _node.name();
+    auto const MAGIC_RES = m_global_context_types.find(NODE_NAME);
+    if (MAGIC_RES != m_global_context_types.end())
     {
-        m_name_lookup.insert({&_node, MAGIC_RES->second.name});
-        m_type_lookup.insert({&_node, MAGIC_RES->second.type});
+        m_type_lookup.insert({&_node, MAGIC_RES->second});
         m_in_storage.insert({&_node, false});
+
+        auto const MAGIC_SIMP = m_global_context_simple_values.find(NODE_NAME);
+        if (MAGIC_SIMP != m_global_context_simple_values.end())
+        {
+            m_name_lookup.insert({&_node, NODE_NAME});
+        }
     }
     else
     {
-        ASTNode const* ref = nullptr;
+        Declaration const* ref = nullptr;
         auto loc = VariableDeclaration::Location::Unspecified;
 
-        if (_node.name() == "this")
+        if (NODE_NAME == "this")
         {
             ref = m_curr_contract;
             loc = VariableDeclaration::Storage;
         }
-        else if (_node.name() == "super")
+        else if (NODE_NAME == "super")
         {
             // Note: ContractDefinitionAnnotation::linearizedBaseContracts.
             // TODO(scottwe): resolve super; not needed for MVP prototype.
@@ -462,31 +500,19 @@ void TypeConverter::endVisit(Identifier const& _node)
         else
         {
             ref = _node.annotation().referencedDeclaration;
-
             if (auto var = dynamic_cast<VariableDeclaration const*>(ref))
             {
                 loc = var->referenceLocation();
             }
         }
 
-        auto const ACTUAL_RES = translate_impl(ref);
-        m_name_lookup.insert({&_node, ACTUAL_RES.name});
-        m_type_lookup.insert({&_node, ACTUAL_RES.type});
+        m_type_lookup.insert({&_node, get_type(*ref)});
         m_in_storage.insert({&_node, loc == VariableDeclaration::Storage});
+        if (!has_simple_type(*ref))
+        {
+            m_name_lookup.insert({&_node, get_name(*ref)});
+        }
     }
-}
-
-// -------------------------------------------------------------------------- //
-
-Translation TypeConverter::translate_impl(ASTNode const* _node) const
-{
-    auto const NAME = m_name_lookup.find(_node);
-    auto const TYPE = m_type_lookup.find(_node);
-    if (NAME == m_name_lookup.end() || TYPE == m_type_lookup.end())
-    {
-        throw logic_error("Translation request for type not in source unit.");
-    }
-    return {TYPE->second, NAME->second};
 }
 
 // -------------------------------------------------------------------------- //

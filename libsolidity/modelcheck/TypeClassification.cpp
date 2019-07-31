@@ -59,7 +59,7 @@ bool has_simple_type(Expression const& _node)
 
 // -------------------------------------------------------------------------- //
 
-string get_name(Declaration const& _decl)
+string escape_decl_name(Declaration const& _decl)
 {
     ostringstream oss;
     for (char const& c : _decl.name())

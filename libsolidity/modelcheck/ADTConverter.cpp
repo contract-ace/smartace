@@ -49,11 +49,11 @@ void ADTConverter::endVisit(ContractDefinition const& _node)
         fields = make_shared<CParams>();
         for (auto decl : _node.stateVariables())
         {
-            auto const TYPE = M_CONVERTER.translate(*decl).type;
+            auto const TYPE = M_CONVERTER.get_type(*decl);
             fields->push_back(make_shared<CVarDecl>(TYPE, "d_" + decl->name()));
         }
     }
-    CStructDef contract(M_CONVERTER.translate(_node).name, move(fields));
+    CStructDef contract(M_CONVERTER.get_name(_node), move(fields));
     (*m_ostream) << contract;
 }
 
@@ -62,8 +62,8 @@ void ADTConverter::endVisit(Mapping const& _node)
     shared_ptr<CParams> fields;
     if (!M_FWD_DCL)
     {
-        string const KEY_TYPE = M_CONVERTER.translate(_node.keyType()).type;
-        string const VAL_TYPE = M_CONVERTER.translate(_node.valueType()).type;
+        string const KEY_TYPE = M_CONVERTER.get_type(_node.keyType());
+        string const VAL_TYPE = M_CONVERTER.get_type(_node.valueType());
         fields = make_shared<CParams>(CParams{
             make_shared<CVarDecl>("int", "m_set"),
             make_shared<CVarDecl>(KEY_TYPE, "m_curr"),
@@ -71,7 +71,7 @@ void ADTConverter::endVisit(Mapping const& _node)
             make_shared<CVarDecl>(VAL_TYPE, "d_nd")
         });
     }
-    CStructDef mapping(M_CONVERTER.translate(_node).name, move(fields));
+    CStructDef mapping(M_CONVERTER.get_name(_node), move(fields));
     (*m_ostream) << mapping;
 }
 
@@ -83,11 +83,11 @@ void ADTConverter::endVisit(StructDefinition const& _node)
         fields = make_shared<CParams>();
         for (auto decl : _node.members())
         {
-            auto const TYPE = M_CONVERTER.translate(*decl).type;
+            auto const TYPE = M_CONVERTER.get_type(*decl);
             fields->push_back(make_shared<CVarDecl>(TYPE, "d_" + decl->name()));
         }
     }
-    CStructDef structure(M_CONVERTER.translate(_node).name, move(fields));
+    CStructDef structure(M_CONVERTER.get_name(_node), move(fields));
     (*m_ostream) << structure;
 }
 

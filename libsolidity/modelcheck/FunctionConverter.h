@@ -60,11 +60,6 @@ private:
 	View const M_VIEW;
 	bool const M_FWD_DCL;
 
-	// Helper functions to partition complex from primitive types, and to set
-	// said values with either default or non-deterministic data.
-	static CExprPtr to_init_expr(std::string const& _name, Type const& _type);
-	static CExprPtr to_nd_expr(std::string const& _name, Type const& _type);
-
 	// Formats all declarations as a C-function argument list. The given order
 	// of arguments is maintained. If a scope is provided, then the arguments
 	// are assumed to be of a stateful Solidity method, bound to structures of

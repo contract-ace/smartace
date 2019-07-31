@@ -8,9 +8,10 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/SimpleCCore.h>
 #include <map>
+#include <set>
 #include <string>
-#include <boost/optional.hpp>
 
 namespace dev
 {
@@ -18,16 +19,6 @@ namespace solidity
 {
 namespace modelcheck
 {
-
-/*
- * Provides the name and fully-qualified type of a C-model translation. For
- * primitive types, the name and fully-qualified type will be the same.
- */
-struct Translation
-{
-    std::string type;
-    std::string name;
-};
 
 /*
  * Helper method to calculate the depth of an array index access.
@@ -67,23 +58,36 @@ public:
     // annotations may be recovered using the translate method.
     void record(SourceUnit const& _unit);
 
-    // Retrieves a type annotation. This interface is restricted so that only
-    // those AST Nodes with annotations may be queried.
-    Translation translate(ContractDefinition const& _contract) const;
-    Translation translate(StructDefinition const& _structure) const;
-    Translation translate(VariableDeclaration const& _decl) const;
-    Translation translate(TypeName const& _type) const;
-    Translation translate(FunctionDefinition const& _fun) const;
-    Translation translate(Identifier const& _id) const;
-    // Translates a member access, if it is to a declaration of type struct or
-    // contract.
-    Translation translate(MemberAccess const& _access) const;
-    // Translates an index access, if it is to a mapping.
-    Translation translate(IndexAccess const& _id) const;
+    // Returns true if this node was found in the AST, and that it has been
+    // recorded with a type. If it is not a simple type, then it should also
+    // have a name.
+    bool has_record(ASTNode const& _node) const;
+
+    // Returns the CType used to model _node, given that has_record has returned
+    // true for _node.
+    std::string get_type(ASTNode const& _node) const;
+
+    // Returns the representative name for _node, given that has_record has
+    // returned true for _node, whereas is_simple_type has filed.
+    std::string get_name(ASTNode const& _node) const;
 
     // Returns true is an identifier is a pointer. If this cannot be resolved,
     // false is returned.
     bool is_pointer(Identifier const& _id) const;
+
+    // Produces the initial value of a simple type.
+    static CExprPtr init_val_by_simple_type(Type const& _type);
+
+    // Produces a non-deterministic value for a simple type.
+    static CExprPtr nd_val_by_simple_type(Type const& _type);
+
+    // Generates the initial value for an AST node.
+	CExprPtr get_init_val(TypeName const& _typename) const;
+	CExprPtr get_init_val(Declaration const& _decl) const;
+
+    // Generates a non-deterministic value for an AST node.
+	CExprPtr get_nd_val(TypeName const& _typename) const;
+	CExprPtr get_nd_val(Declaration const& _decl) const;
 
 protected:
     bool visit(VariableDeclaration const& _node) override;
@@ -100,7 +104,10 @@ protected:
 	void endVisit(Identifier const& _node) override;
 
 private:
-    static std::map<std::string, Translation> const m_global_context;
+    // m_global_context_types provides a basic mapping from name to type. If the
+    // value is simple (has no "name"), it is in m_global_context_simple_values.
+    static std::map<std::string, std::string> const m_global_context_types;
+    static std::set<std::string> const m_global_context_simple_values;
 
     std::map<ASTNode const*, std::string> m_name_lookup;
     std::map<ASTNode const*, std::string> m_type_lookup;
@@ -110,10 +117,6 @@ private:
     VariableDeclaration const* m_curr_decl = nullptr;
     unsigned int m_rectype_depth = 0;
     bool m_is_retval = false;
-
-    // Searches for the given address within the type dictionary. If no entry is
-    // found, then a runtime exception is raised.
-    Translation translate_impl(ASTNode const* _node) const;
 };
 
 }

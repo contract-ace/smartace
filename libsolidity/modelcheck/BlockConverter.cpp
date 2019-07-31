@@ -65,7 +65,7 @@ bool BlockConverter::visit(Block const& _node)
 	if (top_level_swap.old() && m_rv)
 	{
 		m_decls.record_declaration(*m_rv);
-		rv = make_shared<CVarDecl>(M_TYPES.translate(*m_rv).type, m_rv->name());
+		rv = make_shared<CVarDecl>(M_TYPES.get_type(*m_rv), m_rv->name());
 		stmts.push_back(rv);
 	}
 	for (auto const& stmt : _node.statements())
@@ -184,7 +184,7 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 	else if (!_node.declarations().empty())
 	{
 		auto const &DECL = *_node.declarations()[0];
-		auto const TYPE = M_TYPES.translate(DECL).type;
+		auto const TYPE = M_TYPES.get_type(DECL);
 		bool const IS_REF
 			= DECL.referenceLocation() == VariableDeclaration::Storage;
 

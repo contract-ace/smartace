@@ -49,16 +49,19 @@ BOOST_AUTO_TEST_CASE(contract_and_structs)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(ctrt_a).name, "A");
-    BOOST_CHECK_EQUAL(converter.translate(ctrt_a).type, "struct A");
-    BOOST_CHECK_EQUAL(converter.translate(ctrt_b).name, "B");
-    BOOST_CHECK_EQUAL(converter.translate(ctrt_b).type, "struct B");
+    BOOST_CHECK(converter.has_record(ctrt_a));
+    BOOST_CHECK_EQUAL(converter.get_name(ctrt_a), "A");
+    BOOST_CHECK_EQUAL(converter.get_type(ctrt_a), "struct A");
+    BOOST_CHECK(converter.has_record(ctrt_b));
+    BOOST_CHECK_EQUAL(converter.get_name(ctrt_b), "B");
+    BOOST_CHECK_EQUAL(converter.get_type(ctrt_b), "struct B");
     for (auto structure : ctrt_a.definedStructs())
     {
         string expt_name = ctrt_a.name() + "_Struct" + structure->name();
         string expt_type = "struct " + expt_name;
-        BOOST_CHECK_EQUAL(converter.translate(*structure).name, expt_name);
-        BOOST_CHECK_EQUAL(converter.translate(*structure).type, expt_type);
+        BOOST_CHECK(converter.has_record(*structure));
+        BOOST_CHECK_EQUAL(converter.get_name(*structure), expt_name);
+        BOOST_CHECK_EQUAL(converter.get_type(*structure), expt_type);
     }
 }
 
@@ -76,8 +79,9 @@ BOOST_AUTO_TEST_CASE(contract_state_variable)
 
     for (auto decl : ctrt.stateVariables())
     {
-        BOOST_CHECK_EQUAL(converter.translate(*decl).name, "int");
-        BOOST_CHECK_EQUAL(converter.translate(*decl).type, "int");
+        BOOST_CHECK(converter.has_record(*decl));
+        BOOST_CHECK_EQUAL(converter.get_type(*decl), "int");
+        BOOST_CHECK_THROW(converter.get_name(*decl), runtime_error);
     }
 }
 
@@ -101,8 +105,9 @@ BOOST_AUTO_TEST_CASE(struct_member_variable)
 
     for (auto decl : strt.members())
     {
-        BOOST_CHECK_EQUAL(converter.translate(*decl).name, "double");
-        BOOST_CHECK_EQUAL(converter.translate(*decl).type, "double");
+        BOOST_CHECK(converter.has_record(*decl));
+        BOOST_CHECK_EQUAL(converter.get_type(*decl), "double");
+        BOOST_CHECK_THROW(converter.get_name(*decl), runtime_error);
     }
 }
 
@@ -126,9 +131,9 @@ BOOST_AUTO_TEST_CASE(map_variable)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(map_var).name, "A_Maparr_submap1");
-    BOOST_CHECK_EQUAL(converter.translate(submap1).name, "A_Maparr_submap1");
-    BOOST_CHECK_EQUAL(converter.translate(submap2).name, "A_Maparr_submap2");
+    BOOST_CHECK_EQUAL(converter.get_name(map_var), "A_Maparr_submap1");
+    BOOST_CHECK_EQUAL(converter.get_name(submap1), "A_Maparr_submap1");
+    BOOST_CHECK_EQUAL(converter.get_name(submap2), "A_Maparr_submap2");
 }
 
 // Tests that function names and return values are annotated properly. This
@@ -150,12 +155,14 @@ BOOST_AUTO_TEST_CASE(function)
     converter.record(ast);
 
     auto const& f1 = (funs[0]->name() == "f") ? *funs[0] : *funs[1];
-    BOOST_CHECK_EQUAL(converter.translate(f1).name, "Method_A_Funcf");
-    BOOST_CHECK_EQUAL(converter.translate(f1).type, "int");
+    BOOST_CHECK(converter.has_record(f1));
+    BOOST_CHECK_EQUAL(converter.get_name(f1), "Method_A_Funcf");
+    BOOST_CHECK_EQUAL(converter.get_type(f1), "int");
 
     auto const& f2 = (funs[0]->name() != "f") ? *funs[0] : *funs[1];
-    BOOST_CHECK_EQUAL(converter.translate(f2).name, "Method_A_Funcg");
-    BOOST_CHECK_EQUAL(converter.translate(f2).type, "void");
+    BOOST_CHECK(converter.has_record(f2));
+    BOOST_CHECK_EQUAL(converter.get_name(f2), "Method_A_Funcg");
+    BOOST_CHECK_EQUAL(converter.get_type(f2), "void");
 }
 
 // Tests that constructors are annotated properly.
@@ -175,8 +182,9 @@ BOOST_AUTO_TEST_CASE(constructor)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(func).name, "Ctor_A");
-    BOOST_CHECK_EQUAL(converter.translate(func).type, "void");
+    BOOST_CHECK(converter.has_record(func));
+    BOOST_CHECK_EQUAL(converter.get_name(func), "Ctor_A");
+    BOOST_CHECK_EQUAL(converter.get_type(func), "void");
 }
 
 // Integration test which should fail if a new member is added to the global
@@ -264,7 +272,7 @@ BOOST_AUTO_TEST_CASE(this_keyword_ids)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(iden).name, "A");
+    BOOST_CHECK_EQUAL(converter.get_name(iden), "A");
 }
 
 // Tests that identifiers are mapped back to their referenced declarations.
@@ -293,7 +301,7 @@ BOOST_AUTO_TEST_CASE(regular_id)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(iden).name, "unsigned int");
+    BOOST_CHECK_EQUAL(converter.get_type(iden), "unsigned int");
 }
 
 // Tests that when resolving identifiers, contract member access is taken into
@@ -324,7 +332,7 @@ BOOST_AUTO_TEST_CASE(contract_access)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(mmbr).name, "unsigned int");
+    BOOST_CHECK_EQUAL(converter.get_type(mmbr), "unsigned int");
 }
 
 // Tests that when resolving identifiers, struct member access is taken into
@@ -355,7 +363,7 @@ BOOST_AUTO_TEST_CASE(struct_access)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(mmbr).name, "A_StructB_Maparr_submap1");
+    BOOST_CHECK_EQUAL(converter.get_name(mmbr), "A_StructB_Maparr_submap1");
 }
 
 // Tests that map index access calls are treated as function calls, with their
@@ -387,10 +395,12 @@ BOOST_AUTO_TEST_CASE(map_access)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(idx1).name, "A_Maparr_submap2");
-    BOOST_CHECK_EQUAL(converter.translate(idx1).type, "int");
-    BOOST_CHECK_EQUAL(converter.translate(idx2).name, "A_Maparr_submap1");
-    BOOST_CHECK_EQUAL(converter.translate(idx2).type, "struct A_Maparr_submap2");
+    BOOST_CHECK(converter.has_record(idx1));
+    BOOST_CHECK_EQUAL(converter.get_name(idx1), "A_Maparr_submap2");
+    BOOST_CHECK_EQUAL(converter.get_type(idx1), "int");
+    BOOST_CHECK(converter.has_record(idx2));
+    BOOST_CHECK_EQUAL(converter.get_name(idx2), "A_Maparr_submap1");
+    BOOST_CHECK_EQUAL(converter.get_type(idx2), "struct A_Maparr_submap2");
 }
 
 // Ensures that storage variable identifiers are mapped to pointers, while
@@ -460,7 +470,7 @@ BOOST_AUTO_TEST_CASE(function_and_identifier_oreder_regression)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(indx).name, "Method_A_Funcg");
+    BOOST_CHECK_EQUAL(converter.get_name(indx), "Method_A_Funcg");
 }
 
 // Ensures names are escaped, as per the translation specifications.
@@ -483,10 +493,10 @@ BOOST_AUTO_TEST_CASE(name_escape)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.translate(ctrt).name, "A__B");
-    BOOST_CHECK_EQUAL(converter.translate(strt).name, "A__B_StructC__D");
-    BOOST_CHECK_EQUAL(converter.translate(func).name, "Method_A__B_Funcf__func");
-    BOOST_CHECK_EQUAL(converter.translate(mapv).name, "A__B_Mapm__map_submap1");
+    BOOST_CHECK_EQUAL(converter.get_name(ctrt), "A__B");
+    BOOST_CHECK_EQUAL(converter.get_name(strt), "A__B_StructC__D");
+    BOOST_CHECK_EQUAL(converter.get_name(func), "Method_A__B_Funcf__func");
+    BOOST_CHECK_EQUAL(converter.get_name(mapv), "A__B_Mapm__map_submap1");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

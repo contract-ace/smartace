@@ -105,8 +105,7 @@ bool ExpressionConverter::visit(Assignment const& _node)
 		ScopedSwap<bool> swap(m_lval, true);
 		if (auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find())
 		{
-			string const NAME = M_TYPES.translate(*map).name;
-			generate_mapping_call("Write", NAME, *map, rhs);
+			generate_mapping_call("Write", M_TYPES.get_name(*map), *map, rhs);
 		}
 		else
 		{
@@ -231,19 +230,19 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 	{
 	case Type::Category::Mapping:
 		{
-			string map_name = M_TYPES.translate(_node).name;
+			string const MAP_NAME = M_TYPES.get_name(_node);
 			if (m_find_ref)
 			{
-				generate_mapping_call("Ref", map_name, _node, nullptr);
+				generate_mapping_call("Ref", MAP_NAME, _node, nullptr);
 			}
 			else if (m_lval)
 			{
-				generate_mapping_call("Ref", map_name, _node, nullptr);
+				generate_mapping_call("Ref", MAP_NAME, _node, nullptr);
 				m_subexpr = make_shared<CDereference>(m_subexpr);
 			}
 			else
 			{
-				generate_mapping_call("Read", map_name, _node, nullptr);
+				generate_mapping_call("Read", MAP_NAME, _node, nullptr);
 			}
 		}
 		break;
@@ -401,8 +400,8 @@ void ExpressionConverter::print_struct_ctor(
 			cargs.push_back(m_subexpr);
 		}
 
-		auto name = M_TYPES.translate(*struct_id).name;
-		m_subexpr = make_shared<CFuncCall>("Init_" + name, move(cargs));
+		auto const NAME = M_TYPES.get_name(*struct_id);
+		m_subexpr = make_shared<CFuncCall>("Init_" + NAME, move(cargs));
 	}
 	else
 	{
@@ -421,13 +420,13 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 	auto base_type = BASE_EXPR.annotation().type;
 	auto cast_type = _call.annotation().type;
 
-	if (auto base_rat = dynamic_cast<RationalNumberType const*>(base_type))
+	if (auto BASE_RAT = dynamic_cast<RationalNumberType const*>(base_type))
 	{
-		base_type = base_rat->integerType();
+		base_type = BASE_RAT->integerType();
 	}
-	if (auto cast_rat = dynamic_cast<RationalNumberType const*>(cast_type))
+	if (auto CAST_RAT = dynamic_cast<RationalNumberType const*>(cast_type))
 	{
-		cast_type = cast_rat->integerType();
+		cast_type = CAST_RAT->integerType();
 	}
 
 	if (!base_type || cast_type->category() == Type::Category::FixedPoint ||
@@ -709,8 +708,7 @@ void ExpressionConverter::print_method(
 		carg.push_back(m_subexpr);
 	}
 
-	auto name = M_TYPES.translate(decl).name;
-	m_subexpr = make_shared<CFuncCall>(name, move(carg));
+	m_subexpr = make_shared<CFuncCall>(M_TYPES.get_name(decl), move(carg));
 }
 
 void ExpressionConverter::print_contract_ctor(
@@ -739,8 +737,8 @@ void ExpressionConverter::print_contract_ctor(
 			throw runtime_error("Unable to resolve contract from TypeName.");
 		}
 
-		auto name = M_TYPES.translate(*contract_type).name;
-		m_subexpr = make_shared<CFuncCall>("Init_" + name, move(cargs));
+		auto const NAME = M_TYPES.get_name(*contract_type);
+		m_subexpr = make_shared<CFuncCall>("Init_" + NAME, move(cargs));
 	}
 	else
 	{

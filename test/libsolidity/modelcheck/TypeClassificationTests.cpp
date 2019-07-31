@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(name_escaping)
     for (auto const& c : cases)
     {
         ContractDefinition def(SourceLocation(), c.first, nullptr, {}, {});
-        BOOST_CHECK_EQUAL(get_name(def), c.second);
+        BOOST_CHECK_EQUAL(escape_decl_name(def), c.second);
     }
 }
 
