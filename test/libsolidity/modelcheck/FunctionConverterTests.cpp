@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "return tmp;";
     expect << "}";
     // -- Init_A_StructB
-    expect << "struct A_StructB Init_A_StructB(unsigned int a)";
+    expect << "struct A_StructB Init_A_StructB(uint256_t a)";
     expect << "{";
     expect << "struct A_StructB tmp=Init_0_A_StructB();";
     expect << "((tmp).d_a)=(a);";
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     ).print(actual);
     // -- Init_A
     expect << "struct A Init_A(struct A*self,struct CallState*state"
-           << ",unsigned int _a)";
+           << ",uint256_t _a)";
     expect << "{";
     expect << "struct A tmp;";
     expect << "((tmp).d_a)=(0);";
@@ -118,8 +118,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     expect << "return tmp;";
     expect << "}";
     // -- Ctor_A
-    expect << "void Ctor_A(struct A*self,struct CallState*state"
-           << ",unsigned int _a)";
+    expect << "void Ctor_A(struct A*self,struct CallState*state,uint256_t _a)";
     expect << "{";
     expect << "(self->d_a)=(_a);";
     expect << "}";
@@ -168,7 +167,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "return tmp;";
     expect << "}";
     // -- Init_A_StructB
-    expect << "struct A_StructB Init_A_StructB(int i1)";
+    expect << "struct A_StructB Init_A_StructB(int256_t i1)";
     expect << "{";
     expect << "struct A_StructB tmp=Init_0_A_StructB();";
     expect << "((tmp).d_i1)=(i1);";
@@ -193,7 +192,8 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "return tmp;";
     expect << "}";
     // -- Init_A_StructC
-    expect << "struct A_StructC Init_A_StructC(int i1,int i2,unsigned int ui1)";
+    expect << "struct A_StructC Init_A_StructC(int256_t i1,int256_t i2"
+           << ",uint256_t ui1)";
     expect << "{";
     expect << "struct A_StructC tmp=Init_0_A_StructC();";
     expect << "((tmp).d_i1)=(i1);";
@@ -247,13 +247,16 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
         ast, converter, FunctionConverter::View::INT, true
     ).print(int_actual);
     int_expect << "struct A_StructB Init_0_A_StructB();";
-    int_expect << "struct A_StructB Init_A_StructB(int i);";
+    int_expect << "struct A_StructB Init_A_StructB(int256_t i);";
     int_expect << "struct A_StructB ND_A_StructB();";
     int_expect << "struct A_Mapm_submap1 Init_0_A_Mapm_submap1();";
     int_expect << "struct A_Mapm_submap1 ND_A_Mapm_submap1();";
-    int_expect << "int Read_A_Mapm_submap1(struct A_Mapm_submap1*a,int idx);";
-    int_expect << "void Write_A_Mapm_submap1(struct A_Mapm_submap1*a,int idx,int d);";
-    int_expect << "int*Ref_A_Mapm_submap1(struct A_Mapm_submap1*a,int idx);";
+    int_expect << "int256_t Read_A_Mapm_submap1(struct A_Mapm_submap1*a,"
+               << "int256_t idx);";
+    int_expect << "void Write_A_Mapm_submap1(struct A_Mapm_submap1*a,"
+               << "int256_t idx,int256_t d);";
+    int_expect << "int256_t*Ref_A_Mapm_submap1(struct A_Mapm_submap1*a"
+               << ",int256_t idx);";
     int_expect << "void Method_A_Funcg();";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());

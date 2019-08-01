@@ -235,6 +235,53 @@ string TypeConverter::get_name(ASTNode const& _node) const
 
 // -------------------------------------------------------------------------- //
 
+string TypeConverter::get_simple_ctype(Type const& _type)
+{
+    Type const* type = &_type;
+    if (auto typetype_ptr = dynamic_cast<TypeType const*>(type))
+    {
+        type = typetype_ptr->actualType();
+    }
+    if (auto rational_ptr = dynamic_cast<RationalNumberType const*>(type))
+    {
+        if (auto int_ptr = rational_ptr->integerType())
+        {
+            type = int_ptr;
+        }
+        else if (auto fixed_ptr = rational_ptr->fixedPointType())
+        {
+            type = fixed_ptr;
+        }
+        else
+        {
+            // TODO
+        }
+    }
+
+    if (_type.category() == Type::Category::Address) return "address_t";
+    if (_type.category() == Type::Category::Bool) return "bool_t";
+
+    if (auto int_ptr = dynamic_cast<IntegerType const*>(type))
+    {
+        ostringstream numeric_oss;
+        if (!int_ptr->isSigned()) numeric_oss << "u";
+        numeric_oss << "int" << int_ptr->numBits() << "_t";
+        return numeric_oss.str();
+    }
+    if (auto fixed_ptr = dynamic_cast<FixedPointType const*>(type))
+    {
+        ostringstream numeric_oss;
+        if (!fixed_ptr->isSigned()) numeric_oss << "u";
+        numeric_oss << "fixed" << fixed_ptr->numBits()
+                    << "X" << fixed_ptr->fractionalDigits() << "_t";
+        return numeric_oss.str();
+    }
+
+    throw runtime_error("");
+}
+
+// -------------------------------------------------------------------------- //
+
 CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
 {
     if (!is_simple_type(_type))
@@ -317,35 +364,7 @@ bool TypeConverter::visit(VariableDeclaration const& _node)
 
 bool TypeConverter::visit(ElementaryTypeName const& _node)
 {
-    string ctype;
-
-    auto type = _node.annotation().type;
-    switch (type->category())
-    {
-    case Type::Category::Address:
-    case Type::Category::Bool:
-        ctype = "int";
-        break;
-    case Type::Category::Integer:
-        if (dynamic_cast<IntegerType const*>(type)->isSigned())
-        {
-            ctype = "int";
-        }
-        else
-        {
-            ctype = "unsigned int";
-        }
-        break;
-    case Type::Category::RationalNumber:
-    case Type::Category::FixedPoint:
-        // TODO(scottwe): fixed point numbers have fixed percision
-        ctype = "double";
-        break;
-    default:
-        throw runtime_error("Encountered ElementryTypeName with complex type.");
-    }
-    m_type_lookup.insert({&_node, ctype});
-
+    m_type_lookup.insert({&_node, get_simple_ctype(*_node.annotation().type)});
     return false;
 }
 

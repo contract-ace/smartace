@@ -62,10 +62,11 @@ void ADTConverter::endVisit(Mapping const& _node)
     shared_ptr<CParams> fields;
     if (!M_FWD_DCL)
     {
+        string const SET_TYPE = TypeConverter::get_simple_ctype(BoolType{});
         string const KEY_TYPE = M_CONVERTER.get_type(_node.keyType());
         string const VAL_TYPE = M_CONVERTER.get_type(_node.valueType());
         fields = make_shared<CParams>(CParams{
-            make_shared<CVarDecl>("int", "m_set"),
+            make_shared<CVarDecl>(SET_TYPE, "m_set"),
             make_shared<CVarDecl>(KEY_TYPE, "m_curr"),
             make_shared<CVarDecl>(VAL_TYPE, "d_"),
             make_shared<CVarDecl>(VAL_TYPE, "d_nd")

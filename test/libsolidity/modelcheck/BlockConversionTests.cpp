@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     expected_if << "}";
     expected_if << "if((self->d_a)==(1))";
     expected_if << "{";
-    expected_if << "int a;";
+    expected_if << "int256_t a;";
     expected_if << "}";
     expected_if << "self->d_a;";
     expected_if << "}";
@@ -102,8 +102,8 @@ BOOST_AUTO_TEST_CASE(if_statement)
     expected_else << "{";
     expected_else << "if((self->d_a)==(1)){}";
     expected_else << "else {}";
-    expected_else << "if((self->d_a)==(1)){int a;}";
-    expected_else << "else {int a;}";
+    expected_else << "if((self->d_a)==(1)){int256_t a;}";
+    expected_else << "else {int256_t a;}";
     expected_else << "self->d_a;";
     expected_else << "}";
     BOOST_CHECK_EQUAL(actual_else.str(), expected_else.str());
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     actual_while << *BlockConverter(*while_stmt, converter).convert();
     expected_while << "{";
     expected_while << "while((self->d_a)!=(self->d_a)){}";
-    expected_while << "while((self->d_a)!=(self->d_a)){int i;}";
+    expected_while << "while((self->d_a)!=(self->d_a)){int256_t i;}";
     expected_while << "self->d_i;";
     expected_while << "}";
     BOOST_CHECK_EQUAL(actual_while.str(), expected_while.str());
@@ -153,10 +153,10 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     ostringstream actual_for, expected_for;
     actual_for << *BlockConverter(*for_stmt, converter).convert();
     expected_for << "{";
-    expected_for << "for(;(self->d_a)<(10);++(self->d_a)){int i;}";
-    expected_for << "for(int i=0;;++(i)){i;}";
-    expected_for << "for(int i=0;(i)<(10);){++(i);}";
-    expected_for << "for(int i=0;(i)<(10);++(i)){}";
+    expected_for << "for(;(self->d_a)<(10);++(self->d_a)){int256_t i;}";
+    expected_for << "for(int256_t i=0;;++(i)){i;}";
+    expected_for << "for(int256_t i=0;(i)<(10);){++(i);}";
+    expected_for << "for(int256_t i=0;(i)<(10);++(i)){}";
     expected_for << "self->d_i;";
     expected_for << "}";
     BOOST_CHECK_EQUAL(actual_for.str(), expected_for.str());
@@ -268,9 +268,9 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "int b;";
+    expected << "int256_t b;";
     expected << "{";
-    expected << "int c;";
+    expected << "int256_t c;";
     expected << "self->d_a;";
     expected << "b;";
     expected << "c;";
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     ostringstream actual_named, expected_named;
     actual_named << *BlockConverter(*named, converter).convert();
     expected_named << "{";
-    expected_named << "int a;";
+    expected_named << "int256_t a;";
     expected_named << "(a)=(5);";
     expected_named << "return a;";
     expected_named << "}";

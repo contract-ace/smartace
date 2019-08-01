@@ -65,9 +65,47 @@ BOOST_AUTO_TEST_CASE(contract_and_structs)
     }
 }
 
+// Attemps to create a contract with all "simple types" covered as member
+// variables. That is bools, addresses, and both the signed and unsigned
+// variants of all numeric types, varied along each parameter (bits, etc).
+BOOST_AUTO_TEST_CASE(simple_types)
+{
+    char const* text = R"(
+        contract A {
+            bool a;
+            address b;
+            int32 c;
+            int40 d;
+            uint32 e;
+            uint40 f;
+            fixed32x10 g;
+            fixed40x11 h;
+            ufixed32x10 i;
+            ufixed40x11 j;
+        }
+    )";
+
+    map<string, string> const EXPECTED = {
+        {"a", "bool_t"}, {"b", "address_t"}, {"c", "int32_t"}, {"d", "int40_t"},
+        {"e", "uint32_t"}, {"f", "uint40_t"}, {"g", "fixed32X10_t"},
+        {"h", "fixed40X11_t"}, {"i", "ufixed32X10_t"}, {"j", "ufixed40X11_t"}
+    };
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(ast, "A");
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    for (auto member : ctrt.stateVariables())
+    {
+        string const& EXPT = EXPECTED.find(member->name())->second;
+        BOOST_CHECK_EQUAL(converter.get_type(*member), EXPT);
+    }
+}
+
 // Creates a single contract with several state variables. The name and kind of
-// each state variable is checked. The state variables are integral to ensure
-// that integer annotations are handled.
+// each state variable is checked.
 BOOST_AUTO_TEST_CASE(contract_state_variable)
 {
     char const* text = "contract A { int a; int b; int c; }";
@@ -80,19 +118,18 @@ BOOST_AUTO_TEST_CASE(contract_state_variable)
     for (auto decl : ctrt.stateVariables())
     {
         BOOST_CHECK(converter.has_record(*decl));
-        BOOST_CHECK_EQUAL(converter.get_type(*decl), "int");
+        BOOST_CHECK_EQUAL(converter.get_type(*decl), "int256_t");
         BOOST_CHECK_THROW(converter.get_name(*decl), runtime_error);
     }
 }
 
 // Creates a single contract/struct pair with several state variables. The name
-// and kind of each state variable is checked. The state variables are floating
-// point types to ensure that integer annotations are handled.
+// and kind of each state variable is checked.
 BOOST_AUTO_TEST_CASE(struct_member_variable)
 {
     char const* text = R"(
         contract A {
-            struct B { fixed128x8 a; fixed128x2 b; fixed128x8 c; }
+            struct B { fixed128x8 a; fixed128x8 b; fixed128x8 c; }
         }
     )";
 
@@ -106,7 +143,7 @@ BOOST_AUTO_TEST_CASE(struct_member_variable)
     for (auto decl : strt.members())
     {
         BOOST_CHECK(converter.has_record(*decl));
-        BOOST_CHECK_EQUAL(converter.get_type(*decl), "double");
+        BOOST_CHECK_EQUAL(converter.get_type(*decl), "fixed128X8_t");
         BOOST_CHECK_THROW(converter.get_name(*decl), runtime_error);
     }
 }
@@ -157,7 +194,7 @@ BOOST_AUTO_TEST_CASE(function)
     auto const& f1 = (funs[0]->name() == "f") ? *funs[0] : *funs[1];
     BOOST_CHECK(converter.has_record(f1));
     BOOST_CHECK_EQUAL(converter.get_name(f1), "Method_A_Funcf");
-    BOOST_CHECK_EQUAL(converter.get_type(f1), "int");
+    BOOST_CHECK_EQUAL(converter.get_type(f1), "int256_t");
 
     auto const& f2 = (funs[0]->name() != "f") ? *funs[0] : *funs[1];
     BOOST_CHECK(converter.has_record(f2));
@@ -301,7 +338,7 @@ BOOST_AUTO_TEST_CASE(regular_id)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.get_type(iden), "unsigned int");
+    BOOST_CHECK_EQUAL(converter.get_type(iden), "uint256_t");
 }
 
 // Tests that when resolving identifiers, contract member access is taken into
@@ -332,7 +369,7 @@ BOOST_AUTO_TEST_CASE(contract_access)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.get_type(mmbr), "unsigned int");
+    BOOST_CHECK_EQUAL(converter.get_type(mmbr), "uint256_t");
 }
 
 // Tests that when resolving identifiers, struct member access is taken into
@@ -397,7 +434,7 @@ BOOST_AUTO_TEST_CASE(map_access)
 
     BOOST_CHECK(converter.has_record(idx1));
     BOOST_CHECK_EQUAL(converter.get_name(idx1), "A_Maparr_submap2");
-    BOOST_CHECK_EQUAL(converter.get_type(idx1), "int");
+    BOOST_CHECK_EQUAL(converter.get_type(idx1), "int256_t");
     BOOST_CHECK(converter.has_record(idx2));
     BOOST_CHECK_EQUAL(converter.get_name(idx2), "A_Maparr_submap1");
     BOOST_CHECK_EQUAL(converter.get_type(idx2), "struct A_Maparr_submap2");

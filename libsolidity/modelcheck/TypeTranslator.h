@@ -75,6 +75,9 @@ public:
     // false is returned.
     bool is_pointer(Identifier const& _id) const;
 
+    // TODO
+    static std::string get_simple_ctype(Type const& _type);
+
     // Produces the initial value of a simple type.
     static CExprPtr init_val_by_simple_type(Type const& _type);
 
