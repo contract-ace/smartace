@@ -1,6 +1,7 @@
 /**
  * @date 2019
- * First-pass visitor for converting Solidity methods into functions in C.
+ * First-pass visitor for generating Solidity the second part of main function,
+ * which consist of initializing the input parameters with nd() in main function.
  */
 
 #include <libsolidity/modelcheck/MainFunction_2.h>
@@ -69,7 +70,6 @@ void MainFunction_2::print_args(
     }
 
 }
-
 
 
 

@@ -126,6 +126,8 @@ set(sources
 	modelcheck/TypeTranslator.h
 	modelcheck/VariableScopeResolver.cpp
 	modelcheck/VariableScopeResolver.h
+	modelcheck/CallState.cpp
+	modelcheck/CallState.h
 	modelcheck/MainFunction_1.cpp
 	modelcheck/MainFunction_1.h
 	modelcheck/MainFunction_2.cpp

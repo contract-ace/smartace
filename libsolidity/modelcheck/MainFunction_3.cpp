@@ -1,6 +1,7 @@
 /**
  * @date 2019
- * First-pass visitor for converting Solidity methods into functions in C.
+ * First-pass visitor for generating Solidity the second part of main function,
+ * which consist of printing cases in switch in main function.
  */
 
 #include <libsolidity/modelcheck/MainFunction_3.h>

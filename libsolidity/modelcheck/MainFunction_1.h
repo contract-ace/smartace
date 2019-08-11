@@ -1,15 +1,15 @@
 /**
  * @date 2019
- * First-pass visitor for converting Solidity methods into functions in C.
+ * First-pass visitor for generating Solidity the first part of main function,
+ * which consist of the decalaration of contract, globalstate, nextGS
+ * and every input parameters of functions in main function.
  */
 
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
-#include <list>
 #include <ostream>
-#include <set>
 
 namespace dev
 {
@@ -19,9 +19,7 @@ namespace modelcheck
 {
 
 /**
- * Prints a forward declaration for each explicit (member function) and implicit
- * (default constructor, map accessor, etc.) Solidity function, according to the
- * C model.
+ * Prints a forward declaration for the variable decalarations of contract, globalstate and nextGS in main function.
  */
 class MainFunction_1 : public ASTConstVisitor
 {
@@ -33,8 +31,7 @@ public:
 		bool _forward_declare
     );
 
-    // Prints each function-like declaration once, in some order. Special
-	// functions, such as constructors and accessors are also generated.
+    // Prints the main function.
     void print(std::ostream& _stream);
 
 protected:
@@ -48,16 +45,10 @@ private:
 	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
 
-  int i=0;
+  int i = 0;
+  bool access = false;
 
 	const bool m_forward_declare;
-  std::set<ContractDefinition const*> m_built;
-
-	// Helper functions to partition complex from primitive types, and to set
-	// said values with either default or non-deterministic data.
-	static bool is_basic_type(Type const& _type);
-	static std::string to_init_value(std::string _name, Type const& _type);
-	static std::string to_nd_value(std::string _name, Type const& _type);
 
 	// Formats all declarations as a C-function argument list. The given order
 	// of arguments is maintained. If a scope is provided, then the arguments
