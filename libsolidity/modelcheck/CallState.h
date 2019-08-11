@@ -1,16 +1,14 @@
 /**
  * @date 2019
- * First-pass visitor for generating Solidity the second part of main function,
- * which consist of printing cases in switch in main function.
+ * First-pass visitor for generating the CallState of Solidity in C models,
+ * which consist of the struct of CallState.
  */
 
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
-#include <list>
 #include <ostream>
-#include <set>
 
 namespace dev
 {
@@ -20,25 +18,23 @@ namespace modelcheck
 {
 
 /**
- * Prints switch cases.
+ * Prints a forward declaration for the struct of CallState.
  */
-class MainFunction_3 : public ASTConstVisitor
+class CallState : public ASTConstVisitor
 {
 public:
-    // Constructs a printer for all function forward decl's required by the ast.
-    MainFunction_3(
+    // Constructs a printer for all contract forward decl's required by the ast.
+    CallState(
         ASTNode const& _ast,
 		TypeConverter const& _converter,
 		bool _forward_declare
     );
 
-    // Prints switch cases.
+    // Prints the struct of CallState.
     void print(std::ostream& _stream);
 
 protected:
 
-
-  bool visit(FunctionDefinition const& _node) override;
   void endVisit(ContractDefinition const& _node) override;
 
 private:
@@ -46,13 +42,9 @@ private:
 	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
 
-  int i=0;
 	const bool m_forward_declare;
 
-  // Prints switch cases.
-	void print_args(
-		std::vector<ASTPointer<VariableDeclaration>> const& _args, ASTNode const* _scope
-	);
+
 };
 
 }

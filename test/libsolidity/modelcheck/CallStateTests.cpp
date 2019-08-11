@@ -1,9 +1,9 @@
 /**
  * @date 2019
- * Specific tests for libsolidity/modelcheck/MainFunction_1.h
+ * Specific tests for libsolidity/modelcheck/CallState.h
  */
 
-#include <libsolidity/modelcheck/MainFunction_1.h>
+#include <libsolidity/modelcheck/CallState.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
@@ -21,7 +21,7 @@ namespace test
 {
 
 BOOST_FIXTURE_TEST_SUITE(
-    MainFunction_1Tests,
+    CallStateTests,
     ::dev::solidity::test::AnalysisFramework
 )
 
