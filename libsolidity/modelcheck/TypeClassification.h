@@ -18,6 +18,24 @@ namespace modelcheck
 {
 
 /**
+ * Unwraps the TypeType, and converts RationalNumberType to a storage-based
+ * type.
+ */
+Type const& unwrap(Type const& _type);
+
+/**
+ * Returns true if _type is a wrapped, primitive data-type.
+ */
+bool is_wrapped_type(Type const& _expr);
+
+/**
+ * Returns true if _expr evaluates to a wrapped, primitive data-type.
+ */
+bool has_wrapped_data(Declaration const& _expr);
+bool has_wrapped_data(TypeName const& _expr);
+bool has_wrapped_data(Expression const& _expr);
+
+/**
  * Returns true if _type is a simple type, as opposed to a compound type. 
  */
 bool is_simple_type(Type const& _type);

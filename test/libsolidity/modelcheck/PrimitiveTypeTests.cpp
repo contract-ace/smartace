@@ -27,10 +27,47 @@ namespace modelcheck
 namespace test
 {
 
+namespace
+{
+
+void _add_init_to_stream(ostream & _out, string const& _t, string const& _d)
+{
+    _out << "struct " << _t << "{" << _d << " v;};";
+    _out << "typedef struct " << _t << " " << _t << "_t;";
+    _out << "inline " << _t << "_t Init_" << _t << "_t(" << _d <<" v)";
+    _out << "{";
+    _out << _t << "_t tmp;";
+    _out << "((tmp).v)=(v);";
+    _out << "return tmp;";
+    _out << "}";
+}
+
+}
+
 BOOST_FIXTURE_TEST_SUITE(
     PrimitiveTypes,
     ::dev::solidity::test::AnalysisFramework
 )
+
+// Ensures all types are initially false.
+BOOST_AUTO_TEST_CASE(empty)
+{
+    PrimitiveTypeGenerator const gen;
+
+    BOOST_CHECK(!gen.found_address());
+    BOOST_CHECK(!gen.found_bool());
+
+    for (unsigned char i = 1; i <= 32; ++i)
+    {
+        BOOST_CHECK(!gen.found_int(i));
+        BOOST_CHECK(!gen.found_uint(i));
+        for (unsigned char j = 0; j <= 80; ++j)
+        {
+            BOOST_CHECK(!gen.found_fixed(i, j));
+            BOOST_CHECK(!gen.found_ufixed(i, j));
+        }
+    }
+}
 
 // Targeted test for boolean typed values.
 BOOST_AUTO_TEST_CASE(boolean_detection)
@@ -51,21 +88,35 @@ BOOST_AUTO_TEST_CASE(boolean_detection)
             function f3(int _v) public returns (int) { return _v; }
             modifier m1(int v) { _; }
         }
+        contract C {
+            function f4(int i) public view { assert(i == 5); }
+            function f5(int i) public view { require(i == 5); }
+        }
     )";
 
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt_a = *retrieveContractByName(ast, "A");
     auto const& ctrt_b = *retrieveContractByName(ast, "B");
+    auto const& ctrt_c = *retrieveContractByName(ast, "C");
 
     for (auto node : ctrt_a.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         BOOST_CHECK(gen.found_bool());
+
     }
     for (auto node : ctrt_b.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         BOOST_CHECK(!gen.found_bool());
+    }
+    for (auto node : ctrt_c.subNodes())
+    {
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
+        BOOST_CHECK(gen.found_bool());
     }
 }
 
@@ -96,14 +147,35 @@ BOOST_AUTO_TEST_CASE(address_detection)
 
     for (auto node : ctrt_a.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         BOOST_CHECK(gen.found_address());
     }
     for (auto node : ctrt_b.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         BOOST_CHECK(!gen.found_address());
     }
+}
+
+// Ensures that send and transfer generates address_t and uint256_t.
+BOOST_AUTO_TEST_CASE(generates_implicit_send_data)
+{
+    char const* text = R"(
+        contract C {
+            function f4() public {
+                address(uint160(address(this))).transfer(100);
+            }
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    PrimitiveTypeGenerator gen;
+    gen.record(ast);
+
+    BOOST_CHECK(gen.found_address());
+    BOOST_CHECK(gen.found_uint(32));
 }
 
 // Targeted test for int typed values.
@@ -136,7 +208,8 @@ BOOST_AUTO_TEST_CASE(int_detection)
 
     for (auto node : ctrt_a.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         for (unsigned char i = 1; i <= 32; ++i)
         {
             BOOST_CHECK_EQUAL(gen.found_int(i), i == 4);
@@ -145,7 +218,8 @@ BOOST_AUTO_TEST_CASE(int_detection)
     }
     for (auto node : ctrt_b.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         for (unsigned char i = 1; i <= 32; ++i)
         {
             BOOST_CHECK_EQUAL(gen.found_int(i), i == 3);
@@ -184,7 +258,8 @@ BOOST_AUTO_TEST_CASE(uint_detection)
 
     for (auto node : ctrt_a.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         for (unsigned char i = 1; i <= 32; ++i)
         {
             BOOST_CHECK_EQUAL(gen.found_uint(i), i == 4);
@@ -193,7 +268,8 @@ BOOST_AUTO_TEST_CASE(uint_detection)
     }
     for (auto node : ctrt_b.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         for (unsigned char i = 1; i <= 32; ++i)
         {
             BOOST_CHECK_EQUAL(gen.found_uint(i), i == 3);
@@ -232,7 +308,8 @@ BOOST_AUTO_TEST_CASE(fixed_detection)
 
     for (auto node : ctrt_a.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         for (unsigned char i = 1; i <= 32; ++i)
         {
             for (unsigned char j = 0; j <= 80; ++j)
@@ -244,7 +321,8 @@ BOOST_AUTO_TEST_CASE(fixed_detection)
     }
     for (auto node : ctrt_b.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         for (unsigned char i = 1; i <= 32; ++i)
         {
             for (unsigned char j = 0; j <= 80; ++j)
@@ -286,7 +364,8 @@ BOOST_AUTO_TEST_CASE(ufixed_detection)
 
     for (auto node : ctrt_a.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         for (unsigned char i = 1; i <= 32; ++i)
         {
             for (unsigned char j = 0; j <= 80; ++j)
@@ -298,7 +377,8 @@ BOOST_AUTO_TEST_CASE(ufixed_detection)
     }
     for (auto node : ctrt_b.subNodes())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*node);
         for (unsigned char i = 1; i <= 32; ++i)
         {
             for (unsigned char j = 0; j <= 80; ++j)
@@ -315,14 +395,13 @@ BOOST_AUTO_TEST_CASE(bool_formatting)
     char const* text = R"( contract A { bool v1; } )";
     auto const& ast = *parseAndAnalyse(text);
 
-    PrimitiveTypeGenerator gen(ast);
+    PrimitiveTypeGenerator gen;
+    gen.record(ast);
 
     ostringstream actual, expected;
     gen.print(actual);
-    expected << "#pragma once" << endl;
     expected << "#include <stdint.h>" << endl;
-    expected << "struct bool{uint8_t v;};";
-    expected << "typedef struct bool bool_t;";
+    _add_init_to_stream(expected, "bool", "uint8_t");
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
@@ -331,14 +410,13 @@ BOOST_AUTO_TEST_CASE(address_formatting)
     char const* text = R"( contract A { address v1; } )";
     auto const& ast = *parseAndAnalyse(text);
 
-    PrimitiveTypeGenerator gen(ast);
+    PrimitiveTypeGenerator gen;
+    gen.record(ast);
 
     ostringstream actual, expected;
     gen.print(actual);
-    expected << "#pragma once" << endl;
     expected << "#include <stdint.h>" << endl;
-    expected << "struct address{uint64_t v;};";
-    expected << "typedef struct address address_t;";
+    _add_init_to_stream(expected, "address", "uint64_t");
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
@@ -347,22 +425,22 @@ BOOST_AUTO_TEST_CASE(ints_small_aligned_formatting)
     char const* text = R"(
         contract A {
             int8 v1;
-            int64 v2;
+            int16 v2;
             uint8 v3;
-            uint64 v4;
+            uint16 v4;
         }
     )";
 
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
 
-    for (auto node : ctrt.subNodes())
+    for (auto var : ctrt.stateVariables())
     {
-        PrimitiveTypeGenerator gen(*node);
+        PrimitiveTypeGenerator gen;
+        gen.record(*var);
 
         ostringstream actual, expected;
         gen.print(actual);
-        expected << "#pragma once" << endl;
         expected << "#include <stdint.h>" << endl;
         BOOST_CHECK_EQUAL(actual.str(), expected.str());
     }
@@ -384,42 +462,38 @@ BOOST_AUTO_TEST_CASE(ints_small_misaligned_formatting)
 
     {
         ostringstream s24_actual, s24_expected;
-        PrimitiveTypeGenerator s24(*ctrt.stateVariables()[0]);
+        PrimitiveTypeGenerator s24;
+        s24.record(*ctrt.stateVariables()[0]);
         s24.print(s24_actual);
-        s24_expected << "#pragma once" << endl;
         s24_expected << "#include <stdint.h>" << endl;
-        s24_expected << "struct int24{int32_t v;};";
-        s24_expected << "typedef struct int24 int24_t;";
+        _add_init_to_stream(s24_expected, "int24", "int32_t");
         BOOST_CHECK_EQUAL(s24_actual.str(), s24_expected.str());
     }
     {
         ostringstream s40_actual, s40_expected;
-        PrimitiveTypeGenerator s40(*ctrt.stateVariables()[1]);
+        PrimitiveTypeGenerator s40;
+        s40.record(*ctrt.stateVariables()[1]);
         s40.print(s40_actual);
-        s40_expected << "#pragma once" << endl;
         s40_expected << "#include <stdint.h>" << endl;
-        s40_expected << "struct int40{int64_t v;};";
-        s40_expected << "typedef struct int40 int40_t;";
+        _add_init_to_stream(s40_expected, "int40", "int64_t");
         BOOST_CHECK_EQUAL(s40_actual.str(), s40_expected.str());
     }
     {
         ostringstream u24_actual, u24_expected;
-        PrimitiveTypeGenerator u24(*ctrt.stateVariables()[2]);
+        PrimitiveTypeGenerator u24;
+        u24.record(*ctrt.stateVariables()[2]);
         u24.print(u24_actual);
-        u24_expected << "#pragma once" << endl;
         u24_expected << "#include <stdint.h>" << endl;
-        u24_expected << "struct uint24{uint32_t v;};";
-        u24_expected << "typedef struct uint24 uint24_t;";
+        _add_init_to_stream(u24_expected, "uint24", "uint32_t");
         BOOST_CHECK_EQUAL(u24_actual.str(), u24_expected.str());
     }
     {
         ostringstream u40_actual, u40_expected;
-        PrimitiveTypeGenerator u40(*ctrt.stateVariables()[3]);
+        PrimitiveTypeGenerator u40;
+        u40.record(*ctrt.stateVariables()[3]);
         u40.print(u40_actual);
-        u40_expected << "#pragma once" << endl;
         u40_expected << "#include <stdint.h>" << endl;
-        u40_expected << "struct uint40{uint64_t v;};";
-        u40_expected << "typedef struct uint40 uint40_t;";
+        _add_init_to_stream(u40_expected, "uint40", "uint64_t");
         BOOST_CHECK_EQUAL(u40_actual.str(), u40_expected.str());
     }
 }
@@ -445,42 +519,38 @@ BOOST_AUTO_TEST_CASE(fixeds_small_aligned_formatting)
 
     {
         ostringstream s8x10_actual, s8x10_expected;
-        PrimitiveTypeGenerator s8x10(*ctrt.stateVariables()[0]);
+        PrimitiveTypeGenerator s8x10;
+        s8x10.record(*ctrt.stateVariables()[0]);
         s8x10.print(s8x10_actual);
-        s8x10_expected << "#pragma once" << endl;
         s8x10_expected << "#include <stdint.h>" << endl;
-        s8x10_expected << "struct fixed8x10{int8_t v;};";
-        s8x10_expected << "typedef struct fixed8x10 fixed8x10_t;";
+        _add_init_to_stream(s8x10_expected, "fixed8x10", "int8_t");
         BOOST_CHECK_EQUAL(s8x10_actual.str(), s8x10_expected.str());
     }
     {
         ostringstream s64x11_actual, s64x11_expected;
-        PrimitiveTypeGenerator s64x11(*ctrt.stateVariables()[1]);
+        PrimitiveTypeGenerator s64x11;
+        s64x11.record(*ctrt.stateVariables()[1]);
         s64x11.print(s64x11_actual);
-        s64x11_expected << "#pragma once" << endl;
         s64x11_expected << "#include <stdint.h>" << endl;
-        s64x11_expected << "struct fixed64x11{int64_t v;};";
-        s64x11_expected << "typedef struct fixed64x11 fixed64x11_t;";
+        _add_init_to_stream(s64x11_expected, "fixed64x11", "int64_t");
         BOOST_CHECK_EQUAL(s64x11_actual.str(), s64x11_expected.str());
     }
     {
         ostringstream u8x10_actual, u8x10_expected;
-        PrimitiveTypeGenerator u8x10(*ctrt.stateVariables()[2]);
+        PrimitiveTypeGenerator u8x10;
+        u8x10.record(*ctrt.stateVariables()[2]);
         u8x10.print(u8x10_actual);
-        u8x10_expected << "#pragma once" << endl;
         u8x10_expected << "#include <stdint.h>" << endl;
-        u8x10_expected << "struct ufixed8x10{uint8_t v;};";
-        u8x10_expected << "typedef struct ufixed8x10 ufixed8x10_t;";
+        _add_init_to_stream(u8x10_expected, "ufixed8x10", "uint8_t");
         BOOST_CHECK_EQUAL(u8x10_actual.str(), u8x10_expected.str());
     }
     {
         ostringstream u64x11_actual, u64x11_expected;
-        PrimitiveTypeGenerator u64x11(*ctrt.stateVariables()[3]);
+        PrimitiveTypeGenerator u64x11;
+        u64x11.record(*ctrt.stateVariables()[3]);
         u64x11.print(u64x11_actual);
-        u64x11_expected << "#pragma once" << endl;
         u64x11_expected << "#include <stdint.h>" << endl;
-        u64x11_expected << "struct ufixed64x11{uint64_t v;};";
-        u64x11_expected << "typedef struct ufixed64x11 ufixed64x11_t;";
+        _add_init_to_stream(u64x11_expected, "ufixed64x11", "uint64_t");
         BOOST_CHECK_EQUAL(u64x11_actual.str(), u64x11_expected.str());
     }
 }
@@ -501,42 +571,38 @@ BOOST_AUTO_TEST_CASE(fixeds_small_misaligned_formatting)
 
     {
         ostringstream s24x10_actual, s24x10_expected;
-        PrimitiveTypeGenerator s24x10(*ctrt.stateVariables()[0]);
+        PrimitiveTypeGenerator s24x10;
+        s24x10.record(*ctrt.stateVariables()[0]);
         s24x10.print(s24x10_actual);
-        s24x10_expected << "#pragma once" << endl;
         s24x10_expected << "#include <stdint.h>" << endl;
-        s24x10_expected << "struct fixed24x10{int32_t v;};";
-        s24x10_expected << "typedef struct fixed24x10 fixed24x10_t;";
+        _add_init_to_stream(s24x10_expected, "fixed24x10", "int32_t");
         BOOST_CHECK_EQUAL(s24x10_actual.str(), s24x10_expected.str());
     }
     {
         ostringstream s40x11_actual, s40x11_expected;
-        PrimitiveTypeGenerator s40x11(*ctrt.stateVariables()[1]);
+        PrimitiveTypeGenerator s40x11;
+        s40x11.record(*ctrt.stateVariables()[1]);
         s40x11.print(s40x11_actual);
-        s40x11_expected << "#pragma once" << endl;
         s40x11_expected << "#include <stdint.h>" << endl;
-        s40x11_expected << "struct fixed40x11{int64_t v;};";
-        s40x11_expected << "typedef struct fixed40x11 fixed40x11_t;";
+        _add_init_to_stream(s40x11_expected, "fixed40x11", "int64_t");
         BOOST_CHECK_EQUAL(s40x11_actual.str(), s40x11_expected.str());
     }
     {
         ostringstream u24x10_actual, u24x10_expected;
-        PrimitiveTypeGenerator u24x10(*ctrt.stateVariables()[2]);
+        PrimitiveTypeGenerator u24x10;
+        u24x10.record(*ctrt.stateVariables()[2]);
         u24x10.print(u24x10_actual);
-        u24x10_expected << "#pragma once" << endl;
         u24x10_expected << "#include <stdint.h>" << endl;
-        u24x10_expected << "struct ufixed24x10{uint32_t v;};";
-        u24x10_expected << "typedef struct ufixed24x10 ufixed24x10_t;";
+        _add_init_to_stream(u24x10_expected, "ufixed24x10", "uint32_t");
         BOOST_CHECK_EQUAL(u24x10_actual.str(), u24x10_expected.str());
     }
     {
         ostringstream u40x11_actual, u40x11_expected;
-        PrimitiveTypeGenerator u40x11(*ctrt.stateVariables()[3]);
+        PrimitiveTypeGenerator u40x11;
+        u40x11.record(*ctrt.stateVariables()[3]);
         u40x11.print(u40x11_actual);
-        u40x11_expected << "#pragma once" << endl;
         u40x11_expected << "#include <stdint.h>" << endl;
-        u40x11_expected << "struct ufixed40x11{uint64_t v;};";
-        u40x11_expected << "typedef struct ufixed40x11 ufixed40x11_t;";
+        _add_init_to_stream(u40x11_expected, "ufixed40x11", "uint64_t");
         BOOST_CHECK_EQUAL(u40x11_actual.str(), u40x11_expected.str());
     }
 }

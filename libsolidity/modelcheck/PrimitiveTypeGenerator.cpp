@@ -21,60 +21,76 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-PrimitiveTypeGenerator::PrimitiveTypeGenerator(ASTNode const& _root)
-: M_SUMMARY(_root) {}
-
-// -------------------------------------------------------------------------- //
-
-bool PrimitiveTypeGenerator::found_bool()
+PrimitiveTypeGenerator::PrimitiveTypeGenerator()
 {
-    return M_SUMMARY.m_uses_bool;
-}
-
-bool PrimitiveTypeGenerator::found_address()
-{
-    return M_SUMMARY.m_uses_address;
-}
-
-bool PrimitiveTypeGenerator::found_int(unsigned char _bytes)
-{
-    return M_SUMMARY.m_uses_int[_bytes - 1];
-}
-
-bool PrimitiveTypeGenerator::found_uint(unsigned char _bytes)
-{
-    return M_SUMMARY.m_uses_uint[_bytes - 1];
-}
-
-bool PrimitiveTypeGenerator::found_fixed(unsigned char _bytes, unsigned char _d)
-{
-    return M_SUMMARY.m_uses_fixed[_bytes - 1][_d];
-}
-
-bool PrimitiveTypeGenerator::found_ufixed(unsigned char _bytes, unsigned char _d)
-{
-    return M_SUMMARY.m_uses_ufixed[_bytes - 1][_d];
+    for (unsigned char bytes = 0; bytes < 32; ++bytes)
+    {
+        m_uses_int[bytes] = false;
+        m_uses_uint[bytes] = false;
+        for (unsigned char fixed_pt = 0; fixed_pt <= 80; ++fixed_pt)
+        {
+            m_uses_fixed[bytes][fixed_pt] = false;
+            m_uses_ufixed[bytes][fixed_pt] = false;
+        }
+    }
 }
 
 // -------------------------------------------------------------------------- //
 
-void PrimitiveTypeGenerator::print(ostream& _out)
+void PrimitiveTypeGenerator::record(ASTNode const& _root)
 {
-    _out << "#pragma once" << endl;
+    _root.accept(*this);
+}
+
+// -------------------------------------------------------------------------- //
+
+bool PrimitiveTypeGenerator::found_bool() const { return m_uses_bool; }
+
+bool PrimitiveTypeGenerator::found_address() const { return m_uses_address; }
+
+bool PrimitiveTypeGenerator::found_int(unsigned char _bytes) const
+{
+    return m_uses_int[_bytes - 1];
+}
+
+bool PrimitiveTypeGenerator::found_uint(unsigned char _bytes) const
+{
+    return m_uses_uint[_bytes - 1];
+}
+
+bool PrimitiveTypeGenerator::found_fixed(
+    unsigned char _bytes, unsigned char _d
+) const
+{
+    return m_uses_fixed[_bytes - 1][_d];
+}
+
+bool PrimitiveTypeGenerator::found_ufixed(
+    unsigned char _bytes, unsigned char _d
+) const
+{
+    return m_uses_ufixed[_bytes - 1][_d];
+}
+
+// -------------------------------------------------------------------------- //
+
+void PrimitiveTypeGenerator::print(ostream& _out) const
+{
     _out << "#include <stdint.h>" << endl;
     if (found_bool())
     {
-        CStructDef decl("bool", make_shared<CParams>(CParams{
-            make_shared<CVarDecl>("uint8_t", "v")
-        }));
-        _out << decl << *decl.make_typedef("bool_t");
+        string const RAW_DATA = "uint8_t";
+        string const RAW_STRUCT = "bool";
+        string const DEF_STRUCT = RAW_STRUCT + "_t";
+        print_initializer(_out, RAW_STRUCT, RAW_DATA);
     }
     if (found_address())
     {
-        CStructDef decl("address", make_shared<CParams>(CParams{
-            make_shared<CVarDecl>("uint64_t", "v")
-        }));
-        _out << decl << *decl.make_typedef("address_t");
+        string const RAW_DATA = "uint64_t";
+        string const RAW_STRUCT = "address";
+        string const DEF_STRUCT = RAW_STRUCT + "_t";
+        print_initializer(_out, RAW_STRUCT, RAW_DATA);
+
     }
     for (unsigned char bytes = 1; bytes <= 32; ++bytes)
     {
@@ -98,13 +114,14 @@ void PrimitiveTypeGenerator::declare_integer(
     if (DATA.is_native_width && DATA.is_aligned_width) return;
 
     string const SYM = DATA.base + to_string(DATA.bits);
+    string const WRAP = SYM + "_t";
     if (DATA.is_native_width)
     {
         declare_padded_native(_out, SYM, DATA);
     }
     else
     {
-        throw runtime_error("Primitives exceeding 64 bits not yet supported.");
+        throw runtime_error("Primitives exceeding 64 bits unsupported.");
     }
 }
 
@@ -118,13 +135,12 @@ void PrimitiveTypeGenerator::declare_fixed(
     if (!_signed) sym_oss << "u";
     sym_oss << "fixed" << DATA.bits << + "x" << to_string(_pt);
     string const SYM = sym_oss.str();
+    string const WRAP = SYM + "_t";
 
     if (DATA.is_native_width && DATA.is_aligned_width)
     {
-        CStructDef decl(SYM, make_shared<CParams>(CParams{
-            make_shared<CVarDecl>(DATA.base + to_string(DATA.bits) + "_t", "v")
-        }));
-        _out << decl << *decl.make_typedef(SYM + "_t");
+        string const REPR = DATA.base + to_string(DATA.bits) + "_t";
+        print_initializer(_out, SYM, REPR);
     }
     else if (DATA.is_native_width)
     {
@@ -144,10 +160,35 @@ void PrimitiveTypeGenerator::declare_padded_native(
 {
     // If the value is misaligned and native, it is 24, or over 32.
     unsigned short const PADDING = (_data.bits == 24 ? 32 : 64);
-    CStructDef decl(_sym, make_shared<CParams>(CParams{
-        make_shared<CVarDecl>(_data.base + to_string(PADDING) + "_t", "v")
+    string const REPR = _data.base + to_string(PADDING) + "_t";
+    print_initializer(_out, _sym, REPR);
+}
+
+// -------------------------------------------------------------------------- //
+
+void PrimitiveTypeGenerator::print_initializer(
+    ostream& _out, string const& _type, string const& _data
+)
+{
+    CStructDef decl(_type, make_shared<CParams>(CParams{
+        make_shared<CVarDecl>(_data, "v")
     }));
-    _out << decl << *decl.make_typedef(_sym + "_t");
+
+    string const TYPEDEF = _type + "_t";
+
+    auto id = make_shared<CVarDecl>(TYPEDEF, "Init_" + TYPEDEF);
+    auto input_dcl = make_shared<CVarDecl>(_data, "v");
+    auto tmp_dcl = make_shared<CVarDecl>(TYPEDEF, "tmp");
+    auto tmp_mbr = make_shared<CMemberAccess>(tmp_dcl->id(), "v");
+
+    auto block = make_shared<CBlock>(CBlockList{
+        tmp_dcl,
+        make_shared<CExprStmt>(make_shared<CAssign>(tmp_mbr, input_dcl->id())),
+        make_shared<CReturn>(tmp_dcl->id())
+    });
+
+    _out << decl << *decl.make_typedef(TYPEDEF)
+         << CFuncDef(id, {input_dcl}, block, CFuncDef::Modifier::INLINE);
 }
 
 // -------------------------------------------------------------------------- //
@@ -163,48 +204,56 @@ PrimitiveTypeGenerator::EncodingData::EncodingData(
 
 // -------------------------------------------------------------------------- //
 
-PrimitiveTypeGenerator::Visitor::Visitor(ASTNode const& _root)
-{
-    for (unsigned char bytes = 0; bytes < 32; ++bytes)
-    {
-        m_uses_int[bytes] = false;
-        m_uses_uint[bytes] = false;
-        for (unsigned char fixed_pt = 0; fixed_pt <= 80; ++fixed_pt)
-        {
-            m_uses_fixed[bytes][fixed_pt] = false;
-            m_uses_ufixed[bytes][fixed_pt] = false;
-        }
-    }
-    _root.accept(*this);
-}
-
-// -------------------------------------------------------------------------- //
-
-void PrimitiveTypeGenerator::Visitor::endVisit(UsingForDirective const& _node)
+void PrimitiveTypeGenerator::endVisit(UsingForDirective const& _node)
 {
     process_type(_node.typeName()->annotation().type);
 }
 
-void PrimitiveTypeGenerator::Visitor::endVisit(VariableDeclaration const& _node)
+void PrimitiveTypeGenerator::endVisit(VariableDeclaration const& _node)
 {
     process_type(_node.type());
 }
 
-void PrimitiveTypeGenerator::Visitor::endVisit(ElementaryTypeName const& _node)
+void PrimitiveTypeGenerator::endVisit(ElementaryTypeName const& _node)
 {
     process_type(_node.annotation().type);
 }
 
-void PrimitiveTypeGenerator::Visitor::endVisit(
-    ElementaryTypeNameExpression const& _node
-)
+void PrimitiveTypeGenerator::endVisit(ElementaryTypeNameExpression const& _node)
 {
     process_type(_node.annotation().type);
+}
+
+void PrimitiveTypeGenerator::endVisit(FunctionCall const& _node)
+{
+    if (_node.annotation().kind == FunctionCallKind::FunctionCall)
+    {
+        auto const* functype = dynamic_cast<FunctionType const*>(
+            _node.expression().annotation().type
+        );
+
+        if (functype)
+        {
+            switch (functype->kind())
+            {
+            case FunctionType::Kind::Assert:
+            case FunctionType::Kind::Require:
+                m_uses_bool = true;
+                break;
+	        case FunctionType::Kind::Send:
+	        case FunctionType::Kind::Transfer:
+                m_uses_address = true;
+                m_uses_uint[31] = true;
+                break;
+            default: break;
+            }
+        }
+    }
 }
 
 // -------------------------------------------------------------------------- //
 
-void PrimitiveTypeGenerator::Visitor::process_type(Type const* _type)
+void PrimitiveTypeGenerator::process_type(Type const* _type)
 {
     switch (_type->category())
     {

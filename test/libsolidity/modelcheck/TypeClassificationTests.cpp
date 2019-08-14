@@ -46,6 +46,7 @@ BOOST_AUTO_TEST_CASE(is_basic_on_types)
     BOOST_CHECK(is_simple_type(AddressType(StateMutability::Payable)));
     BOOST_CHECK(is_simple_type(IntegerType(32)));
     BOOST_CHECK(is_simple_type(RationalNumberType(256)));
+    BOOST_CHECK(is_simple_type(RationalNumberType(rational(1) / rational(2))));
     BOOST_CHECK(is_simple_type(bool_type));
     BOOST_CHECK(is_simple_type(EnumType(enum_def)));
     BOOST_CHECK(is_simple_type(FixedPointType(32, 10)));

@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     // -- Ctor_A
     expect << "void Ctor_A(struct A*self,struct CallState*state,uint256_t _a)";
     expect << "{";
-    expect << "(self->d_a)=(_a);";
+    expect << "((self->d_a).v)=((_a).v);";
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());

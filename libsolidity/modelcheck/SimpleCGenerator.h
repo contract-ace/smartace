@@ -12,8 +12,15 @@ namespace dev
 {
 namespace solidity
 {
+
+class Expression;
+class Type;
+
 namespace modelcheck
 {
+
+class TypeConverter;
+class VariableScopeResolver;
 
 // -------------------------------------------------------------------------- //
 
@@ -217,6 +224,38 @@ private:
     CArgList const m_args;
 };
 
+// Wraps the name of a function, and then allows calls to said function be built
+// online.
+class CFuncCallBuilder
+{
+public:
+    // Creates a generator for calls to _name.
+    CFuncCallBuilder(std::string _name);
+
+    // Pushes _expr to the end of the argument list.
+    void push(CExprPtr _expr);
+
+    // Evaluates expression, taking into account if it is a wrapped type. The
+    // arguments are forwarded to ExpressionConverter. If _t is set, and wraps a
+    // basic type, then _expr is cast to that type. This captures the behaviour
+    // of implicitly casting raw types.
+    void push(
+        Expression const& _expr,
+        TypeConverter const& _converter,
+        VariableScopeResolver const& _decls,
+        bool _is_ref,
+        Type const* _t = nullptr
+    );
+
+    // Creates a function call to the given name, using the pushed args. The
+    // args are reset after initialization.
+    std::shared_ptr<CFuncCall> merge_and_pop();
+
+private:
+    std::string const m_name;
+    CArgList m_args;
+};
+
 // -------------------------------------------------------------------------- //
 
 /**
@@ -404,11 +443,14 @@ private:
 class CFuncDef : public CElement
 {
 public:
+    enum class Modifier { DEFAULT, INLINE };
+
     // Represents the function, _id.type _id.name(_args[0],...,args[k]){_body}.
     CFuncDef(
         std::shared_ptr<CVarDecl> _id,
         CParams _args,
-        std::shared_ptr<CBlock> _body
+        std::shared_ptr<CBlock> _body,
+        Modifier _mod = Modifier::DEFAULT
     );
 
     void print(std::ostream & _out) const override;
@@ -417,6 +459,7 @@ private:
     std::shared_ptr<CVarDecl> m_id;
     CParams m_args;
     std::shared_ptr<CBlock> m_body;
+    Modifier m_mod;
 };
 
 // -------------------------------------------------------------------------- //

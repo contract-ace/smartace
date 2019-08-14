@@ -76,17 +76,14 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         }
         if (auto ctor = _node.constructor())
         {
-            CArgList args;
-            args.push_back(make_shared<CReference>(TMP));
-            args.push_back(make_shared<CIdentifier>("state", true));
+            CFuncCallBuilder builder("Ctor_" + CTRX_NAME);
+            builder.push(make_shared<CReference>(TMP));
+            builder.push(make_shared<CIdentifier>("state", true));
             for (auto decl : ctor->parameters())
             {
-                args.push_back(make_shared<CIdentifier>(decl->name(), false));
+                builder.push(make_shared<CIdentifier>(decl->name(), false));
             }
-            auto ctor_call = make_shared<CFuncCall>(
-                "Ctor_" + CTRX_NAME, move(args)
-            );
-            stmts.push_back(make_shared<CExprStmt>(ctor_call));
+            stmts.push_back(make_shared<CExprStmt>(builder.merge_and_pop()));
         }
         stmts.push_back(make_shared<CReturn>(TMP));
 
@@ -110,10 +107,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
     vector<ASTPointer<VariableDeclaration>> initializable_members;
     for (auto const& member : _node.members())
     {
-        if (has_simple_type(*member))
-        {
-            initializable_members.push_back(member);
-        }
+        if (has_simple_type(*member)) initializable_members.push_back(member);
     }
 
     auto zero_id = make_shared<CVarDecl>(STRCT_TYPE, "Init_0_" + STRCT_NAME);

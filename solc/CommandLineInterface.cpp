@@ -35,6 +35,7 @@
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/modelcheck/ADTConverter.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
+#include <libsolidity/modelcheck/PrimitiveTypeGenerator.h>
 
 #include <libyul/AssemblyStack.h>
 
@@ -1165,21 +1166,42 @@ void CommandLineInterface::handleCModel()
 
 	if (m_args.count(g_argOutputDir))
 	{
-		stringstream header_data, body_data;
-		handleCModelHeaders(asts, converter, header_data);
-		handleCModelBody(asts, converter, body_data);
-		createFile("cmodel.h", header_data.str());
-		createFile("cmodel.c", body_data.str());
+		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
+		handleCModelHeaders(asts, converter, cmodel_h_data);
+		handleCModelBody(asts, converter, cmodel_cpp_data);
+		handleCModelPrimitives(asts, primitive_data);
+		createFile("cmodel.h", cmodel_h_data.str());
+		createFile("cmodel.c", cmodel_cpp_data.str());
+		createFile("primitive.h", primitive_data.str());
 	}
 	else
 	{
-		sout() << "======= cmodel.h =======" << endl;
+		sout() << "====== primitive.h =====" << endl;
+		handleCModelPrimitives(asts, sout());
+		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(asts, converter, sout());
 		sout() << endl << endl << "======= cmodel.c =======" << endl;
 		handleCModelBody(asts, converter, sout());
 		sout() << endl;
 	}
 }
+
+void CommandLineInterface::handleCModelPrimitives(
+	std::vector<ASTNode const*> const& _asts, std::ostream& _os
+)
+{
+	using dev::solidity::modelcheck::PrimitiveTypeGenerator;
+
+	PrimitiveTypeGenerator gen;
+	for (auto const& ast : _asts)
+	{
+		gen.record(*ast);
+	}
+
+	_os << "#pragma once" << endl;
+	gen.print(_os);
+}
+
 
 void CommandLineInterface::handleCModelHeaders(
 	vector<ASTNode const*> const& _asts,
@@ -1189,6 +1211,8 @@ void CommandLineInterface::handleCModelHeaders(
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
+	_os << "#pragma once" << endl;
+	_os << "#include <primitive.h>" << endl;
 	for (auto const& ast : _asts)
 	{
 		ADTConverter cov(*ast, _con, true);
@@ -1209,6 +1233,9 @@ void CommandLineInterface::handleCModelBody(
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
+	_os << "#include <cmodel.h>" << endl;
+	_os << "extern int assume(bool_t);";
+	_os << "extern int assert(bool_t);";
 	for (auto const& ast : _asts)
 	{
 		FunctionConverter cov(*ast, _con, FunctionConverter::View::INT, true);

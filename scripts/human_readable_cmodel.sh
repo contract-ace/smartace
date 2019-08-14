@@ -63,4 +63,5 @@ trap cleanup_tmp_dir EXIT
 ${SOLC_PATH} ${SRC_FILE} --c-model --output-dir=${TMP_DIR} 2> "${OUTPUT_DIR}/cmodel.warning"
 clang-format "${TMP_DIR}/cmodel.h" > "${OUTPUT_DIR}/cmodel.h"
 clang-format "${TMP_DIR}/cmodel.c" > "${OUTPUT_DIR}/cmodel.c"
+clang-format "${TMP_DIR}/primitive.h" > "${OUTPUT_DIR}/primitive.h"
 

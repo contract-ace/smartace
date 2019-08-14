@@ -178,7 +178,9 @@ private:
 
 	// Helper functions to format mapping operations.
 	void generate_binary_op(
-		Expression const& _lhs, Token _op, Expression const& _rhs
+		Expression const& _lhs,
+		Token _op,
+		Expression const& _rhs
 	);
 	void generate_mapping_call(
 		std::string const& _op,
@@ -188,7 +190,7 @@ private:
 	);
 
 	// Helper functions to produce specialized function calls.
-	void print_struct_ctor(Expression const& _struct, SolArgList const& _args);
+	void print_struct_ctor(FunctionCall const& _call);
 	void print_cast(FunctionCall const& _call);
 	void print_function(Expression const& _call, SolArgList const& _args);
 	void print_method(
@@ -212,7 +214,9 @@ private:
 	void print_array_member(
 		Expression const& _node, std::string const& _member
 	);
-	void print_adt_member(Expression const& _node, std::string const& _member);
+	void print_adt_member(
+		Type const& _type, Expression const& _node, std::string const& _member
+	);
 	void print_magic_member(TypePointer _type, std::string const& _member);
 };
 

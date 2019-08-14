@@ -4,6 +4,8 @@
  */
 
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
+#include <libsolidity/modelcheck/TypeClassification.h>
+#include <libsolidity/modelcheck/ExpressionConverter.h>
 
 using namespace std;
 
@@ -126,6 +128,36 @@ void CFuncCall::print(ostream & _out) const
         _out << *(*arg);
     }
     _out << ")";
+}
+
+CFuncCallBuilder::CFuncCallBuilder(string _name): m_name(move(_name)) {}
+
+void CFuncCallBuilder::push(CExprPtr _expr) { m_args.push_back(move(_expr)); }
+
+void CFuncCallBuilder::push(
+    Expression const& _expr,
+    TypeConverter const& _converter,
+    VariableScopeResolver const& _decls,
+    bool _is_ref,
+    Type const* _t
+)
+{
+    ExpressionConverter converter(_expr, _converter, _decls, _is_ref);
+
+    if (!_t) _t = _expr.annotation().type;
+
+    auto cexpr = converter.convert();
+    if (is_wrapped_type(*_t))
+    {
+        string const INIT_CALL = "Init_" + TypeConverter::get_simple_ctype(*_t);
+        cexpr = make_shared<CFuncCall>(INIT_CALL, CArgList{ move(cexpr) });
+    }
+    m_args.push_back(move(cexpr));
+}
+
+shared_ptr<CFuncCall> CFuncCallBuilder::merge_and_pop()
+{
+    return make_shared<CFuncCall>(m_name, move(m_args));
 }
 
 // -------------------------------------------------------------------------- //
@@ -257,8 +289,11 @@ void CReturn::print_impl(ostream & _out) const
 // -------------------------------------------------------------------------- //
 
 CFuncDef::CFuncDef(
-    shared_ptr<CVarDecl> _id, CParams _args, shared_ptr<CBlock> _body
-): m_id(move(_id)), m_args(move(_args)), m_body(move(_body))
+    shared_ptr<CVarDecl> _id,
+    CParams _args,
+    shared_ptr<CBlock> _body,
+    CFuncDef::Modifier _mod
+): m_id(move(_id)), m_args(move(_args)), m_body(move(_body)), m_mod(_mod)
 {
     m_id->nest();
     for (auto arg : m_args) arg->nest();
@@ -266,6 +301,7 @@ CFuncDef::CFuncDef(
 
 void CFuncDef::print(ostream & _out) const
 {
+    if (m_mod == Modifier::INLINE) _out << "inline ";
     _out << *m_id << "(";
     for (auto itr = m_args.begin(); itr != m_args.end(); ++itr)
     {

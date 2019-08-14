@@ -75,7 +75,7 @@ public:
     // false is returned.
     bool is_pointer(Identifier const& _id) const;
 
-    // TODO
+    // Returns the simple type corresponding to _type.
     static std::string get_simple_ctype(Type const& _type);
 
     // Produces the initial value of a simple type.

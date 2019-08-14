@@ -523,7 +523,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_StructS
-    func_expect << "struct A_StructS Init_A_StructS(address_t owner,uint256_t val)";
+    func_expect << "struct A_StructS Init_A_StructS(address_t owner,"
+                << "uint256_t val)";
     func_expect << "{";
     func_expect << "struct A_StructS tmp=Init_0_A_StructS();";
     func_expect << "((tmp).d_owner)=(owner);";
@@ -559,25 +560,28 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Read_A_Mapaccs_submap1
-    func_expect << "struct A_StructS Read_A_Mapaccs_submap1"
-                << "(struct A_Mapaccs_submap1*a,uint256_t idx)";
+    func_expect << "struct A_StructS Read_A_Mapaccs_submap1("
+                << "struct A_Mapaccs_submap1*a,uint256_t idx)";
     func_expect << "{";
-    func_expect << "if(((a)->m_set)==(0)){((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if(((a)->m_set)==(0))"
+                << "{((a)->m_curr)=(idx);((a)->m_set)=(1);}";
     func_expect << "if((idx)!=((a)->m_curr))return ND_A_StructS();";
     func_expect << "return (a)->d_;";
     func_expect << "}";
     // -- Write_A_Mapaccs_submap1
-    func_expect << "void Write_A_Mapaccs_submap1"
-                << "(struct A_Mapaccs_submap1*a,uint256_t idx,struct A_StructS d)";
+    func_expect << "void Write_A_Mapaccs_submap1(struct A_Mapaccs_submap1*a,"
+                << "uint256_t idx,struct A_StructS d)";
     func_expect << "{";
-    func_expect << "if(((a)->m_set)==(0)){((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if(((a)->m_set)==(0))"
+                << "{((a)->m_curr)=(idx);((a)->m_set)=(1);}";
     func_expect << "if((idx)==((a)->m_curr))((a)->d_)=(d);";
     func_expect << "}";
     // -- Ref_A_Mapaccs_submap1
     func_expect << "struct A_StructS*Ref_A_Mapaccs_submap1"
                 << "(struct A_Mapaccs_submap1*a,uint256_t idx)";
     func_expect << "{";
-    func_expect << "if(((a)->m_set)==(0)){((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if(((a)->m_set)==(0))"
+                << "{((a)->m_curr)=(idx);((a)->m_set)=(1);}";
     func_expect << "if((idx)!=((a)->m_curr))";
     func_expect << "{";
     func_expect << "((a)->d_nd)=(ND_A_StructS());";
@@ -589,43 +593,49 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "void Method_A_FuncOpen"
                 << "(struct A*self,struct CallState*state,uint256_t idx)";
     func_expect << "{";
-    func_expect << "assume(((Read_A_Mapaccs_submap1(&(self->d_accs),idx)).d_owner"
-                << ")==(((int)(0))));";
-    func_expect << "Write_A_Mapaccs_submap1(&(self->d_accs),idx"
-                << ",Init_A_StructS(state->sender,0));";
+    func_expect << "assume(Init_bool_t((((Read_A_Mapaccs_submap1(&(self->d_accs"
+                << "),Init_uint256_t((idx).v))).d_owner).v)==(((int)(0)))));";
+    func_expect << "Write_A_Mapaccs_submap1(&(self->d_accs),Init_uint256_t("
+                << "(idx).v),Init_A_StructS(Init_address_t(state->sender),"
+                << "Init_uint256_t(0)));";
     func_expect << "}";
     // -- Method_A_Deposit
     func_expect << "void Method_A_FuncDeposit"
                 << "(struct A*self,struct CallState*state,uint256_t idx)";
     func_expect << "{";
-    func_expect << "assume((state->value)>(self->d_min_amt));";
-    func_expect << "struct A_StructS*entry=Ref_A_Mapaccs_submap1(&(self->d_accs),idx);";
-    func_expect << "if(((entry)->d_owner)!=(state->sender))";
+    func_expect << "assume(Init_bool_t((state->value)>((self->d_min_amt).v)));";
+    func_expect << "struct A_StructS*entry=Ref_A_Mapaccs_submap1("
+                << "&(self->d_accs),Init_uint256_t((idx).v));";
+    func_expect << "if((((entry)->d_owner).v)!=(state->sender))";
     func_expect << "{";
-    func_expect << "Method_A_FuncOpen(self,state,idx);";
+    func_expect << "Method_A_FuncOpen(self,state,Init_uint256_t((idx).v));";
     func_expect << "}";
-    func_expect << "((entry)->d_val)=(((entry)->d_val)+(state->value));";
+    func_expect << "(((entry)->d_val).v)"
+                << "=((((entry)->d_val).v)+(state->value));";
     func_expect << "}";
     // -- Method_A_Withdraw
     func_expect << "void Method_A_FuncWithdraw"
                 << "(struct A*self,struct CallState*state,uint256_t idx)";
     func_expect << "{";
-    func_expect << "assume(((Read_A_Mapaccs_submap1(&(self->d_accs),idx)).d_owner"
-                << ")==(state->sender));";
-    func_expect << "uint256_t amt="
-                << "(Read_A_Mapaccs_submap1(&(self->d_accs),idx)).d_val;";
-    func_expect << "Write_A_Mapaccs_submap1(&(self->d_accs),idx"
-                << ",Init_A_StructS(state->sender,0));";
-    func_expect << "assert(((Read_A_Mapaccs_submap1(&(self->d_accs),idx)).d_val"
-                << ")==(0));";
-    func_expect << "_pay(state,state->sender,amt);";
+    func_expect << "assume(Init_bool_t((((Read_A_Mapaccs_submap1(&(self->d_accs"
+                << "),Init_uint256_t((idx).v))).d_owner).v)==(state->sender)));";
+    func_expect << "uint256_t amt=Init_uint256_t(((Read_A_Mapaccs_submap1("
+                << "&(self->d_accs),Init_uint256_t((idx).v))).d_val).v);";
+    func_expect << "Write_A_Mapaccs_submap1(&(self->d_accs),Init_uint256_t("
+                << "(idx).v),Init_A_StructS(Init_address_t(state->sender),"
+                << "Init_uint256_t(0)));";
+    func_expect << "assert(Init_bool_t((((Read_A_Mapaccs_submap1(&(self->d_accs"
+                << "),Init_uint256_t((idx).v))).d_val).v)==(0)));";
+    func_expect << "_pay(state,Init_address_t(state->sender),Init_uint256_t("
+                << "(amt).v));";
     func_expect << "}";
     // -- Method_A_View
     func_expect << "uint256_t Method_A_FuncView"
                 << "(struct A*self,struct CallState*state,uint256_t idx)";
     func_expect << "{";
     func_expect << "uint256_t amt;";
-    func_expect << "(amt)=((Read_A_Mapaccs_submap1(&(self->d_accs),idx)).d_val);";
+    func_expect << "((amt).v)=(((Read_A_Mapaccs_submap1(&(self->d_accs),"
+                << "Init_uint256_t((idx).v))).d_val).v);";
     func_expect << "return amt;";
     func_expect << "}";
 

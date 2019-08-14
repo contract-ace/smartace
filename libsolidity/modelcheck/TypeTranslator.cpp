@@ -237,38 +237,19 @@ string TypeConverter::get_name(ASTNode const& _node) const
 
 string TypeConverter::get_simple_ctype(Type const& _type)
 {
-    Type const* type = &_type;
-    if (auto typetype_ptr = dynamic_cast<TypeType const*>(type))
-    {
-        type = typetype_ptr->actualType();
-    }
-    if (auto rational_ptr = dynamic_cast<RationalNumberType const*>(type))
-    {
-        if (auto int_ptr = rational_ptr->integerType())
-        {
-            type = int_ptr;
-        }
-        else if (auto fixed_ptr = rational_ptr->fixedPointType())
-        {
-            type = fixed_ptr;
-        }
-        else
-        {
-            // TODO
-        }
-    }
+    Type const& type = unwrap(_type);
 
-    if (_type.category() == Type::Category::Address) return "address_t";
-    if (_type.category() == Type::Category::Bool) return "bool_t";
+    if (type.category() == Type::Category::Address) return "address_t";
+    if (type.category() == Type::Category::Bool) return "bool_t";
 
-    if (auto int_ptr = dynamic_cast<IntegerType const*>(type))
+    if (auto int_ptr = dynamic_cast<IntegerType const*>(&type))
     {
         ostringstream numeric_oss;
         if (!int_ptr->isSigned()) numeric_oss << "u";
         numeric_oss << "int" << int_ptr->numBits() << "_t";
         return numeric_oss.str();
     }
-    if (auto fixed_ptr = dynamic_cast<FixedPointType const*>(type))
+    if (auto fixed_ptr = dynamic_cast<FixedPointType const*>(&type))
     {
         ostringstream numeric_oss;
         if (!fixed_ptr->isSigned()) numeric_oss << "u";
@@ -277,7 +258,7 @@ string TypeConverter::get_simple_ctype(Type const& _type)
         return numeric_oss.str();
     }
 
-    throw runtime_error("");
+    throw runtime_error("Unable to resolve simple type from _type.");
 }
 
 // -------------------------------------------------------------------------- //
@@ -288,7 +269,14 @@ CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
     {
         throw ("init_val_by_simple_type expects a simple type.");
     }
-    return make_shared<CIntLiteral>(0);
+
+    CExprPtr init_val = make_shared<CIntLiteral>(0);
+    if (is_wrapped_type(_type))
+    {
+        string const INIT_CALL = "Init_" + get_simple_ctype(_type);
+        init_val = make_shared<CFuncCall>(INIT_CALL, CArgList{init_val});
+    }
+    return init_val;
 }
 
 CExprPtr TypeConverter::nd_val_by_simple_type(Type const& _type)
@@ -297,7 +285,14 @@ CExprPtr TypeConverter::nd_val_by_simple_type(Type const& _type)
     {
         throw ("nd_val_by_simple_type expects a simple type.");
     }
-    return make_shared<CFuncCall>("ND_Init_Val", CArgList{});
+
+    CExprPtr nd_val = make_shared<CFuncCall>("ND_Init_Val", CArgList{});
+    if (is_wrapped_type(_type))
+    {
+        string const INIT_CALL = "Init_" + get_simple_ctype(_type);
+        nd_val = make_shared<CFuncCall>(INIT_CALL, CArgList{nd_val});
+    }
+    return nd_val;
 }
 
 CExprPtr TypeConverter::get_init_val(TypeName const& _typename) const

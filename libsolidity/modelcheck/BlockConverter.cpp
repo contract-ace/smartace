@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
+#include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <stdexcept>
 
@@ -196,6 +197,12 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 			auto const& expr = *_node.initialValue(); 
 			ExpressionConverter val_converter(expr, M_TYPES, m_decls, IS_REF);
 			val = val_converter.convert();
+			if (has_wrapped_data(DECL))
+			{
+				CFuncCallBuilder builder("Init_" + TYPE);
+				builder.push(val);
+				val = builder.merge_and_pop();
+			}
 		}
 		m_substmt = make_shared<CVarDecl>(TYPE, DECL.name(), IS_REF, val);
 	}

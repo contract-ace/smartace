@@ -45,6 +45,8 @@ string _convert_assignment(Token tok)
     auto id_name = make_shared<string>("a");
     auto id = make_shared<Identifier>(SourceLocation(), id_name);
 
+    id->annotation().type = new IntegerType(32);
+
     auto op = make_shared<BinaryOperation>(
         SourceLocation(), id, Token::BitXor, id
     );
@@ -63,6 +65,9 @@ string _convert_binop(Token tok)
     auto id_b = make_shared<Identifier>(
         SourceLocation(), make_shared<string>("b")
     );
+
+    id_a->annotation().type = new IntegerType(32);
+    id_b->annotation().type = new IntegerType(32);
 
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
 
@@ -176,11 +181,15 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
         SourceLocation(), make_shared<string>("c")
     );
 
+    var_a->annotation().type = new BoolType;
+    var_b->annotation().type = new IntegerType(32);
+    var_c->annotation().type = new IntegerType(32);
+
     Conditional cond(SourceLocation(), var_a, var_b, var_c);
 
     ostringstream oss;
     oss << *ExpressionConverter(cond, {}, _prime_resolver(name_a)).convert();
-    BOOST_CHECK_EQUAL(oss.str(), "(a)?(self->d_b):(self->d_c)");
+    BOOST_CHECK_EQUAL(oss.str(), "((a).v)?(self->d_b):(self->d_c)");
 }
 
 // Checks the assignment to non-map types is supported. Ensures that when
@@ -224,6 +233,7 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
     auto var_a = make_shared<Identifier>(
         SourceLocation(), make_shared<string>("a")
     );
+    var_a->annotation().type = new IntegerType(32);
 
     TupleExpression one_tuple(SourceLocation(), {var_a}, false);
     // TODO(scottwe): two_tuple
@@ -245,9 +255,10 @@ BOOST_AUTO_TEST_CASE(unary_expression)
     auto var = make_shared<Identifier>(
         SourceLocation(), make_shared<string>("a")
     );
+    var->annotation().type = new IntegerType(32);
 
     BOOST_CHECK_EQUAL(_convert_unaryop(Token::Not, val, true), "!(0)");
-    BOOST_CHECK_EQUAL(_convert_unaryop(Token::BitNot, val, true), "!(0)");
+    BOOST_CHECK_EQUAL(_convert_unaryop(Token::BitNot, val, true), "~(0)");
     // TODO(scottwe): test Token::Delete.
     BOOST_CHECK_EQUAL(_convert_unaryop(Token::Inc, var, true), "++(a)");
     BOOST_CHECK_EQUAL(_convert_unaryop(Token::Dec, var, true), "--(a)");
@@ -292,6 +303,10 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
     Identifier id_a(SourceLocation(), name_a);
     Identifier id_b(SourceLocation(), make_shared<string>("b"));
     Identifier msg(SourceLocation(), make_shared<string>("msg"));
+
+    id_a.annotation().type = new IntegerType(32);
+    id_b.annotation().type = new IntegerType(32);
+    msg.annotation().type = new MagicType(MagicType::Kind::Message);
 
     auto resolver = _prime_resolver(name_a);
 
