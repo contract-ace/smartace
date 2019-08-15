@@ -34,7 +34,11 @@
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/modelcheck/ADTConverter.h>
+#include <libsolidity/modelcheck/CallState.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
+#include <libsolidity/modelcheck/MainFunction_1.h>
+#include <libsolidity/modelcheck/MainFunction_2.h>
+#include <libsolidity/modelcheck/MainFunction_3.h>
 #include <libsolidity/modelcheck/PrimitiveTypeGenerator.h>
 
 #include <libyul/AssemblyStack.h>
@@ -1211,8 +1215,14 @@ void CommandLineInterface::handleCModelHeaders(
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
+	using dev::solidity::modelcheck::CallState;
 	_os << "#pragma once" << endl;
 	_os << "#include <primitive.h>" << endl;
+	for (auto const& ast : _asts)
+	{
+		CallState cov(*ast, _con, true);
+		cov.print(_os);
+	}
 	for (auto const& ast : _asts)
 	{
 		ADTConverter cov(*ast, _con, true);
@@ -1233,12 +1243,16 @@ void CommandLineInterface::handleCModelBody(
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
+	using dev::solidity::modelcheck::CallState;
+	using dev::solidity::modelcheck::MainFunction_1;
+	using dev::solidity::modelcheck::MainFunction_2;
+	using dev::solidity::modelcheck::MainFunction_3;
 	_os << "#include <cmodel.h>" << endl;
 	_os << "extern int assume(bool_t);";
 	_os << "extern int assert(bool_t);";
 	for (auto const& ast : _asts)
 	{
-		FunctionConverter cov(*ast, _con, FunctionConverter::View::INT, true);
+		CallState cov(*ast, _con, false);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
@@ -1250,6 +1264,21 @@ void CommandLineInterface::handleCModelBody(
 	{
 		FunctionConverter cov(*ast, _con, FunctionConverter::View::FULL, false);
 		cov.print(_os);
+	}
+	for (auto const& ast : _asts)
+	{
+		FunctionConverter cov(*ast, _con, FunctionConverter::View::INT, true);
+		cov.print(_os);
+	}
+	for (auto const& ast : _asts)
+	{
+		MainFunction_1 cov1(*ast, _con);
+		MainFunction_2 cov2(*ast, _con);
+		MainFunction_3 cov3(*ast, _con);
+
+		cov1.print(_os);
+		cov2.print(_os);
+		cov3.print(_os);
 	}
 }
 

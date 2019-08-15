@@ -510,7 +510,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "struct A Init_A()";
     func_expect << "{";
     func_expect << "struct A tmp;";
-    func_expect << "((tmp).d_min_amt)=(42);";
+    func_expect << "((tmp).d_min_amt)=(Init_uint256_t(42));";
     func_expect << "((tmp).d_accs)=(Init_0_A_Mapaccs_submap1());";
     func_expect << "return tmp;";
     func_expect << "}";
@@ -518,8 +518,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "struct A_StructS Init_0_A_StructS()";
     func_expect << "{";
     func_expect << "struct A_StructS tmp;";
-    func_expect << "((tmp).d_owner)=(0);";
-    func_expect << "((tmp).d_val)=(0);";
+    func_expect << "((tmp).d_owner)=(Init_address_t(0));";
+    func_expect << "((tmp).d_val)=(Init_uint256_t(0));";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_StructS
@@ -535,16 +535,16 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "struct A_StructS ND_A_StructS()";
     func_expect << "{";
     func_expect << "struct A_StructS tmp;";
-    func_expect << "((tmp).d_owner)=(ND_Init_Val());";
-    func_expect << "((tmp).d_val)=(ND_Init_Val());";
+    func_expect << "((tmp).d_owner)=(Init_address_t(ND_Init_Val()));";
+    func_expect << "((tmp).d_val)=(Init_uint256_t(ND_Init_Val()));";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_Mapaccs_submap1
     func_expect << "struct A_Mapaccs_submap1 Init_0_A_Mapaccs_submap1()";
     func_expect << "{";
     func_expect << "struct A_Mapaccs_submap1 tmp;";
-    func_expect << "((tmp).m_set)=(0);";
-    func_expect << "((tmp).m_curr)=(0);";
+    func_expect << "((tmp).m_set)=(Init_bool_t(0));";
+    func_expect << "((tmp).m_curr)=(Init_uint256_t(0));";
     func_expect << "((tmp).d_)=(Init_0_A_StructS());";
     func_expect << "((tmp).d_nd)=(Init_0_A_StructS());";
     func_expect << "return tmp;";
@@ -553,8 +553,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "struct A_Mapaccs_submap1 ND_A_Mapaccs_submap1()";
     func_expect << "{";
     func_expect << "struct A_Mapaccs_submap1 tmp;";
-    func_expect << "((tmp).m_set)=(ND_Init_Val());";
-    func_expect << "((tmp).m_curr)=(ND_Init_Val());";
+    func_expect << "((tmp).m_set)=(Init_bool_t(ND_Init_Val()));";
+    func_expect << "((tmp).m_curr)=(Init_uint256_t(ND_Init_Val()));";
     func_expect << "((tmp).d_)=(ND_A_StructS());";
     func_expect << "((tmp).d_nd)=(Init_0_A_StructS());";
     func_expect << "return tmp;";
@@ -563,8 +563,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "struct A_StructS Read_A_Mapaccs_submap1("
                 << "struct A_Mapaccs_submap1*a,uint256_t idx)";
     func_expect << "{";
-    func_expect << "if(((a)->m_set)==(0))"
-                << "{((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if(((a)->m_set)!=(1))"
+                << "{((a)->m_curr)=(idx);((a)->m_set)=(Init_bool_t(1));}";
     func_expect << "if((idx)!=((a)->m_curr))return ND_A_StructS();";
     func_expect << "return (a)->d_;";
     func_expect << "}";
@@ -572,16 +572,16 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "void Write_A_Mapaccs_submap1(struct A_Mapaccs_submap1*a,"
                 << "uint256_t idx,struct A_StructS d)";
     func_expect << "{";
-    func_expect << "if(((a)->m_set)==(0))"
-                << "{((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if(((a)->m_set)!=(1))"
+                << "{((a)->m_curr)=(idx);((a)->m_set)=(Init_bool_t(1));}";
     func_expect << "if((idx)==((a)->m_curr))((a)->d_)=(d);";
     func_expect << "}";
     // -- Ref_A_Mapaccs_submap1
     func_expect << "struct A_StructS*Ref_A_Mapaccs_submap1"
                 << "(struct A_Mapaccs_submap1*a,uint256_t idx)";
     func_expect << "{";
-    func_expect << "if(((a)->m_set)==(0))"
-                << "{((a)->m_curr)=(idx);((a)->m_set)=(1);}";
+    func_expect << "if(((a)->m_set)!=(1))"
+                << "{((a)->m_curr)=(idx);((a)->m_set)=(Init_bool_t(1));}";
     func_expect << "if((idx)!=((a)->m_curr))";
     func_expect << "{";
     func_expect << "((a)->d_nd)=(ND_A_StructS());";

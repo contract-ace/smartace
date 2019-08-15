@@ -66,6 +66,12 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             if (decl->value())
             {
                 init = ExpressionConverter(*decl->value(), {}, {}).convert();
+                if (is_wrapped_type(*decl->type()))
+                {
+                    init = make_shared<CFuncCall>(
+                        "Init_" + M_CONVERTER.get_type(*decl), CArgList{init}
+                    );
+                }
             }
             else
             {
@@ -233,11 +239,12 @@ bool FunctionConverter::visit(Mapping const& _node)
         auto nd_val = M_CONVERTER.get_nd_val(_node.valueType());
 
         auto true_val = make_shared<CIntLiteral>(1);
+        auto true_adt = make_shared<CFuncCall>("Init_bool_t", CArgList{true_val});
         auto update_curr = make_shared<CIf>(
-            make_shared<CBinaryOp>(a_set, "==", init_set),
+            make_shared<CBinaryOp>(a_set, "!=", true_val),
             make_shared<CBlock>(CBlockList{
                 make_shared<CExprStmt>(make_shared<CAssign>(a_cur, indx->id())),
-                make_shared<CExprStmt>(make_shared<CAssign>(a_set, true_val)),
+                make_shared<CExprStmt>(make_shared<CAssign>(a_set, true_adt)),
             }
         ), nullptr);
         auto is_not_cur = make_shared<CBinaryOp>(indx->id(), "!=", a_cur);
