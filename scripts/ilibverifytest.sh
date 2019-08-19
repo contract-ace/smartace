@@ -25,14 +25,43 @@ function test_assertion() {
 	fi
 }
 
+function test_nd() {
+	TYPE="$1"
+	VAL="$2"
+	MSG="placeholder_msg"
+
+	cmd="${SCRIPT} nd ${TYPE} ${MSG}"
+	res=$(${cmd} 2>&1 <<< ${val})
+	rc=$?
+
+	if [ "${rc}" != "${VAL}" ]; then
+		echo "${cmd}: Incorrect nd value returned."
+	fi
+
+	grep "${MSG}" >/dev/null 2>&1 <<< "${res}"
+	MESSAGE_SET=$?
+	if [ ${MESSAGE_SET} -ne 0 ]; then
+		echo "${cmd}: Message did not appear in promt."
+	fi
+}
+
 for op in "assume" "require"; do
 	for cond in 0 1; do
 		for msg in "" "Message"; do
-			res=$(test_assertion ${op} ${cond} ${msg})
+			res=$(test_assertion "${op}" "${cond}" "${msg}")
 			if [ ! -z "${res}" ]; then
 				echo "${res}"
 			fi
 		done
+	done
+done
+
+for type in $(seq 0 7); do
+	for val in $(seq 0 10); do
+		res=$(test_nd "${type}" "${val}")
+		if [ ! -z "${res}" ]; then
+			echo "${res}"
+		fi
 	done
 done
 

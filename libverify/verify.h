@@ -12,3 +12,13 @@ void sol_require(uint8_t _cond, const char* _msg);
 
 // Stands in for `assume(_cond, _msg)` in Solidity.
 void sol_assume(uint8_t cond, const char* _msg);
+
+// Returns non-deterministic values of different lengths.
+int8_t nd_int8_t(const char* _msg);
+int16_t nd_int16_t(const char* _msg);
+int32_t nd_int32_t(const char* _msg);
+int64_t nd_int64_t(const char* _msg);
+uint8_t nd_uint8_t(const char* _msg);
+uint16_t nd_uint16_t(const char* _msg);
+uint32_t nd_uint32_t(const char* _msg);
+uint64_t nd_uint64_t(const char* _msg);
