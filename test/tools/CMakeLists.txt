@@ -34,3 +34,7 @@ add_executable(isoltest
 	../libyul/YulInterpreterTest.cpp
 )
 target_link_libraries(isoltest PRIVATE libsolc solidity yulInterpreter evmasm ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
+
+include_directories(../../)
+add_executable(ilibverifytest ilibverifytest.c)
+target_link_libraries(ilibverifytest PRIVATE libverify_interactive)

@@ -1,0 +1,38 @@
+SCRIPT="./build/test/tools/ilibverifytest"
+
+# Tests `ilibverifytest $1 $2 [$3]` for $1 in {assume,require} and $2 in {0,1}.
+function test_assertion() {
+	OP="$1"
+	COND="$2"
+	MSG="$3"
+
+	cmd="${SCRIPT} ${OP} ${COND} ${MSG}"
+	res=$(${cmd} 2>&1)
+	rc=$?
+
+	if [ "${OP}" == "require" ] && [ "${rc}" -eq "${COND}" ]; then
+		echo "${cmd}: Return code does not match condition."
+	elif [ "${OP}" == "assume" ] && [ "${rc}" -eq 1 ]; then
+		echo "${cmd}: Non-zero return code on assume."
+	elif [ "${COND}" -eq 1 ]; then
+		if [ ! -z ${res} ]; then
+			echo "${cmd}: Message on success."
+		fi
+	elif [ "${COND}" -eq 0 ]; then
+		if [ -z "${MSG}" ] && [ "${res}" != "${OP}" ]; then
+			echo "${cmd}: Custom message when unprovided."
+		fi
+	fi
+}
+
+for op in "assume" "require"; do
+	for cond in 0 1; do
+		for msg in "" "Message"; do
+			res=$(test_assertion ${op} ${cond} ${msg})
+			if [ ! -z "${res}" ]; then
+				echo "${res}"
+			fi
+		done
+	done
+done
+
