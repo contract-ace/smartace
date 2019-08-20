@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/modelcheck/SimpleCCore.h>
+#include <map>
 #include <string>
 
 namespace dev
@@ -385,6 +386,32 @@ private:
     CExprPtr const m_cond;
     CStmtPtr const m_loop;
     CStmtPtr const m_body;
+
+    void print_impl(std::ostream & _out) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Corresponds to an integral switch statement in C. Each case is scoped.
+ */
+class CSwitch : public CStmt
+{
+public:
+    // Constructs a while loop with given condition and body. If set to run at
+    // least once, a do/while loop is generated.
+    CSwitch(CExprPtr _cond);
+    CSwitch(CExprPtr _cond, CBlockList _default);
+
+    void add_case(int64_t val, CBlockList body);
+
+    ~CSwitch() = default;
+
+private:
+    CExprStmt m_cond;
+    CBlock m_default;
+
+    std::map<int64_t, CBlock> m_cases;
 
     void print_impl(std::ostream & _out) const override;
 };

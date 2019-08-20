@@ -266,6 +266,32 @@ void CForLoop::print_impl(ostream & _out) const
 
 // -------------------------------------------------------------------------- //
 
+CSwitch::CSwitch(CExprPtr _cond): CSwitch(_cond, {make_shared<CBreak>()}) {}
+
+CSwitch::CSwitch(CExprPtr _cond, CBlockList _default)
+: m_cond(_cond), m_default(move(_default))
+{
+    m_cond.nest();
+    nest();
+}
+
+void CSwitch::add_case(int64_t _val, CBlockList _body)
+{
+    m_cases.emplace(make_pair(_val, move(_body)));
+}
+
+void CSwitch::print_impl(ostream & _out) const
+{
+    _out << "switch(" << m_cond << "){";
+    for (auto const switch_case : m_cases)
+    {
+        _out << "case " << switch_case.first << ":" << switch_case.second;
+    }
+    _out << "default:" << m_default << "}";
+}
+
+// -------------------------------------------------------------------------- //
+
 void CBreak::print_impl(ostream & _out) const
 {
     _out << "break";
