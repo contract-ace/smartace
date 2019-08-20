@@ -10,8 +10,8 @@
 // Stands in for `require(_cond, _msg)` in Solidity.
 void sol_require(uint8_t _cond, const char* _msg);
 
-// Stands in for `assume(_cond, _msg)` in Solidity.
-void sol_assume(uint8_t cond, const char* _msg);
+// Stands in for `assert(_cond, _msg)` in Solidity.
+void sol_assert(uint8_t cond, const char* _msg);
 
 // Returns non-deterministic values of different lengths.
 int8_t nd_int8_t(const char* _msg);

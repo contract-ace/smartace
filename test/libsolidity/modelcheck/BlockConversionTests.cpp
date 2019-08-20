@@ -521,9 +521,9 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "assume(Init_bool_t(1));";
-    expected << "assume(Init_bool_t(1));";
-    expected << "assert(Init_bool_t(1));";
+    expected << "sol_require(1,0);";
+    expected << "sol_require(1,0);";
+    expected << "sol_assert(1,0);";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

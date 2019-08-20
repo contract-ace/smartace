@@ -23,12 +23,12 @@ void sol_assertion_impl(
     }
 }
 
-void sol_require(uint8_t _cond, const char* _msg)
+void sol_assert(uint8_t _cond, const char* _msg)
 {
-    sol_assertion_impl(-1, _cond, "require", _msg);
+    sol_assertion_impl(-1, _cond, "assert", _msg);
 }
 
-void sol_assume(uint8_t _cond, const char* _msg)
+void sol_require(uint8_t _cond, const char* _msg)
 {
-    sol_assertion_impl(0, _cond, "assume", _msg);
+    sol_assertion_impl(0, _cond, "require", _msg);
 }

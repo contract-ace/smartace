@@ -1,6 +1,6 @@
 SCRIPT="./build/test/tools/ilibverifytest"
 
-# Tests `ilibverifytest $1 $2 [$3]` for $1 in {assume,require} and $2 in {0,1}.
+# Tests `ilibverifytest $1 $2 [$3]` for $1 in {assert,require} and $2 in {0,1}.
 function test_assertion() {
 	OP="$1"
 	COND="$2"
@@ -10,9 +10,9 @@ function test_assertion() {
 	res=$(${cmd} 2>&1)
 	rc=$?
 
-	if [ "${OP}" == "require" ] && [ "${rc}" -eq "${COND}" ]; then
+	if [ "${OP}" == "assert" ] && [ "${rc}" -eq "${COND}" ]; then
 		echo "${cmd}: Return code does not match condition."
-	elif [ "${OP}" == "assume" ] && [ "${rc}" -eq 1 ]; then
+	elif [ "${OP}" == "require" ] && [ "${rc}" -eq 1 ]; then
 		echo "${cmd}: Non-zero return code on assume."
 	elif [ "${COND}" -eq 1 ]; then
 		if [ ! -z ${res} ]; then
@@ -45,7 +45,7 @@ function test_nd() {
 	fi
 }
 
-for op in "assume" "require"; do
+for op in "assert" "require"; do
 	for cond in 0 1; do
 		for msg in "" "Message"; do
 			res=$(test_assertion "${op}" "${cond}" "${msg}")

@@ -609,10 +609,10 @@ void ExpressionConverter::print_function(
 		// TODO(scottwe): implement.
 		throw runtime_error("`new <array>` not yet supported.");
 	case FunctionType::Kind::Assert:
-		print_assertion("assert", _args);
+		print_assertion("sol_assert", _args);
 		break;
 	case FunctionType::Kind::Require:
-		print_assertion("assume", _args);
+		print_assertion("sol_require", _args);
 		break;
 	case FunctionType::Kind::ABIEncode:
 		// TODO(scottwe): decide how/if this should be used.
@@ -770,9 +770,11 @@ void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 		throw runtime_error("Assertion requires condition.");
 	}
 
-	// The type of _args[0] is known to be bool_t, which has no implicit casts.
+	// TODO(scottwe): support for messages.
 	CFuncCallBuilder builder(_type);
-	builder.push(*_args[0], M_TYPES, m_decls, false);
+	const IntegerType RAW_TYPE(8);
+	builder.push(*_args[0], M_TYPES, m_decls, false, &RAW_TYPE);
+	builder.push(make_shared<CIntLiteral>(0));
 	m_subexpr = builder.merge_and_pop();
 }
 

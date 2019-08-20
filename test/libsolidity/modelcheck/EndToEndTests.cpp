@@ -593,8 +593,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "void Method_A_FuncOpen"
                 << "(struct A*self,struct CallState*state,uint256_t idx)";
     func_expect << "{";
-    func_expect << "assume(Init_bool_t((((Read_A_Mapaccs_submap1(&(self->d_accs"
-                << "),Init_uint256_t((idx).v))).d_owner).v)==(((int)(0)))));";
+    func_expect << "sol_require((((Read_A_Mapaccs_submap1(&(self->d_accs"
+                << "),Init_uint256_t((idx).v))).d_owner).v)==(((int)(0))),0);";
     func_expect << "Write_A_Mapaccs_submap1(&(self->d_accs),Init_uint256_t("
                 << "(idx).v),Init_A_StructS(Init_address_t(state->sender),"
                 << "Init_uint256_t(0)));";
@@ -603,7 +603,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "void Method_A_FuncDeposit"
                 << "(struct A*self,struct CallState*state,uint256_t idx)";
     func_expect << "{";
-    func_expect << "assume(Init_bool_t((state->value)>((self->d_min_amt).v)));";
+    func_expect << "sol_require((state->value)>((self->d_min_amt).v),0);";
     func_expect << "struct A_StructS*entry=Ref_A_Mapaccs_submap1("
                 << "&(self->d_accs),Init_uint256_t((idx).v));";
     func_expect << "if((((entry)->d_owner).v)!=(state->sender))";
@@ -617,15 +617,15 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "void Method_A_FuncWithdraw"
                 << "(struct A*self,struct CallState*state,uint256_t idx)";
     func_expect << "{";
-    func_expect << "assume(Init_bool_t((((Read_A_Mapaccs_submap1(&(self->d_accs"
-                << "),Init_uint256_t((idx).v))).d_owner).v)==(state->sender)));";
+    func_expect << "sol_require((((Read_A_Mapaccs_submap1(&(self->d_accs),"
+                << "Init_uint256_t((idx).v))).d_owner).v)==(state->sender),0);";
     func_expect << "uint256_t amt=Init_uint256_t(((Read_A_Mapaccs_submap1("
                 << "&(self->d_accs),Init_uint256_t((idx).v))).d_val).v);";
     func_expect << "Write_A_Mapaccs_submap1(&(self->d_accs),Init_uint256_t("
                 << "(idx).v),Init_A_StructS(Init_address_t(state->sender),"
                 << "Init_uint256_t(0)));";
-    func_expect << "assert(Init_bool_t((((Read_A_Mapaccs_submap1(&(self->d_accs"
-                << "),Init_uint256_t((idx).v))).d_val).v)==(0)));";
+    func_expect << "sol_assert((((Read_A_Mapaccs_submap1(&(self->d_accs"
+                << "),Init_uint256_t((idx).v))).d_val).v)==(0),0);";
     func_expect << "_pay(state,Init_address_t(state->sender),Init_uint256_t("
                 << "(amt).v));";
     func_expect << "}";

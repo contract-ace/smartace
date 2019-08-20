@@ -13,18 +13,18 @@ int main(int argc, char const** argv)
 {
     if (argc < 2) { fail(); }
     char const* const TEST_OP = argv[1];
-    const int IS_ASSUME = (strcmp(TEST_OP, "assume") == 0);
-    const int IS_REQURIE = (strcmp(TEST_OP, "require") == 0);
+    const int IS_REQUIRE = (strcmp(TEST_OP, "require") == 0);
+    const int IS_ASSERT = (strcmp(TEST_OP, "assert") == 0);
     const int IS_ND = (strcmp(TEST_OP, "nd") == 0);
 
-    if (IS_ASSUME || IS_REQURIE)
+    if (IS_REQUIRE || IS_ASSERT)
     {
         if (argc < 3) { fail(); }
         long int const COND = strtol(argv[2], NULL, 10);
         char const* const MSG = ((argc >= 4) ? argv[3] : NULL);
 
-        if (IS_ASSUME) { sol_assume(COND, MSG); }
-        else { sol_require(COND, MSG); }
+        if (IS_REQUIRE) { sol_require(COND, MSG); }
+        else { sol_assert(COND, MSG); }
     }
     else if (IS_ND)
     {
