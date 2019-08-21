@@ -149,8 +149,9 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp"));
         for (auto decl : _node.members())
         {
+            string const MSG = "Set " + decl->name() + " in " + _node.name();
             auto member = TMP->access("d_" + decl->name());
-            auto init = M_CONVERTER.get_nd_val(*decl);
+            auto init = M_CONVERTER.get_nd_val(*decl, MSG);
             stmts.push_back(member->assign(move(init))->stmt());
         }
         stmts.push_back(make_shared<CReturn>(TMP));
@@ -218,6 +219,10 @@ bool FunctionConverter::visit(Mapping const& _node)
     shared_ptr<CBlock> zinit_body, nd_body, read_body, write_body, ref_body;
     if (!M_FWD_DCL)
     {
+        string const BMSG = "Set if entry is selected in " + MAP_NAME;
+        string const KMSG = "Set key in " + MAP_NAME;
+        string const VMSG = "Set value in " + MAP_NAME;
+
         auto tmp_set = TMP->access("m_set");
         auto tmp_cur = TMP->access("m_curr");
         auto tmp_dat = TMP->access("d_");
@@ -230,9 +235,9 @@ bool FunctionConverter::visit(Mapping const& _node)
         auto init_set = TypeConverter::init_val_by_simple_type(BoolType{});
         auto init_key = M_CONVERTER.get_init_val(_node.keyType());
         auto init_val = M_CONVERTER.get_init_val(_node.valueType());
-        auto nd_set = TypeConverter::nd_val_by_simple_type(BoolType{});
-        auto nd_key = M_CONVERTER.get_nd_val(_node.keyType());
-        auto nd_val = M_CONVERTER.get_nd_val(_node.valueType());
+        auto nd_set = TypeConverter::nd_val_by_simple_type(BoolType{}, BMSG);
+        auto nd_key = M_CONVERTER.get_nd_val(_node.keyType(), KMSG);
+        auto nd_val = M_CONVERTER.get_nd_val(_node.valueType(), VMSG);
 
         auto true_val = make_shared<CIntLiteral>(1);
         auto true_adt = make_shared<CFuncCall>("Init_bool_t", CArgList{true_val});

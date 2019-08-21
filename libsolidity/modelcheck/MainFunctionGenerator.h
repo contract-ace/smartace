@@ -41,8 +41,6 @@ public:
 
 private:
     CExprPtr const NULL_LIT;
-    CExprPtr const ND_BOOL;
-    CExprPtr const ND_UINT64;
 
 	SourceUnit const& m_ast;
 	TypeConverter const& m_converter;
@@ -78,6 +76,8 @@ private:
         std::shared_ptr<const CVarDecl> _id,
         std::shared_ptr<const CVarDecl> _state
     );
+
+    static CExprPtr get_nd(unsigned int _bits, std::string const& _msg);
 };
 
 }

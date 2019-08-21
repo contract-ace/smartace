@@ -34,7 +34,7 @@ void _add_init_to_stream(ostream & _out, string const& _t, string const& _d)
 {
     _out << "struct " << _t << "{" << _d << " v;};";
     _out << "typedef struct " << _t << " " << _t << "_t;";
-    _out << "inline " << _t << "_t Init_" << _t << "_t(" << _d <<" v)";
+    _out << "static inline " << _t << "_t Init_" << _t << "_t(" << _d <<" v)";
     _out << "{";
     _out << _t << "_t tmp;";
     _out << "((tmp).v)=(v);";

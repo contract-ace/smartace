@@ -139,6 +139,25 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
+ * Represents a literal, integer value in C.
+ */
+class CStringLiteral : public CExpr
+{
+public:
+    // Creates a literal of some string.
+    CStringLiteral(std::string const& _val);
+
+    ~CStringLiteral() = default;
+
+    void print(std::ostream & _out) const override;
+
+private:
+    std::string m_val;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * Generalization of a prefix or suffix unary operator.
  */
 class CUnaryOp : public CExpr

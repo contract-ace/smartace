@@ -279,7 +279,9 @@ CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
     return init_val;
 }
 
-CExprPtr TypeConverter::nd_val_by_simple_type(Type const& _type)
+CExprPtr TypeConverter::nd_val_by_simple_type(
+    Type const& _type, string const& _msg
+)
 {
     if (!is_simple_type(_type))
     {
@@ -291,7 +293,8 @@ CExprPtr TypeConverter::nd_val_by_simple_type(Type const& _type)
     if (!simple_is_signed(_type)) call << "u";
     call << "int" << simple_bit_count(_type) << "_t";
 
-    CExprPtr nd_val = make_shared<CFuncCall>(call.str(), CArgList{});
+    auto msg_lit = make_shared<CStringLiteral>(_msg);
+    auto nd_val = make_shared<CFuncCall>(call.str(), CArgList{msg_lit});
     if (is_wrapped_type(_type))
     {
         string const INIT_CALL = "Init_" + get_simple_ctype(_type);
@@ -317,20 +320,27 @@ CExprPtr TypeConverter::get_init_val(Declaration const& _decl) const
     return make_shared<CFuncCall>("Init_0_" + get_name(_decl), CArgList{});
 }
 
-CExprPtr TypeConverter::get_nd_val(TypeName const& _typename) const
+CExprPtr TypeConverter::get_nd_val(
+    TypeName const& _typename, string const& _msg
+) const
 {
     if (has_simple_type(_typename))
     {
         return TypeConverter::nd_val_by_simple_type(
-            *_typename.annotation().type
+            *_typename.annotation().type, _msg
         );
     }
     return make_shared<CFuncCall>("ND_" + get_name(_typename), CArgList{});
 }
 
-CExprPtr TypeConverter::get_nd_val(Declaration const& _decl) const
+CExprPtr TypeConverter::get_nd_val(
+    Declaration const& _decl, string const& _msg
+) const
 {
-    if (has_simple_type(_decl)) return nd_val_by_simple_type(*_decl.type());
+    if (has_simple_type(_decl))
+    {
+        return nd_val_by_simple_type(*_decl.type(), _msg);
+    }
     return make_shared<CFuncCall>("ND_" + get_name(_decl), CArgList{});
 }
 

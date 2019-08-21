@@ -22,11 +22,7 @@ namespace modelcheck
 
 MainFunctionGenerator::MainFunctionGenerator(
     SourceUnit const& _ast, TypeConverter const& _converter
-): NULL_LIT(make_shared<CIntLiteral>(0))
- , ND_BOOL(TypeConverter::nd_val_by_simple_type(IntegerType(8)))
- , ND_UINT64(TypeConverter::nd_val_by_simple_type(IntegerType(64)))
- , m_ast(_ast)
- , m_converter(_converter)
+): NULL_LIT(make_shared<CIntLiteral>(0)), m_ast(_ast), m_converter(_converter)
 {
 }
 
@@ -61,7 +57,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     }
 
     auto call_cases = make_shared<CSwitch>(
-        ND_BOOL, CBlockList{make_require(NULL_LIT)}
+        get_nd(8, "Select next call"), CBlockList{make_require(NULL_LIT)}
     );
     for (auto const* CONTRACT : contracts)
     {
@@ -77,15 +73,21 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     stmts.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(CBlockList{
             call_cases,
-            NXTSTATE->access("sender")->assign(ND_UINT64)->stmt(),
-            NXTSTATE->access("value")->assign(ND_UINT64)->stmt(),
-            NXTSTATE->access("blocknum")->assign(ND_UINT64)->stmt(),
+            NXTSTATE->access("sender")->assign(
+                get_nd(64, "Select the next sender's address")
+            )->stmt(),
+            NXTSTATE->access("value")->assign(
+                get_nd(64, "Select the next message value")
+            )->stmt(),
+            NXTSTATE->access("blocknum")->assign(
+                get_nd(64, "Select the next blocknum")
+            )->stmt(),
             make_require(make_shared<CBinaryOp>(
                 NXTSTATE->access("blocknum"), ">=", CURSTATE->access("blocknum")
             )),
             CURSTATE->assign(NXTSTATE->id())->stmt()
         }),
-        ND_BOOL, false
+        get_nd(8, "Select 0 to terminate"), false
     ));
 
     auto id = make_shared<CVarDecl>("void", "main");
@@ -151,7 +153,9 @@ CStmtPtr MainFunctionGenerator::init_contract(
     {
         for (auto const param : ctor->parameters())
         {
-            init_builder.push(m_converter.get_nd_val(*param));
+            string const MSG
+                = "Init field " + param->name() + " in " + _contract.name();
+            init_builder.push(m_converter.get_nd_val(*param, MSG));
         }
     }
 
@@ -177,8 +181,9 @@ CBlockList MainFunctionGenerator::build_case(
     CBlockList call_body;
     for (auto arg : _def.parameters())
     {
+        string const MSG = "Set " + arg->name() + " for call " + _def.name();
         auto const& PDECL = _args[arg.get()];
-        auto const ND_VAL = m_converter.get_nd_val(*arg);
+        auto const ND_VAL = m_converter.get_nd_val(*arg, MSG);
         call_body.push_back(PDECL->assign(ND_VAL)->stmt());
         call_builder.push(PDECL->id());
     }
@@ -189,6 +194,11 @@ CBlockList MainFunctionGenerator::build_case(
 }
 
 // -------------------------------------------------------------------------- //
+
+CExprPtr MainFunctionGenerator::get_nd(unsigned int _bits, string const& _msg)
+{
+    return TypeConverter::nd_val_by_simple_type(IntegerType(_bits), _msg);
+}
 
 }
 }

@@ -45,7 +45,7 @@ int simple_bit_count(Type const& _type)
 {
     Type const& t = unwrap(_type);
 
-    unsigned int bits;
+    unsigned int raw_bits;
     switch(t.category())
     {
     case Type::Category::Address:
@@ -53,16 +53,18 @@ int simple_bit_count(Type const& _type)
     case Type::Category::Bool:
         return 8;
     case Type::Category::FixedPoint:
-        bits = dynamic_cast<FixedPointType const&>(t).numBits();
+        raw_bits = dynamic_cast<FixedPointType const&>(t).numBits();
         break;
     case Type::Category::Integer:
-        bits = dynamic_cast<IntegerType const&>(t).numBits();
+        raw_bits = dynamic_cast<IntegerType const&>(t).numBits();
         break;
     default:
         return 64;
     }
 
-    return (((bits + 7) / 8) * 8);
+    unsigned int round_bits = 8;
+    while (round_bits < raw_bits) round_bits *= 2;
+    return round_bits;
 }
 
 // -------------------------------------------------------------------------- //

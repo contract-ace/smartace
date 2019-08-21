@@ -21,15 +21,9 @@ namespace modelcheck
 CIdentifier::CIdentifier(string _name, bool _ptr)
 : m_name(move(_name)), m_ptr(_ptr) {}
 
-void CIdentifier::print(ostream & _out) const
-{
-    _out << m_name;
-}
+void CIdentifier::print(ostream & _out) const { _out << m_name; }
 
-bool CIdentifier::is_pointer() const
-{
-    return m_ptr;
-}
+bool CIdentifier::is_pointer() const { return m_ptr; }
 
 shared_ptr<CAssign> CIdentifier::assign(CExprPtr _rhs) const
 {
@@ -47,10 +41,24 @@ shared_ptr<CMemberAccess> CIdentifier::access(string _member) const
 
 CIntLiteral::CIntLiteral(long long int _val): m_val(_val) {}
 
-void CIntLiteral::print(ostream & _out) const
+void CIntLiteral::print(ostream & _out) const { _out << m_val; }
+
+// -------------------------------------------------------------------------- //
+
+CStringLiteral::CStringLiteral(string const& _val)
 {
-    _out << m_val;
+    ostringstream stream;
+    stream << "\"";
+    for (char c : _val)
+    {
+        if (c == '\"') stream << "\\\"";
+        else stream << c;
+    }
+    stream << "\"";
+    m_val = stream.str();
 }
+
+void CStringLiteral::print(ostream & _out) const { _out << m_val; }
 
 // -------------------------------------------------------------------------- //
 
@@ -71,10 +79,7 @@ CStmtPtr CUnaryOp::stmt()
 
 CReference::CReference(CExprPtr _expr): CUnaryOp("&", move(_expr), true) {}
 
-bool CReference::is_pointer() const
-{
-    return true;
-}
+bool CReference::is_pointer() const { return true; }
 
 CDereference::CDereference(CExprPtr _expr): CUnaryOp("*", move(_expr), true) {}
 
@@ -105,10 +110,7 @@ void CCond::print(ostream & _out) const
     _out << "(" << *m_cond << ")?(" << *m_tcase << "):(" << *m_fcase << ")";
 }
 
-bool CCond::is_pointer() const
-{
-    return m_tcase->is_pointer();
-}
+bool CCond::is_pointer() const { return m_tcase->is_pointer(); }
 
 CStmtPtr CCond::stmt()
 {
@@ -148,10 +150,7 @@ void CCast::print(ostream & _out) const
     _out << "((" << m_type << ")(" << *m_expr << "))";
 }
 
-bool CCast::is_pointer() const
-{
-    return m_expr->is_pointer();
-}
+bool CCast::is_pointer() const { return m_expr->is_pointer(); }
 
 // -------------------------------------------------------------------------- //
 
@@ -211,10 +210,7 @@ CStmtPtr CFuncCallBuilder::merge_and_pop_stmt()
 
 // -------------------------------------------------------------------------- //
 
-CBlock::CBlock(CBlockList _stmts) : m_stmts(move(_stmts))
-{
-    nest();
-}
+CBlock::CBlock(CBlockList _stmts) : m_stmts(move(_stmts)) { nest(); }
 
 void CBlock::print_impl(std::ostream & _out) const
 {
@@ -227,10 +223,7 @@ void CBlock::print_impl(std::ostream & _out) const
 
 CExprStmt::CExprStmt(CExprPtr _expr): m_expr(move(_expr)) {}
 
-void CExprStmt::print_impl(ostream & _out) const
-{
-    _out << *m_expr;
-}
+void CExprStmt::print_impl(ostream & _out) const { _out << *m_expr; }
 
 // -------------------------------------------------------------------------- //
 
@@ -267,10 +260,7 @@ void CVarDecl::print_impl(ostream & _out) const
 // -------------------------------------------------------------------------- //
 
 CIf::CIf(CExprPtr _cond, CStmtPtr _tstmt, CStmtPtr _fstmt)
-: m_cond(move(_cond)), m_tstmt(move(_tstmt)), m_fstmt(move(_fstmt))
-{
-    nest();
-}
+: m_cond(move(_cond)), m_tstmt(move(_tstmt)), m_fstmt(move(_fstmt)) { nest(); }
 
 void CIf::print_impl(ostream & _out) const
 {
@@ -351,15 +341,9 @@ void CSwitch::print_impl(ostream & _out) const
 
 // -------------------------------------------------------------------------- //
 
-void CBreak::print_impl(ostream & _out) const
-{
-    _out << "break";
-}
+void CBreak::print_impl(ostream & _out) const { _out << "break"; }
 
-void CContinue::print_impl(ostream & _out) const
-{
-    _out << "continue";
-}
+void CContinue::print_impl(ostream & _out) const { _out << "continue"; }
 
 // -------------------------------------------------------------------------- //
 
@@ -386,7 +370,7 @@ CFuncDef::CFuncDef(
 
 void CFuncDef::print(ostream & _out) const
 {
-    if (m_mod == Modifier::INLINE) _out << "inline ";
+    if (m_mod == Modifier::INLINE) _out << "static inline ";
     _out << *m_id << "(";
     for (auto itr = m_args.begin(); itr != m_args.end(); ++itr)
     {
