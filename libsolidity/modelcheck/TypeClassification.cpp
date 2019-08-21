@@ -41,6 +41,49 @@ Type const& unwrap(Type const& _type)
 
 // -------------------------------------------------------------------------- //
 
+int simple_bit_count(Type const& _type)
+{
+    Type const& t = unwrap(_type);
+
+    unsigned int bits;
+    switch(t.category())
+    {
+    case Type::Category::Address:
+        return 64;
+    case Type::Category::Bool:
+        return 8;
+    case Type::Category::FixedPoint:
+        bits = dynamic_cast<FixedPointType const&>(t).numBits();
+        break;
+    case Type::Category::Integer:
+        bits = dynamic_cast<IntegerType const&>(t).numBits();
+        break;
+    default:
+        return 64;
+    }
+
+    return (((bits + 7) / 8) * 8);
+}
+
+// -------------------------------------------------------------------------- //
+
+bool simple_is_signed(Type const& _type)
+{
+    Type const& t = unwrap(_type);
+
+    switch(t.category())
+    {
+    case Type::Category::FixedPoint:
+        return  dynamic_cast<FixedPointType const&>(t).isSigned();
+    case Type::Category::Integer:
+        return dynamic_cast<IntegerType const&>(t).isSigned();
+    default:
+        return false;
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
 bool is_wrapped_type(Type const& _type)
 {
     Type const& t = unwrap(_type);

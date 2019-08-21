@@ -535,8 +535,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "struct A_StructS ND_A_StructS()";
     func_expect << "{";
     func_expect << "struct A_StructS tmp;";
-    func_expect << "((tmp).d_owner)=(Init_address_t(ND_Init_Val()));";
-    func_expect << "((tmp).d_val)=(Init_uint256_t(ND_Init_Val()));";
+    func_expect << "((tmp).d_owner)=(Init_address_t(nd_uint64_t()));";
+    func_expect << "((tmp).d_val)=(Init_uint256_t(nd_uint256_t()));";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_Mapaccs_submap1
@@ -553,8 +553,8 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "struct A_Mapaccs_submap1 ND_A_Mapaccs_submap1()";
     func_expect << "{";
     func_expect << "struct A_Mapaccs_submap1 tmp;";
-    func_expect << "((tmp).m_set)=(Init_bool_t(ND_Init_Val()));";
-    func_expect << "((tmp).m_curr)=(Init_uint256_t(ND_Init_Val()));";
+    func_expect << "((tmp).m_set)=(Init_bool_t(nd_uint8_t()));";
+    func_expect << "((tmp).m_curr)=(Init_uint256_t(nd_uint256_t()));";
     func_expect << "((tmp).d_)=(ND_A_StructS());";
     func_expect << "((tmp).d_nd)=(Init_0_A_StructS());";
     func_expect << "return tmp;";

@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "struct A_StructB ND_A_StructB()";
     expect << "{";
     expect << "struct A_StructB tmp;";
-    expect << "((tmp).d_a)=(Init_uint256_t(ND_Init_Val()));";
+    expect << "((tmp).d_a)=(Init_uint256_t(nd_uint256_t()));";
     expect << "return tmp;";
     expect << "}";
 
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "struct A_StructB ND_A_StructB()";
     expect << "{";
     expect << "struct A_StructB tmp;";
-    expect << "((tmp).d_i1)=(Init_int256_t(ND_Init_Val()));";
+    expect << "((tmp).d_i1)=(Init_int256_t(nd_int256_t()));";
     expect << "return tmp;";
     expect << "}";
     // -- Init_0_A_StructC
@@ -205,10 +205,10 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "struct A_StructC ND_A_StructC()";
     expect << "{";
     expect << "struct A_StructC tmp;";
-    expect << "((tmp).d_i1)=(Init_int256_t(ND_Init_Val()));";
+    expect << "((tmp).d_i1)=(Init_int256_t(nd_int256_t()));";
     expect << "((tmp).d_b1)=(ND_A_StructB());";
-    expect << "((tmp).d_i2)=(Init_int256_t(ND_Init_Val()));";
-    expect << "((tmp).d_ui1)=(Init_uint256_t(ND_Init_Val()));";
+    expect << "((tmp).d_i2)=(Init_int256_t(nd_int256_t()));";
+    expect << "((tmp).d_ui1)=(Init_uint256_t(nd_uint256_t()));";
     expect << "((tmp).d_b2)=(ND_A_StructB());";
     expect << "return tmp;";
     expect << "}";

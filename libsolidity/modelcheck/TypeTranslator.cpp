@@ -286,7 +286,12 @@ CExprPtr TypeConverter::nd_val_by_simple_type(Type const& _type)
         throw ("nd_val_by_simple_type expects a simple type.");
     }
 
-    CExprPtr nd_val = make_shared<CFuncCall>("ND_Init_Val", CArgList{});
+    ostringstream call;
+    call << "nd_";
+    if (!simple_is_signed(_type)) call << "u";
+    call << "int" << simple_bit_count(_type) << "_t";
+
+    CExprPtr nd_val = make_shared<CFuncCall>(call.str(), CArgList{});
     if (is_wrapped_type(_type))
     {
         string const INIT_CALL = "Init_" + get_simple_ctype(_type);

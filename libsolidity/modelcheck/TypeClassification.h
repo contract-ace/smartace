@@ -23,6 +23,16 @@ namespace modelcheck
  */
 Type const& unwrap(Type const& _type);
 
+/*
+ * Determines the number of bits needed to represent _type.
+ */
+int simple_bit_count(Type const& _type);
+
+/*
+ * Determines if _type uses a signed type.
+ */
+bool simple_is_signed(Type const& _type);
+
 /**
  * Returns true if _type is a wrapped, primitive data-type.
  */
