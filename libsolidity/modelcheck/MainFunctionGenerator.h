@@ -41,16 +41,43 @@ public:
 
 private:
     CExprPtr const NULL_LIT;
+    CExprPtr const ND_BOOL;
+    CExprPtr const ND_UINT64;
 
 	SourceUnit const& m_ast;
 	TypeConverter const& m_converter;
 
     CStmtPtr make_require(CExprPtr _cond);
 
+    // Performs preprocessing of the contract list. For each parameter, a
+    // declaration will be generated, and registered within _dcls. For each
+    // contract, another declaration will be generated, and added to _defs. A
+    // unique identifier will be given to each function for use within the
+    // switch block. This is recorded within _funcs.
     void analyze_decls(
         std::vector<ContractDefinition const*> const& _contracts, 
         std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> & _dcls,
-        std::map<FunctionDefinition const*, uint64_t> & _funcs);
+        std::map<ContractDefinition const*, std::shared_ptr<CVarDecl>> & _defs,
+        std::map<FunctionDefinition const*, uint64_t> & _funcs
+    );
+
+    // Consumes a contract declaration, and initializes it through
+    // non-deterministic construction.
+    CStmtPtr init_contract(
+        ContractDefinition const& _contract,
+        std::shared_ptr<const CVarDecl> _id,
+        std::shared_ptr<const CVarDecl> _state
+    );
+
+    // For each method on each contract, this will generate a case for the
+    // switch block. Note that _args have been initialized first by
+    // analyze_decls.
+    CBlockList build_case(
+        FunctionDefinition const& _def,
+        std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> & _args,
+        std::shared_ptr<const CVarDecl> _id,
+        std::shared_ptr<const CVarDecl> _state
+    );
 };
 
 }
