@@ -179,11 +179,10 @@ void PrimitiveTypeGenerator::print_initializer(
     auto id = make_shared<CVarDecl>(TYPEDEF, "Init_" + TYPEDEF);
     auto input_dcl = make_shared<CVarDecl>(_data, "v");
     auto tmp_dcl = make_shared<CVarDecl>(TYPEDEF, "tmp");
-    auto tmp_mbr = make_shared<CMemberAccess>(tmp_dcl->id(), "v");
 
     auto block = make_shared<CBlock>(CBlockList{
         tmp_dcl,
-        make_shared<CExprStmt>(make_shared<CAssign>(tmp_mbr, input_dcl->id())),
+        tmp_dcl->access("v")->assign(input_dcl->id())->stmt(),
         make_shared<CReturn>(tmp_dcl->id())
     });
 

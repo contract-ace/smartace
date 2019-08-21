@@ -61,7 +61,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         CBlockList stmts{make_shared<CVarDecl>(CTRX_TYPE, "tmp")};
         for (auto decl : _node.stateVariables())
         {
-            auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
+            auto member = TMP->access("d_" + decl->name());
             CExprPtr init;
             if (decl->value())
             {
@@ -77,8 +77,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             {
                 init = M_CONVERTER.get_init_val(*decl);
             }
-            auto asgn = make_shared<CAssign>(move(member), move(init));
-            stmts.push_back(make_shared<CExprStmt>(move(asgn)));
+            stmts.push_back(member->assign(move(init))->stmt());
         }
         if (auto ctor = _node.constructor())
         {
@@ -89,7 +88,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             {
                 builder.push(make_shared<CIdentifier>(decl->name(), false));
             }
-            stmts.push_back(make_shared<CExprStmt>(builder.merge_and_pop()));
+            stmts.push_back(builder.merge_and_pop_stmt());
         }
         stmts.push_back(make_shared<CReturn>(TMP));
 
@@ -129,10 +128,9 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp"));
         for (auto decl : _node.members())
         {
-            auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
+            auto member = TMP->access("d_" + decl->name());
             auto init = M_CONVERTER.get_init_val(*decl);
-            auto asgn = make_shared<CAssign>(move(member), move(init));
-            stmts.push_back(make_shared<CExprStmt>(move(asgn)));
+            stmts.push_back(member->assign(move(init))->stmt());
         }
         stmts.push_back(make_shared<CReturn>(TMP));
         zero_body = make_shared<CBlock>(move(stmts));
@@ -141,10 +139,9 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp", false, zinit));
         for (auto m : initializable_members)
         {
-            auto member = make_shared<CMemberAccess>(TMP, "d_" + m->name());
+            auto member = TMP->access("d_" + m->name());
             auto param = make_shared<CIdentifier>(m->name(), false);
-            auto asgn = make_shared<CAssign>(move(member), move(param));
-            stmts.push_back(make_shared<CExprStmt>(move(asgn)));
+            stmts.push_back(member->assign(move(param))->stmt());
         }
         stmts.push_back(make_shared<CReturn>(TMP));
         init_body = make_shared<CBlock>(move(stmts));
@@ -152,10 +149,9 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp"));
         for (auto decl : _node.members())
         {
-            auto member = make_shared<CMemberAccess>(TMP, "d_" + decl->name());
+            auto member = TMP->access("d_" + decl->name());
             auto init = M_CONVERTER.get_nd_val(*decl);
-            auto asgn = make_shared<CAssign>(move(member), move(init));
-            stmts.push_back(make_shared<CExprStmt>(move(asgn)));
+            stmts.push_back(member->assign(move(init))->stmt());
         }
         stmts.push_back(make_shared<CReturn>(TMP));
         nd_body = make_shared<CBlock>(move(stmts));
@@ -222,14 +218,14 @@ bool FunctionConverter::visit(Mapping const& _node)
     shared_ptr<CBlock> zinit_body, nd_body, read_body, write_body, ref_body;
     if (!M_FWD_DCL)
     {
-        auto tmp_set = make_shared<CMemberAccess>(TMP, "m_set");
-        auto tmp_cur = make_shared<CMemberAccess>(TMP, "m_curr");
-        auto tmp_dat = make_shared<CMemberAccess>(TMP, "d_");
-        auto tmp_ndd = make_shared<CMemberAccess>(TMP, "d_nd");
-        auto a_set = make_shared<CMemberAccess>(arr->id(), "m_set");
-        auto a_cur = make_shared<CMemberAccess>(arr->id(), "m_curr");
-        auto a_dat = make_shared<CMemberAccess>(arr->id(), "d_");
-        auto a_ndd = make_shared<CMemberAccess>(arr->id(), "d_nd");
+        auto tmp_set = TMP->access("m_set");
+        auto tmp_cur = TMP->access("m_curr");
+        auto tmp_dat = TMP->access("d_");
+        auto tmp_ndd = TMP->access("d_nd");
+        auto a_set = arr->access("m_set");
+        auto a_cur = arr->access("m_curr");
+        auto a_dat = arr->access("d_");
+        auto a_ndd = arr->access("d_nd");
 
         auto init_set = TypeConverter::init_val_by_simple_type(BoolType{});
         auto init_key = M_CONVERTER.get_init_val(_node.keyType());
@@ -243,27 +239,27 @@ bool FunctionConverter::visit(Mapping const& _node)
         auto update_curr = make_shared<CIf>(
             make_shared<CBinaryOp>(a_set, "!=", true_val),
             make_shared<CBlock>(CBlockList{
-                make_shared<CExprStmt>(make_shared<CAssign>(a_cur, indx->id())),
-                make_shared<CExprStmt>(make_shared<CAssign>(a_set, true_adt)),
+                a_cur->assign(indx->id())->stmt(),
+                a_set->assign(true_adt)->stmt()
             }
         ), nullptr);
         auto is_not_cur = make_shared<CBinaryOp>(indx->id(), "!=", a_cur);
 
         zinit_body = make_shared<CBlock>(CBlockList{
             make_shared<CVarDecl>(MAP_TYPE, "tmp", false, nullptr),
-            make_shared<CExprStmt>(make_shared<CAssign>(tmp_set, init_set)),
-            make_shared<CExprStmt>(make_shared<CAssign>(tmp_cur, init_key)),
-            make_shared<CExprStmt>(make_shared<CAssign>(tmp_dat, init_val)),
-            make_shared<CExprStmt>(make_shared<CAssign>(tmp_ndd, init_val)),
+            tmp_set->assign(init_set)->stmt(),
+            tmp_cur->assign(init_key)->stmt(),
+            tmp_dat->assign(init_val)->stmt(),
+            tmp_ndd->assign(init_val)->stmt(),
             make_shared<CReturn>(TMP)
         });
 
         nd_body = make_shared<CBlock>(CBlockList{
             make_shared<CVarDecl>(MAP_TYPE, "tmp", false, nullptr),
-            make_shared<CExprStmt>(make_shared<CAssign>(tmp_set, nd_set)),
-            make_shared<CExprStmt>(make_shared<CAssign>(tmp_cur, nd_key)),
-            make_shared<CExprStmt>(make_shared<CAssign>(tmp_dat, nd_val)),
-            make_shared<CExprStmt>(make_shared<CAssign>(tmp_ndd, init_val)),
+            tmp_set->assign(nd_set)->stmt(),
+            tmp_cur->assign(nd_key)->stmt(),
+            tmp_dat->assign(nd_val)->stmt(),
+            tmp_ndd->assign(init_val)->stmt(),
             make_shared<CReturn>(TMP)
         });
 
@@ -277,14 +273,15 @@ bool FunctionConverter::visit(Mapping const& _node)
             update_curr,
             make_shared<CIf>(
                 make_shared<CBinaryOp>(indx->id(), "==", a_cur),
-                make_shared<CExprStmt>(make_shared<CAssign>(a_dat, data->id())
-            ), nullptr)
+                a_dat->assign(data->id())->stmt(),
+                nullptr
+            )
         });
 
         ref_body = make_shared<CBlock>(CBlockList{
             update_curr,
             make_shared<CIf>(is_not_cur, make_shared<CBlock>(CBlockList{
-                make_shared<CExprStmt>(make_shared<CAssign>(a_ndd, nd_val)),
+                a_ndd->assign(nd_val)->stmt(),
                 make_shared<CReturn>(make_shared<CReference>(a_ndd))
             }), nullptr),
             make_shared<CReturn>(make_shared<CReference>(a_dat))
