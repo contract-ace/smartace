@@ -44,9 +44,9 @@ void CallState::endVisit(ContractDefinition const& _node)
     if (!m_forward_declare)
     {
         (*m_ostream) << "{";
-        (*m_ostream) << "int sender;";
-        (*m_ostream) << "unsigned int value;";
-        (*m_ostream) << "unsigned int blocknum;";
+        (*m_ostream) << "uint64_t sender;";
+        (*m_ostream) << "uint64_t value;";
+        (*m_ostream) << "uint64_t blocknum;";
         (*m_ostream) << "}";
     }
     (*m_ostream) << ";";

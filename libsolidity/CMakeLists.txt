@@ -110,10 +110,14 @@ set(sources
 	modelcheck/ADTConverter.h
 	modelcheck/BlockConverter.cpp
 	modelcheck/BlockConverter.h
+	modelcheck/CallState.cpp
+	modelcheck/CallState.h
 	modelcheck/ExpressionConverter.cpp
 	modelcheck/ExpressionConverter.h
 	modelcheck/FunctionConverter.cpp
 	modelcheck/FunctionConverter.h
+	modelcheck/MainFunctionGenerator.cpp
+	modelcheck/MainFunctionGenerator.h
 	modelcheck/PrimitiveTypeGenerator.cpp
 	modelcheck/PrimitiveTypeGenerator.h
 	modelcheck/SimpleCCore.cpp
@@ -126,14 +130,6 @@ set(sources
 	modelcheck/TypeTranslator.h
 	modelcheck/VariableScopeResolver.cpp
 	modelcheck/VariableScopeResolver.h
-	modelcheck/CallState.cpp
-	modelcheck/CallState.h
-	modelcheck/MainFunction_1.cpp
-	modelcheck/MainFunction_1.h
-	modelcheck/MainFunction_2.cpp
-	modelcheck/MainFunction_2.h
-	modelcheck/MainFunction_3.cpp
-	modelcheck/MainFunction_3.h
 	parsing/DocStringParser.cpp
 	parsing/DocStringParser.h
 	parsing/Parser.cpp

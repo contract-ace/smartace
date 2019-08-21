@@ -36,9 +36,7 @@
 #include <libsolidity/modelcheck/ADTConverter.h>
 #include <libsolidity/modelcheck/CallState.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
-#include <libsolidity/modelcheck/MainFunction_1.h>
-#include <libsolidity/modelcheck/MainFunction_2.h>
-#include <libsolidity/modelcheck/MainFunction_3.h>
+#include <libsolidity/modelcheck/MainFunctionGenerator.h>
 #include <libsolidity/modelcheck/PrimitiveTypeGenerator.h>
 
 #include <libyul/AssemblyStack.h>
@@ -1159,7 +1157,7 @@ void CommandLineInterface::handleAst(string const& _argStr)
 
 void CommandLineInterface::handleCModel()
 {
-	vector<ASTNode const*> asts;
+	vector<SourceUnit const*> asts;
 	modelcheck::TypeConverter converter;
 	for (auto const& sourceCode: m_sourceCodes)
 	{
@@ -1191,7 +1189,7 @@ void CommandLineInterface::handleCModel()
 }
 
 void CommandLineInterface::handleCModelPrimitives(
-	std::vector<ASTNode const*> const& _asts, std::ostream& _os
+	std::vector<SourceUnit const*> const& _asts, std::ostream& _os
 )
 {
 	using dev::solidity::modelcheck::PrimitiveTypeGenerator;
@@ -1208,7 +1206,7 @@ void CommandLineInterface::handleCModelPrimitives(
 
 
 void CommandLineInterface::handleCModelHeaders(
-	vector<ASTNode const*> const& _asts,
+	vector<SourceUnit const*> const& _asts,
 	modelcheck::TypeConverter const& _con,
 	ostream& _os
 )
@@ -1236,7 +1234,7 @@ void CommandLineInterface::handleCModelHeaders(
 }
 
 void CommandLineInterface::handleCModelBody(
-	vector<ASTNode const*> const& _asts,
+	vector<SourceUnit const*> const& _asts,
 	modelcheck::TypeConverter const& _con,
 	ostream& _os
 )
@@ -1244,9 +1242,7 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::CallState;
-	using dev::solidity::modelcheck::MainFunction_1;
-	using dev::solidity::modelcheck::MainFunction_2;
-	using dev::solidity::modelcheck::MainFunction_3;
+	using dev::solidity::modelcheck::MainFunctionGenerator;
 	_os << "#include <cmodel.h>" << endl;
 	_os << "extern int assume(bool_t);";
 	_os << "extern int assert(bool_t);";
@@ -1272,13 +1268,8 @@ void CommandLineInterface::handleCModelBody(
 	}
 	for (auto const& ast : _asts)
 	{
-		MainFunction_1 cov1(*ast, _con);
-		MainFunction_2 cov2(*ast, _con);
-		MainFunction_3 cov3(*ast, _con);
-
-		cov1.print(_os);
-		cov2.print(_os);
-		cov3.print(_os);
+		MainFunctionGenerator cov(*ast, _con);
+		cov.print(_os);
 	}
 }
 
