@@ -26,6 +26,70 @@ class VariableScopeResolver;
 // -------------------------------------------------------------------------- //
 
 /**
+ * Generalization of a binary operator.
+ */
+class CBinaryOp : public CExpr
+{
+public:
+    // Encodes the C expression (_lhs)_op(_rhs).
+    CBinaryOp(CExprPtr _lhs, std::string _op, CExprPtr _rhs);
+
+    ~CBinaryOp() = default;
+
+    void print(std::ostream & _out) const override;
+
+    // Converts this standalone call into a statement.
+    CStmtPtr stmt();
+
+private:
+    CExprPtr const m_lhs;
+    CExprPtr const m_rhs;
+    std::string const m_op;
+};
+
+/**
+ * Helper class to generate the (_lhs)=(_rhs) binary operation, due to its
+ * frequency.
+ */
+class CAssign : public CBinaryOp
+{
+public:
+    // Encodes the C expression (_lhs)_op(_rhs).
+    CAssign(CExprPtr _lhs, CExprPtr _rhs);
+
+    ~CAssign() = default;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Generalizes member access, both to pointers and to references.
+ */
+class CMemberAccess : public CExpr
+{
+public:
+    // Encodes one of (_expr)._member or (_expr)->_member, based on context.
+    CMemberAccess(CExprPtr _expr, std::string _member);
+
+    ~CMemberAccess() = default;
+
+    void print(std::ostream & _out) const override;
+
+    // Sets the value of this declaration to the given expression. This is
+    // equivalent to CAssign(decl, rhs).
+    std::shared_ptr<CAssign> assign(CExprPtr _rhs) const;
+
+    // Similar to ID, except for the fact that a member access is returned.
+    std::shared_ptr<CMemberAccess> access(std::string _member) const;
+
+private:
+    CExprPtr const m_expr;
+    std::string const m_member;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * Represents a named identifier in C.
  */
 class CIdentifier : public CExpr
@@ -40,6 +104,13 @@ public:
 
     void print(std::ostream & _out) const override;
     bool is_pointer() const override;
+
+    // Sets the value of this declaration to the given expression. This is
+    // equivalent to CAssign(decl, rhs).
+    std::shared_ptr<CAssign> assign(CExprPtr _rhs) const;
+
+    // Similar to ID, except for the fact that a member access is returned.
+    std::shared_ptr<CMemberAccess> access(std::string _member) const;
 
 private:
     std::string const m_name;
@@ -80,6 +151,9 @@ public:
 
     void print(std::ostream & _out) const override;
 
+    // Converts this standalone call into a statement.
+    CStmtPtr stmt();
+
 private:
     std::string const m_op;
     std::shared_ptr<CExpr> const m_expr;
@@ -111,40 +185,6 @@ public:
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalization of a binary operator.
- */
-class CBinaryOp : public CExpr
-{
-public:
-    // Encodes the C expression (_lhs)_op(_rhs).
-    CBinaryOp(CExprPtr _lhs, std::string _op, CExprPtr _rhs);
-
-    ~CBinaryOp() = default;
-
-    void print(std::ostream & _out) const override;
-
-private:
-    CExprPtr const m_lhs;
-    CExprPtr const m_rhs;
-    std::string const m_op;
-};
-
-/**
- * Helper class to generate the (_lhs)=(_rhs) binary operation, due to its
- * frequency.
- */
-class CAssign : public CBinaryOp
-{
-public:
-    // Encodes the C expression (_lhs)_op(_rhs).
-    CAssign(CExprPtr _lhs, CExprPtr _rhs);
-
-    ~CAssign() = default;
-};
-
-// -------------------------------------------------------------------------- //
-
-/**
  * Generializes a conditional C statement.
  */
 class CCond : public CExpr
@@ -158,30 +198,13 @@ public:
     void print(std::ostream & _out) const override;
     bool is_pointer() const override;
 
+    // Converts this standalone call into a statement.
+    CStmtPtr stmt();
+
 private:
     CExprPtr const m_cond;
     CExprPtr const m_tcase;
     CExprPtr const m_fcase;
-};
-
-// -------------------------------------------------------------------------- //
-
-/**
- * Generalizes member access, both to pointers and to references.
- */
-class CMemberAccess : public CExpr
-{
-public:
-    // Encodes one of (_expr)._member or (_expr)->_member, based on context.
-    CMemberAccess(CExprPtr _expr, std::string _member);
-
-    ~CMemberAccess() = default;
-
-    void print(std::ostream & _out) const override;
-
-private:
-    CExprPtr const m_expr;
-    std::string const m_member;
 };
 
 // -------------------------------------------------------------------------- //
@@ -220,6 +243,9 @@ public:
 
     void print(std::ostream & _out) const override;
 
+    // Converts this standalone call into a statement.
+    CStmtPtr stmt();
+
 private:
     std::string const m_name;
     CArgList const m_args;
@@ -251,6 +277,8 @@ public:
     // Creates a function call to the given name, using the pushed args. The
     // args are reset after initialization.
     std::shared_ptr<CFuncCall> merge_and_pop();
+
+    CStmtPtr merge_and_pop_stmt();
 
 private:
     std::string const m_name;
@@ -313,6 +341,13 @@ public:
 
     // Generates an identifier for this declaration.
     std::shared_ptr<CIdentifier> id() const;
+
+    // Sets the value of this declaration to the given expression. This is
+    // equivalent to CAssign(decl, rhs).
+    std::shared_ptr<CAssign> assign(CExprPtr _rhs) const;
+
+    // Similar to ID, except for the fact that a member access is returned.
+    std::shared_ptr<CMemberAccess> access(std::string _member) const;
 
 private:
     std::string const m_type;

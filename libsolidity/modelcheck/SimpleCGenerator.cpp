@@ -31,6 +31,18 @@ bool CIdentifier::is_pointer() const
     return m_ptr;
 }
 
+shared_ptr<CAssign> CIdentifier::assign(CExprPtr _rhs) const
+{
+    auto id = make_shared<CIdentifier>(m_name, m_ptr);
+    return make_shared<CAssign>(move(id), _rhs);
+}
+
+shared_ptr<CMemberAccess> CIdentifier::access(string _member) const
+{
+    auto id = make_shared<CIdentifier>(m_name, m_ptr);
+    return make_shared<CMemberAccess>(move(id), move(_member));
+}
+
 // -------------------------------------------------------------------------- //
 
 CIntLiteral::CIntLiteral(long long int _val): m_val(_val) {}
@@ -52,6 +64,11 @@ void CUnaryOp::print(ostream & _out) const
     if (!m_pre) _out << m_op;
 }
 
+CStmtPtr CUnaryOp::stmt()
+{
+    return make_shared<CExprStmt>(make_shared<CUnaryOp>(m_op, m_expr, m_pre));
+}
+
 CReference::CReference(CExprPtr _expr): CUnaryOp("&", move(_expr), true) {}
 
 bool CReference::is_pointer() const
@@ -65,6 +82,11 @@ CDereference::CDereference(CExprPtr _expr): CUnaryOp("*", move(_expr), true) {}
 
 CBinaryOp::CBinaryOp(CExprPtr _lhs, string _op, CExprPtr _rhs)
 : m_lhs(move(_lhs)), m_rhs(move(_rhs)), m_op(move(_op)) {}
+
+CStmtPtr CBinaryOp::stmt()
+{
+    return make_shared<CExprStmt>(make_shared<CBinaryOp>(m_lhs, m_op, m_rhs));
+}
 
 void CBinaryOp::print(ostream & _out) const
 {
@@ -88,6 +110,11 @@ bool CCond::is_pointer() const
     return m_tcase->is_pointer();
 }
 
+CStmtPtr CCond::stmt()
+{
+    return make_shared<CExprStmt>(make_shared<CCond>(m_cond, m_tcase, m_fcase));
+}
+
 // -------------------------------------------------------------------------- //
 
 CMemberAccess::CMemberAccess(CExprPtr _expr, string _member)
@@ -97,6 +124,18 @@ void CMemberAccess::print(ostream & _out) const
 {
     bool is_ptr = m_expr->is_pointer();
     _out << "(" << *m_expr << ")" << (is_ptr ? "->" : ".") << m_member;
+}
+
+shared_ptr<CAssign> CMemberAccess::assign(CExprPtr _rhs) const
+{
+    auto access = make_shared<CMemberAccess>(m_expr, m_member);
+    return make_shared<CAssign>(move(access), _rhs);
+}
+
+shared_ptr<CMemberAccess> CMemberAccess::access(string _member) const
+{
+    auto access = make_shared<CMemberAccess>(m_expr, m_member);
+    return make_shared<CMemberAccess>(move(access), move(_member));
 }
 
 // -------------------------------------------------------------------------- //
@@ -130,6 +169,11 @@ void CFuncCall::print(ostream & _out) const
     _out << ")";
 }
 
+CStmtPtr CFuncCall::stmt()
+{
+    return make_shared<CExprStmt>(make_shared<CFuncCall>(m_name, m_args));
+}
+
 CFuncCallBuilder::CFuncCallBuilder(string _name): m_name(move(_name)) {}
 
 void CFuncCallBuilder::push(CExprPtr _expr) { m_args.push_back(move(_expr)); }
@@ -158,6 +202,11 @@ void CFuncCallBuilder::push(
 shared_ptr<CFuncCall> CFuncCallBuilder::merge_and_pop()
 {
     return make_shared<CFuncCall>(m_name, move(m_args));
+}
+
+CStmtPtr CFuncCallBuilder::merge_and_pop_stmt()
+{
+    return merge_and_pop()->stmt();
 }
 
 // -------------------------------------------------------------------------- //
@@ -197,6 +246,16 @@ CVarDecl::CVarDecl(string _type, string _name)
 shared_ptr<CIdentifier> CVarDecl::id() const
 {
     return make_shared<CIdentifier>(m_name, m_ptr);
+}
+
+shared_ptr<CAssign> CVarDecl::assign(CExprPtr _rhs) const
+{
+    return make_shared<CAssign>(id(), _rhs);
+}
+
+shared_ptr<CMemberAccess> CVarDecl::access(string _member) const
+{
+    return make_shared<CMemberAccess>(id(), move(_member));
 }
 
 void CVarDecl::print_impl(ostream & _out) const
