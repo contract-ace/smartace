@@ -4,9 +4,11 @@ set -e
 #
 # Helper script to transpile, and then format a single Solidity contract.
 #
-# This script will produce two artifacts, cmodel.h and cmodel.c, as are
-# produced by `solc <input_file> --c-model --output-dir=<output_dir>`. If errors
-# or warnings are produced, they will be written to cmodel.warning.
+# This script will produce three artifacts, cmodel.h, cmodel.c, and primitives.h
+# as are produced by `solc <input_file> --c-model --output-dir=<output_dir>`. If
+# errors or warnings are produced, they will be written to cmodel.warning.
+#
+# All runtimes are also copied over to enable compilation.
 #
 # Usage: <path_to_script> <input_file> [output_dir]
 # * input_file: positional argument; the Solidity contract to transpile.
@@ -64,4 +66,7 @@ ${SOLC_PATH} ${SRC_FILE} --c-model --output-dir=${TMP_DIR} 2> "${OUTPUT_DIR}/cmo
 clang-format "${TMP_DIR}/cmodel.h" > "${OUTPUT_DIR}/cmodel.h"
 clang-format "${TMP_DIR}/cmodel.c" > "${OUTPUT_DIR}/cmodel.c"
 clang-format "${TMP_DIR}/primitive.h" > "${OUTPUT_DIR}/primitive.h"
+
+# Copies over runtimes.
+cp build/libverify/lib* temp
 
