@@ -1279,6 +1279,7 @@ void CommandLineInterface::handleCModelBody(
 		MainFunctionGenerator cov(*ast, _con);
 		cov.print(_os);
 	}
+	_os << "int main(void){run_model();}";
 }
 
 bool CommandLineInterface::actOnInput()

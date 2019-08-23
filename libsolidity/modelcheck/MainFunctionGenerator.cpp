@@ -48,6 +48,9 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     for (auto param_pair : param_decls) stmts.push_back(param_pair.second);
     stmts.push_back(CURSTATE);
+    stmts.push_back(CURSTATE->access("blocknum")->assign(
+        make_shared<CIntLiteral>(0)
+    )->stmt());
     stmts.push_back(NXTSTATE);
     for (auto contract_pair : contract_decls)
     {
@@ -72,7 +75,6 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     stmts.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(CBlockList{
-            call_cases,
             NXTSTATE->access("sender")->assign(
                 get_nd(64, "Select the next sender's address")
             )->stmt(),
@@ -85,12 +87,13 @@ void MainFunctionGenerator::print(std::ostream& _stream)
             make_require(make_shared<CBinaryOp>(
                 NXTSTATE->access("blocknum"), ">=", CURSTATE->access("blocknum")
             )),
-            CURSTATE->assign(NXTSTATE->id())->stmt()
+            CURSTATE->assign(NXTSTATE->id())->stmt(),
+            call_cases
         }),
         get_nd(8, "Select 0 to terminate"), false
     ));
 
-    auto id = make_shared<CVarDecl>("void", "main");
+    auto id = make_shared<CVarDecl>("void", "run_model");
     _stream << CFuncDef(id, CParams{}, make_shared<CBlock>(move(stmts)));
 }
 

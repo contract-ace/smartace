@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
         ast, converter, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_A
-    expect << "struct A Init_A()";
+    expect << "struct A Init_A(void)";
     expect << "{";
     expect << "struct A tmp;";
     expect << "((tmp).d_a)=(Init_uint256_t(0));";
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "return tmp;";
     expect << "}";
     // -- Init_0_A_StructB
-    expect << "struct A_StructB Init_0_A_StructB()";
+    expect << "struct A_StructB Init_0_A_StructB(void)";
     expect << "{";
     expect << "struct A_StructB tmp;";
     expect << "((tmp).d_a)=(Init_uint256_t(0));";
@@ -74,10 +74,10 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "return tmp;";
     expect << "}";
     // -- A_StructB
-    expect << "struct A_StructB ND_A_StructB()";
+    expect << "struct A_StructB ND_A_StructB(void)";
     expect << "{";
     expect << "struct A_StructB tmp;";
-    expect << "((tmp).d_a)=(Init_uint256_t(nd_uint256_t()));";
+    expect << "((tmp).d_a)=(Init_uint256_t(nd_uint256_t(\"Set a in B\")));";
     expect << "return tmp;";
     expect << "}";
 
@@ -154,13 +154,13 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
         ast, converter, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_A
-    expect << "struct A Init_A()";
+    expect << "struct A Init_A(void)";
     expect << "{";
     expect << "struct A tmp;";
     expect << "return tmp;";
     expect << "}";
     // -- Init_0_A_StructB
-    expect << "struct A_StructB Init_0_A_StructB()";
+    expect << "struct A_StructB Init_0_A_StructB(void)";
     expect << "{";
     expect << "struct A_StructB tmp;";
     expect << "((tmp).d_i1)=(Init_int256_t(0));";
@@ -174,14 +174,14 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "return tmp;";
     expect << "}";
     // -- ND_A_StructB
-    expect << "struct A_StructB ND_A_StructB()";
+    expect << "struct A_StructB ND_A_StructB(void)";
     expect << "{";
     expect << "struct A_StructB tmp;";
-    expect << "((tmp).d_i1)=(Init_int256_t(nd_int256_t()));";
+    expect << "((tmp).d_i1)=(Init_int256_t(nd_int256_t(\"Set i1 in B\")));";
     expect << "return tmp;";
     expect << "}";
     // -- Init_0_A_StructC
-    expect << "struct A_StructC Init_0_A_StructC()";
+    expect << "struct A_StructC Init_0_A_StructC(void)";
     expect << "{";
     expect << "struct A_StructC tmp;";
     expect << "((tmp).d_i1)=(Init_int256_t(0));";
@@ -202,13 +202,13 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "return tmp;";
     expect << "}";
     // -- ND_A_StructB
-    expect << "struct A_StructC ND_A_StructC()";
+    expect << "struct A_StructC ND_A_StructC(void)";
     expect << "{";
     expect << "struct A_StructC tmp;";
-    expect << "((tmp).d_i1)=(Init_int256_t(nd_int256_t()));";
+    expect << "((tmp).d_i1)=(Init_int256_t(nd_int256_t(\"Set i1 in C\")));";
     expect << "((tmp).d_b1)=(ND_A_StructB());";
-    expect << "((tmp).d_i2)=(Init_int256_t(nd_int256_t()));";
-    expect << "((tmp).d_ui1)=(Init_uint256_t(nd_uint256_t()));";
+    expect << "((tmp).d_i2)=(Init_int256_t(nd_int256_t(\"Set i2 in C\")));";
+    expect << "((tmp).d_ui1)=(Init_uint256_t(nd_uint256_t(\"Set ui1 in C\")));";
     expect << "((tmp).d_b2)=(ND_A_StructB());";
     expect << "return tmp;";
     expect << "}";
@@ -239,25 +239,25 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     FunctionConverter(
         ast, converter, FunctionConverter::View::EXT, true
     ).print(ext_actual);
-    ext_expect << "struct A Init_A();";
-    ext_expect << "void Method_A_Funcf();";
+    ext_expect << "struct A Init_A(void);";
+    ext_expect << "void Method_A_Funcf(void);";
 
     ostringstream int_actual, int_expect;
     FunctionConverter(
         ast, converter, FunctionConverter::View::INT, true
     ).print(int_actual);
-    int_expect << "struct A_StructB Init_0_A_StructB();";
+    int_expect << "struct A_StructB Init_0_A_StructB(void);";
     int_expect << "struct A_StructB Init_A_StructB(int256_t i);";
-    int_expect << "struct A_StructB ND_A_StructB();";
-    int_expect << "struct A_Mapm_submap1 Init_0_A_Mapm_submap1();";
-    int_expect << "struct A_Mapm_submap1 ND_A_Mapm_submap1();";
+    int_expect << "struct A_StructB ND_A_StructB(void);";
+    int_expect << "struct A_Mapm_submap1 Init_0_A_Mapm_submap1(void);";
+    int_expect << "struct A_Mapm_submap1 ND_A_Mapm_submap1(void);";
     int_expect << "int256_t Read_A_Mapm_submap1(struct A_Mapm_submap1*a,"
                << "int256_t idx);";
     int_expect << "void Write_A_Mapm_submap1(struct A_Mapm_submap1*a,"
                << "int256_t idx,int256_t d);";
     int_expect << "int256_t*Ref_A_Mapm_submap1(struct A_Mapm_submap1*a"
                << ",int256_t idx);";
-    int_expect << "void Method_A_Funcg();";
+    int_expect << "void Method_A_Funcg(void);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
     BOOST_CHECK_EQUAL(int_actual.str(), int_expect.str());

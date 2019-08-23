@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     ).print(func_actual);
 
     BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
-    BOOST_CHECK_EQUAL(func_actual.str(), "struct A Init_A();");
+    BOOST_CHECK_EQUAL(func_actual.str(), "struct A Init_A(void);");
 }
 
 // Ensures that the non-recursive map case generates the correct structure and
@@ -75,9 +75,9 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_Mapa_submap1;" << "struct A;";
-    func_expect << "struct A Init_A();";
-    func_expect << "struct A_Mapa_submap1 Init_0_A_Mapa_submap1();";
-    func_expect << "struct A_Mapa_submap1 ND_A_Mapa_submap1();";
+    func_expect << "struct A Init_A(void);";
+    func_expect << "struct A_Mapa_submap1 Init_0_A_Mapa_submap1(void);";
+    func_expect << "struct A_Mapa_submap1 ND_A_Mapa_submap1(void);";
     func_expect << "uint256_t Read_A_Mapa_submap1"
                 << "(struct A_Mapa_submap1*a,uint256_t idx);";
     func_expect << "void Write_A_Mapa_submap1"
@@ -117,10 +117,10 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_StructB;" << "struct A;";
-    func_expect << "struct A Init_A();";
-    func_expect << "struct A_StructB Init_0_A_StructB();";
+    func_expect << "struct A Init_A(void);";
+    func_expect << "struct A_StructB Init_0_A_StructB(void);";
     func_expect << "struct A_StructB Init_A_StructB(uint256_t a,uint256_t b);";
-    func_expect << "struct A_StructB ND_A_StructB();";
+    func_expect << "struct A_StructB ND_A_StructB(void);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(simple_func)
     ).print(func_actual);
 
     ostringstream func_expect;
-    func_expect << "struct A Init_A();";
+    func_expect << "struct A Init_A(void);";
     func_expect << "uint256_t Method_A_FuncsimpleFunc"
                 << "(struct A*self,struct CallState*state,uint256_t _in);";
 
@@ -185,8 +185,8 @@ BOOST_AUTO_TEST_CASE(pure_func)
     ).print(func_actual);
 
     ostringstream func_expect;
-    func_expect << "struct A Init_A();";
-    func_expect << "uint256_t Method_A_FuncsimpleFuncA();";
+    func_expect << "struct A Init_A(void);";
+    func_expect << "uint256_t Method_A_FuncsimpleFuncA(void);";
     func_expect << "uint256_t Method_A_FuncsimpleFuncB"
                 << "(struct A*self,struct CallState*state);";
 
@@ -220,7 +220,7 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     ).print(func_actual);
 
     ostringstream func_expect;
-    func_expect << "struct A Init_A();";
+    func_expect << "struct A Init_A(void);";
     func_expect << "void Method_A_FuncsimpleFunc"
                 << "(struct A*self,struct CallState*state,uint256_t _in);";
 
@@ -258,24 +258,29 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     adt_expect << "struct A_StructB_Mapa_submap1;";
     adt_expect << "struct A_StructB;";
     adt_expect << "struct A;";
-    func_expect << "struct A Init_A();";
-    func_expect << "struct A_StructB Init_0_A_StructB();";
-    func_expect << "struct A_StructB Init_A_StructB();";
-    func_expect << "struct A_StructB ND_A_StructB();";
-    func_expect << "struct A_StructB_Mapa_submap1 Init_0_A_StructB_Mapa_submap1();";
-    func_expect << "struct A_StructB_Mapa_submap1 ND_A_StructB_Mapa_submap1();";
+    func_expect << "struct A Init_A(void);";
+    func_expect << "struct A_StructB Init_0_A_StructB(void);";
+    func_expect << "struct A_StructB Init_A_StructB(void);";
+    func_expect << "struct A_StructB ND_A_StructB(void);";
+    func_expect << "struct A_StructB_Mapa_submap1 "
+                << "Init_0_A_StructB_Mapa_submap1(void);";
+    func_expect << "struct A_StructB_Mapa_submap1 "
+                << "ND_A_StructB_Mapa_submap1(void);";
     func_expect << "struct A_StructB_Mapa_submap2 Read_A_StructB_Mapa_submap1"
                 << "(struct A_StructB_Mapa_submap1*a,uint256_t idx);";
-    func_expect << "void Write_A_StructB_Mapa_submap1(struct A_StructB_Mapa_submap1*a"
-                << ",uint256_t idx,struct A_StructB_Mapa_submap2 d);";
+    func_expect << "void Write_A_StructB_Mapa_submap1(struct "
+                << "A_StructB_Mapa_submap1*a,uint256_t idx,struct "
+                << "A_StructB_Mapa_submap2 d);";
     func_expect << "struct A_StructB_Mapa_submap2*Ref_A_StructB_Mapa_submap1"
                 << "(struct A_StructB_Mapa_submap1*a,uint256_t idx);";
-    func_expect << "struct A_StructB_Mapa_submap2 Init_0_A_StructB_Mapa_submap2();";
-    func_expect << "struct A_StructB_Mapa_submap2 ND_A_StructB_Mapa_submap2();";
+    func_expect << "struct A_StructB_Mapa_submap2 Init_0_A_StructB_Mapa_submap2"
+                << "(void);";
+    func_expect << "struct A_StructB_Mapa_submap2 ND_A_StructB_Mapa_submap2("
+                << "void);";
     func_expect << "uint256_t Read_A_StructB_Mapa_submap2"
                 << "(struct A_StructB_Mapa_submap2*a,uint256_t idx);";
-    func_expect << "void Write_A_StructB_Mapa_submap2(struct A_StructB_Mapa_submap2*a,"
-                << "uint256_t idx,uint256_t d);";
+    func_expect << "void Write_A_StructB_Mapa_submap2(struct "
+                << "A_StructB_Mapa_submap2*a,uint256_t idx,uint256_t d);";
     func_expect << "uint256_t*Ref_A_StructB_Mapa_submap2"
                 << "(struct A_StructB_Mapa_submap2*a,uint256_t idx);";
 
@@ -318,21 +323,23 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct A;";
     adt_expect << "struct C_Mapb_submap1;";
     adt_expect << "struct C;";
-    func_expect << "struct A Init_A();";
-    func_expect << "struct A_StructB Init_0_A_StructB();";
-    func_expect << "struct A_StructB Init_A_StructB();";
-    func_expect << "struct A_StructB ND_A_StructB();";
-    func_expect << "struct A_StructB_Mapa_submap1 Init_0_A_StructB_Mapa_submap1();";
-    func_expect << "struct A_StructB_Mapa_submap1 ND_A_StructB_Mapa_submap1();";
+    func_expect << "struct A Init_A(void);";
+    func_expect << "struct A_StructB Init_0_A_StructB(void);";
+    func_expect << "struct A_StructB Init_A_StructB(void);";
+    func_expect << "struct A_StructB ND_A_StructB(void);";
+    func_expect << "struct A_StructB_Mapa_submap1 Init_0_A_StructB_Mapa_submap1("
+                << "void);";
+    func_expect << "struct A_StructB_Mapa_submap1 ND_A_StructB_Mapa_submap1("
+                << "void);";
     func_expect << "uint256_t Read_A_StructB_Mapa_submap1"
                 << "(struct A_StructB_Mapa_submap1*a,uint256_t idx);";
     func_expect << "void Write_A_StructB_Mapa_submap1"
                 << "(struct A_StructB_Mapa_submap1*a,uint256_t idx,uint256_t d);";
     func_expect << "uint256_t*Ref_A_StructB_Mapa_submap1"
                 << "(struct A_StructB_Mapa_submap1*a,uint256_t idx);";
-    func_expect << "struct C Init_C();";
-    func_expect << "struct C_Mapb_submap1 Init_0_C_Mapb_submap1();";
-    func_expect << "struct C_Mapb_submap1 ND_C_Mapb_submap1();";
+    func_expect << "struct C Init_C(void);";
+    func_expect << "struct C_Mapb_submap1 Init_0_C_Mapb_submap1(void);";
+    func_expect << "struct C_Mapb_submap1 ND_C_Mapb_submap1(void);";
     func_expect << "uint256_t Read_C_Mapb_submap1"
                 << "(struct C_Mapb_submap1*a,uint256_t idx);";
     func_expect << "void Write_C_Mapb_submap1"
@@ -371,25 +378,25 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     adt_expect << "struct A_Mapa_submap2;";
     adt_expect << "struct A_Mapa_submap1;";
     adt_expect << "struct A;";
-    func_expect << "struct A Init_A();";
-    func_expect << "struct A_Mapa_submap1 Init_0_A_Mapa_submap1();";
-    func_expect << "struct A_Mapa_submap1 ND_A_Mapa_submap1();";
+    func_expect << "struct A Init_A(void);";
+    func_expect << "struct A_Mapa_submap1 Init_0_A_Mapa_submap1(void);";
+    func_expect << "struct A_Mapa_submap1 ND_A_Mapa_submap1(void);";
     func_expect << "struct A_Mapa_submap2 Read_A_Mapa_submap1"
                 << "(struct A_Mapa_submap1*a,uint256_t idx);";
     func_expect << "void Write_A_Mapa_submap1(struct A_Mapa_submap1*a"
                 << ",uint256_t idx,struct A_Mapa_submap2 d);";
     func_expect << "struct A_Mapa_submap2*Ref_A_Mapa_submap1"
                 << "(struct A_Mapa_submap1*a,uint256_t idx);";
-    func_expect << "struct A_Mapa_submap2 Init_0_A_Mapa_submap2();";
-    func_expect << "struct A_Mapa_submap2 ND_A_Mapa_submap2();";
+    func_expect << "struct A_Mapa_submap2 Init_0_A_Mapa_submap2(void);";
+    func_expect << "struct A_Mapa_submap2 ND_A_Mapa_submap2(void);";
     func_expect << "struct A_Mapa_submap3 Read_A_Mapa_submap2"
                 << "(struct A_Mapa_submap2*a,uint256_t idx);";
     func_expect << "void Write_A_Mapa_submap2(struct A_Mapa_submap2*a"
                 << ",uint256_t idx,struct A_Mapa_submap3 d);";
     func_expect << "struct A_Mapa_submap3*Ref_A_Mapa_submap2"
                 << "(struct A_Mapa_submap2*a,uint256_t idx);";
-    func_expect << "struct A_Mapa_submap3 Init_0_A_Mapa_submap3();";
-    func_expect << "struct A_Mapa_submap3 ND_A_Mapa_submap3();";
+    func_expect << "struct A_Mapa_submap3 Init_0_A_Mapa_submap3(void);";
+    func_expect << "struct A_Mapa_submap3 ND_A_Mapa_submap3(void);";
     func_expect << "uint256_t Read_A_Mapa_submap3"
                 << "(struct A_Mapa_submap3*a,uint256_t idx);";
     func_expect << "void Write_A_Mapa_submap3"
@@ -431,10 +438,10 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_StructB;" << "struct A;";
-    func_expect << "struct A Init_A();";
-    func_expect << "struct A_StructB Init_0_A_StructB();";
+    func_expect << "struct A Init_A(void);";
+    func_expect << "struct A_StructB Init_0_A_StructB(void);";
     func_expect << "struct A_StructB Init_A_StructB(uint256_t a);";
-    func_expect << "struct A_StructB ND_A_StructB();";
+    func_expect << "struct A_StructB ND_A_StructB(void);";
     func_expect << "struct A_StructB Method_A_FuncadvFunc"
                 << "(struct A*self,struct CallState*state,uint256_t _in);";
 
@@ -507,7 +514,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     adt_expect << "struct A_Mapaccs_submap1 d_accs;";
     adt_expect << "};";
     // -- Init_A
-    func_expect << "struct A Init_A()";
+    func_expect << "struct A Init_A(void)";
     func_expect << "{";
     func_expect << "struct A tmp;";
     func_expect << "((tmp).d_min_amt)=(Init_uint256_t(42));";
@@ -515,7 +522,7 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_0_A_StructS
-    func_expect << "struct A_StructS Init_0_A_StructS()";
+    func_expect << "struct A_StructS Init_0_A_StructS(void)";
     func_expect << "{";
     func_expect << "struct A_StructS tmp;";
     func_expect << "((tmp).d_owner)=(Init_address_t(0));";
@@ -532,15 +539,17 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "return tmp;";
     func_expect << "}";
     // -- ND_A_StructS
-    func_expect << "struct A_StructS ND_A_StructS()";
+    func_expect << "struct A_StructS ND_A_StructS(void)";
     func_expect << "{";
     func_expect << "struct A_StructS tmp;";
-    func_expect << "((tmp).d_owner)=(Init_address_t(nd_uint64_t()));";
-    func_expect << "((tmp).d_val)=(Init_uint256_t(nd_uint256_t()));";
+    func_expect << "((tmp).d_owner)=(Init_address_t(nd_uint64_t("
+                << "\"Set owner in S\")));";
+    func_expect << "((tmp).d_val)=(Init_uint256_t(nd_uint256_t("
+                << "\"Set val in S\")));";
     func_expect << "return tmp;";
     func_expect << "}";
     // -- Init_A_Mapaccs_submap1
-    func_expect << "struct A_Mapaccs_submap1 Init_0_A_Mapaccs_submap1()";
+    func_expect << "struct A_Mapaccs_submap1 Init_0_A_Mapaccs_submap1(void)";
     func_expect << "{";
     func_expect << "struct A_Mapaccs_submap1 tmp;";
     func_expect << "((tmp).m_set)=(Init_bool_t(0));";
@@ -550,11 +559,13 @@ BOOST_AUTO_TEST_CASE(full_declaration)
     func_expect << "return tmp;";
     func_expect << "}";
     // -- ND_A_Mapaccs_submap1
-    func_expect << "struct A_Mapaccs_submap1 ND_A_Mapaccs_submap1()";
+    func_expect << "struct A_Mapaccs_submap1 ND_A_Mapaccs_submap1(void)";
     func_expect << "{";
     func_expect << "struct A_Mapaccs_submap1 tmp;";
-    func_expect << "((tmp).m_set)=(Init_bool_t(nd_uint8_t()));";
-    func_expect << "((tmp).m_curr)=(Init_uint256_t(nd_uint256_t()));";
+    func_expect << "((tmp).m_set)=(Init_bool_t(nd_uint8_t("
+                << "\"Set if entry is selected in A_Mapaccs_submap1\")));";
+    func_expect << "((tmp).m_curr)=(Init_uint256_t(nd_uint256_t("
+                << "\"Set key in A_Mapaccs_submap1\")));";
     func_expect << "((tmp).d_)=(ND_A_StructS());";
     func_expect << "((tmp).d_nd)=(Init_0_A_StructS());";
     func_expect << "return tmp;";

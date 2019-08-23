@@ -372,10 +372,17 @@ void CFuncDef::print(ostream & _out) const
 {
     if (m_mod == Modifier::INLINE) _out << "static inline ";
     _out << *m_id << "(";
-    for (auto itr = m_args.begin(); itr != m_args.end(); ++itr)
+    if (m_args.empty())
     {
-        if (itr != m_args.begin()) _out << ",";
-        _out << *(*itr);
+        _out << "void";
+    }
+    else
+    {
+        for (auto itr = m_args.begin(); itr != m_args.end(); ++itr)
+        {
+            if (itr != m_args.begin()) _out << ",";
+            _out << *(*itr);
+        }
     }
     _out << ")";
     if (m_body)
