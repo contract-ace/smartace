@@ -39,12 +39,6 @@ if [[ ! "$OUTPUT_DIR" || ! -d "$OUTPUT_DIR" ]]; then
 	exit 1;
 fi
 
-# Ensures clang-format is accessible.
-command -v clang-format > /dev/null 2>&1 || {
-	echo >&2 "Error: Failed to locate clang-format. clang-format is required for automatic output formatting.";
-	exit 1;
-}
-
 # Ensures build/solc/solc is accessible.
 if [[ ! "$SOLC_PATH" || ! -x "$SOLC_PATH" ]]; then
 	echo >&2 "Error: Unable to locate solc."
@@ -52,21 +46,10 @@ if [[ ! "$SOLC_PATH" || ! -x "$SOLC_PATH" ]]; then
 	exit 1;
 fi
 
-# Acquires a temporary directory.
-TMP_DIR=`mktemp -d`
-if [[ ! "$TMP_DIR" || ! -d "$TMP_DIR" ]]; then
-	echo >&2 "Error: Unable to acquire temporary directory."
-	exit 1;
-fi
-function cleanup_tmp_dir { rm -rf "$TMP_DIR"; }
-trap cleanup_tmp_dir EXIT
-
-# Writes output to temporary directory.
-${SOLC_PATH} ${SRC_FILE} --c-model --output-dir=${TMP_DIR} 2> "${OUTPUT_DIR}/cmodel.warning"
-clang-format "${TMP_DIR}/cmodel.h" > "${OUTPUT_DIR}/cmodel.h"
-clang-format "${TMP_DIR}/cmodel.c" > "${OUTPUT_DIR}/cmodel.c"
-clang-format "${TMP_DIR}/primitive.h" > "${OUTPUT_DIR}/primitive.h"
-
-# Copies over runtimes.
+# Generates model, and copies over its dependencies
+${SOLC_PATH} ${SRC_FILE} \
+	--c-model \
+	--output-dir=${OUTPUT_DIR} \
+	2> "${OUTPUT_DIR}/cmodel.warning"
 cp build/libverify/lib* "${OUTPUT_DIR}"
 cp cmodelres/CMakeLists.txt "${OUTPUT_DIR}"
