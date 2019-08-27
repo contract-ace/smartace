@@ -68,5 +68,5 @@ clang-format "${TMP_DIR}/cmodel.c" > "${OUTPUT_DIR}/cmodel.c"
 clang-format "${TMP_DIR}/primitive.h" > "${OUTPUT_DIR}/primitive.h"
 
 # Copies over runtimes.
-cp build/libverify/lib* temp
-
+cp build/libverify/lib* "${OUTPUT_DIR}"
+cp cmodelres/CMakeLists.txt "${OUTPUT_DIR}"
