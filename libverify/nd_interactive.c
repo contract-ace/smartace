@@ -13,6 +13,12 @@ void on_entry(const char* _type, const char* _msg)
     printf("%s [%s]: ", _msg, _type);
 }
 
+void nd_mpz(mpz_t _dest, const char* _type, const char* _msg)
+{
+    on_entry(_type, _msg);
+    mpz_inp_str(_dest, NULL, 10);
+}
+
 int8_t nd_int8_t(const char* _msg)
 {
     on_entry("int8", _msg);
@@ -45,6 +51,16 @@ int64_t nd_int64_t(const char* _msg)
     return retval;
 }
 
+void nd_int128_t(mpz_t _dest, const char* _msg)
+{
+    nd_mpz(_dest, "int128", _msg);
+}
+
+void nd_int256_t(mpz_t _dest, const char* _msg)
+{
+    nd_mpz(_dest, "int256", _msg);
+}
+
 uint8_t nd_uint8_t(const char* _msg)
 {
     on_entry("uint8", _msg);
@@ -75,4 +91,14 @@ uint64_t nd_uint64_t(const char* _msg)
     uint64_t retval;
     scanf("%ld", &retval);
     return retval;
+}
+
+void nd_uint128_t(mpz_t _dest, const char* _msg)
+{
+    nd_mpz(_dest, "uint128", _msg);
+}
+
+void nd_uint256_t(mpz_t _dest, const char* _msg)
+{
+    nd_mpz(_dest, "uint256", _msg);
 }

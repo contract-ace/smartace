@@ -56,7 +56,7 @@ for op in "assert" "require"; do
 	done
 done
 
-for type in $(seq 0 7); do
+for type in $(seq 0 11); do
 	for val in $(seq 0 10); do
 		res=$(test_nd "${type}" "${val}")
 		if [ ! -z "${res}" ]; then

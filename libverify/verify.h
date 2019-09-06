@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "gmp.h"
 #include <stdint.h>
 
 // Stands in for `require(_cond, _msg)` in Solidity.
@@ -18,7 +19,11 @@ int8_t nd_int8_t(const char* _msg);
 int16_t nd_int16_t(const char* _msg);
 int32_t nd_int32_t(const char* _msg);
 int64_t nd_int64_t(const char* _msg);
+void nd_int128_t(mpz_t _dest, const char* _msg);
+void nd_int256_t(mpz_t _dest, const char* _msg);
 uint8_t nd_uint8_t(const char* _msg);
 uint16_t nd_uint16_t(const char* _msg);
 uint32_t nd_uint32_t(const char* _msg);
 uint64_t nd_uint64_t(const char* _msg);
+void nd_uint128_t(mpz_t _dest, const char* _msg);
+void nd_uint256_t(mpz_t _dest, const char* _msg);

@@ -37,4 +37,4 @@ target_link_libraries(isoltest PRIVATE libsolc solidity yulInterpreter evmasm ${
 
 include_directories(../../)
 add_executable(ilibverifytest ilibverifytest.c)
-target_link_libraries(ilibverifytest PRIVATE verify_interactive)
+target_link_libraries(ilibverifytest PRIVATE verify_interactive gmp)
