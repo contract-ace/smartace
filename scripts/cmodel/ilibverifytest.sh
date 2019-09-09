@@ -35,13 +35,13 @@ function test_nd() {
 	rc=$?
 
 	if [ "${rc}" != "${VAL}" ]; then
-		echo "${cmd}: Incorrect nd value returned."
+		echo "${cmd}: Incorrect nd value returned: Returned ${rc}; Expected ${VAL}."
 	fi
 
 	grep "${MSG}" >/dev/null 2>&1 <<< "${res}"
 	MESSAGE_SET=$?
 	if [ ${MESSAGE_SET} -ne 0 ]; then
-		echo "${cmd}: Message did not appear in promt."
+		echo "${cmd}: Message did not appear in prompt."
 	fi
 }
 

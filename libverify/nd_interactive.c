@@ -51,9 +51,22 @@ int64_t nd_int64_t(const char* _msg)
     return retval;
 }
 
-void nd_int128_t(mpz_t _dest, const char* _msg)
+__int128_t nd_int128_t(const char* _msg)
 {
-    nd_mpz(_dest, "int128", _msg);
+    char input[41];
+    on_entry("int128", _msg);
+    scanf("%s", input);
+
+    int is_neg = (input[0] == '-');
+
+    __int128_t retval = 0;
+    for (unsigned int i = (is_neg ? 1 : 0); input[i] != 0; ++i)
+    {
+        retval *= 10;
+        retval += (__int128_t)(input[i] - '0');
+    }
+
+    return (is_neg ? -retval : retval);
 }
 
 void nd_int256_t(mpz_t _dest, const char* _msg)
@@ -93,9 +106,20 @@ uint64_t nd_uint64_t(const char* _msg)
     return retval;
 }
 
-void nd_uint128_t(mpz_t _dest, const char* _msg)
+__uint128_t nd_uint128_t(const char* _msg)
 {
-    nd_mpz(_dest, "uint128", _msg);
+    char input[40];
+    on_entry("uint128", _msg);
+    scanf("%s", input);
+
+    __uint128_t retval = 0;
+    for (unsigned int i = 0; input[i] != 0; ++i)
+    {
+        retval *= 10;
+        retval += (__uint128_t)(input[i] - '0');
+    }
+
+    return retval;
 }
 
 void nd_uint256_t(mpz_t _dest, const char* _msg)
