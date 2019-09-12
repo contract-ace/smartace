@@ -4,7 +4,7 @@
  * @date 2019
  */
 
-#include "verify.h"
+#include <sol_verify.h>
 
 #include <stdio.h>
 
