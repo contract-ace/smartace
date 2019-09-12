@@ -24,7 +24,7 @@ else()
 endif()
 
 # Defines the last of all source files.
-set(EXE_SRCS cmodel.h cmodel.c primitive.h)
+set(EXE_SRCS cmodel.h cmodel.c primitive.h sol_verify.h)
 
 # Add a clang-format target to format all source files.
 set(EXE_SRCS_ABS "")
@@ -39,4 +39,4 @@ add_custom_target(
 # Adds targets for each execution model.
 include_directories(.)
 add_executable(icmodel ${EXE_SRCS})
-target_link_libraries(icmodel verify_interactive)
+target_link_libraries(icmodel verify_interactive gmp)

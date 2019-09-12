@@ -1244,16 +1244,7 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::CallState;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 	_os << "#include <cmodel.h>" << endl;
-	_os << "extern void sol_require(uint8_t,const char*);";
-	_os << "extern void sol_assert(uint8_t,const char*);";
-	_os << "int8_t nd_int8_t(const char*);";
-	_os << "int16_t nd_int16_t(const char*);";
-	_os << "int32_t nd_int32_t(const char*);";
-	_os << "int64_t nd_int64_t(const char*);";
-	_os << "uint8_t nd_uint8_t(const char*);";
-	_os << "uint16_t nd_uint16_t(const char*);";
-	_os << "uint32_t nd_uint32_t(const char*);";
-	_os << "uint64_t nd_uint64_t(const char*);";
+	_os << "#include <sol_verify.h>" << endl;
 	for (auto const& ast : _asts)
 	{
 		CallState cov(*ast, _con, false);
