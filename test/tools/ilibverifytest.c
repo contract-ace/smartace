@@ -9,19 +9,6 @@ void fail(void)
     exit(-1);
 }
 
-int multipercision_nd(const char* _msg, long int _case)
-{
-    mpz_t val;
-    mpz_init(val);
-    switch (_case)
-    {
-    case 5: nd_int256_t(val, _msg); break;
-    case 11: nd_uint256_t(val, _msg); break;
-    default: fail();
-    }
-    return mpz_get_si(val);
-}
-
 int main(int argc, char const** argv)
 {
     if (argc < 2) { fail(); }
@@ -52,12 +39,14 @@ int main(int argc, char const** argv)
         case 2: return nd_int32_t(MSG);
         case 3: return nd_int64_t(MSG);
         case 4: return nd_int128_t(MSG);
+        case 5: return nd_int256_t(MSG);
         case 6: return nd_uint8_t(MSG);
         case 7: return nd_uint16_t(MSG);
         case 8: return nd_uint32_t(MSG);
         case 9: return nd_uint64_t(MSG);
         case 10: return nd_uint128_t(MSG);
-        default: return multipercision_nd(MSG, TYPE);
+        case 11: return nd_uint256_t(MSG);
+        default: fail();
         }
     }
     else { fail(); }
