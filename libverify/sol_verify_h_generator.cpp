@@ -102,6 +102,11 @@ int main(int argc, char *argv[])
     define_raw_types(output, MACRO_LOOKUP);
     output << "#endif" << endl;
 
+    // Ensures this can link to C.
+    output << "#ifdef __cplusplus" << endl;
+    output << "extern \"C\" {" << endl;
+    output << "#endif" << endl;
+
     // Assertations.
     output << "void sol_require("
            << MACRO_LOOKUP.unsigned_sym(8) <<  " _cond, const char* _msg);";
@@ -114,8 +119,13 @@ int main(int argc, char *argv[])
         output << MACRO_LOOKUP.signed_sym(bits)
                << " nd_int" << bits << "_t(const char* _msg);";
         output << MACRO_LOOKUP.unsigned_sym(bits)
-               << " nd_uint" << bits << "_t(const char* _msg);";
+               << " nd_uint" << bits << "_t(const char* _msg);"; 
     }
+
+    // Ends C interface.
+    output << endl << "#ifdef __cplusplus" << endl;
+    output << "}" << endl;
+    output << "#endif" << endl;
 
     return 0;
 }

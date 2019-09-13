@@ -11,6 +11,6 @@ add_custom_command(
 
 # Generates the verification library suite.
 set(sources_interactive ${PROJECT_BINARY_DIR}/sol_verify.h
-                        assert_interactive.c
-                        nd_interactive.c)
+                        assert_interactive.cpp
+                        nd_interactive.cpp)
 add_library(verify_interactive ${sources_interactive})
