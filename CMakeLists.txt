@@ -46,6 +46,9 @@ configure_file("${CMAKE_SOURCE_DIR}/cmake/templates/license.h.in" include/licens
 include(EthOptions)
 configure_project(TESTS)
 
+include(McOptions)
+configure_mc()
+
 add_subdirectory(libdevcore)
 add_subdirectory(liblangutil)
 add_subdirectory(libevmasm)

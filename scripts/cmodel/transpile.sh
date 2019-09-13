@@ -34,10 +34,6 @@ fi
 if [[ $# -gt 1 ]]; then
 	OUTPUT_DIR="$2"
 fi
-if [[ ! "$OUTPUT_DIR" || ! -d "$OUTPUT_DIR" ]]; then
-	echo >&2 "Error: Invalid output directory: ${OUTPUT_DIR}."
-	exit 1;
-fi
 
 # Ensures build/solc/solc is accessible.
 if [[ ! "$SOLC_PATH" || ! -x "$SOLC_PATH" ]]; then
@@ -47,9 +43,12 @@ if [[ ! "$SOLC_PATH" || ! -x "$SOLC_PATH" ]]; then
 fi
 
 # Generates model, and copies over its dependencies
+mkdir -p "${OUTPUT_DIR}"
 ${SOLC_PATH} ${SRC_FILE} \
 	--c-model \
 	--output-dir=${OUTPUT_DIR} \
 	2> "${OUTPUT_DIR}/cmodel.warning"
 cp -r libverify "${OUTPUT_DIR}"
 cp cmodelres/CMakeLists.txt "${OUTPUT_DIR}"
+mkdir -p "${OUTPUT_DIR}/cmake"
+cp cmake/Mc* "${OUTPUT_DIR}/cmake/"

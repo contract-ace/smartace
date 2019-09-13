@@ -3,6 +3,18 @@ cmake_minimum_required(VERSION 3.1.0)
 project(cmodel VERSION "1.0.0" LANGUAGES CXX C)
 set(CMAKE_C_STANDARD 99)
 
+# Loads in configurations.
+set(
+    MC_CMAKE_DIR
+    "${CMAKE_CURRENT_LIST_DIR}/cmake"
+    CACHE PATH
+    "The the path to the cmake directory"
+)
+list(APPEND CMAKE_MODULE_PATH ${MC_CMAKE_DIR})
+
+include(McOptions)
+configure_mc()
+
 # Locates clang-format, if possible.
 find_program(
     CLANG_FORMAT_EXE

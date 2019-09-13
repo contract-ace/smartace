@@ -95,10 +95,10 @@ int main(int argc, char *argv[])
     output << "#include <stdint.h>" << endl;
 
     // Declares types for each build.
-    output << "#ifdef __Cplusplus" << endl;
+    output << "#ifdef MC_USE_BOOST_MP" << endl;
     output << "#include <boost/multiprecision/cpp_int.hpp>" << endl;
     define_raw_types(output, MACRO_LOOKUP);
-    output << "#else" << endl;
+    output << "#elif defined MC_USE_STDINT" << endl;
     define_raw_types(output, MACRO_LOOKUP);
     output << "#endif" << endl;
 
