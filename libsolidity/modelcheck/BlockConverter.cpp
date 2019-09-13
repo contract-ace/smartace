@@ -33,8 +33,7 @@ BlockConverter::BlockConverter(
 	}
 	else if (!_func.returnParameters().empty())
 	{
-		auto const& RETVAR = _func.returnParameters()[0];
-		if (RETVAR->name() != "") m_rv = RETVAR;
+		m_rv = _func.returnParameters()[0];
 	}
 
 	m_decls.enter();
@@ -58,12 +57,14 @@ shared_ptr<CBlock> BlockConverter::convert()
 
 bool BlockConverter::visit(Block const& _node)
 {
+	const bool HAS_NAMED_RV = (m_rv && m_rv->name() != "");
+
 	ScopedSwap<bool> top_level_swap(m_is_top_level, false);
 	m_decls.enter();
 
 	CBlockList stmts;
 	shared_ptr<CVarDecl> rv;
-	if (top_level_swap.old() && m_rv)
+	if (top_level_swap.old() && HAS_NAMED_RV)
 	{
 		m_decls.record_declaration(*m_rv);
 		rv = make_shared<CVarDecl>(M_TYPES.get_type(*m_rv), m_rv->name());
@@ -74,7 +75,7 @@ bool BlockConverter::visit(Block const& _node)
 		stmt->accept(*this);
 		stmts.push_back(m_substmt);
 	}
-	if (top_level_swap.old() && m_rv)
+	if (top_level_swap.old() && HAS_NAMED_RV)
 	{
 		stmts.push_back(make_shared<CReturn>(rv->id()));
 	}
@@ -116,7 +117,7 @@ bool BlockConverter::visit(ForStatement const& _node)
 {
 	m_decls.enter();
 
-	// TODO(scottwe): Ensure number of interations has finite bound.
+	// TODO(scottwe): Ensure number of iterations has finite bound.
 	CStmtPtr init = nullptr;
 	if (_node.initializationExpression())
 	{
@@ -157,6 +158,16 @@ bool BlockConverter::visit(Return const& _node)
 	{
 		ExpressionConverter retval(*_node.expression(), M_TYPES, m_decls);
 		retval_expr = retval.convert();
+
+		auto const& TYPE = *m_rv->annotation().type;
+		if (is_wrapped_type(TYPE))
+		{
+			// TODO(scottwe): this is dulicated in 2 places...
+			string const WRAP = "Init_" + TypeConverter::get_simple_ctype(TYPE);
+			retval_expr = make_shared<CFuncCall>(
+				WRAP, CArgList{ move(retval_expr) }
+			);
+		}
 	}
 	m_substmt = make_shared<CReturn>(retval_expr);
 	return false;

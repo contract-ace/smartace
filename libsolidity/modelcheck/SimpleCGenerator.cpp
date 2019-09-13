@@ -189,6 +189,7 @@ void CFuncCallBuilder::push(
 
     if (!_t) _t = _expr.annotation().type;
 
+    // TODO(scottwe): this is dulicated in 2 places...
     auto cexpr = converter.convert();
     if (is_wrapped_type(*_t))
     {

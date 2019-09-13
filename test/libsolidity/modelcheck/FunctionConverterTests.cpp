@@ -25,6 +25,39 @@ BOOST_FIXTURE_TEST_SUITE(
     ::dev::solidity::test::AnalysisFramework
 )
 
+// Regression test to ensure returns of wrapped types work.
+BOOST_AUTO_TEST_CASE(return_without_cast_regression)
+{
+    char const* text = R"(
+        contract A {
+            function f() public pure returns (uint40) {
+                return 20;
+            }
+        }
+    )";
+
+    auto const &ast = *parseAndAnalyse(text);
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    ostringstream actual, expect;
+    FunctionConverter(
+        ast, converter, FunctionConverter::View::FULL, false
+    ).print(actual);
+    expect << "struct A Init_A(void)";
+    expect << "{";
+    expect << "struct A tmp;";
+    expect << "return tmp;";
+    expect << "}";
+    expect << "uint40_t Method_A_Funcf(void)";
+    expect << "{";
+    expect << "return Init_uint40_t(20);";
+    expect << "}";
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
+}
+
 // Ensures that each contract generates a function `Init_<contract>()`. This
 // method should set all simple members to 0, while setting all complex members
 // with their default constructors.

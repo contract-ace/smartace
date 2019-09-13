@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
     auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int;
     actual_int << *BlockConverter(*int_func, converter).convert();
-    BOOST_CHECK_EQUAL(actual_int.str(), "{return (10)+(5);}");
+    BOOST_CHECK_EQUAL(actual_int.str(), "{return Init_int256_t((10)+(5));}");
 }
 
 // Ensures that variable declarations will generate C declarations, and that
@@ -308,7 +308,7 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     auto unnamed = (fncs[0]->name() == "f") ? fncs[0] : fncs[1];
     ostringstream actual_unnamed;
     actual_unnamed << *BlockConverter(*unnamed, converter).convert();
-    BOOST_CHECK_EQUAL(actual_unnamed.str(), "{return 5;}");
+    BOOST_CHECK_EQUAL(actual_unnamed.str(), "{return Init_int256_t(5);}");
 
     auto named = (fncs[0]->name() == "f") ? fncs[1] : fncs[0];
     ostringstream actual_named, expected_named;
