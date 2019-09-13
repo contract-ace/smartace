@@ -149,11 +149,11 @@ CStmtPtr MainFunctionGenerator::init_contract(
 )
 {
     CFuncCallBuilder init_builder("Init_" + m_converter.get_name(_contract));
-    init_builder.push(make_shared<CReference>(_id->id()));
-    init_builder.push(make_shared<CReference>(_state->id()));
 
     if (auto ctor = _contract.constructor())
     {
+        init_builder.push(make_shared<CReference>(_id->id()));
+        init_builder.push(make_shared<CReference>(_state->id()));
         for (auto const param : ctor->parameters())
         {
             string const MSG
