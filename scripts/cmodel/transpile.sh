@@ -51,6 +51,5 @@ ${SOLC_PATH} ${SRC_FILE} \
 	--c-model \
 	--output-dir=${OUTPUT_DIR} \
 	2> "${OUTPUT_DIR}/cmodel.warning"
-cp build/sol_verify.h "${OUTPUT_DIR}"
-cp build/libverify/lib* "${OUTPUT_DIR}"
+cp -r libverify "${OUTPUT_DIR}"
 cp cmodelres/CMakeLists.txt "${OUTPUT_DIR}"

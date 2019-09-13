@@ -13,4 +13,4 @@ add_custom_command(
 set(sources_interactive ${PROJECT_BINARY_DIR}/sol_verify.h
                         assert_interactive.c
                         nd_interactive.c)
-add_library(verify_interactive SHARED ${sources_interactive})
+add_library(verify_interactive ${sources_interactive})
