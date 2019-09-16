@@ -35,6 +35,6 @@ add_executable(isoltest
 )
 target_link_libraries(isoltest PRIVATE libsolc solidity yulInterpreter evmasm ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
 
-include_directories(${PROJECT_BINARY_DIR})
+include_directories(${CMAKE_SOURCE_DIR})
 add_executable(ilibverifytest ilibverifytest.cpp)
 target_link_libraries(ilibverifytest PRIVATE verify_interactive)
