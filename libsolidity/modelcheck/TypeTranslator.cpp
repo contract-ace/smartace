@@ -239,12 +239,13 @@ string TypeConverter::get_simple_ctype(Type const& _type)
 {
     Type const& type = unwrap(_type);
 
-    if (type.category() == Type::Category::Address) return "address_t";
-    if (type.category() == Type::Category::Bool) return "bool_t";
+    if (type.category() == Type::Category::Address) return "sol_address_t";
+    if (type.category() == Type::Category::Bool) return "sol_bool_t";
 
     if (auto int_ptr = dynamic_cast<IntegerType const*>(&type))
     {
         ostringstream numeric_oss;
+        numeric_oss << "sol_";
         if (!int_ptr->isSigned()) numeric_oss << "u";
         numeric_oss << "int" << int_ptr->numBits() << "_t";
         return numeric_oss.str();
@@ -252,6 +253,7 @@ string TypeConverter::get_simple_ctype(Type const& _type)
     if (auto fixed_ptr = dynamic_cast<FixedPointType const*>(&type))
     {
         ostringstream numeric_oss;
+        numeric_oss << "sol_";
         if (!fixed_ptr->isSigned()) numeric_oss << "u";
         numeric_oss << "fixed" << fixed_ptr->numBits()
                     << "X" << fixed_ptr->fractionalDigits() << "_t";

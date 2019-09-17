@@ -189,7 +189,7 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
 
     ostringstream oss;
     oss << *ExpressionConverter(cond, {}, _prime_resolver(name_a)).convert();
-    BOOST_CHECK_EQUAL(oss.str(), "((a).v)?(self->d_b):(self->d_c)");
+    BOOST_CHECK_EQUAL(oss.str(), "((a).v)?((self->d_b).v):((self->d_c).v)");
 }
 
 // Checks the assignment to non-map types is supported. Ensures that when
@@ -198,31 +198,40 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
 BOOST_AUTO_TEST_CASE(assignment_expression)
 {
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::Assign), "(a)=((a)^(a))"
+        _convert_assignment(Token::Assign),
+        "((a).v)=(((a).v)^((a).v))"
     );
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignBitOr), "(a)=((a)|((a)^(a)))"
+        _convert_assignment(Token::AssignBitOr),
+        "((a).v)=(((a).v)|(((a).v)^((a).v)))"
     );
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignBitAnd), "(a)=((a)&((a)^(a)))"
+        _convert_assignment(Token::AssignBitAnd),
+        "((a).v)=(((a).v)&(((a).v)^((a).v)))"
     );
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignShl), "(a)=((a)<<((a)^(a)))"
+        _convert_assignment(Token::AssignShl),
+        "((a).v)=(((a).v)<<(((a).v)^((a).v)))"
     );
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignAdd), "(a)=((a)+((a)^(a)))"
+        _convert_assignment(Token::AssignAdd),
+        "((a).v)=(((a).v)+(((a).v)^((a).v)))"
     );
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignSub), "(a)=((a)-((a)^(a)))"
+        _convert_assignment(Token::AssignSub),
+        "((a).v)=(((a).v)-(((a).v)^((a).v)))"
     );
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignMul), "(a)=((a)*((a)^(a)))"
+        _convert_assignment(Token::AssignMul),
+        "((a).v)=(((a).v)*(((a).v)^((a).v)))"
     );
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignDiv), "(a)=((a)/((a)^(a)))"
+        _convert_assignment(Token::AssignDiv),
+        "((a).v)=(((a).v)/(((a).v)^((a).v)))"
     );
     BOOST_CHECK_EQUAL(
-        _convert_assignment(Token::AssignMod), "(a)=((a)%((a)^(a)))"
+        _convert_assignment(Token::AssignMod),
+        "((a).v)=(((a).v)%(((a).v)^((a).v)))"
     );
     // TODO(scottwe): SAR, SHR
 }
@@ -243,7 +252,7 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
 
     ostringstream oss;
     oss << *ExpressionConverter(one_tuple, {}, {}).convert();
-    BOOST_CHECK_EQUAL(oss.str(), "self->d_a");
+    BOOST_CHECK_EQUAL(oss.str(), "(self->d_a).v");
 }
 
 // Ensures that unary expressions map to their corresponding expressions in C.
@@ -260,39 +269,45 @@ BOOST_AUTO_TEST_CASE(unary_expression)
     BOOST_CHECK_EQUAL(_convert_unaryop(Token::Not, val, true), "!(0)");
     BOOST_CHECK_EQUAL(_convert_unaryop(Token::BitNot, val, true), "~(0)");
     // TODO(scottwe): test Token::Delete.
-    BOOST_CHECK_EQUAL(_convert_unaryop(Token::Inc, var, true), "++(a)");
-    BOOST_CHECK_EQUAL(_convert_unaryop(Token::Dec, var, true), "--(a)");
-    BOOST_CHECK_EQUAL(_convert_unaryop(Token::Inc, var, false), "(a)++");
-    BOOST_CHECK_EQUAL(_convert_unaryop(Token::Dec, var, false), "(a)--");
+    BOOST_CHECK_EQUAL(_convert_unaryop(Token::Inc, var, true), "++((a).v)");
+    BOOST_CHECK_EQUAL(_convert_unaryop(Token::Dec, var, true), "--((a).v)");
+    BOOST_CHECK_EQUAL(_convert_unaryop(Token::Inc, var, false), "((a).v)++");
+    BOOST_CHECK_EQUAL(_convert_unaryop(Token::Dec, var, false), "((a).v)--");
 }
 
 // Ensures that binary expressions map to their corresponding expressions in C.
 BOOST_AUTO_TEST_CASE(binary_expression)
 {
-    BOOST_CHECK_EQUAL(_convert_binop(Token::Comma), "(a),(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::Or), "(a)||(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::And), "(a)&&(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::BitOr), "(a)|(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::BitXor), "(a)^(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::BitAnd), "(a)&(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::SHL), "(a)<<(self->d_b)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::Comma), "((a).v),((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::Or), "((a).v)||((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::And), "((a).v)&&((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::BitOr), "((a).v)|((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::BitXor), "((a).v)^((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::BitAnd), "((a).v)&((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::SHL), "((a).v)<<((self->d_b).v)");
     // TODO(scottwe): Token::SAR test
     // TODO(scottwe): Token::SHR test
-    BOOST_CHECK_EQUAL(_convert_binop(Token::Add), "(a)+(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::Sub), "(a)-(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::Mul), "(a)*(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::Div), "(a)/(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::Mod), "(a)%(self->d_b)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::Add), "((a).v)+((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::Sub), "((a).v)-((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::Mul), "((a).v)*((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::Div), "((a).v)/((self->d_b).v)");
+    BOOST_CHECK_EQUAL(_convert_binop(Token::Mod), "((a).v)%((self->d_b).v)");
     // TODO(scottwe): Token::EXP test
-    BOOST_CHECK_EQUAL(_convert_binop(Token::Equal), "(a)==(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::NotEqual), "(a)!=(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::LessThan), "(a)<(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(Token::GreaterThan), "(a)>(self->d_b)");
-    BOOST_CHECK_EQUAL(_convert_binop(
-        Token::LessThanOrEqual), "(a)<=(self->d_b)"
+    BOOST_CHECK_EQUAL(_convert_binop(Token::Equal), "((a).v)==((self->d_b).v)");
+    BOOST_CHECK_EQUAL(
+        _convert_binop(Token::NotEqual), "((a).v)!=((self->d_b).v)"
     );
     BOOST_CHECK_EQUAL(
-        _convert_binop(Token::GreaterThanOrEqual), "(a)>=(self->d_b)"
+        _convert_binop(Token::LessThan), "((a).v)<((self->d_b).v)"
+    );
+    BOOST_CHECK_EQUAL(
+        _convert_binop(Token::GreaterThan), "((a).v)>((self->d_b).v)"
+    );
+    BOOST_CHECK_EQUAL(_convert_binop(
+        Token::LessThanOrEqual), "((a).v)<=((self->d_b).v)"
+    );
+    BOOST_CHECK_EQUAL(
+        _convert_binop(Token::GreaterThanOrEqual), "((a).v)>=((self->d_b).v)"
     );
 }
 
@@ -315,8 +330,8 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
     b_oss << *ExpressionConverter(id_b, {}, resolver).convert();
     msg_oss << *ExpressionConverter(msg, {}, resolver).convert();
 
-    BOOST_CHECK_EQUAL(a_oss.str(), "a");
-    BOOST_CHECK_EQUAL(b_oss.str(), "self->d_b");
+    BOOST_CHECK_EQUAL(a_oss.str(), "(a).v");
+    BOOST_CHECK_EQUAL(b_oss.str(), "(self->d_b).v");
     BOOST_CHECK_EQUAL(msg_oss.str(), "state");
 }
 

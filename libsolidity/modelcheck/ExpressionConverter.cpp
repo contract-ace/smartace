@@ -772,7 +772,7 @@ void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 
 	// TODO(scottwe): support for messages.
 	CFuncCallBuilder builder(_type);
-	const IntegerType RAW_TYPE(8);
+	const InaccessibleDynamicType RAW_TYPE;
 	builder.push(*_args[0], M_TYPES, m_decls, false, &RAW_TYPE);
 	builder.push(make_shared<CIntLiteral>(0));
 	m_subexpr = builder.merge_and_pop();

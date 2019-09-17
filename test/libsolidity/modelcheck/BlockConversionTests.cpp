@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     expected_if << "}";
     expected_if << "if(((self->d_a).v)==(1))";
     expected_if << "{";
-    expected_if << "int256_t a;";
+    expected_if << "sol_int256_t a;";
     expected_if << "}";
     expected_if << "(self->d_a).v;";
     expected_if << "}";
@@ -102,8 +102,8 @@ BOOST_AUTO_TEST_CASE(if_statement)
     expected_else << "{";
     expected_else << "if(((self->d_a).v)==(1)){}";
     expected_else << "else {}";
-    expected_else << "if(((self->d_a).v)==(1)){int256_t a;}";
-    expected_else << "else {int256_t a;}";
+    expected_else << "if(((self->d_a).v)==(1)){sol_int256_t a;}";
+    expected_else << "else {sol_int256_t a;}";
     expected_else << "(self->d_a).v;";
     expected_else << "}";
     BOOST_CHECK_EQUAL(actual_else.str(), expected_else.str());
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     actual_while << *BlockConverter(*while_stmt, converter).convert();
     expected_while << "{";
     expected_while << "while(((self->d_a).v)!=((self->d_a).v)){}";
-    expected_while << "while(((self->d_a).v)!=((self->d_a).v)){int256_t i;}";
+    expected_while << "while(((self->d_a).v)!=((self->d_a).v)){sol_int256_t i;}";
     expected_while << "(self->d_i).v;";
     expected_while << "}";
     BOOST_CHECK_EQUAL(actual_while.str(), expected_while.str());
@@ -153,10 +153,14 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     ostringstream actual_for, expected_for;
     actual_for << *BlockConverter(*for_stmt, converter).convert();
     expected_for << "{";
-    expected_for << "for(;((self->d_a).v)<(10);++((self->d_a).v)){int256_t i;}";
-    expected_for << "for(int256_t i=Init_int256_t(0);;++((i).v)){(i).v;}";
-    expected_for << "for(int256_t i=Init_int256_t(0);((i).v)<(10);){++((i).v);}";
-    expected_for << "for(int256_t i=Init_int256_t(0);((i).v)<(10);++((i).v)){}";
+    expected_for << "for(;((self->d_a).v)<(10);++((self->d_a).v))"
+                 << "{sol_int256_t i;}";
+    expected_for << "for(sol_int256_t i=Init_sol_int256_t(0);;++((i).v))"
+                 << "{(i).v;}";
+    expected_for << "for(sol_int256_t i=Init_sol_int256_t(0);((i).v)<(10);)"
+                 << "{++((i).v);}";
+    expected_for << "for(sol_int256_t i=Init_sol_int256_t(0);((i).v)<(10)"
+                 << ";++((i).v)){}";
     expected_for << "(self->d_i).v;";
     expected_for << "}";
     BOOST_CHECK_EQUAL(actual_for.str(), expected_for.str());
@@ -233,7 +237,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
     auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int;
     actual_int << *BlockConverter(*int_func, converter).convert();
-    BOOST_CHECK_EQUAL(actual_int.str(), "{return Init_int256_t((10)+(5));}");
+    BOOST_CHECK_EQUAL(actual_int.str(), "{return Init_sol_int256_t((10)+(5));}");
 }
 
 // Ensures that variable declarations will generate C declarations, and that
@@ -268,9 +272,9 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "int256_t b;";
+    expected << "sol_int256_t b;";
     expected << "{";
-    expected << "int256_t c;";
+    expected << "sol_int256_t c;";
     expected << "(self->d_a).v;";
     expected << "(b).v;";
     expected << "(c).v;";
@@ -308,13 +312,13 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     auto unnamed = (fncs[0]->name() == "f") ? fncs[0] : fncs[1];
     ostringstream actual_unnamed;
     actual_unnamed << *BlockConverter(*unnamed, converter).convert();
-    BOOST_CHECK_EQUAL(actual_unnamed.str(), "{return Init_int256_t(5);}");
+    BOOST_CHECK_EQUAL(actual_unnamed.str(), "{return Init_sol_int256_t(5);}");
 
     auto named = (fncs[0]->name() == "f") ? fncs[1] : fncs[0];
     ostringstream actual_named, expected_named;
     actual_named << *BlockConverter(*named, converter).convert();
     expected_named << "{";
-    expected_named << "int256_t a;";
+    expected_named << "sol_int256_t a;";
     expected_named << "((a).v)=(5);";
     expected_named << "return a;";
     expected_named << "}";
@@ -404,12 +408,13 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
             actual << *BlockConverter(*func_ptr, converter).convert();
             expected << "{";
             expected << "Method_A_Funcf(self,state);";
-            expected << "Method_A_Funcg(self,state,Init_int256_t(1));";
-            expected << "Method_A_Funch(self,state,Init_int256_t(1),"
-                     << "Init_int256_t(2));";
+            expected << "Method_A_Funcg(self,state,Init_sol_int256_t(1));";
+            expected << "Method_A_Funch(self,state,Init_sol_int256_t(1)"
+                     << ",Init_sol_int256_t(2));";
             expected << "Method_A_Funcp();";
-            expected << "Method_A_Funcq(Init_int256_t(1));";
-            expected << "Method_A_Funcr(Init_int256_t(1),Init_int256_t(2));";
+            expected << "Method_A_Funcq(Init_sol_int256_t(1));";
+            expected << "Method_A_Funcr(Init_sol_int256_t(1)"
+                     << ",Init_sol_int256_t(2));";
             expected << "}";
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;
@@ -490,9 +495,12 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "_pay(state,Init_address_t((dst).v),Init_uint256_t(5));";
-    expected << "_pay(state,Init_address_t((dst).v),Init_uint256_t(10));";
-    expected << "_pay(state,Init_address_t((dst).v),Init_uint256_t(15));";
+    expected << "_pay(state,Init_sol_address_t((dst).v)"
+             << ",Init_sol_uint256_t(5));";
+    expected << "_pay(state,Init_sol_address_t((dst).v)"
+             << ",Init_sol_uint256_t(10));";
+    expected << "_pay(state,Init_sol_address_t((dst).v)"
+             << ",Init_sol_uint256_t(15));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -554,8 +562,8 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
     expected << "Init_A_StructB();";
-    expected << "Init_A_StructC(Init_uint256_t(1));";
-    expected << "Init_A_StructD(Init_uint256_t(1),Init_uint256_t(2));";
+    expected << "Init_A_StructC(Init_sol_uint256_t(1));";
+    expected << "Init_A_StructD(Init_sol_uint256_t(1),Init_sol_uint256_t(2));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -591,7 +599,7 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
     expected << "Init_A();";
-    expected << "Init_B(nullptr,state,Init_int256_t(10));";
+    expected << "Init_B(nullptr,state,Init_sol_int256_t(10));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -627,14 +635,14 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "Read_A_Maparr1_submap1(&(self->d_arr1),Init_int256_t((1)"
+    expected << "Read_A_Maparr1_submap1(&(self->d_arr1),Init_sol_int256_t((1)"
              << "+(2)));";
-    expected << "Read_A_StructB_Maparr2_submap1(&((self->d_b).d_arr2),"
-             << "Init_int256_t((3)+(4)));";
-    expected << "Read_A_StructB_Maparr2_submap1(&(((self->d_c).d_b).d_arr2),"
-             << "Init_int256_t((5)+(6)));";
-    expected << "Read_A_Maparr1_submap2(Ref_A_Maparr1_submap1(&(self->d_arr1),"
-             << "Init_int256_t(10)),Init_int256_t(10));";
+    expected << "Read_A_StructB_Maparr2_submap1(&((self->d_b).d_arr2)"
+             << ",Init_sol_int256_t((3)+(4)));";
+    expected << "Read_A_StructB_Maparr2_submap1(&(((self->d_c).d_b).d_arr2)"
+             << ",Init_sol_int256_t((5)+(6)));";
+    expected << "Read_A_Maparr1_submap2(Ref_A_Maparr1_submap1(&(self->d_arr1)"
+             << ",Init_sol_int256_t(10)),Init_sol_int256_t(10));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -671,14 +679,17 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "Write_A_Mapa_submap1(&(self->d_a),Init_int256_t(1),2);";
-    expected << "Write_A_Mapa_submap1(&(self->d_a),Init_int256_t(1)"
-             << ",(Read_A_Mapa_submap1(&(self->d_a),Init_int256_t(1)))+(2));";
-    expected << "(((*(Ref_A_Mapb_submap1(&(self->d_b),Init_int256_t(1)))).d_m)"
-             << ".v)=((((Read_A_Mapb_submap1(&(self->d_b),Init_int256_t(1)))"
-             << ".d_m).v)+(2));";
-    expected << "Write_A_StructC_Mapm_submap1(&((self->d_c).d_m),Init_int256_t(1),2);";
-    expected << "Write_A_Mapd_submap2(Ref_A_Mapd_submap1(&(self->d_d),Init_int256_t(1)),Init_int256_t(2),3);";
+    expected << "Write_A_Mapa_submap1(&(self->d_a),Init_sol_int256_t(1),2);";
+    expected << "Write_A_Mapa_submap1(&(self->d_a),Init_sol_int256_t(1)"
+             << ",(Read_A_Mapa_submap1(&(self->d_a)"
+             << ",Init_sol_int256_t(1)))+(2));";
+    expected << "(((*(Ref_A_Mapb_submap1(&(self->d_b),Init_sol_int256_t(1))))"
+             << ".d_m).v)=((((Read_A_Mapb_submap1(&(self->d_b)"
+             << ",Init_sol_int256_t(1))).d_m).v)+(2));";
+    expected << "Write_A_StructC_Mapm_submap1(&((self->d_c).d_m)"
+             << ",Init_sol_int256_t(1),2);";
+    expected << "Write_A_Mapd_submap2(Ref_A_Mapd_submap1(&(self->d_d)"
+             << ",Init_sol_int256_t(1)),Init_sol_int256_t(2),3);";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -814,9 +825,10 @@ BOOST_AUTO_TEST_CASE(storage_variable_to_map)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "struct A_StructB*b_ref=Ref_A_Mapa_submap1(&(self->d_a),"
-             << "Init_int256_t(0));";
-    expected << "(b_ref)=(Ref_A_Mapa_submap1(&(self->d_a),Init_int256_t(0)));";
+    expected << "struct A_StructB*b_ref=Ref_A_Mapa_submap1(&(self->d_a)"
+             << ",Init_sol_int256_t(0));";
+    expected << "(b_ref)=(Ref_A_Mapa_submap1(&(self->d_a)"
+             << ",Init_sol_int256_t(0)));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

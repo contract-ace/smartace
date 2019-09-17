@@ -1201,6 +1201,7 @@ void CommandLineInterface::handleCModelPrimitives(
 	}
 
 	_os << "#pragma once" << endl;
+	_os << "#include \"libverify/verify.h\"" << endl;
 	gen.print(_os);
 }
 
@@ -1215,7 +1216,7 @@ void CommandLineInterface::handleCModelHeaders(
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::CallState;
 	_os << "#pragma once" << endl;
-	_os << "#include <primitive.h>" << endl;
+	_os << "#include \"primitive.h\"" << endl;
 	for (auto const& ast : _asts)
 	{
 		CallState cov(*ast, _con, true);
@@ -1244,7 +1245,6 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::CallState;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 	_os << "#include \"cmodel.h\"" << endl;
-	_os << "#include \"libverify/verify.h\"" << endl;
 	for (auto const& ast : _asts)
 	{
 		CallState cov(*ast, _con, false);

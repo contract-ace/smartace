@@ -95,12 +95,8 @@ bool is_wrapped_type(Type const& _type)
     case Type::Category::Address:
     case Type::Category::Bool:
     case Type::Category::FixedPoint:
-        return true;
     case Type::Category::Integer:
-    {
-        unsigned int const BITS = dynamic_cast<IntegerType const&>(t).numBits();
-        return (BITS > 64) || (!is_power_of_two(BITS));
-    }
+        return true;
     default:
         return false;
     }

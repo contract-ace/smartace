@@ -13,10 +13,10 @@ void on_entry(const char* _type, const char* _msg)
     printf("%s [%s]: ", _msg, _type);
 }
 
-SOL_INTEGER_INT8 nd_int8_t(const char* _msg)
+sol_raw_int8_t nd_int8_t(const char* _msg)
 {
     on_entry("int8", _msg);
-    SOL_INTEGER_INT8 retval = 0;
+    sol_raw_int8_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%hhd", &retval);
@@ -27,10 +27,10 @@ SOL_INTEGER_INT8 nd_int8_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT16 nd_int16_t(const char* _msg)
+sol_raw_int16_t nd_int16_t(const char* _msg)
 {
     on_entry("int16", _msg);
-    SOL_INTEGER_INT16 retval = 0;
+    sol_raw_int16_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%hd", &retval);
@@ -41,10 +41,10 @@ SOL_INTEGER_INT16 nd_int16_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT24 nd_int24_t(const char* _msg)
+sol_raw_int24_t nd_int24_t(const char* _msg)
 {
     on_entry("int24", _msg);
-    SOL_INTEGER_INT24 retval = 0;
+    sol_raw_int24_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%d", &retval);
@@ -55,10 +55,10 @@ SOL_INTEGER_INT24 nd_int24_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT32 nd_int32_t(const char* _msg)
+sol_raw_int32_t nd_int32_t(const char* _msg)
 {
     on_entry("int32", _msg);
-    SOL_INTEGER_INT32 retval = 0;
+    sol_raw_int32_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%d", &retval);
@@ -69,10 +69,10 @@ SOL_INTEGER_INT32 nd_int32_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT40 nd_int40_t(const char* _msg)
+sol_raw_int40_t nd_int40_t(const char* _msg)
 {
     on_entry("int40", _msg);
-    SOL_INTEGER_INT40 retval = 0;
+    sol_raw_int40_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%ld", &retval);
@@ -83,10 +83,10 @@ SOL_INTEGER_INT40 nd_int40_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT48 nd_int48_t(const char* _msg)
+sol_raw_int48_t nd_int48_t(const char* _msg)
 {
     on_entry("int48", _msg);
-    SOL_INTEGER_INT48 retval = 0;
+    sol_raw_int48_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%ld", &retval);
@@ -97,10 +97,10 @@ SOL_INTEGER_INT48 nd_int48_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT56 nd_int56_t(const char* _msg)
+sol_raw_int56_t nd_int56_t(const char* _msg)
 {
     on_entry("int56", _msg);
-    SOL_INTEGER_INT56 retval = 0;
+    sol_raw_int56_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%ld", &retval);
@@ -111,10 +111,10 @@ SOL_INTEGER_INT56 nd_int56_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT64 nd_int64_t(const char* _msg)
+sol_raw_int64_t nd_int64_t(const char* _msg)
 {
     on_entry("int64", _msg);
-    SOL_INTEGER_INT64 retval = 0;
+    sol_raw_int64_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%ld", &retval);
@@ -147,10 +147,10 @@ __int128_t nd_stdint_int128_t(void)
 }
 #endif
 
-SOL_INTEGER_INT72 nd_int72_t(const char* _msg)
+sol_raw_int72_t nd_int72_t(const char* _msg)
 {
     on_entry("int72", _msg);
-    SOL_INTEGER_INT72 retval = 0;
+    sol_raw_int72_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -161,10 +161,10 @@ SOL_INTEGER_INT72 nd_int72_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT80 nd_int80_t(const char* _msg)
+sol_raw_int80_t nd_int80_t(const char* _msg)
 {
     on_entry("int80", _msg);
-    SOL_INTEGER_INT80 retval = 0;
+    sol_raw_int80_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -175,10 +175,10 @@ SOL_INTEGER_INT80 nd_int80_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT88 nd_int88_t(const char* _msg)
+sol_raw_int88_t nd_int88_t(const char* _msg)
 {
     on_entry("int88", _msg);
-    SOL_INTEGER_INT88 retval = 0;
+    sol_raw_int88_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -189,10 +189,10 @@ SOL_INTEGER_INT88 nd_int88_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT96 nd_int96_t(const char* _msg)
+sol_raw_int96_t nd_int96_t(const char* _msg)
 {
     on_entry("int96", _msg);
-    SOL_INTEGER_INT96 retval = 0;
+    sol_raw_int96_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -203,10 +203,10 @@ SOL_INTEGER_INT96 nd_int96_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT104 nd_int104_t(const char* _msg)
+sol_raw_int104_t nd_int104_t(const char* _msg)
 {
     on_entry("int104", _msg);
-    SOL_INTEGER_INT104 retval = 0;
+    sol_raw_int104_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -217,10 +217,10 @@ SOL_INTEGER_INT104 nd_int104_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT112 nd_int112_t(const char* _msg)
+sol_raw_int112_t nd_int112_t(const char* _msg)
 {
     on_entry("int112", _msg);
-    SOL_INTEGER_INT112 retval = 0;
+    sol_raw_int112_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -231,10 +231,10 @@ SOL_INTEGER_INT112 nd_int112_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT120 nd_int120_t(const char* _msg)
+sol_raw_int120_t nd_int120_t(const char* _msg)
 {
     on_entry("int120", _msg);
-    SOL_INTEGER_INT120 retval = 0;
+    sol_raw_int120_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -245,10 +245,10 @@ SOL_INTEGER_INT120 nd_int120_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT128 nd_int128_t(const char* _msg)
+sol_raw_int128_t nd_int128_t(const char* _msg)
 {
     on_entry("int128", _msg);
-    SOL_INTEGER_INT128 retval = 0;
+    sol_raw_int128_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -259,10 +259,10 @@ SOL_INTEGER_INT128 nd_int128_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT136 nd_int136_t(const char* _msg)
+sol_raw_int136_t nd_int136_t(const char* _msg)
 {
     on_entry("int136", _msg);
-    SOL_INTEGER_INT136 retval = 0;
+    sol_raw_int136_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -273,10 +273,10 @@ SOL_INTEGER_INT136 nd_int136_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT144 nd_int144_t(const char* _msg)
+sol_raw_int144_t nd_int144_t(const char* _msg)
 {
     on_entry("int144", _msg);
-    SOL_INTEGER_INT144 retval = 0;
+    sol_raw_int144_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -287,10 +287,10 @@ SOL_INTEGER_INT144 nd_int144_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT152 nd_int152_t(const char* _msg)
+sol_raw_int152_t nd_int152_t(const char* _msg)
 {
     on_entry("int152", _msg);
-    SOL_INTEGER_INT152 retval = 0;
+    sol_raw_int152_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -301,10 +301,10 @@ SOL_INTEGER_INT152 nd_int152_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT160 nd_int160_t(const char* _msg)
+sol_raw_int160_t nd_int160_t(const char* _msg)
 {
     on_entry("int160", _msg);
-    SOL_INTEGER_INT160 retval = 0;
+    sol_raw_int160_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -315,10 +315,10 @@ SOL_INTEGER_INT160 nd_int160_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT168 nd_int168_t(const char* _msg)
+sol_raw_int168_t nd_int168_t(const char* _msg)
 {
     on_entry("int168", _msg);
-    SOL_INTEGER_INT168 retval = 0;
+    sol_raw_int168_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -329,10 +329,10 @@ SOL_INTEGER_INT168 nd_int168_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT176 nd_int176_t(const char* _msg)
+sol_raw_int176_t nd_int176_t(const char* _msg)
 {
     on_entry("int176", _msg);
-    SOL_INTEGER_INT176 retval = 0;
+    sol_raw_int176_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -343,10 +343,10 @@ SOL_INTEGER_INT176 nd_int176_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT184 nd_int184_t(const char* _msg)
+sol_raw_int184_t nd_int184_t(const char* _msg)
 {
     on_entry("int184", _msg);
-    SOL_INTEGER_INT184 retval = 0;
+    sol_raw_int184_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -357,10 +357,10 @@ SOL_INTEGER_INT184 nd_int184_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT192 nd_int192_t(const char* _msg)
+sol_raw_int192_t nd_int192_t(const char* _msg)
 {
     on_entry("int192", _msg);
-    SOL_INTEGER_INT192 retval = 0;
+    sol_raw_int192_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -371,10 +371,10 @@ SOL_INTEGER_INT192 nd_int192_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT200 nd_int200_t(const char* _msg)
+sol_raw_int200_t nd_int200_t(const char* _msg)
 {
     on_entry("int200", _msg);
-    SOL_INTEGER_INT200 retval = 0;
+    sol_raw_int200_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -385,10 +385,10 @@ SOL_INTEGER_INT200 nd_int200_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT208 nd_int208_t(const char* _msg)
+sol_raw_int208_t nd_int208_t(const char* _msg)
 {
     on_entry("int208", _msg);
-    SOL_INTEGER_INT208 retval = 0;
+    sol_raw_int208_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -399,10 +399,10 @@ SOL_INTEGER_INT208 nd_int208_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT216 nd_int216_t(const char* _msg)
+sol_raw_int216_t nd_int216_t(const char* _msg)
 {
     on_entry("int216", _msg);
-    SOL_INTEGER_INT216 retval = 0;
+    sol_raw_int216_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -413,10 +413,10 @@ SOL_INTEGER_INT216 nd_int216_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT224 nd_int224_t(const char* _msg)
+sol_raw_int224_t nd_int224_t(const char* _msg)
 {
     on_entry("int224", _msg);
-    SOL_INTEGER_INT224 retval = 0;
+    sol_raw_int224_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -427,10 +427,10 @@ SOL_INTEGER_INT224 nd_int224_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT232 nd_int232_t(const char* _msg)
+sol_raw_int232_t nd_int232_t(const char* _msg)
 {
     on_entry("int232", _msg);
-    SOL_INTEGER_INT232 retval = 0;
+    sol_raw_int232_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -441,10 +441,10 @@ SOL_INTEGER_INT232 nd_int232_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT240 nd_int240_t(const char* _msg)
+sol_raw_int240_t nd_int240_t(const char* _msg)
 {
     on_entry("int240", _msg);
-    SOL_INTEGER_INT240 retval = 0;
+    sol_raw_int240_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -455,10 +455,10 @@ SOL_INTEGER_INT240 nd_int240_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT248 nd_int248_t(const char* _msg)
+sol_raw_int248_t nd_int248_t(const char* _msg)
 {
     on_entry("int248", _msg);
-    SOL_INTEGER_INT248 retval = 0;
+    sol_raw_int248_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -469,10 +469,10 @@ SOL_INTEGER_INT248 nd_int248_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_INT256 nd_int256_t(const char* _msg)
+sol_raw_int256_t nd_int256_t(const char* _msg)
 {
     on_entry("int256", _msg);
-    SOL_INTEGER_INT256 retval = 0;
+    sol_raw_int256_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_int128_t();
@@ -483,10 +483,10 @@ SOL_INTEGER_INT256 nd_int256_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT8 nd_uint8_t(const char* _msg)
+sol_raw_uint8_t nd_uint8_t(const char* _msg)
 {
     on_entry("uint8", _msg);
-    SOL_INTEGER_UINT8 retval = 0;
+    sol_raw_uint8_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%hhd", &retval);
@@ -497,10 +497,10 @@ SOL_INTEGER_UINT8 nd_uint8_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT16 nd_uint16_t(const char* _msg)
+sol_raw_uint16_t nd_uint16_t(const char* _msg)
 {
     on_entry("uint16", _msg);
-    SOL_INTEGER_UINT16 retval = 0;
+    sol_raw_uint16_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%hu", &retval);
@@ -511,10 +511,10 @@ SOL_INTEGER_UINT16 nd_uint16_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT24 nd_uint24_t(const char* _msg)
+sol_raw_uint24_t nd_uint24_t(const char* _msg)
 {
     on_entry("uint24", _msg);
-    SOL_INTEGER_UINT24 retval = 0;
+    sol_raw_uint24_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%u", &retval);
@@ -525,10 +525,10 @@ SOL_INTEGER_UINT24 nd_uint24_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT32 nd_uint32_t(const char* _msg)
+sol_raw_uint32_t nd_uint32_t(const char* _msg)
 {
     on_entry("uint32", _msg);
-    SOL_INTEGER_UINT32 retval = 0;
+    sol_raw_uint32_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%u", &retval);
@@ -539,10 +539,10 @@ SOL_INTEGER_UINT32 nd_uint32_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT40 nd_uint40_t(const char* _msg)
+sol_raw_uint40_t nd_uint40_t(const char* _msg)
 {
     on_entry("uint40", _msg);
-    SOL_INTEGER_UINT40 retval = 0;
+    sol_raw_uint40_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%lu", &retval);
@@ -553,10 +553,10 @@ SOL_INTEGER_UINT40 nd_uint40_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT48 nd_uint48_t(const char* _msg)
+sol_raw_uint48_t nd_uint48_t(const char* _msg)
 {
     on_entry("uint48", _msg);
-    SOL_INTEGER_UINT48 retval = 0;
+    sol_raw_uint48_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%lu", &retval);
@@ -567,10 +567,10 @@ SOL_INTEGER_UINT48 nd_uint48_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT56 nd_uint56_t(const char* _msg)
+sol_raw_uint56_t nd_uint56_t(const char* _msg)
 {
     on_entry("uint56", _msg);
-    SOL_INTEGER_UINT56 retval = 0;
+    sol_raw_uint56_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%lu", &retval);
@@ -581,10 +581,10 @@ SOL_INTEGER_UINT56 nd_uint56_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT64 nd_uint64_t(const char* _msg)
+sol_raw_uint64_t nd_uint64_t(const char* _msg)
 {
     on_entry("uint64", _msg);
-    SOL_INTEGER_UINT64 retval = 0;
+    sol_raw_uint64_t retval = 0;
 
     #ifdef MC_USE_STDINT
     scanf("%lu", &retval);
@@ -612,10 +612,10 @@ __int128_t nd_stdint_uint128_t(void)
 }
 #endif
 
-SOL_INTEGER_UINT72 nd_uint72_t(const char* _msg)
+sol_raw_uint72_t nd_uint72_t(const char* _msg)
 {
     on_entry("uint72", _msg);
-    SOL_INTEGER_UINT72 retval = 0;
+    sol_raw_uint72_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -626,10 +626,10 @@ SOL_INTEGER_UINT72 nd_uint72_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT80 nd_uint80_t(const char* _msg)
+sol_raw_uint80_t nd_uint80_t(const char* _msg)
 {
     on_entry("uint80", _msg);
-    SOL_INTEGER_UINT80 retval = 0;
+    sol_raw_uint80_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -640,10 +640,10 @@ SOL_INTEGER_UINT80 nd_uint80_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT88 nd_uint88_t(const char* _msg)
+sol_raw_uint88_t nd_uint88_t(const char* _msg)
 {
     on_entry("uint88", _msg);
-    SOL_INTEGER_UINT88 retval = 0;
+    sol_raw_uint88_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -654,10 +654,10 @@ SOL_INTEGER_UINT88 nd_uint88_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT96 nd_uint96_t(const char* _msg)
+sol_raw_uint96_t nd_uint96_t(const char* _msg)
 {
     on_entry("uint96", _msg);
-    SOL_INTEGER_UINT96 retval = 0;
+    sol_raw_uint96_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -668,10 +668,10 @@ SOL_INTEGER_UINT96 nd_uint96_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT104 nd_uint104_t(const char* _msg)
+sol_raw_uint104_t nd_uint104_t(const char* _msg)
 {
     on_entry("uint104", _msg);
-    SOL_INTEGER_UINT104 retval = 0;
+    sol_raw_uint104_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -682,10 +682,10 @@ SOL_INTEGER_UINT104 nd_uint104_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT112 nd_uint112_t(const char* _msg)
+sol_raw_uint112_t nd_uint112_t(const char* _msg)
 {
     on_entry("uint112", _msg);
-    SOL_INTEGER_UINT112 retval = 0;
+    sol_raw_uint112_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -696,10 +696,10 @@ SOL_INTEGER_UINT112 nd_uint112_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT120 nd_uint120_t(const char* _msg)
+sol_raw_uint120_t nd_uint120_t(const char* _msg)
 {
     on_entry("uint120", _msg);
-    SOL_INTEGER_UINT120 retval = 0;
+    sol_raw_uint120_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -710,10 +710,10 @@ SOL_INTEGER_UINT120 nd_uint120_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT128 nd_uint128_t(const char* _msg)
+sol_raw_uint128_t nd_uint128_t(const char* _msg)
 {
     on_entry("uint128", _msg);
-    SOL_INTEGER_UINT128 retval = 0;
+    sol_raw_uint128_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -724,10 +724,10 @@ SOL_INTEGER_UINT128 nd_uint128_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT136 nd_uint136_t(const char* _msg)
+sol_raw_uint136_t nd_uint136_t(const char* _msg)
 {
     on_entry("uint136", _msg);
-    SOL_INTEGER_UINT136 retval = 0;
+    sol_raw_uint136_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -738,10 +738,10 @@ SOL_INTEGER_UINT136 nd_uint136_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT144 nd_uint144_t(const char* _msg)
+sol_raw_uint144_t nd_uint144_t(const char* _msg)
 {
     on_entry("uint144", _msg);
-    SOL_INTEGER_UINT144 retval = 0;
+    sol_raw_uint144_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -752,10 +752,10 @@ SOL_INTEGER_UINT144 nd_uint144_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT152 nd_uint152_t(const char* _msg)
+sol_raw_uint152_t nd_uint152_t(const char* _msg)
 {
     on_entry("uint152", _msg);
-    SOL_INTEGER_UINT152 retval = 0;
+    sol_raw_uint152_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -766,10 +766,10 @@ SOL_INTEGER_UINT152 nd_uint152_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT160 nd_uint160_t(const char* _msg)
+sol_raw_uint160_t nd_uint160_t(const char* _msg)
 {
     on_entry("uint160", _msg);
-    SOL_INTEGER_UINT160 retval = 0;
+    sol_raw_uint160_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -780,10 +780,10 @@ SOL_INTEGER_UINT160 nd_uint160_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT168 nd_uint168_t(const char* _msg)
+sol_raw_uint168_t nd_uint168_t(const char* _msg)
 {
     on_entry("uint168", _msg);
-    SOL_INTEGER_UINT168 retval = 0;
+    sol_raw_uint168_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -794,10 +794,10 @@ SOL_INTEGER_UINT168 nd_uint168_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT176 nd_uint176_t(const char* _msg)
+sol_raw_uint176_t nd_uint176_t(const char* _msg)
 {
     on_entry("uint176", _msg);
-    SOL_INTEGER_UINT176 retval = 0;
+    sol_raw_uint176_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -808,10 +808,10 @@ SOL_INTEGER_UINT176 nd_uint176_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT184 nd_uint184_t(const char* _msg)
+sol_raw_uint184_t nd_uint184_t(const char* _msg)
 {
     on_entry("uint184", _msg);
-    SOL_INTEGER_UINT184 retval = 0;
+    sol_raw_uint184_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -822,10 +822,10 @@ SOL_INTEGER_UINT184 nd_uint184_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT192 nd_uint192_t(const char* _msg)
+sol_raw_uint192_t nd_uint192_t(const char* _msg)
 {
     on_entry("uint192", _msg);
-    SOL_INTEGER_UINT192 retval = 0;
+    sol_raw_uint192_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -836,10 +836,10 @@ SOL_INTEGER_UINT192 nd_uint192_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT200 nd_uint200_t(const char* _msg)
+sol_raw_uint200_t nd_uint200_t(const char* _msg)
 {
     on_entry("uint200", _msg);
-    SOL_INTEGER_UINT200 retval = 0;
+    sol_raw_uint200_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -850,10 +850,10 @@ SOL_INTEGER_UINT200 nd_uint200_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT208 nd_uint208_t(const char* _msg)
+sol_raw_uint208_t nd_uint208_t(const char* _msg)
 {
     on_entry("uint208", _msg);
-    SOL_INTEGER_UINT208 retval = 0;
+    sol_raw_uint208_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -864,10 +864,10 @@ SOL_INTEGER_UINT208 nd_uint208_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT216 nd_uint216_t(const char* _msg)
+sol_raw_uint216_t nd_uint216_t(const char* _msg)
 {
     on_entry("uint216", _msg);
-    SOL_INTEGER_UINT216 retval = 0;
+    sol_raw_uint216_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -878,10 +878,10 @@ SOL_INTEGER_UINT216 nd_uint216_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT224 nd_uint224_t(const char* _msg)
+sol_raw_uint224_t nd_uint224_t(const char* _msg)
 {
     on_entry("uint224", _msg);
-    SOL_INTEGER_UINT224 retval = 0;
+    sol_raw_uint224_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -892,10 +892,10 @@ SOL_INTEGER_UINT224 nd_uint224_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT232 nd_uint232_t(const char* _msg)
+sol_raw_uint232_t nd_uint232_t(const char* _msg)
 {
     on_entry("uint232", _msg);
-    SOL_INTEGER_UINT232 retval = 0;
+    sol_raw_uint232_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -906,10 +906,10 @@ SOL_INTEGER_UINT232 nd_uint232_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT240 nd_uint240_t(const char* _msg)
+sol_raw_uint240_t nd_uint240_t(const char* _msg)
 {
     on_entry("uint240", _msg);
-    SOL_INTEGER_UINT240 retval = 0;
+    sol_raw_uint240_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -920,10 +920,10 @@ SOL_INTEGER_UINT240 nd_uint240_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT248 nd_uint248_t(const char* _msg)
+sol_raw_uint248_t nd_uint248_t(const char* _msg)
 {
     on_entry("uint248", _msg);
-    SOL_INTEGER_UINT248 retval = 0;
+    sol_raw_uint248_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();
@@ -934,10 +934,10 @@ SOL_INTEGER_UINT248 nd_uint248_t(const char* _msg)
     return retval;
 }
 
-SOL_INTEGER_UINT256 nd_uint256_t(const char* _msg)
+sol_raw_uint256_t nd_uint256_t(const char* _msg)
 {
     on_entry("uint256", _msg);
-    SOL_INTEGER_UINT256 retval = 0;
+    sol_raw_uint256_t retval = 0;
 
     #ifdef MC_USE_STDINT
     retval = nd_stdint_uint128_t();

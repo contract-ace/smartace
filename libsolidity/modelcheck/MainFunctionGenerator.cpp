@@ -200,7 +200,11 @@ CBlockList MainFunctionGenerator::build_case(
 
 CExprPtr MainFunctionGenerator::get_nd(unsigned int _bits, string const& _msg)
 {
-    return TypeConverter::nd_val_by_simple_type(IntegerType(_bits), _msg);
+    ostringstream nd_call;
+    nd_call << "nd_uint" << _bits << "_t";
+
+    auto msg_lit = make_shared<CStringLiteral>(_msg);
+    return make_shared<CFuncCall>(nd_call.str(), CArgList{msg_lit});
 }
 
 }

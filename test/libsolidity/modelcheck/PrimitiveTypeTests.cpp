@@ -400,8 +400,7 @@ BOOST_AUTO_TEST_CASE(bool_formatting)
 
     ostringstream actual, expected;
     gen.print(actual);
-    expected << "#include <stdint.h>" << endl;
-    _add_init_to_stream(expected, "bool", "uint8_t");
+    _add_init_to_stream(expected, "sol_bool", "sol_raw_uint8_t");
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
@@ -415,38 +414,11 @@ BOOST_AUTO_TEST_CASE(address_formatting)
 
     ostringstream actual, expected;
     gen.print(actual);
-    expected << "#include <stdint.h>" << endl;
-    _add_init_to_stream(expected, "address", "uint64_t");
+    _add_init_to_stream(expected, "sol_address", "sol_raw_uint160_t");
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
-BOOST_AUTO_TEST_CASE(ints_small_aligned_formatting)
-{
-    char const* text = R"(
-        contract A {
-            int8 v1;
-            int16 v2;
-            uint8 v3;
-            uint16 v4;
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-
-    for (auto var : ctrt.stateVariables())
-    {
-        PrimitiveTypeGenerator gen;
-        gen.record(*var);
-
-        ostringstream actual, expected;
-        gen.print(actual);
-        expected << "#include <stdint.h>" << endl;
-        BOOST_CHECK_EQUAL(actual.str(), expected.str());
-    }
-}
-
-BOOST_AUTO_TEST_CASE(ints_small_misaligned_formatting)
+BOOST_AUTO_TEST_CASE(int_formatting)
 {
     char const* text = R"(
         contract A {
@@ -465,8 +437,7 @@ BOOST_AUTO_TEST_CASE(ints_small_misaligned_formatting)
         PrimitiveTypeGenerator s24;
         s24.record(*ctrt.stateVariables()[0]);
         s24.print(s24_actual);
-        s24_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(s24_expected, "int24", "int32_t");
+        _add_init_to_stream(s24_expected, "sol_int24", "sol_raw_int24_t");
         BOOST_CHECK_EQUAL(s24_actual.str(), s24_expected.str());
     }
     {
@@ -474,8 +445,7 @@ BOOST_AUTO_TEST_CASE(ints_small_misaligned_formatting)
         PrimitiveTypeGenerator s40;
         s40.record(*ctrt.stateVariables()[1]);
         s40.print(s40_actual);
-        s40_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(s40_expected, "int40", "int64_t");
+        _add_init_to_stream(s40_expected, "sol_int40", "sol_raw_int40_t");
         BOOST_CHECK_EQUAL(s40_actual.str(), s40_expected.str());
     }
     {
@@ -483,8 +453,7 @@ BOOST_AUTO_TEST_CASE(ints_small_misaligned_formatting)
         PrimitiveTypeGenerator u24;
         u24.record(*ctrt.stateVariables()[2]);
         u24.print(u24_actual);
-        u24_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(u24_expected, "uint24", "uint32_t");
+        _add_init_to_stream(u24_expected, "sol_uint24", "sol_raw_uint24_t");
         BOOST_CHECK_EQUAL(u24_actual.str(), u24_expected.str());
     }
     {
@@ -492,18 +461,12 @@ BOOST_AUTO_TEST_CASE(ints_small_misaligned_formatting)
         PrimitiveTypeGenerator u40;
         u40.record(*ctrt.stateVariables()[3]);
         u40.print(u40_actual);
-        u40_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(u40_expected, "uint40", "uint64_t");
+        _add_init_to_stream(u40_expected, "sol_uint40", "sol_raw_uint40_t");
         BOOST_CHECK_EQUAL(u40_actual.str(), u40_expected.str());
     }
 }
 
-// TODO(scottwe): Unsigned integers with power-of-two bits over 64.
-// TODO(scottwe): Signed integers with power-of-two bits over 64.
-// TODO(scottwe): Unsigned integers with non-power-of-two-bits over 64.
-// TODO(scottwe): Signed integers with non-power-of-two-bits over 64.
-
-BOOST_AUTO_TEST_CASE(fixeds_small_aligned_formatting)
+BOOST_AUTO_TEST_CASE(fixed_formatting)
 {
     char const* text = R"(
         contract A {
@@ -522,8 +485,7 @@ BOOST_AUTO_TEST_CASE(fixeds_small_aligned_formatting)
         PrimitiveTypeGenerator s8x10;
         s8x10.record(*ctrt.stateVariables()[0]);
         s8x10.print(s8x10_actual);
-        s8x10_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(s8x10_expected, "fixed8x10", "int8_t");
+        _add_init_to_stream(s8x10_expected, "sol_fixed8x10", "sol_raw_int8_t");
         BOOST_CHECK_EQUAL(s8x10_actual.str(), s8x10_expected.str());
     }
     {
@@ -531,8 +493,7 @@ BOOST_AUTO_TEST_CASE(fixeds_small_aligned_formatting)
         PrimitiveTypeGenerator s64x11;
         s64x11.record(*ctrt.stateVariables()[1]);
         s64x11.print(s64x11_actual);
-        s64x11_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(s64x11_expected, "fixed64x11", "int64_t");
+        _add_init_to_stream(s64x11_expected, "sol_fixed64x11", "sol_raw_int64_t");
         BOOST_CHECK_EQUAL(s64x11_actual.str(), s64x11_expected.str());
     }
     {
@@ -540,8 +501,7 @@ BOOST_AUTO_TEST_CASE(fixeds_small_aligned_formatting)
         PrimitiveTypeGenerator u8x10;
         u8x10.record(*ctrt.stateVariables()[2]);
         u8x10.print(u8x10_actual);
-        u8x10_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(u8x10_expected, "ufixed8x10", "uint8_t");
+        _add_init_to_stream(u8x10_expected, "sol_ufixed8x10", "sol_raw_uint8_t");
         BOOST_CHECK_EQUAL(u8x10_actual.str(), u8x10_expected.str());
     }
     {
@@ -549,68 +509,10 @@ BOOST_AUTO_TEST_CASE(fixeds_small_aligned_formatting)
         PrimitiveTypeGenerator u64x11;
         u64x11.record(*ctrt.stateVariables()[3]);
         u64x11.print(u64x11_actual);
-        u64x11_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(u64x11_expected, "ufixed64x11", "uint64_t");
+        _add_init_to_stream(u64x11_expected, "sol_ufixed64x11", "sol_raw_uint64_t");
         BOOST_CHECK_EQUAL(u64x11_actual.str(), u64x11_expected.str());
     }
 }
-
-BOOST_AUTO_TEST_CASE(fixeds_small_misaligned_formatting)
-{
-    char const* text = R"(
-        contract A {
-            fixed24x10 v1;
-            fixed40x11 v2;
-            ufixed24x10 v3;
-            ufixed40x11 v4;
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-
-    {
-        ostringstream s24x10_actual, s24x10_expected;
-        PrimitiveTypeGenerator s24x10;
-        s24x10.record(*ctrt.stateVariables()[0]);
-        s24x10.print(s24x10_actual);
-        s24x10_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(s24x10_expected, "fixed24x10", "int32_t");
-        BOOST_CHECK_EQUAL(s24x10_actual.str(), s24x10_expected.str());
-    }
-    {
-        ostringstream s40x11_actual, s40x11_expected;
-        PrimitiveTypeGenerator s40x11;
-        s40x11.record(*ctrt.stateVariables()[1]);
-        s40x11.print(s40x11_actual);
-        s40x11_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(s40x11_expected, "fixed40x11", "int64_t");
-        BOOST_CHECK_EQUAL(s40x11_actual.str(), s40x11_expected.str());
-    }
-    {
-        ostringstream u24x10_actual, u24x10_expected;
-        PrimitiveTypeGenerator u24x10;
-        u24x10.record(*ctrt.stateVariables()[2]);
-        u24x10.print(u24x10_actual);
-        u24x10_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(u24x10_expected, "ufixed24x10", "uint32_t");
-        BOOST_CHECK_EQUAL(u24x10_actual.str(), u24x10_expected.str());
-    }
-    {
-        ostringstream u40x11_actual, u40x11_expected;
-        PrimitiveTypeGenerator u40x11;
-        u40x11.record(*ctrt.stateVariables()[3]);
-        u40x11.print(u40x11_actual);
-        u40x11_expected << "#include <stdint.h>" << endl;
-        _add_init_to_stream(u40x11_expected, "ufixed40x11", "uint64_t");
-        BOOST_CHECK_EQUAL(u40x11_actual.str(), u40x11_expected.str());
-    }
-}
-
-// TODO(scottwe): Unsigned fixed-point with power-of-two bits over 64.
-// TODO(scottwe): Signed fixed-point with power of two bits over 64.
-// TODO(scottwe): Unsigned fixed-point with non-power-of-two-bits over 64.
-// TODO(scottwe): Signed fixed-point with non-power-of-two-bits over 64.
 
 BOOST_AUTO_TEST_SUITE_END()
 

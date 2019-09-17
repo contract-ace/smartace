@@ -48,26 +48,22 @@ bool PrimitiveTypeGenerator::found_bool() const { return m_uses_bool; }
 
 bool PrimitiveTypeGenerator::found_address() const { return m_uses_address; }
 
-bool PrimitiveTypeGenerator::found_int(unsigned char _bytes) const
+bool PrimitiveTypeGenerator::found_int(uint8_t _bytes) const
 {
     return m_uses_int[_bytes - 1];
 }
 
-bool PrimitiveTypeGenerator::found_uint(unsigned char _bytes) const
+bool PrimitiveTypeGenerator::found_uint(uint8_t _bytes) const
 {
     return m_uses_uint[_bytes - 1];
 }
 
-bool PrimitiveTypeGenerator::found_fixed(
-    unsigned char _bytes, unsigned char _d
-) const
+bool PrimitiveTypeGenerator::found_fixed(uint8_t _bytes, uint8_t _d) const
 {
     return m_uses_fixed[_bytes - 1][_d];
 }
 
-bool PrimitiveTypeGenerator::found_ufixed(
-    unsigned char _bytes, unsigned char _d
-) const
+bool PrimitiveTypeGenerator::found_ufixed(uint8_t _bytes, uint8_t _d) const
 {
     return m_uses_ufixed[_bytes - 1][_d];
 }
@@ -76,20 +72,17 @@ bool PrimitiveTypeGenerator::found_ufixed(
 
 void PrimitiveTypeGenerator::print(ostream& _out) const
 {
-    _out << "#include <stdint.h>" << endl;
     if (found_bool())
     {
-        string const RAW_DATA = "uint8_t";
-        string const RAW_STRUCT = "bool";
-        string const DEF_STRUCT = RAW_STRUCT + "_t";
-        print_initializer(_out, RAW_STRUCT, RAW_DATA);
+        string const RAW_DATA = "sol_raw_uint8_t";
+        string const RAW_STRUCT = "sol_bool";
+        declare_primitive(_out, RAW_STRUCT, RAW_DATA);
     }
     if (found_address())
     {
-        string const RAW_DATA = "uint64_t";
-        string const RAW_STRUCT = "address";
-        string const DEF_STRUCT = RAW_STRUCT + "_t";
-        print_initializer(_out, RAW_STRUCT, RAW_DATA);
+        string const RAW_DATA = "sol_raw_uint160_t";
+        string const RAW_STRUCT = "sol_address";
+        declare_primitive(_out, RAW_STRUCT, RAW_DATA);
 
     }
     for (unsigned char bytes = 1; bytes <= 32; ++bytes)
@@ -107,66 +100,44 @@ void PrimitiveTypeGenerator::print(ostream& _out) const
 // -------------------------------------------------------------------------- //
 
 void PrimitiveTypeGenerator::declare_integer(
-    ostream& _out, unsigned char _bytes, bool _signed
+ostream& _out, uint8_t _bytes, bool _signed
 )
 {
-    EncodingData const DATA(_bytes, _signed);
-    if (DATA.is_native_width && DATA.is_aligned_width) return;
-
-    string const SYM = DATA.base + to_string(DATA.bits);
-    string const WRAP = SYM + "_t";
-    if (DATA.is_native_width)
-    {
-        declare_padded_native(_out, SYM, DATA);
-    }
-    else
-    {
-        throw runtime_error("Primitives exceeding 64 bits unsupported.");
-    }
+    ostringstream sym_oss;
+    sym_oss << "int" << (_bytes * 8);
+    string const SYM = sym_oss.str();
+ 
+    declare_numeric(_out, SYM, _bytes, _signed);
 }
 
 void PrimitiveTypeGenerator::declare_fixed(
-    std::ostream& _out, unsigned char _bytes, unsigned char _pt, bool _signed
+    std::ostream& _out, uint8_t _bytes, uint8_t _pt, bool _signed
 )
 {
-    EncodingData const DATA(_bytes, _signed);
-
     ostringstream sym_oss;
-    if (!_signed) sym_oss << "u";
-    sym_oss << "fixed" << DATA.bits << + "x" << to_string(_pt);
+    sym_oss << "fixed" << (_bytes * 8) << "x" << static_cast<uint16_t>(_pt);
     string const SYM = sym_oss.str();
-    string const WRAP = SYM + "_t";
 
-    if (DATA.is_native_width && DATA.is_aligned_width)
-    {
-        string const REPR = DATA.base + to_string(DATA.bits) + "_t";
-        print_initializer(_out, SYM, REPR);
-    }
-    else if (DATA.is_native_width)
-    {
-        declare_padded_native(_out, SYM, DATA);
-    }
-    else
-    {
-        throw runtime_error("Primitives exceeding 64 bits not yet supported.");
-    }
+    declare_numeric(_out, SYM, _bytes, _signed);
 }
 
-void PrimitiveTypeGenerator::declare_padded_native(
-    ostream& _out,
-    string const& _sym,
-    PrimitiveTypeGenerator::EncodingData const& _data
+void PrimitiveTypeGenerator::declare_numeric(
+    ostream& _out, string const& _sym, uint8_t _bytes, bool _signed
 )
 {
-    // If the value is misaligned and native, it is 24, or over 32.
-    unsigned short const PADDING = (_data.bits == 24 ? 32 : 64);
-    string const REPR = _data.base + to_string(PADDING) + "_t";
-    print_initializer(_out, _sym, REPR);
+    string const SIGN = (_signed ? "" : "u");
+    string const WRAPPER = "sol_" + SIGN + _sym;
+
+    ostringstream data_oss;
+    data_oss << "sol_raw_" << SIGN << "int" << (_bytes * 8) << "_t";
+    string const DATA = data_oss.str();
+
+    declare_primitive(_out, WRAPPER, DATA);
 }
 
 // -------------------------------------------------------------------------- //
 
-void PrimitiveTypeGenerator::print_initializer(
+void PrimitiveTypeGenerator::declare_primitive(
     ostream& _out, string const& _type, string const& _data
 )
 {
@@ -188,17 +159,6 @@ void PrimitiveTypeGenerator::print_initializer(
 
     _out << decl << *decl.make_typedef(TYPEDEF)
          << CFuncDef(id, {input_dcl}, block, CFuncDef::Modifier::INLINE);
-}
-
-// -------------------------------------------------------------------------- //
-
-PrimitiveTypeGenerator::EncodingData::EncodingData(
-    unsigned char _bytes, bool _signed
-): bits(_bytes * 8)
- , is_native_width(bits <= 64)
- , is_aligned_width(is_power_of_two(_bytes))
- , base(_signed ? "int" : "uint")
-{
 }
 
 // -------------------------------------------------------------------------- //

@@ -35,10 +35,10 @@ public:
     // Accesses to see if a type was found.
     bool found_bool() const;
     bool found_address() const;
-    bool found_int(unsigned char _bytes) const;
-    bool found_uint(unsigned char _bytes) const;
-    bool found_fixed(unsigned char _bytes, unsigned char _d) const;
-    bool found_ufixed(unsigned char _bytes, unsigned char _d) const;
+    bool found_int(uint8_t _bytes) const;
+    bool found_uint(uint8_t _bytes) const;
+    bool found_fixed(uint8_t _bytes, uint8_t _d) const;
+    bool found_ufixed(uint8_t _bytes, uint8_t _d) const;
 
     // Generates the primitive type definitions, as required by AST.
     void print(std::ostream& _out) const;
@@ -51,34 +51,19 @@ protected:
     void endVisit(FunctionCall const& _node) override;
 
 private:
-    // Auxilary class which generates data needed for Integers and FixedPoint.
-    class EncodingData
-    {
-    public:
-        // Generates data needed to encode the given _bytes, and _signed value.
-        EncodingData(unsigned char _bytes, bool _signed);
-
-        unsigned short bits;
-        bool is_native_width;
-        bool is_aligned_width;
-        std::string base;
-    };
-
-    // Starting from int/uint/fixed/ufixed, these methods abstract out common
-    // formatting behaviour shared between these data-types, or subsets of these
-    // data types (ie int/uint -> integer, or _bytes < 64 -> native).
+    // There is common formatting behaviours between (int/uint), (fixed/ufixed),
+    // all of (int/uint/fixed/ufixed) and the set of all primitives. These
+    // methods factor out those behaviours to minimize duplication.
     static void declare_integer(
-        std::ostream& _out, unsigned char _bytes, bool _signed
+        std::ostream& _out, uint8_t _bytes, bool _signed
     );
     static void declare_fixed(
-        std::ostream& _out, unsigned char _bytes, unsigned char _pt, bool _signed
+        std::ostream& _out, uint8_t _bytes, uint8_t _pt, bool _signed
     );
-    static void declare_padded_native(
-        std::ostream& _out, std::string const& _sym, EncodingData const& _data
+    static void declare_numeric(
+        std::ostream& _out, std::string const& _sym, uint8_t _bytes, bool _signed
     );
-
-    // TODO
-    static void print_initializer(
+    static void declare_primitive(
         std::ostream& _out, std::string const& _type, std::string const& _data
     );
 

@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 void sol_assertion_impl(
-    int _status, SOL_INTEGER_UINT8 _cond, char const* _check, char const* _msg
+    int _status, sol_raw_uint8_t _cond, char const* _check, char const* _msg
 )
 {
     if (!_cond)
@@ -23,12 +23,12 @@ void sol_assertion_impl(
     }
 }
 
-void sol_assert(SOL_INTEGER_UINT8 _cond, const char* _msg)
+void sol_assert(sol_raw_uint8_t _cond, const char* _msg)
 {
     sol_assertion_impl(-1, _cond, "assert", _msg);
 }
 
-void sol_require(SOL_INTEGER_UINT8 _cond, const char* _msg)
+void sol_require(sol_raw_uint8_t _cond, const char* _msg)
 {
     sol_assertion_impl(0, _cond, "require", _msg);
 }
