@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "iosfwd": "cpp",
+        "ostream": "cpp"
+    },
+    "C_Cpp.default.cppStandard": "c++11",
+    "C_Cpp.default.defines": ["MC_USE_STDINT"]
+}
