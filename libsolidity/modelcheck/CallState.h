@@ -17,6 +17,8 @@ namespace solidity
 namespace modelcheck
 {
 
+class PrimitiveTypeGenerator;
+
 /**
  * Prints a forward declaration for the struct of CallState.
  */
@@ -32,6 +34,10 @@ public:
 
     // Prints the struct of CallState.
     void print(std::ostream& _stream);
+
+    // Allows the CallState to provide its requirements to the primitive
+    // generator.
+    void register_primitives(PrimitiveTypeGenerator& _gen);
 
 protected:
     void endVisit(ContractDefinition const& _node) override;

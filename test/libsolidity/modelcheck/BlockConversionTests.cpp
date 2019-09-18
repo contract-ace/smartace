@@ -362,10 +362,10 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
     expected << "(self)->d_d;";
     expected << "((self->d_b).d_i).v;";
     expected << "(((self->d_c).d_b).d_i).v;";
-    expected << "state->blocknum;";
-    expected << "state->blocknum;";
-    expected << "state->sender;";
-    expected << "state->value;";
+    expected << "(state->blocknum).v;";
+    expected << "(state->blocknum).v;";
+    expected << "(state->sender).v;";
+    expected << "(state->value).v;";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

@@ -196,6 +196,7 @@ bool ExpressionConverter::visit(NewExpression const& _node)
 bool ExpressionConverter::visit(MemberAccess const& _node)
 {
 	auto const EXPR_TYPE = _node.expression().annotation().type;
+	ScopedSwap<bool> find_ref(m_find_ref, false);
 
 	switch (EXPR_TYPE->category())
 	{
@@ -209,15 +210,22 @@ bool ExpressionConverter::visit(MemberAccess const& _node)
 		break;
 	case Type::Category::Contract:
 	case Type::Category::Struct:
-		print_adt_member(
-			*_node.annotation().type, _node.expression(), _node.memberName()
-		);
+		print_adt_member(_node.expression(), _node.memberName());
 		break;
 	case Type::Category::Magic:
 		print_magic_member(EXPR_TYPE, _node.memberName());
 		break;
 	default:
 		throw runtime_error("MemberAccess applied to invalid type.");
+	}
+
+	if (find_ref.old())
+	{
+		m_subexpr = make_shared<CReference>(m_subexpr);
+	}
+	else if (is_wrapped_type(*_node.annotation().type))
+	{
+		m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
 	}
 
 	return false;
@@ -813,21 +821,11 @@ void ExpressionConverter::print_array_member(
 }
 
 void ExpressionConverter::print_adt_member(
-	Type const& _type, Expression const& _node, string const& _member
+	Expression const& _node, string const& _member
 )
 {
-	ScopedSwap<bool> find_ref(m_find_ref, false);
 	_node.accept(*this);
-
 	m_subexpr = make_shared<CMemberAccess>(m_subexpr, "d_" + _member);
-	if (find_ref.old())
-	{
-		m_subexpr = make_shared<CReference>(m_subexpr);
-	}
-	else if (is_wrapped_type(_type))
-	{
-		m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
-	}
 }
 
 void ExpressionConverter::print_magic_member(

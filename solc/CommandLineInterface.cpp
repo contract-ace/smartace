@@ -1166,38 +1166,47 @@ void CommandLineInterface::handleCModel()
 		asts.push_back(&ast);
 	}
 
+	// TODO(scottwe): This was quick to set up, but it leads to the same AST
+	//                evaluations being repeated...
 	if (m_args.count(g_argOutputDir))
 	{
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
 		handleCModelHeaders(asts, converter, cmodel_h_data);
 		handleCModelBody(asts, converter, cmodel_cpp_data);
-		handleCModelPrimitives(asts, primitive_data);
+		handleCModelPrimitives(asts, converter, primitive_data);
 		createFile("cmodel.h", cmodel_h_data.str());
 		createFile("cmodel.c", cmodel_cpp_data.str());
+		createFile("cmodel.cpp", cmodel_cpp_data.str());
 		createFile("primitive.h", primitive_data.str());
 	}
 	else
 	{
 		sout() << "====== primitive.h =====" << endl;
-		handleCModelPrimitives(asts, sout());
+		handleCModelPrimitives(asts, converter, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(asts, converter, sout());
-		sout() << endl << endl << "======= cmodel.c =======" << endl;
+		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
 		handleCModelBody(asts, converter, sout());
 		sout() << endl;
 	}
 }
 
 void CommandLineInterface::handleCModelPrimitives(
-	std::vector<SourceUnit const*> const& _asts, std::ostream& _os
+	std::vector<SourceUnit const*> const& _asts,
+	modelcheck::TypeConverter const& _con,
+	std::ostream& _os
 )
 {
 	using dev::solidity::modelcheck::PrimitiveTypeGenerator;
+	using dev::solidity::modelcheck::CallState;
 
 	PrimitiveTypeGenerator gen;
 	for (auto const& ast : _asts)
 	{
+		// TODO(scottwe): This isn't going to work. It will print multiple
+		//                CallStates.
 		gen.record(*ast);
+		CallState(*ast, _con, false).register_primitives(gen);
 	}
 
 	_os << "#pragma once" << endl;
@@ -1219,6 +1228,8 @@ void CommandLineInterface::handleCModelHeaders(
 	_os << "#include \"primitive.h\"" << endl;
 	for (auto const& ast : _asts)
 	{
+		// TODO(scottwe): This isn't going to work. It will print multiple
+		//                CallStates.
 		CallState cov(*ast, _con, true);
 		cov.print(_os);
 	}
@@ -1247,6 +1258,8 @@ void CommandLineInterface::handleCModelBody(
 	_os << "#include \"cmodel.h\"" << endl;
 	for (auto const& ast : _asts)
 	{
+		// TODO(scottwe): This isn't going to work. It will print multiple
+		//                CallStates.
 		CallState cov(*ast, _con, false);
 		cov.print(_os);
 	}

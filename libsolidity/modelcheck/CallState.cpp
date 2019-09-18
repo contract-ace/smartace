@@ -5,6 +5,7 @@
  */
 
 #include <libsolidity/modelcheck/CallState.h>
+#include <libsolidity/modelcheck/PrimitiveTypeGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 
@@ -37,16 +38,28 @@ void CallState::print(ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
+void CallState::register_primitives(PrimitiveTypeGenerator& _gen)
+{
+    // TODO(scottwe): See below; this should not be hard-coded...
+    _gen.record_address();
+    _gen.record_uint(256);
+}
+
+// -------------------------------------------------------------------------- //
+
 void CallState::endVisit(ContractDefinition const& _node)
 {
     (void) _node;
+    // TODO(scottwe): Update  this; the current implementation is too fragile,
+    //                ie., changing our data-types break this (this has already)
+    //                happened once.
     (*m_ostream) << "struct CallState";
     if (!m_forward_declare)
     {
         (*m_ostream) << "{";
-        (*m_ostream) << "uint64_t sender;";
-        (*m_ostream) << "uint64_t value;";
-        (*m_ostream) << "uint64_t blocknum;";
+        (*m_ostream) << "sol_address_t sender;";
+        (*m_ostream) << "sol_uint256_t value;";
+        (*m_ostream) << "sol_uint256_t blocknum;";
         (*m_ostream) << "}";
     }
     (*m_ostream) << ";";

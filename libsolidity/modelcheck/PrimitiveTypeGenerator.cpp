@@ -33,6 +33,9 @@ PrimitiveTypeGenerator::PrimitiveTypeGenerator()
             m_uses_ufixed[bytes][fixed_pt] = false;
         }
     }
+    // TODO(scottwe): don't hardcode this? These are dependencies from main.
+    record_uint(8);
+    record_uint(64);
 }
 
 // -------------------------------------------------------------------------- //
@@ -40,6 +43,32 @@ PrimitiveTypeGenerator::PrimitiveTypeGenerator()
 void PrimitiveTypeGenerator::record(ASTNode const& _root)
 {
     _root.accept(*this);
+}
+
+// -------------------------------------------------------------------------- //
+
+void PrimitiveTypeGenerator::record_bool() { m_uses_bool = true; }
+
+void PrimitiveTypeGenerator::record_address() { m_uses_address = true; }
+
+void PrimitiveTypeGenerator::record_int(uint16_t _bits)
+{
+    m_uses_int[(_bits / 8) - 1] = true;
+}
+
+void PrimitiveTypeGenerator::record_uint(uint16_t _bits)
+{
+    m_uses_uint[(_bits / 8) - 1] = true;
+}
+
+void PrimitiveTypeGenerator::record_fixed(uint16_t _bits, uint16_t _pt)
+{
+    m_uses_fixed[(_bits / 8) - 1][_pt] = true;
+}
+
+void PrimitiveTypeGenerator::record_ufixed(uint16_t _bits, uint16_t _pt)
+{
+    m_uses_ufixed[(_bits / 8) - 1][_pt] = true;
 }
 
 // -------------------------------------------------------------------------- //
@@ -197,12 +226,12 @@ void PrimitiveTypeGenerator::endVisit(FunctionCall const& _node)
             {
             case FunctionType::Kind::Assert:
             case FunctionType::Kind::Require:
-                m_uses_bool = true;
+                record_bool();
                 break;
 	        case FunctionType::Kind::Send:
 	        case FunctionType::Kind::Transfer:
-                m_uses_address = true;
-                m_uses_uint[31] = true;
+                record_address();
+                record_uint(256);
                 break;
             default: break;
             }
@@ -217,22 +246,21 @@ void PrimitiveTypeGenerator::process_type(Type const* _type)
     switch (_type->category())
     {
     case Type::Category::Bool:
-        m_uses_bool = true;
+        record_bool();
         break;
     case Type::Category::Address:
-        m_uses_address = true;
+        record_address();
         break;
     case Type::Category::Integer:
         if (auto int_type = dynamic_cast<IntegerType const*>(_type))
         {
-            unsigned int const BIT_WIDTH = (int_type->numBits() / 8) - 1;
             if (int_type->isSigned())
             {
-                m_uses_int[BIT_WIDTH] = true;
+                record_int(int_type->numBits());
             }
             else
             {
-                m_uses_uint[BIT_WIDTH] = true;
+                record_uint(int_type->numBits());
             }
         }
         else
@@ -241,17 +269,15 @@ void PrimitiveTypeGenerator::process_type(Type const* _type)
         }
         break;
     case Type::Category::FixedPoint:
-        if (auto fixed_type = dynamic_cast<FixedPointType const*>(_type))
+        if (auto fp_type = dynamic_cast<FixedPointType const*>(_type))
         {
-            unsigned int const BIT_WIDTH = (fixed_type->numBits() / 8) - 1;
-            unsigned int const DCM_WIDTH = fixed_type->fractionalDigits();
-            if (fixed_type->isSigned())
+            if (fp_type->isSigned())
             {
-                m_uses_fixed[BIT_WIDTH][DCM_WIDTH] = true;
+                record_fixed(fp_type->numBits(), fp_type->fractionalDigits());
             }
             else
             {
-                m_uses_ufixed[BIT_WIDTH][DCM_WIDTH] = true;
+                record_ufixed(fp_type->numBits(), fp_type->fractionalDigits());
             }
         }
         else

@@ -49,7 +49,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     for (auto param_pair : param_decls) stmts.push_back(param_pair.second);
     stmts.push_back(CURSTATE);
     stmts.push_back(CURSTATE->access("blocknum")->assign(
-        make_shared<CIntLiteral>(0)
+        TypeConverter::init_val_by_simple_type(IntegerType(256))
     )->stmt());
     stmts.push_back(NXTSTATE);
     for (auto contract_pair : contract_decls)
@@ -60,7 +60,10 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     }
 
     auto call_cases = make_shared<CSwitch>(
-        get_nd(8, "Select next call"), CBlockList{make_require(NULL_LIT)}
+        make_shared<CMemberAccess>(
+            get_nd(IntegerType(64), "Select next call"), "v"
+        ),
+        CBlockList{make_require(NULL_LIT)}
     );
     for (auto const* CONTRACT : contracts)
     {
@@ -76,21 +79,29 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     stmts.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(CBlockList{
             NXTSTATE->access("sender")->assign(
-                get_nd(64, "Select the next sender's address")
+                get_nd(
+                    AddressType(StateMutability::Payable),
+                    "Select the next sender's address"
+                )
             )->stmt(),
             NXTSTATE->access("value")->assign(
-                get_nd(64, "Select the next message value")
+                get_nd(IntegerType(256), "Select the next message value")
             )->stmt(),
             NXTSTATE->access("blocknum")->assign(
-                get_nd(64, "Select the next blocknum")
+                get_nd(IntegerType(256), "Select the next blocknum")
             )->stmt(),
             make_require(make_shared<CBinaryOp>(
-                NXTSTATE->access("blocknum"), ">=", CURSTATE->access("blocknum")
+                make_shared<CMemberAccess>(NXTSTATE->access("blocknum"), "v"),
+                ">=",
+                make_shared<CMemberAccess>(CURSTATE->access("blocknum"), "v")
             )),
             CURSTATE->assign(NXTSTATE->id())->stmt(),
             call_cases
         }),
-        get_nd(8, "Select 0 to terminate"), false
+        make_shared<CMemberAccess>(
+            get_nd(IntegerType(8), "Select 0 to terminate"), "v"
+        ),
+        false
     ));
 
     auto id = make_shared<CVarDecl>("void", "run_model");
@@ -198,13 +209,9 @@ CBlockList MainFunctionGenerator::build_case(
 
 // -------------------------------------------------------------------------- //
 
-CExprPtr MainFunctionGenerator::get_nd(unsigned int _bits, string const& _msg)
+CExprPtr MainFunctionGenerator::get_nd(Type const& _type, string const& _msg)
 {
-    ostringstream nd_call;
-    nd_call << "nd_uint" << _bits << "_t";
-
-    auto msg_lit = make_shared<CStringLiteral>(_msg);
-    return make_shared<CFuncCall>(nd_call.str(), CArgList{msg_lit});
+    return TypeConverter::nd_val_by_simple_type(_type, _msg);
 }
 
 }

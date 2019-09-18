@@ -66,7 +66,9 @@ private:
 	void handleAst(std::string const& _argStr);
 	void handleCModel();
 	void handleCModelPrimitives(
-		std::vector<SourceUnit const*> const& _asts, std::ostream& _os
+		std::vector<SourceUnit const*> const& _asts,
+		modelcheck::TypeConverter const& _con,
+		std::ostream& _os
 	);
 	void handleCModelHeaders(
 		std::vector<SourceUnit const*> const& _asts,

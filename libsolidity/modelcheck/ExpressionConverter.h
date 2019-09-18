@@ -214,9 +214,7 @@ private:
 	void print_array_member(
 		Expression const& _node, std::string const& _member
 	);
-	void print_adt_member(
-		Type const& _type, Expression const& _node, std::string const& _member
-	);
+	void print_adt_member(Expression const& _node, std::string const& _member);
 	void print_magic_member(TypePointer _type, std::string const& _member);
 };
 

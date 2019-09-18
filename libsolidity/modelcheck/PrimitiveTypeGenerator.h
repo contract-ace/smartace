@@ -32,6 +32,14 @@ public:
     // Registers all primitive types from the given file.
     void record(ASTNode const& _root);
 
+    // Public interface to directly register types.
+    void record_bool();
+    void record_address();
+    void record_int(uint16_t _bits);
+    void record_uint(uint16_t _bits);
+    void record_fixed(uint16_t _bits, uint16_t _pt);
+    void record_ufixed(uint16_t _bits, uint16_t _pt);
+
     // Accesses to see if a type was found.
     bool found_bool() const;
     bool found_address() const;
