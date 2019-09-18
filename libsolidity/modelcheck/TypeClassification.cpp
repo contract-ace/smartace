@@ -49,7 +49,7 @@ int simple_bit_count(Type const& _type)
     switch(t.category())
     {
     case Type::Category::Address:
-        return 64;
+        return 160;
     case Type::Category::Bool:
         return 8;
     case Type::Category::FixedPoint:
@@ -62,9 +62,7 @@ int simple_bit_count(Type const& _type)
         return 64;
     }
 
-    unsigned int round_bits = 8;
-    while (round_bits < raw_bits) round_bits *= 2;
-    return round_bits;
+    return raw_bits;
 }
 
 // -------------------------------------------------------------------------- //

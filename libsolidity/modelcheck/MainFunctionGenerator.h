@@ -77,7 +77,8 @@ private:
         std::shared_ptr<const CVarDecl> _state
     );
 
-    static CExprPtr get_nd(Type const& _type, std::string const& _msg);
+    static CExprPtr get_nd_sol_val(Type const& _type, std::string const& _msg);
+    static CExprPtr get_nd_byte(std::string const& _msg);
 };
 
 }

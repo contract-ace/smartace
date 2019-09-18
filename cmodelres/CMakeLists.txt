@@ -31,7 +31,10 @@ endif()
 add_subdirectory(libverify)
 
 # Defines a list of all source files.
-set(EXE_SRCS cmodel.h cmodel.c primitive.h)
+set(EXE_SRCS_COMMON cmodel.h primitive.h)
+set(EXE_SRCS_C cmodel.c)
+set(EXE_SRCS_CPP cmodel.cpp)
+set(EXE_SRCS ${EXE_SRCS_COMMON} ${EXE_SRCS_C} ${EXE_SRCS_CPP})
 
 # Add a clang-format target to format all source files.
 set(EXE_SRCS_ABS "")
@@ -46,5 +49,5 @@ add_custom_target(
 # Adds targets for each execution model.
 include_directories(.)
 include_directories(${PROJECT_BINARY_DIR})
-add_executable(icmodel ${EXE_SRCS})
+add_executable(icmodel ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
 target_link_libraries(icmodel verify_interactive)

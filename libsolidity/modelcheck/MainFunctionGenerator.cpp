@@ -60,10 +60,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     }
 
     auto call_cases = make_shared<CSwitch>(
-        make_shared<CMemberAccess>(
-            get_nd(IntegerType(64), "Select next call"), "v"
-        ),
-        CBlockList{make_require(NULL_LIT)}
+        get_nd_byte("Select next call"), CBlockList{make_require(NULL_LIT)}
     );
     for (auto const* CONTRACT : contracts)
     {
@@ -79,16 +76,16 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     stmts.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(CBlockList{
             NXTSTATE->access("sender")->assign(
-                get_nd(
+                get_nd_sol_val(
                     AddressType(StateMutability::Payable),
                     "Select the next sender's address"
                 )
             )->stmt(),
             NXTSTATE->access("value")->assign(
-                get_nd(IntegerType(256), "Select the next message value")
+                get_nd_sol_val(IntegerType(256), "Select next message value")
             )->stmt(),
             NXTSTATE->access("blocknum")->assign(
-                get_nd(IntegerType(256), "Select the next blocknum")
+                get_nd_sol_val(IntegerType(256), "Select next blocknum")
             )->stmt(),
             make_require(make_shared<CBinaryOp>(
                 make_shared<CMemberAccess>(NXTSTATE->access("blocknum"), "v"),
@@ -98,10 +95,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
             CURSTATE->assign(NXTSTATE->id())->stmt(),
             call_cases
         }),
-        make_shared<CMemberAccess>(
-            get_nd(IntegerType(8), "Select 0 to terminate"), "v"
-        ),
-        false
+        get_nd_byte("Select 0 to terminate"), false
     ));
 
     auto id = make_shared<CVarDecl>("void", "run_model");
@@ -209,9 +203,18 @@ CBlockList MainFunctionGenerator::build_case(
 
 // -------------------------------------------------------------------------- //
 
-CExprPtr MainFunctionGenerator::get_nd(Type const& _type, string const& _msg)
+CExprPtr MainFunctionGenerator::get_nd_sol_val(
+    Type const& _type, string const& _msg
+)
 {
     return TypeConverter::nd_val_by_simple_type(_type, _msg);
+}
+
+CExprPtr MainFunctionGenerator::get_nd_byte(string const& _msg)
+{
+    return make_shared<CFuncCall>(
+        "rt_nd_byte", CArgList{make_shared<CStringLiteral>(_msg)}
+    );
 }
 
 }
