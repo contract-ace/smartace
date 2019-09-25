@@ -15,12 +15,38 @@ list(APPEND CMAKE_MODULE_PATH ${MC_CMAKE_DIR})
 include(McOptions)
 configure_mc()
 
+# Locates Seahorn, as required for verification.
+set(
+	SEA_PATH
+	""
+	CACHE STRING
+	"A path to the Seahorn executable, sea."
+)
+
+if(SEA_PATH STREQUAL "")
+        message(FATAL_ERROR "-DSEA_PATH must be set.")
+endif()
+
+find_program(
+	SEA_EXE
+	NAMES sea
+	PATHS ${SEA_PATH}
+	NO_DEFAULT_PATH
+)
+
+if(NOT SEA_EXE)
+        message(FATAL_ERROR "Failed to find sea at: ${SEA_PATH}")
+else()
+	message(STATUS "sea found: ${SEA_EXE}")
+endif()
+
 # Locates clang-format, if possible.
 find_program(
     CLANG_FORMAT_EXE
     NAMES "clang-format"
     DOC "Path to clang-format executable"
 )
+
 if(NOT CLANG_FORMAT_EXE)
     message(STATUS "clang-format not found.")
 else()
