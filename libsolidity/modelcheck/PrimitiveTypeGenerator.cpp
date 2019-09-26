@@ -192,6 +192,11 @@ void PrimitiveTypeGenerator::declare_primitive(
 
 // -------------------------------------------------------------------------- //
 
+void PrimitiveTypeGenerator::endVisit(Mapping const&)
+{
+    record_bool();
+}
+
 void PrimitiveTypeGenerator::endVisit(UsingForDirective const& _node)
 {
     process_type(_node.typeName()->annotation().type);

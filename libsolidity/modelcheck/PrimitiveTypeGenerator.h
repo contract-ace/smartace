@@ -52,6 +52,7 @@ public:
     void print(std::ostream& _out) const;
 
 protected:
+    void endVisit(Mapping const&) override;
     void endVisit(UsingForDirective const& _node) override;
     void endVisit(VariableDeclaration const& _node) override;
     void endVisit(ElementaryTypeName const& _node) override;
