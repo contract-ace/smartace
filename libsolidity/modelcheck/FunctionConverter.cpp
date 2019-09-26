@@ -240,7 +240,10 @@ bool FunctionConverter::visit(Mapping const& _node)
         auto nd_val = M_CONVERTER.get_nd_val(_node.valueType(), VMSG);
 
         auto true_val = make_shared<CIntLiteral>(1);
-        auto true_adt = make_shared<CFuncCall>("Init_bool_t", CArgList{true_val});
+        auto true_adt = make_shared<CFuncCall>(
+            "Init_" + TypeConverter::get_simple_ctype(BoolType{}),
+            CArgList{true_val}
+        );
         auto update_curr = make_shared<CIf>(
             make_shared<CBinaryOp>(a_set, "!=", true_val),
             make_shared<CBlock>(CBlockList{

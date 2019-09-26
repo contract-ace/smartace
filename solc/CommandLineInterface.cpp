@@ -1270,12 +1270,12 @@ void CommandLineInterface::handleCModelBody(
 	}
 	for (auto const& ast : _asts)
 	{
-		FunctionConverter cov(*ast, _con, FunctionConverter::View::FULL, false);
+		FunctionConverter cov(*ast, _con, FunctionConverter::View::INT, true);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
-		FunctionConverter cov(*ast, _con, FunctionConverter::View::INT, true);
+		FunctionConverter cov(*ast, _con, FunctionConverter::View::FULL, false);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
