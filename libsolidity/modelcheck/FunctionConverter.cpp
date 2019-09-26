@@ -216,6 +216,9 @@ bool FunctionConverter::visit(Mapping const& _node)
     auto write_id = make_shared<CVarDecl>("void", "Write_" + MAP_NAME);
     auto ref_id = make_shared<CVarDecl>(VAL_TYPE, "Ref_" + MAP_NAME, true);
 
+    // TODO(scottwe): There are some hard-coded .v's... This is fine as the
+    //                indices are primitive. This isn't too maintainable if we
+    //                change our primitive repr (this has happened already).
     shared_ptr<CBlock> zinit_body, nd_body, read_body, write_body, ref_body;
     if (!M_FWD_DCL)
     {
@@ -245,13 +248,15 @@ bool FunctionConverter::visit(Mapping const& _node)
             CArgList{true_val}
         );
         auto update_curr = make_shared<CIf>(
-            make_shared<CBinaryOp>(a_set, "!=", true_val),
+            make_shared<CBinaryOp>(a_set->access("v"), "!=", true_val),
             make_shared<CBlock>(CBlockList{
                 a_cur->assign(indx->id())->stmt(),
                 a_set->assign(true_adt)->stmt()
             }
         ), nullptr);
-        auto is_not_cur = make_shared<CBinaryOp>(indx->id(), "!=", a_cur);
+        auto is_not_cur = make_shared<CBinaryOp>(
+            indx->id()->access("v"), "!=", a_cur->access("v")
+        );
 
         zinit_body = make_shared<CBlock>(CBlockList{
             make_shared<CVarDecl>(MAP_TYPE, "tmp", false, nullptr),
@@ -280,7 +285,9 @@ bool FunctionConverter::visit(Mapping const& _node)
         write_body = make_shared<CBlock>(CBlockList{
             update_curr,
             make_shared<CIf>(
-                make_shared<CBinaryOp>(indx->id(), "==", a_cur),
+                make_shared<CBinaryOp>(
+                    indx->id()->access("v"), "==", a_cur->access("v")
+                ),
                 a_dat->assign(data->id())->stmt(),
                 nullptr
             )
