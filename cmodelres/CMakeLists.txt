@@ -85,14 +85,17 @@ include_directories(${PROJECT_BINARY_DIR})
 add_executable(icmodel ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
 target_link_libraries(icmodel verify_interactive)
 
-# MVC: Allows calls to seahorn.
+# MVC: Locates all dependencies of seahorn's libverify, along with all compiler flags.
 file(GLOB SEAHORN_LIBVERIFY_DEPS "libverify/*_seahorn.c")
 set(CMODEL_COMPILE_DEFS "")
 get_directory_property(CMODEL_COMPILE_DEFS_RAW DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS)
 foreach(d ${CMODEL_COMPILE_DEFS_RAW})
     list(APPEND CMODEL_COMPILE_DEFS "-D${d}")
 endforeach(d)
+
+# MVC: Generates call to seahorn.
 add_custom_target(
     verify
     COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEAHORN_LIBVERIFY_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS}
+    COMMAND_EXPAND_LISTS
 )
