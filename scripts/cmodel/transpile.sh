@@ -48,7 +48,6 @@ ${SOLC_PATH} ${SRC_FILE} \
 	--c-model \
 	--output-dir=${OUTPUT_DIR} \
 	2> "${OUTPUT_DIR}/cmodel.warning"
-cp -r libverify "${OUTPUT_DIR}"
 cp cmodelres/CMakeLists.txt "${OUTPUT_DIR}"
 mkdir -p "${OUTPUT_DIR}/cmake"
 cp cmake/Mc* "${OUTPUT_DIR}/cmake/"

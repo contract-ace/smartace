@@ -594,6 +594,50 @@ void CommandLineInterface::createFile(string const& _fileName, string const& _da
 		BOOST_THROW_EXCEPTION(FileError() << errinfo_comment("Could not write to file: " + pathName));
 }
 
+void CommandLineInterface::copyDirectory(string const& _src, string const& _dst)
+{
+	namespace fs = boost::filesystem;
+
+	// Ensures the source exists.
+	fs::path src(_src);
+	if (!fs::exists(src) || !fs::is_directory(src))
+	{
+		serr() << "Refusing to copy regular file " << src << " when directory was expected." << endl;
+		m_error = true;
+		return;
+	}
+
+	// Ensures the destination exists.
+	fs::path build_dir(m_args.at(g_argOutputDir).as<string>());
+	fs::path dst_root = build_dir / _dst;
+	if (!fs::exists(dst_root) || !fs::is_directory(dst_root))
+	{
+		serr() << "Request to copy to non-existent directory " << dst_root << ".";
+		m_error = true;
+		return;
+	}
+
+	// Ensures a file with the name of the source directory does not exist at destination.
+	fs::path dst = dst_root / src.filename();
+	if (fs::exists(dst))
+	{
+		serr() << "Request to overwrite existing directory " << dst << ".";
+		m_error = true;
+		return;
+	}
+
+	// Iteratively copies all regular files into the new directory.
+	fs::create_directory(dst);
+	for (fs::directory_iterator file(_src); file != fs::directory_iterator(); ++file)
+	{
+		auto const& fpath = file->path();
+		if (!fs::is_directory(fpath))
+		{
+			fs::copy_file(fpath, dst / fpath.filename());
+		}
+	}
+}
+
 void CommandLineInterface::createJson(string const& _fileName, string const& _json)
 {
 	createFile(boost::filesystem::basename(_fileName) + string(".json"), _json);
@@ -774,6 +818,13 @@ Allowed options)",
 			}
 	}
 	po::notify(m_args);
+
+	if (_argc == 0)
+	{
+		serr() << "Unable to locate solc, argc is 0.";
+		return false;
+	}
+	m_full_path = boost::filesystem::system_complete(boost::filesystem::path(_argv[0]));
 
 	return true;
 }
@@ -1174,10 +1225,11 @@ void CommandLineInterface::handleCModel()
 		handleCModelHeaders(asts, converter, cmodel_h_data);
 		handleCModelBody(asts, converter, cmodel_cpp_data);
 		handleCModelPrimitives(asts, converter, primitive_data);
+		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
 		createFile("cmodel.c", cmodel_cpp_data.str());
 		createFile("cmodel.cpp", cmodel_cpp_data.str());
-		createFile("primitive.h", primitive_data.str());
+		copyDirectory((m_full_path.stem() / "../libverify").string(), "");
 	}
 	else
 	{
