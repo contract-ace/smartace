@@ -609,25 +609,19 @@ void CommandLineInterface::copyDirectory(string const& _src, string const& _dst)
 
 	// Ensures the destination exists.
 	fs::path build_dir(m_args.at(g_argOutputDir).as<string>());
-	fs::path dst_root = build_dir / _dst;
-	if (!fs::exists(dst_root) || !fs::is_directory(dst_root))
+	fs::path dst = build_dir / _dst;
+	if (!fs::exists(dst))
 	{
-		serr() << "Request to copy to non-existent directory " << dst_root << ".";
+		fs::create_directory(dst);
+	}
+	else if (!fs::is_directory(dst))
+	{
+		serr() << "Request to copy to regular file " << dst << ".";
 		m_error = true;
 		return;
 	}
 
-	// Ensures a file with the name of the source directory does not exist at destination.
-	fs::path dst = dst_root / src.filename();
-	if (fs::exists(dst))
-	{
-		serr() << "Request to overwrite existing directory " << dst << ".";
-		m_error = true;
-		return;
-	}
-
-	// Iteratively copies all regular files into the new directory.
-	fs::create_directory(dst);
+	// Iteratively copies all regular files into the directory.
 	for (fs::directory_iterator file(_src); file != fs::directory_iterator(); ++file)
 	{
 		auto const& fpath = file->path();
@@ -824,7 +818,7 @@ Allowed options)",
 		serr() << "Unable to locate solc, argc is 0.";
 		return false;
 	}
-	m_full_path = boost::filesystem::system_complete(boost::filesystem::path(_argv[0]));
+	m_full_path = boost::filesystem::system_complete(boost::filesystem::path(_argv[0])).parent_path();
 
 	return true;
 }
@@ -1221,6 +1215,8 @@ void CommandLineInterface::handleCModel()
 	//                evaluations being repeated...
 	if (m_args.count(g_argOutputDir))
 	{
+		namespace fs = boost::filesystem;
+
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
 		handleCModelHeaders(asts, converter, cmodel_h_data);
 		handleCModelBody(asts, converter, cmodel_cpp_data);
@@ -1229,7 +1225,9 @@ void CommandLineInterface::handleCModel()
 		createFile("cmodel.h", cmodel_h_data.str());
 		createFile("cmodel.c", cmodel_cpp_data.str());
 		createFile("cmodel.cpp", cmodel_cpp_data.str());
-		copyDirectory((m_full_path.stem() / "../libverify").string(), "");
+		copyDirectory((m_full_path / "../libverify/integration").string(), "libverify");
+		copyDirectory((m_full_path / "../cmodelres/cmake").string(), "cmake");
+		fs::copy_file(m_full_path / "../cmodelres/CMakeLists.txt", m_args.at(g_argOutputDir).as<string>() + "/CMakeLists.txt");
 	}
 	else
 	{
