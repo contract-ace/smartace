@@ -60,13 +60,20 @@ add_subdirectory(libverify)
 set(EXE_SRCS_COMMON cmodel.h primitive.h)
 set(EXE_SRCS_C cmodel.c)
 set(EXE_SRCS_CPP cmodel.cpp)
-set(EXE_SRCS ${EXE_SRCS_COMMON} ${EXE_SRCS_C} ${EXE_SRCS_CPP})
+
+# Locates exactly all model files for seahorn and clang format.
+# Locates seahorn deps.
+set(EXE_SRCS_ABS "")
+set(SEAHORN_DEPS "")
+foreach(fn ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
+    list(APPEND EXE_SRCS_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
+endforeach(fn)
+foreach(fn ${EXE_SRCS_C})
+    list(APPEND SEAHORN_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
+    list(APPEND EXE_SRCS_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
+endforeach(fn)
 
 # Add a clang-format target to format all source files.
-set(EXE_SRCS_ABS "")
-FOREACH(fn ${EXE_SRCS})
-	LIST(APPEND EXE_SRCS_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
-ENDFOREACH(fn)
 add_custom_target(
     run-clang-format
     COMMAND ${CLANG_FORMAT_EXE} -i ${EXE_SRCS_ABS}
@@ -77,3 +84,15 @@ include_directories(.)
 include_directories(${PROJECT_BINARY_DIR})
 add_executable(icmodel ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
 target_link_libraries(icmodel verify_interactive)
+
+# MVC: Allows calls to seahorn.
+file(GLOB SEAHORN_LIBVERIFY_DEPS "libverify/*_seahorn.c")
+set(CMODEL_COMPILE_DEFS "")
+get_directory_property(CMODEL_COMPILE_DEFS_RAW DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS)
+foreach(d ${CMODEL_COMPILE_DEFS_RAW})
+    list(APPEND CMODEL_COMPILE_DEFS "-D${d}")
+endforeach(d)
+add_custom_target(
+    verify
+    COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEAHORN_LIBVERIFY_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS}
+)
