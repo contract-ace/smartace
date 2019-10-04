@@ -137,6 +137,7 @@ set(sources
 	parsing/Token.h
 )
 
+SET(Z3_HOME CACHE STRING "z3 installation directory")
 find_package(Z3 4.6.0)
 if (${Z3_FOUND})
   add_definitions(-DHAVE_Z3)
