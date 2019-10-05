@@ -57,9 +57,8 @@ add_subdirectory(libsolidity)
 add_subdirectory(libsolc)
 add_subdirectory(libverify)
 
-file(GLOB cmodelres_deps "cmake/Mc*.cmake" CONFIGURE_DEPENDS)
 file(COPY cmodelres/CMakeLists.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/cmodelres)
-file(COPY ${cmodelres_deps} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/cmodelres/cmake)
+file(COPY cmake/McOptions.cmake DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/cmodelres/cmake/cmake/McOptions.cmake)
 
 if (NOT EMSCRIPTEN)
 	add_subdirectory(solc)
