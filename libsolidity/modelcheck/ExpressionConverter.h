@@ -32,7 +32,10 @@ template <class T>
 class NodeSniffer : public ASTConstVisitor
 {
 public:
-	static_assert(std::is_base_of<ASTNode, T>::value);
+	static_assert(
+		std::is_base_of<ASTNode, T>::value,
+		"NodeSniffer expects that T be a valid ASTNode type."
+	);
 
 	// Wraps an AST node from which a node of type T is located.
 	NodeSniffer(Expression const& _expr): m_expr(_expr) {}
@@ -84,9 +87,10 @@ class LValueSniffer : public ASTConstVisitor
 {
 public:
 	static_assert(
-		std::is_same<T, MemberAccess>::value ||
-		std::is_same<T, IndexAccess>::value ||
-		std::is_same<T, Identifier>::value
+		std::is_same<T, MemberAccess>::value
+			|| std::is_same<T, IndexAccess>::value
+			|| std::is_same<T, Identifier>::value,
+		"LValue extraction is only defined on members, indices or identifiers"
 	);
 
 	// Wraps an AST node from which the LValue is located.

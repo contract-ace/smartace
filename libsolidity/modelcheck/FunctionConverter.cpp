@@ -333,7 +333,7 @@ CParams FunctionConverter::generate_params(
         string const ARG_TYPE = M_CONVERTER.get_type(*arg);
         params.push_back(make_shared<CVarDecl>(ARG_TYPE, arg->name()));
     }
-    return move(params);
+    return params;
 }
 
 // -------------------------------------------------------------------------- //

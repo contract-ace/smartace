@@ -8,13 +8,13 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#ifdef MC_USE_BOOST_MP
-#include<iostream>
-#endif
+#include <iostream>
+
+using namespace std;
 
 void on_entry(const char* _type, const char* _msg)
 {
-    printf("%s [%s]: ", _msg, _type);
+    std::cout << "%s [%s]: " << _msg << _type;
 }
 
 uint8_t rt_nd_byte(const char* _msg)
@@ -31,7 +31,7 @@ sol_raw_int8_t nd_int8_t(const char* _msg)
     sol_raw_int8_t retval = 0;
 
     #ifdef MC_USE_STDINT
-    scanf("%hhd", &retval);
+    scanf("%hhu", &retval);
     #elif defined MC_USE_BOOST_MP
     std::cin >> retval;
     #endif
@@ -43,13 +43,7 @@ sol_raw_int16_t nd_int16_t(const char* _msg)
 {
     on_entry("int16", _msg);
     sol_raw_int16_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%hd", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -57,13 +51,7 @@ sol_raw_int24_t nd_int24_t(const char* _msg)
 {
     on_entry("int24", _msg);
     sol_raw_int24_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%d", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -71,13 +59,7 @@ sol_raw_int32_t nd_int32_t(const char* _msg)
 {
     on_entry("int32", _msg);
     sol_raw_int32_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%d", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -85,13 +67,7 @@ sol_raw_int40_t nd_int40_t(const char* _msg)
 {
     on_entry("int40", _msg);
     sol_raw_int40_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%ld", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -99,13 +75,7 @@ sol_raw_int48_t nd_int48_t(const char* _msg)
 {
     on_entry("int48", _msg);
     sol_raw_int48_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%ld", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -113,13 +83,7 @@ sol_raw_int56_t nd_int56_t(const char* _msg)
 {
     on_entry("int56", _msg);
     sol_raw_int56_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%ld", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -127,13 +91,7 @@ sol_raw_int64_t nd_int64_t(const char* _msg)
 {
     on_entry("int64", _msg);
     sol_raw_int64_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%ld", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -501,7 +459,7 @@ sol_raw_uint8_t nd_uint8_t(const char* _msg)
     sol_raw_uint8_t retval = 0;
 
     #ifdef MC_USE_STDINT
-    scanf("%hhd", &retval);
+    scanf("%hhu", &retval);
     #elif defined MC_USE_BOOST_MP
     std::cin >> retval;
     #endif
@@ -513,13 +471,7 @@ sol_raw_uint16_t nd_uint16_t(const char* _msg)
 {
     on_entry("uint16", _msg);
     sol_raw_uint16_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%hu", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -527,13 +479,7 @@ sol_raw_uint24_t nd_uint24_t(const char* _msg)
 {
     on_entry("uint24", _msg);
     sol_raw_uint24_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%u", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -541,13 +487,7 @@ sol_raw_uint32_t nd_uint32_t(const char* _msg)
 {
     on_entry("uint32", _msg);
     sol_raw_uint32_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%u", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -555,13 +495,7 @@ sol_raw_uint40_t nd_uint40_t(const char* _msg)
 {
     on_entry("uint40", _msg);
     sol_raw_uint40_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%lu", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -569,13 +503,7 @@ sol_raw_uint48_t nd_uint48_t(const char* _msg)
 {
     on_entry("uint48", _msg);
     sol_raw_uint48_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%lu", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -583,13 +511,7 @@ sol_raw_uint56_t nd_uint56_t(const char* _msg)
 {
     on_entry("uint56", _msg);
     sol_raw_uint56_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%lu", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 
@@ -597,13 +519,7 @@ sol_raw_uint64_t nd_uint64_t(const char* _msg)
 {
     on_entry("uint64", _msg);
     sol_raw_uint64_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    scanf("%lu", &retval);
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
+    cin >> retval;
     return retval;
 }
 

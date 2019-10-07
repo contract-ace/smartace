@@ -60,7 +60,8 @@
         "__tree": "cpp",
         "__tuple": "cpp",
         "locale": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "optional": "cpp"
     },
     "C_Cpp.default.cppStandard": "c++14",
     "C_Cpp.default.defines": ["MC_USE_STDINT"]

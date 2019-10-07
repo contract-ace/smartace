@@ -37,7 +37,7 @@ protected:
 	bool visit(Conditional const&) override;
 	bool visit(MemberAccess const& _node) override;
 	bool visit(IndexAccess const& _node) override;
-	bool visit(Identifier const& _node);
+	bool visit(Identifier const& _node) override;
 
 private:
 	Expression const& m_base;
