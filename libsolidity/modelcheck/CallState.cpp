@@ -50,16 +50,20 @@ void CallState::register_primitives(PrimitiveTypeGenerator& _gen)
 void CallState::endVisit(ContractDefinition const& _node)
 {
     (void) _node;
-    // TODO(scottwe): Update  this; the current implementation is too fragile,
-    //                ie., changing our data-types break this (this has already)
-    //                happened once.
+    // TODO(scottwe): Required fields should be discovered.
     (*m_ostream) << "struct CallState";
     if (!m_forward_declare)
     {
+        AddressType addr_type(StateMutability::Payable);
+        IntegerType uint256_type(256);
+
         (*m_ostream) << "{";
-        (*m_ostream) << "sol_address_t sender;";
-        (*m_ostream) << "sol_uint256_t value;";
-        (*m_ostream) << "sol_uint256_t blocknum;";
+        (*m_ostream) << m_converter.get_simple_ctype(addr_type)
+                     << " sender;";
+        (*m_ostream) << m_converter.get_simple_ctype(uint256_type)
+                     << " value;";
+        (*m_ostream) << m_converter.get_simple_ctype(uint256_type)
+                     << " blocknum;";
         (*m_ostream) << "}";
     }
     (*m_ostream) << ";";

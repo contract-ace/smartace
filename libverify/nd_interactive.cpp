@@ -14,7 +14,7 @@ using namespace std;
 
 void on_entry(const char* _type, const char* _msg)
 {
-    std::cout << "%s [%s]: " << _msg << _type;
+    cout << _msg << " [" << _type << "]: ";
 }
 
 uint8_t rt_nd_byte(const char* _msg)

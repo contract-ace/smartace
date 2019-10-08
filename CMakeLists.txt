@@ -12,6 +12,8 @@ eth_policy()
 # project name and version should be set after cmake_policy CMP0048
 set(PROJECT_VERSION "0.5.9")
 project(solidity VERSION ${PROJECT_VERSION} LANGUAGES CXX C)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(LLL "Build LLL" OFF)
 option(SOLC_LINK_STATIC "Link solc executable statically on supported platforms" OFF)
@@ -58,7 +60,7 @@ add_subdirectory(libsolc)
 add_subdirectory(libverify)
 
 file(COPY cmodelres/CMakeLists.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/cmodelres)
-file(COPY cmake/McOptions.cmake DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/cmodelres/cmake/cmake/McOptions.cmake)
+file(COPY cmake/McOptions.cmake DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/cmodelres/cmake)
 
 if (NOT EMSCRIPTEN)
 	add_subdirectory(solc)
