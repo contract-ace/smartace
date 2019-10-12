@@ -23,19 +23,19 @@ set(
 	"A path to the Seahorn executable, sea."
 )
 
-if(SEA_PATH STREQUAL "")
-        message(FATAL_ERROR "-DSEA_PATH must be set.")
+if(SEA_PATH)
+    find_program(
+	    SEA_EXE
+	    NAMES sea
+        PATHS ${SEA_PATH}
+        NO_DEFAULT_PATH
+    )
+else()
+    find_program(SEA_EXE NAMES sea)
 endif()
 
-find_program(
-	SEA_EXE
-	NAMES sea
-	PATHS ${SEA_PATH}
-	NO_DEFAULT_PATH
-)
-
 if(NOT SEA_EXE)
-        message(FATAL_ERROR "Failed to find sea at: ${SEA_PATH}")
+    message(FATAL_ERROR "Failed to find sea. See -DSEA_PATH.")
 else()
 	message(STATUS "sea found: ${SEA_EXE}")
 endif()
