@@ -1,11 +1,13 @@
 # Model Checking in Solidity
 
-Extension of the solidity compiler to support smart contract model checking.
+Extension of the solidity compiler to support smart contract verification.
 
 ## Repository Overview
 
-Code related to code generation, and the solidity AST, may be found in `libsolidity`.
-These components are integrated within `solc/` to build `./solc`, the solidity compiler.
+Code related to code generation, and the solidity AST, may be found in `libsolidity/`.
+The generated code relies on a runtime library, found within `libverify/`.
+These components are integrated within `solc/` to build `solc`, the solidity compiler.
+
 Tests for these libraries may be found under `test/libsolidity`.
 The libsolidity testsuite is accessible for `scripts/solctests.sh`.
 
@@ -19,24 +21,42 @@ cd build
 cmake ..
 ```
 Once cmake has finished, simply run `make` from within `build/`.
+A minimal build may be produced by running `make solc`.
 
 If needed, refer to the [official build documentation](https://solidity.readthedocs.io/en/latest/installing-solidity.html#building-from-source)
 
 ## Generating and Testing a Model
 
 After making the project, you should find `./build/solc/socl`.
-This is a modified version of the solidity compiler.
+This is our modified version of the solidity compiler.
+It depends on resources populated within `./build/libverify/integration` and `./buildcmodelres`.
+
 To generate a model, run `<PATH_TO_SOLC> <SRC1> [SRC2] ... [SRCn] --c-model --output-dir=<A_FRESH_DIRECTORY>`.
 This will populate a CMake project.
 
-Currently, integers provided from cstdint, and boost's multiprecision integers are supported.
-To select one of these models pass `-DINT_MODEL:STRING=USE_STDINT` (resp. `-DINT_MODEL:STRING=USE_BOOST_MP`).
+There two integer models supported: those from cstdint, and those from boost multiprecision.
+To select one of these models pass `-DINT_MODEL:STRING=USE_STDINT` (resp. `-DINT_MODEL:STRING=USE_BOOST_MP`) to cmake.
 The model also expects the directory in which seahorn lives, given as `-DSEA_PATH=<SEAHORN_DIR>`.
-Additionally, you may pass `-DSEA_ARGS=arg1;arg2;...`.
+If seahorn is found within your search path, this step may be skipped.
+
+Additionally, you may pass `-DSEA_ARGS=arg1;arg2;...` to Seahorn.
 For instance, to compile a bit-precise counter-example, run `-DSEA_ARGS=--cex=cex.ll;--bv-cex`.
 
 After running `cmake`, you may then generate an interactive model by running `make icmodel`.
 You may invoke seahorn by running `make verify`.
+
+As a full example,
+
+```
+mkdir example
+./build/solc/solc contract.sol --c-model --output-dir=example
+cd exmaple
+mkdir build
+cd build
+cmake .. -DINT_MODEL:STRING=USE_STDINT -DSEA_ARGS=--cex=cex.ll;--bv-cex
+make icmodel
+make verify
+```
 
 ## Adding New Modules and Tests
 
