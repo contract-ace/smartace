@@ -157,6 +157,8 @@ extern "C" {
 
 void sol_require(sol_raw_uint8_t _cond, const char* _msg);
 void sol_assert(sol_raw_uint8_t cond, const char* _msg);
+void run_model(void);
+void ll_assume(sol_raw_uint8_t _cond);
 
 uint8_t rt_nd_byte(const char* _msg);
 
