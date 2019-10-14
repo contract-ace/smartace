@@ -4,6 +4,7 @@ set(
 	main.cpp
 )
 
+add_definitions(-DCMAKE_INSTALL_DIR=${CMAKE_INSTALL_PREFIX})
 add_executable(solc ${sources})
 target_link_libraries(solc PRIVATE solidity ${Boost_PROGRAM_OPTIONS_LIBRARIES})
 

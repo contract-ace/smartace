@@ -14,22 +14,26 @@ The libsolidity testsuite is accessible for `scripts/solctests.sh`.
 ## Building the Project
 
 Before building `solc`, ensure that the latest version of cmake is installed.
-To compile `solc` for the first time, run
+When compiling a development `solc` build for the first time, run
 ```
 mkdir build
 cd build
-cmake ..
+cmake .. -DCMAKE_INSTALL_PREFIX
 ```
-Once cmake has finished, simply run `make` from within `build/`.
-A minimal build may be produced by running `make solc`.
+Once cmake has finished, simply run,
+```
+cmake
+cmake install
+```
+This will populate `solc`, along with all of its dependencies, within `build/run/`.
+To run solc, execute `build/run/bin/solc`.
 
 If needed, refer to the [official build documentation](https://solidity.readthedocs.io/en/latest/installing-solidity.html#building-from-source)
 
 ## Generating and Testing a Model
 
-After making the project, you should find `./build/solc/socl`.
+After making the project, you should find `./build/run/bin/socl`.
 This is our modified version of the solidity compiler.
-It depends on resources populated within `./build/libverify/integration` and `./buildcmodelres`.
 
 To generate a model, run `<PATH_TO_SOLC> <SRC1> [SRC2] ... [SRCn] --c-model --output-dir=<A_FRESH_DIRECTORY>`.
 This will populate a CMake project.
@@ -49,7 +53,7 @@ As a full example,
 
 ```
 mkdir example
-./build/solc/solc contract.sol --c-model --output-dir=example
+./build/run/bin/solc contract.sol --c-model --output-dir=example
 cd exmaple
 mkdir build
 cd build

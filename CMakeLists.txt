@@ -59,8 +59,9 @@ add_subdirectory(libsolidity)
 add_subdirectory(libsolc)
 add_subdirectory(libverify)
 
-configure_file(cmodelres/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/cmodelres COPYONLY)
-configure_file(cmake/McOptions.cmake ${CMAKE_CURRENT_BINARY_DIR}/cmodelres/cmake COPYONLY)
+install(DIRECTORY libverify/ DESTINATION include/solc/libverify)
+install(DIRECTORY cmodelres/ DESTINATION share/solc/project)
+install(FILES cmake/McOptions.cmake DESTINATION share/solc/project/cmake)
 
 if (NOT EMSCRIPTEN)
 	add_subdirectory(solc)

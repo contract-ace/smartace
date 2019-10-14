@@ -102,10 +102,12 @@ private:
 	/// @arg _data to be written
 	void createFile(std::string const& _fileName, std::string const& _data);
 
-	/// Copies a directory to the given parent directory. Not that this copy is not recursive.
+	/// Recursively copies a source directory onto a destination directory.
+	/// Directories will be created as needed.
 	/// @arg _src the path to the directory which is to be copied.
 	/// @arg _dst the path to the destination.
-	void copyDirectory(std::string const& _src, std::string const& _dst);
+	/// @arg _r if true, the directory is copied recursively.
+	void copyDirectory(std::string const& _src, std::string const& _dst, bool _r);
 
 	/// Create a json file in the given directory
 	/// @arg _fileName the name of the file (the extension will be replaced with .json)
@@ -135,7 +137,7 @@ private:
 	/// Whether or not to colorize diagnostics output.
 	bool m_coloredOutput = true;
 	/// The path of solc.
-	boost::filesystem::path m_full_path;
+	boost::filesystem::path m_install_dir;
 };
 
 }

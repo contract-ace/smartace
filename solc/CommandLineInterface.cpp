@@ -14,12 +14,19 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 /**
  * @author Lefteris <lefteris@ethdev.com>
  * @author Gav Wood <g@ethdev.com>
- * @date 2014
- * Solidity command line interface.
+ * @author Scott Wesley
+ * @date 2019
+ * 2014: Solidity command line interface.
+ * 2019: Solidity CLI with model checking extensions.
  */
+
+#define macro_stringify(x) #x
+#define macro_xstringify(x) macro_stringify(x)
+
 #include <solc/CommandLineInterface.h>
 
 #include "solidity/BuildInfo.h"
@@ -594,29 +601,35 @@ void CommandLineInterface::createFile(string const& _fileName, string const& _da
 		BOOST_THROW_EXCEPTION(FileError() << errinfo_comment("Could not write to file: " + pathName));
 }
 
-void CommandLineInterface::copyDirectory(string const& _src, string const& _dst)
+void CommandLineInterface::copyDirectory(string const& _src, string const& _dst, bool _r)
 {
 	namespace fs = boost::filesystem;
 
 	// Ensures the source exists.
 	fs::path src(_src);
-	if (!fs::exists(src) || !fs::is_directory(src))
+	if (!fs::exists(src))
 	{
-		serr() << "Refusing to copy regular file " << src << " when directory was expected." << endl;
+		serr() << "Expected file: " << src << endl;
+		m_error = true;
+		return;
+	}
+	else if (!fs::is_directory(src))
+	{
+		serr() << "Expected directory, found regular file: " << src << endl;
 		m_error = true;
 		return;
 	}
 
 	// Ensures the destination exists.
-	fs::path build_dir(m_args.at(g_argOutputDir).as<string>());
-	fs::path dst = build_dir / _dst;
-	if (!fs::exists(dst))
+	fs::path full_dst(m_args.at(g_argOutputDir).as<string>());
+	if (!_dst.empty()) full_dst /= _dst;
+	if (!fs::exists(full_dst))
 	{
-		fs::create_directory(dst);
+		fs::create_directory(full_dst);
 	}
-	else if (!fs::is_directory(dst))
+	else if (!fs::is_directory(full_dst))
 	{
-		serr() << "Request to copy to regular file " << dst << ".";
+		serr() << "Unable to use regular file as destination: " << full_dst << endl;
 		m_error = true;
 		return;
 	}
@@ -625,9 +638,29 @@ void CommandLineInterface::copyDirectory(string const& _src, string const& _dst)
 	for (fs::directory_iterator file(_src); file != fs::directory_iterator(); ++file)
 	{
 		auto const& fpath = file->path();
-		if (!fs::is_directory(fpath))
+		if (fs::is_regular_file(fpath))
 		{
-			fs::copy_file(fpath, dst / fpath.filename());
+			fs::path full_fpath = full_dst / fpath.filename();
+			if (fs::exists(full_fpath))
+			{
+				if (!m_args.count(g_strOverwrite))
+				{
+					serr() << "File exists: " << full_fpath << " (use --overwrite to force)." << endl;
+					m_error = true;
+					return;
+				}
+				else
+				{
+					fs::remove(full_fpath);
+				}
+			}
+			fs::copy_file(fpath, full_dst / fpath.filename());
+		}
+		else if (_r)
+		{
+			fs::path rel_dst(_dst);
+			rel_dst /= fpath.filename();
+			copyDirectory(fpath.string(), rel_dst.string(), _r);
 		}
 	}
 }
@@ -818,7 +851,7 @@ Allowed options)",
 		serr() << "Unable to locate solc, argc is 0.";
 		return false;
 	}
-	m_full_path = boost::filesystem::system_complete(boost::filesystem::path(_argv[0])).parent_path();
+	m_install_dir = macro_xstringify(CMAKE_INSTALL_DIR);
 
 	return true;
 }
@@ -1217,6 +1250,9 @@ void CommandLineInterface::handleCModel()
 	{
 		namespace fs = boost::filesystem;
 
+		copyDirectory((m_install_dir / "share/solc/project").string(), "", true);
+		copyDirectory((m_install_dir / "include/solc/libverify").string(), "libverify", true);
+		
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
 		handleCModelHeaders(asts, converter, cmodel_h_data);
 		handleCModelBody(asts, converter, cmodel_cpp_data);
@@ -1225,9 +1261,6 @@ void CommandLineInterface::handleCModel()
 		createFile("cmodel.h", cmodel_h_data.str());
 		createFile("cmodel.c", cmodel_cpp_data.str());
 		createFile("cmodel.cpp", cmodel_cpp_data.str());
-		copyDirectory((m_full_path / "../libverify/integration").string(), "libverify");
-		copyDirectory((m_full_path / "../cmodelres/cmake").string(), "cmake");
-		fs::copy_file(m_full_path / "../cmodelres/CMakeLists.txt", m_args.at(g_argOutputDir).as<string>() + "/CMakeLists.txt");
 	}
 	else
 	{
