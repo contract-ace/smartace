@@ -75,6 +75,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     stmts.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(CBlockList{
+            make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt(),
             NXTSTATE->access("sender")->assign(
                 get_nd_sol_val(
                     AddressType(StateMutability::Payable),

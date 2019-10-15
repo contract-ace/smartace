@@ -16,6 +16,10 @@ void sol_setup(int _argc, const char **_argv) {}
 
 // -------------------------------------------------------------------------- //
 
+void sol_on_transaction(void) {}
+
+// -------------------------------------------------------------------------- //
+
 void ll_assume(sol_raw_uint8_t _cond)
 {
     assume(_cond);

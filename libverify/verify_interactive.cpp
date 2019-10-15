@@ -17,15 +17,22 @@ using namespace std;
 
 // -------------------------------------------------------------------------- //
 
+static uint64_t g_solTransactionNumber;
+
 static const char g_solHelpCliArg[] = "help";
 static const char g_solHelpCliMsg[] = "display options and settings";
 static const char g_solZRetCliArg[] = "return-0";
 static const char g_solZRetCliMsg[] = "when true, assertions return 0";
+static const char g_solTransNCliArg[] = "count-transactions";
+static const char gTransNCliMsg[] = "when true, logs total transactions";
 
 static bool g_solZRet;
+static bool g_solLogTrans;
 
 void sol_setup(int _argc, const char **_argv)
 {
+    g_solTransactionNumber = 0;
+
     try
     {
         namespace po = boost::program_options;
@@ -33,7 +40,8 @@ void sol_setup(int _argc, const char **_argv)
         po::options_description desc("Interactive C Model Options.");
         desc.add_options()
             (g_solHelpCliArg, g_solHelpCliMsg)
-            (g_solZRetCliArg, po::bool_switch(&g_solZRet), g_solZRetCliMsg);
+            (g_solZRetCliArg, po::bool_switch(&g_solZRet), g_solZRetCliMsg)
+            (g_solTransNCliArg, po::bool_switch(&g_solLogTrans), gTransNCliMsg);
     
         po::variables_map args;
         po::store(po::parse_command_line(_argc, _argv, desc), args);
@@ -55,6 +63,13 @@ void sol_setup(int _argc, const char **_argv)
         cerr << "Interactive C Model Setup Error: Unexpected error." << endl;
         exit(-1);
     }
+}
+
+// -------------------------------------------------------------------------- //
+
+void sol_on_transaction(void)
+{
+    ++g_solTransactionNumber;
 }
 
 // -------------------------------------------------------------------------- //
@@ -83,6 +98,11 @@ void sol_assertion_impl(
             cerr << ": " << _msg;
         }
         cerr << endl;
+
+        if (g_solLogTrans)
+        {
+            cerr << "Transaction Count: " << g_solTransactionNumber << endl;
+        }
 
         exit(_status);
     }

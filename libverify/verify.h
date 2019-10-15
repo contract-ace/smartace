@@ -163,6 +163,9 @@ extern "C" {
 // _argc and _argv are forwarded from main.
 void sol_setup(int _argc, const char **_argv);
 
+// This method is called once before each transaction.
+void sol_on_transaction(void);
+
 // Raw call to assume, meant for use by the model's execution environment.
 void ll_assume(sol_raw_uint8_t _cond);
 
