@@ -18,12 +18,12 @@ When compiling a development `solc` build for the first time, run
 ```
 mkdir build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX
+cmake .. -DCMAKE_INSTALL_PREFIX=run
 ```
 Once cmake has finished, simply run,
 ```
-cmake
-cmake install
+make
+make install
 ```
 This will populate `solc`, along with all of its dependencies, within `build/run/`.
 To run solc, execute `build/run/bin/solc`.
@@ -32,7 +32,7 @@ If needed, refer to the [official build documentation](https://solidity.readthed
 
 ## Generating and Testing a Model
 
-After making the project, you should find `./build/run/bin/socl`.
+After making the project, you should find `./build/run/bin/solc`.
 This is our modified version of the solidity compiler.
 
 To generate a model, run `<PATH_TO_SOLC> <SRC1> [SRC2] ... [SRCn] --c-model --output-dir=<A_FRESH_DIRECTORY>`.
