@@ -20,13 +20,16 @@
  * types are controlled at build time using preprocessor definitions.
  */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*global variable Env record the environment*/
 static jmp_buf Env;
+
+void sol_setup(int _argc, const char **_argv)
+{
+}
 
 /*global variable exception_type 
  * record the return value of setjmp function,

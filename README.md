@@ -62,6 +62,27 @@ make icmodel
 make verify
 ```
 
+## Running Regression Tests
+
+Regression tests operate on Solidity contracts which have previously shown to work with some pipeline.
+These tests will run said contracts through the modified `solc` compiler, and then attempt to use their project directories.
+To see all integration tests, refer to `test/regression`.
+
+Integration tests are powered by `lit` and `CheckOutput`.
+Before running any integration tests, first install pipe and then run,
+```
+pip install lit
+pip install CheckOutput
+```
+
+With these tools in place, simply run `lit`, from `test/regression`.
+In this test suite, `lit` expects a `SEA_PATH` environment variable to `sea`'s parent directory, should this directory not be in `$PATH`.
+This setup also accepts the absolute path to tooling, where supported variables are `CMAKE` and `SOLC`.
+For example, a common command might be,
+```
+SEA_PATH=<PATH_TO_SEA_BINDIR> SOLC=<PATH_TO_REPO>/build/solc/solc lit . 
+```
+
 ## Adding New Modules and Tests
 
 To add a new file to `libsolidity/`, its path must be added to `libsolidity/CMakeLists.txt`.

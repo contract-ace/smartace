@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.1.0)
 project(cmodel VERSION "1.0.0" LANGUAGES CXX C)
 set(CMAKE_C_STANDARD 99)
 
+find_package(Boost 1.65.0 QUIET REQUIRED COMPONENTS program_options)
+
 # Loads in configurations.
 set(
     MC_CMAKE_DIR

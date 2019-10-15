@@ -7,8 +7,53 @@
 
 #include "verify.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include <boost/program_options.hpp>
+
+using namespace std;
+
+static const char g_solHelpCliArg[] = "help";
+static const char g_solHelpCliMsg[] = "display options and settings";
+static const char g_solZRetCliArg[] = "return-0";
+static const char g_solZRetCliMsg[] = "when true, assertions return 0";
+
+static bool g_solZRet;
+
+void sol_setup(int _argc, const char **_argv)
+{
+    try
+    {
+        namespace po = boost::program_options;
+
+        po::options_description desc("Interactive C Model Options.");
+        desc.add_options()
+            (g_solHelpCliArg, g_solHelpCliMsg)
+            (g_solZRetCliArg, po::bool_switch(&g_solZRet), g_solZRetCliMsg);
+    
+        po::variables_map args;
+        po::store(po::parse_command_line(_argc, _argv, desc), args);
+        po::notify(args);
+
+        if (args.count(g_solHelpCliArg))
+        {
+            cout << desc << endl;
+            exit(0);
+        }
+    }
+    catch (exception const& e)
+    {
+        cerr << "Interactive C Model Setup Error: " << e.what() << endl;
+        exit(-1);
+    }
+    catch (...)
+    {
+        cerr << "Interactive C Model Setup Error: Unexpected error." << endl;
+        exit(-1);
+    }
+}
 
 void sol_assertion_impl(
     int _status, sol_raw_uint8_t _cond, char const* _check, char const* _msg
@@ -16,9 +61,18 @@ void sol_assertion_impl(
 {
     if (!_cond)
     {
-        fprintf(stderr, "%s", _check);
-        if (_msg) fprintf(stderr, ": %s", _msg);
-        fprintf(stderr, "\n");
+        if (g_solZRet)
+        {
+            _status = 0;
+        }
+
+        cerr << _check;
+        if (_msg)
+        {
+            cerr << ": " << _msg;
+        }
+        cerr << endl;
+
         exit(_status);
     }
 }

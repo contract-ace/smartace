@@ -155,10 +155,14 @@ typedef uint64_t sol_raw_uint256_t;
 extern "C" {
 #endif
 
+void sol_setup(int _argc, const char **_argv);
+
 void sol_require(sol_raw_uint8_t _cond, const char* _msg);
 void sol_assert(sol_raw_uint8_t cond, const char* _msg);
-void run_model(void);
+
 void ll_assume(sol_raw_uint8_t _cond);
+
+void run_model(void);
 
 uint8_t rt_nd_byte(const char* _msg);
 

@@ -1,0 +1,20 @@
+// RUN: %solc %s --c-model --output-dir=%t
+// RUN: cd %t
+// RUN: cmake -DSEA_PATH=%seapath
+// RUN: make icmodel
+// RUN: echo 1 0 0 0 0 1 0 0 0 0 | ./icmodel --return-0 2>&1 | OutputCheck %s --comment=//
+// CHECK: assert
+
+/*
+ * Regression test for most basic behaviour of the system. Ensures the
+ * interactive model can hit the exception.
+ */
+
+contract Contract {
+	uint256 counter;
+	function incr() public {
+		counter = counter + 1;
+		assert(counter < 2);
+	}
+}
+

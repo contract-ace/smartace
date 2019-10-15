@@ -10,6 +10,10 @@
 
 #include "seahorn/seahorn.h"
 
+void sol_setup(int _argc, const char **_argv)
+{
+}
+
 void sol_assert(sol_raw_uint8_t _cond, const char* _msg)
 {
     sassert(_cond);

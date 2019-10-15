@@ -1366,7 +1366,11 @@ void CommandLineInterface::handleCModelBody(
 		MainFunctionGenerator cov(*ast, _con);
 		cov.print(_os);
 	}
-	_os << "int main(void){run_model();return 0;}";
+	_os << "int main(int argc,const char**argv){"
+	    << "sol_setup(argc,argv);"
+		<< "run_model();"
+		<< "return 0;"
+		<< "}";
 }
 
 bool CommandLineInterface::actOnInput()
