@@ -67,6 +67,7 @@ set(EXE_SRCS_CPP cmodel.cpp)
 # Locates seahorn deps.
 set(EXE_SRCS_ABS "")
 set(SEAHORN_DEPS "")
+list(APPEND SEAHORN_DEPS "libverify/verify_seahorn.c")
 foreach(fn ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
     list(APPEND EXE_SRCS_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
 endforeach(fn)
@@ -88,7 +89,6 @@ add_executable(icmodel ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
 target_link_libraries(icmodel verify_interactive)
 
 # MVC: Locates all dependencies of seahorn's libverify, along with all compiler flags.
-file(GLOB SEAHORN_LIBVERIFY_DEPS "libverify/*_seahorn.c")
 set(CMODEL_COMPILE_DEFS "")
 get_directory_property(CMODEL_COMPILE_DEFS_RAW DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS)
 foreach(d ${CMODEL_COMPILE_DEFS_RAW})
@@ -98,6 +98,6 @@ endforeach(d)
 # MVC: Generates call to seahorn.
 add_custom_target(
     verify
-    COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEAHORN_LIBVERIFY_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS}
+    COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS}
     COMMAND_EXPAND_LISTS
 )

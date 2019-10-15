@@ -61,7 +61,8 @@
         "__tuple": "cpp",
         "locale": "cpp",
         "stack": "cpp",
-        "optional": "cpp"
+        "optional": "cpp",
+        "csetjmp": "cpp"
     },
     "C_Cpp.default.cppStandard": "c++14",
     "C_Cpp.default.defines": ["MC_USE_STDINT"]

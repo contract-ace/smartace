@@ -155,17 +155,26 @@ typedef uint64_t sol_raw_uint256_t;
 extern "C" {
 #endif
 
+// This method is called once, when the c-model is bootstrapping. It allows
+// application-speicific setup and allocations to be decoupled from the c-model.
+// It also allows for arbitrary C++ code to be injected into the setup, without
+// the knowledge of the c-model.
+// 
+// _argc and _argv are forwarded from main.
 void sol_setup(int _argc, const char **_argv);
 
+// Raw call to assume, meant for use by the model's execution environment.
+void ll_assume(sol_raw_uint8_t _cond);
+
+// Placeholder calls for require() and assert() in solidity.
 void sol_require(sol_raw_uint8_t _cond, const char* _msg);
 void sol_assert(sol_raw_uint8_t cond, const char* _msg);
 
-void ll_assume(sol_raw_uint8_t _cond);
-
-void run_model(void);
-
+// Returns a raw byte without any wrapping. This is meant to be used by the
+// model's execution environment.
 uint8_t rt_nd_byte(const char* _msg);
 
+// Provides non-deterministic integers for all native Solidity byte-widths.
 sol_raw_int8_t nd_int8_t(const char* _msg);
 sol_raw_uint8_t nd_uint8_t(const char* _msg);
 sol_raw_int16_t nd_int16_t(const char* _msg);
