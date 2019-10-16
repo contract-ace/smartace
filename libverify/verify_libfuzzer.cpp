@@ -139,7 +139,7 @@ void ran(uint8_t const* Data, size_t Size)
 
 	SizeOfRandData = Size;
 	CounterOfRandData = 0;
-	for (size_t i = 0; i < i; ++i)
+	for (size_t i = 0; i < Size; ++i)
 	{
 		RandData[i] = Data[i];
 	}
