@@ -102,6 +102,13 @@ if(SEA_EXE)
     add_custom_target(
         verify
         COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS}
+        SOURCES ${SEAHORN_DEPS}
+        COMMAND_EXPAND_LISTS
+    )
+    add_custom_target(
+        cex
+        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --cex=cex.ll
+        SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
 endif()

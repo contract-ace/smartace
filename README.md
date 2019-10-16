@@ -48,6 +48,8 @@ For instance, to compile a bit-precise counter-example, run `-DSEA_ARGS=--cex=ce
 
 After running `cmake`, you may then generate an interactive model by running `make icmodel`.
 You may invoke seahorn by running `make verify`.
+To produce a counterexample, run `make cex`.
+If a counterexample exists, it will be populated in `cex.ll`.
 
 As a full example,
 
@@ -57,9 +59,10 @@ mkdir example
 cd exmaple
 mkdir build
 cd build
-cmake .. -DINT_MODEL:STRING=USE_STDINT -DSEA_ARGS=--cex=cex.ll;--bv-cex
+cmake .. -DINT_MODEL:STRING=USE_STDINT -DSEA_ARGS=--bv-cex
 make icmodel
 make verify
+make cex
 ```
 
 ## Running Regression Tests
