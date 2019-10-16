@@ -2,6 +2,8 @@
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make verify | OutputCheck %s --comment=//
+// RUN: make cex
+// [ ! -f cex.ll ]
 // CHECK: ^unsat$
 
 /*
