@@ -36,10 +36,10 @@ else()
     find_program(SEA_EXE NAMES sea)
 endif()
 
-if(NOT SEA_EXE)
-    message(FATAL_ERROR "Failed to find sea. See -DSEA_PATH.")
+if(SEA_EXE)
+    message(STATUS "sea found: ${SEA_EXE}")
 else()
-	message(STATUS "sea found: ${SEA_EXE}")
+    message(WARNING "Failed to find sea. See -DSEA_PATH.")
 endif()
 
 # Locates clang-format, if possible.
@@ -49,10 +49,10 @@ find_program(
     DOC "Path to clang-format executable"
 )
 
-if(NOT CLANG_FORMAT_EXE)
-    message(STATUS "clang-format not found.")
-else()
+if(CLANG_FORMAT_EXE)
     message(STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
+else()
+    message(WARNING "clang-format not found.")
 endif()
 
 # Adds dependencies...
@@ -77,10 +77,12 @@ foreach(fn ${EXE_SRCS_C})
 endforeach(fn)
 
 # Add a clang-format target to format all source files.
-add_custom_target(
-    run-clang-format
-    COMMAND ${CLANG_FORMAT_EXE} -i ${EXE_SRCS_ABS}
-)
+if(CLANG_FORMAT_EXE)
+    add_custom_target(
+        run-clang-format
+        COMMAND ${CLANG_FORMAT_EXE} -i ${EXE_SRCS_ABS}
+    )
+endif()
 
 # Adds targets for each execution model.
 include_directories(.)
@@ -95,9 +97,12 @@ foreach(d ${CMODEL_COMPILE_DEFS_RAW})
     list(APPEND CMODEL_COMPILE_DEFS "-D${d}")
 endforeach(d)
 
-# MVC: Generates call to seahorn.
-add_custom_target(
-    verify
-    COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS}
-    COMMAND_EXPAND_LISTS
-)
+if(SEA_EXE)
+    # MVC: Generates call to seahorn.
+    add_custom_target(
+        verify
+        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS}
+        COMMAND_EXPAND_LISTS
+    )
+endif()
+
