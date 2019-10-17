@@ -1256,7 +1256,7 @@ void CommandLineInterface::handleCModel()
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
 		handleCModelHeaders(asts, converter, cmodel_h_data);
 		handleCModelBody(asts, converter, cmodel_cpp_data);
-		handleCModelPrimitives(asts, converter, primitive_data);
+		handleCModelPrimitives(asts, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
 		createFile("cmodel.c", cmodel_cpp_data.str());
@@ -1265,7 +1265,7 @@ void CommandLineInterface::handleCModel()
 	else
 	{
 		sout() << "====== primitive.h =====" << endl;
-		handleCModelPrimitives(asts, converter, sout());
+		handleCModelPrimitives(asts, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(asts, converter, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
@@ -1275,9 +1275,7 @@ void CommandLineInterface::handleCModel()
 }
 
 void CommandLineInterface::handleCModelPrimitives(
-	std::vector<SourceUnit const*> const& _asts,
-	modelcheck::TypeConverter const& _con,
-	std::ostream& _os
+	vector<SourceUnit const*> const& _asts, ostream& _os
 )
 {
 	using dev::solidity::modelcheck::PrimitiveTypeGenerator;
@@ -1289,7 +1287,7 @@ void CommandLineInterface::handleCModelPrimitives(
 		// TODO(scottwe): This isn't going to work. It will print multiple
 		//                CallStates.
 		gen.record(*ast);
-		CallState(*ast, _con, false).register_primitives(gen);
+		CallState(*ast, false).register_primitives(gen);
 	}
 
 	_os << "#pragma once" << endl;
@@ -1313,7 +1311,7 @@ void CommandLineInterface::handleCModelHeaders(
 	{
 		// TODO(scottwe): This isn't going to work. It will print multiple
 		//                CallStates.
-		CallState cov(*ast, _con, true);
+		CallState cov(*ast, true);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
@@ -1343,7 +1341,7 @@ void CommandLineInterface::handleCModelBody(
 	{
 		// TODO(scottwe): This isn't going to work. It will print multiple
 		//                CallStates.
-		CallState cov(*ast, _con, false);
+		CallState cov(*ast, false);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)

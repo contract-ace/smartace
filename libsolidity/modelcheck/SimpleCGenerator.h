@@ -578,6 +578,10 @@ public:
     // Automatically generates a typedef for this structure, with symbol _name.
     std::shared_ptr<CTypedef> make_typedef(std::string _name);
 
+    // Automatically generates a CVarDecl of this type.
+    std::shared_ptr<CVarDecl> decl(std::string _name);
+    std::shared_ptr<CVarDecl> decl(std::string _name, bool _ptr);
+
 private:
     std::string m_name;
     std::shared_ptr<CParams> m_fields;

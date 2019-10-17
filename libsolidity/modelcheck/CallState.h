@@ -26,11 +26,7 @@ class CallState : public ASTConstVisitor
 {
 public:
     // Constructs a printer for all contract forward decl's required by the ast.
-    CallState(
-        ASTNode const& _ast,
-		TypeConverter const& _converter,
-		bool _forward_declare
-    );
+    CallState(ASTNode const& _ast, bool _forward_declare);
 
     // Prints the struct of CallState.
     void print(std::ostream& _stream);
@@ -44,7 +40,6 @@ protected:
 
 private:
 	ASTNode const& m_ast;
-	TypeConverter const& m_converter;
 	std::ostream* m_ostream = nullptr;
 
 	const bool m_forward_declare;

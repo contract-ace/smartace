@@ -436,6 +436,16 @@ shared_ptr<CTypedef> CStructDef::make_typedef(string _name)
     return make_shared<CTypedef>("struct " + m_name, _name);
 }
 
+shared_ptr<CVarDecl> CStructDef::decl(string _name)
+{
+    return decl(_name, false);
+}
+
+shared_ptr<CVarDecl> CStructDef::decl(string _name, bool _ptr)
+{
+    return make_shared<CVarDecl>(m_name, _name, _ptr);
+}
+
 // -------------------------------------------------------------------------- //
 
 }
