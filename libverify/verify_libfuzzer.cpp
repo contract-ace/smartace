@@ -90,12 +90,14 @@ void sol_require(sol_raw_uint8_t _cond, const char* _msg)
 {
 	if (!_cond)
 	{
-		cerr << "require";
+		/*
+		cout << "require";
 		if(_msg)
 		{
-			cerr << ": " << _msg;
+			cout << ": " << _msg;
 		}
-		cerr << endl; 
+		cout << endl; 
+		*/
     }
 	ll_assume(_cond);	
 }
@@ -154,7 +156,7 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size)
 		case OUT_OF_DATA: break;
 		case REQUIRE_FAILED: break;
 		case NONE:
-			cout << endl;
+			// cout << endl;
 			ran(Data, Size);
 			run_model();
 			break;
@@ -169,7 +171,7 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size)
 
 void on_entry(const char* _type, const char* _msg)
 {
-	cout << _msg << " [" << _type << "]:";
+	// cout << _msg << " [" << _type << "]:";
 }
 
 uint8_t rt_nd_byte(const char* _msg)
