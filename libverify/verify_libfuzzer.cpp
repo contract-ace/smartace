@@ -53,7 +53,7 @@ void ran(uint8_t const* Data, size_t Size);
 uint8_t tryGetNextRandByte();
 
 // Inputs the data.
-int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size);
+extern "C" int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size);
 
 // Entry-point to the c-model.
 //
@@ -145,7 +145,7 @@ void ran(uint8_t const* Data, size_t Size)
 	}
 }
 
-int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size)
+extern "C" int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size)
 {
 	exception_type = NONE;
 
