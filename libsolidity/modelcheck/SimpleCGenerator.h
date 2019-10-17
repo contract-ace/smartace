@@ -279,7 +279,7 @@ public:
     CFuncCallBuilder(std::string _name);
 
     // Pushes _expr to the end of the argument list.
-    void push(CExprPtr _expr);
+    void push(CExprPtr _expr, Type const* _t = nullptr);
 
     // Evaluates expression, taking into account if it is a wrapped type. The
     // arguments are forwarded to ExpressionConverter. If _t is set, and wraps a
@@ -302,6 +302,8 @@ public:
 private:
     std::string const m_name;
     CArgList m_args;
+
+    CExprPtr wrap_with_type(CExprPtr && _expr, Type const& _t);
 };
 
 // -------------------------------------------------------------------------- //

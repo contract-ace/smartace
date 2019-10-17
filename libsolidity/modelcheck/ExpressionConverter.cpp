@@ -251,6 +251,10 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 			{
 				generate_mapping_call("Read", MAP_NAME, _node, nullptr);
 			}
+			if (is_wrapped_type(*_node.annotation().type))
+			{
+				m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
+			}
 		}
 		break;
 	default:
@@ -357,14 +361,16 @@ void ExpressionConverter::generate_mapping_call(
 	string const& _op, string const& _id, IndexAccess const& _map, CExprPtr _v
 )
 {
-	auto const* const MAP_T = _map.baseExpression().annotation().type;
-	auto const& KEY_T = dynamic_cast<MappingType const*>(MAP_T)->keyType();
+	auto const* const MAP_T = dynamic_cast<MappingType const*>(
+		_map.baseExpression().annotation().type
+	);
+	auto const& KEY_T = MAP_T->keyType();
 
 	// The type of baseExpression is an array, so it is not a wrapped type.
 	CFuncCallBuilder builder(_op + "_" + _id);
 	builder.push(_map.baseExpression(), M_TYPES, m_decls, true);
 	builder.push(*_map.indexExpression(), M_TYPES, m_decls, false, KEY_T);
-	if (_v) builder.push(move(_v));
+	if (_v) builder.push(move(_v), MAP_T->valueType());
 	m_subexpr = builder.merge_and_pop();
 }
 

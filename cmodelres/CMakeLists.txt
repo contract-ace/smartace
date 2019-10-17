@@ -67,7 +67,7 @@ set(EXE_SRCS_CPP cmodel.cpp)
 # Locates seahorn deps.
 set(EXE_SRCS_ABS "")
 set(SEAHORN_DEPS "")
-list(APPEND SEAHORN_DEPS "libverify/verify_seahorn.c")
+list(APPEND SEAHORN_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/libverify/verify_seahorn.c")
 foreach(fn ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
     list(APPEND EXE_SRCS_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
 endforeach(fn)

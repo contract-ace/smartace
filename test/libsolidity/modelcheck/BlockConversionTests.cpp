@@ -641,8 +641,8 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
              << ",Init_sol_int256_t((3)+(4)));";
     expected << "Read_A_StructB_Maparr2_submap1(&(((self->d_c).d_b).d_arr2)"
              << ",Init_sol_int256_t((5)+(6)));";
-    expected << "Read_A_Maparr1_submap2(Ref_A_Maparr1_submap1(&(self->d_arr1)"
-             << ",Init_sol_int256_t(10)),Init_sol_int256_t(10));";
+    expected << "(Read_A_Maparr1_submap2(Ref_A_Maparr1_submap1(&(self->d_arr1)"
+             << ",Init_sol_int256_t(10)),Init_sol_int256_t(10))).v;";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -679,17 +679,19 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     ostringstream actual, expected;
     actual << *BlockConverter(func, converter).convert();
     expected << "{";
-    expected << "Write_A_Mapa_submap1(&(self->d_a),Init_sol_int256_t(1),2);";
+    expected << "Write_A_Mapa_submap1(&(self->d_a),Init_sol_int256_t(1),"
+             << "Init_sol_int256_t(2));";
     expected << "Write_A_Mapa_submap1(&(self->d_a),Init_sol_int256_t(1)"
-             << ",(Read_A_Mapa_submap1(&(self->d_a)"
-             << ",Init_sol_int256_t(1)))+(2));";
+             << ",Init_sol_int256_t(((Read_A_Mapa_submap1(&(self->d_a)"
+             << ",Init_sol_int256_t(1))).v)+(2)));";
     expected << "(((*(Ref_A_Mapb_submap1(&(self->d_b),Init_sol_int256_t(1))))"
              << ".d_m).v)=((((Read_A_Mapb_submap1(&(self->d_b)"
              << ",Init_sol_int256_t(1))).d_m).v)+(2));";
     expected << "Write_A_StructC_Mapm_submap1(&((self->d_c).d_m)"
-             << ",Init_sol_int256_t(1),2);";
+             << ",Init_sol_int256_t(1),Init_sol_int256_t(2));";
     expected << "Write_A_Mapd_submap2(Ref_A_Mapd_submap1(&(self->d_d)"
-             << ",Init_sol_int256_t(1)),Init_sol_int256_t(2),3);";
+             << ",Init_sol_int256_t(1)),Init_sol_int256_t(2),"
+             << "Init_sol_int256_t(3));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
