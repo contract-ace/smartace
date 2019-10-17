@@ -443,7 +443,7 @@ shared_ptr<CVarDecl> CStructDef::decl(string _name)
 
 shared_ptr<CVarDecl> CStructDef::decl(string _name, bool _ptr)
 {
-    return make_shared<CVarDecl>(m_name, _name, _ptr);
+    return make_shared<CVarDecl>("struct " + m_name, _name, _ptr);
 }
 
 // -------------------------------------------------------------------------- //
