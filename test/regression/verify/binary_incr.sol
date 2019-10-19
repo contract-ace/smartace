@@ -2,11 +2,11 @@
 //
 // RUN: %solc %s --c-model --output-dir=%t
 // RUN: cd %t
-// RUN: cmake -DSEA_PATH=%seapath
-// RUN: make verify | OutputCheck %s --comment=//
+// RUN: cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify"
 // RUN: make cex
 // RUN: [ -f cex.ll ]
-// CHECK: ^sat$
+// RUN: make cexcmodel | OutputCheck %s --comment=//
+// CHECK: __VERIFIER_error
 
 /*
  * Regression test to ensure we can verify transactional sequences in which many

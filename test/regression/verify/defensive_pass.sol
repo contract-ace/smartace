@@ -1,7 +1,7 @@
 // RUN: %solc %s --c-model --output-dir=%t
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
-// RUN: make verify | OutputCheck %s --comment=//
+// RUN: make verify 2>&1 | OutputCheck %s --comment=//
 // CHECK: unsat
 
 // This contract implements a common crowdfunding dapp. It follows a three mode

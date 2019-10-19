@@ -101,15 +101,19 @@ if(SEA_EXE)
     # MVC: Generates call to seahorn.
     add_custom_target(
         verify
-        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --show-invars
+        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --inline --show-invars
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         cex
-        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --cex=cex.ll
+        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --inline --cex=cex.ll
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
+    add_custom_target(
+        cexcmodel
+	COMMAND ${SEA_EXE} exe-cex -O0 ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --inline -o cexcmodel
+        COMMAND_EXPAND_LISTS
+    )
 endif()
-
