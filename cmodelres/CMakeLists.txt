@@ -113,7 +113,7 @@ if(SEA_EXE)
     )
     add_custom_target(
         cexcmodel
-	COMMAND ${SEA_EXE} exe-cex -O0 ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --inline -o cexcmodel
+	COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --inline -o cexcmodel
         COMMAND_EXPAND_LISTS
     )
 endif()

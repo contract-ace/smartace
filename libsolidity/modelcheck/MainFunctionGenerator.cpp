@@ -67,7 +67,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         auto CDECL = contract_decls[CONTRACT];
         for (auto const* FUNC : CONTRACT->definedFunctions())
         {
-            if (FUNC->isConstructor()) continue;
+            if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
             auto call_body = build_case(*FUNC, param_decls, CDECL, CURSTATE);
             call_cases->add_case(func_id[FUNC], move(call_body));
         }
