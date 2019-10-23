@@ -66,13 +66,11 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
     update_call_state(fixpoint, NXTSTATE);
-    fixpoint.push_back(
-        make_require(make_shared<CBinaryOp>(
-            make_shared<CMemberAccess>(NXTSTATE->access("blocknum"), "v"),
-            ">=",
-            make_shared<CMemberAccess>(CURSTATE->access("blocknum"), "v")
-        ))
-    );
+    fixpoint.push_back(make_require(make_shared<CBinaryOp>(
+        make_shared<CMemberAccess>(NXTSTATE->access("blocknum"), "v"),
+        ">=",
+        make_shared<CMemberAccess>(CURSTATE->access("blocknum"), "v")
+    )));
     fixpoint.push_back(CURSTATE->assign(NXTSTATE->id())->stmt());
     fixpoint.push_back(call_cases);
 
@@ -216,6 +214,12 @@ void MainFunctionGenerator::update_call_state(
     _stmts.push_back(_state->access("blocknum")->assign(
         get_nd_sol_val(UINT256, "block_number"))->stmt()
     );
+
+    _stmts.push_back(make_require(make_shared<CBinaryOp>(
+        make_shared<CMemberAccess>(_state->access("sender"), "v"),
+        "!=",
+        NULL_LIT
+    )));
 }
 
 // -------------------------------------------------------------------------- //
