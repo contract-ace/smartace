@@ -62,7 +62,18 @@
         "locale": "cpp",
         "stack": "cpp",
         "optional": "cpp",
-        "csetjmp": "cpp"
+        "csetjmp": "cpp",
+        "clocale": "cpp",
+        "bitset": "cpp",
+        "complex": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "numeric": "cpp",
+        "iostream": "cpp",
+        "streambuf": "cpp",
+        "cfenv": "cpp",
+        "cinttypes": "cpp",
+        "typeindex": "cpp"
     },
     "C_Cpp.default.cppStandard": "c++14",
     "C_Cpp.default.defines": ["MC_USE_STDINT"]

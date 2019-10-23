@@ -22,35 +22,15 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-CallState::CallState(
-    ASTNode const& _ast, bool _forward_declare
-): m_ast(_ast), m_forward_declare(_forward_declare)
+void CallState::record(ASTNode const& _ast)
 {
+    _ast.accept(*this);
 }
 
 // -------------------------------------------------------------------------- //
 
-void CallState::print(ostream& _stream)
+void CallState::print(std::ostream& _stream, bool _forward_declare) const
 {
-	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
-    m_ast.accept(*this);
-}
-
-// -------------------------------------------------------------------------- //
-
-void CallState::register_primitives(PrimitiveTypeGenerator& _gen)
-{
-    // TODO(scottwe): See below; this should not be hard-coded...
-    _gen.record_address();
-    _gen.record_uint(256);
-}
-
-// -------------------------------------------------------------------------- //
-
-void CallState::endVisit(ContractDefinition const& _node)
-{
-    (void) _node;
-
     shared_ptr<CParams> cs_fields;
     shared_ptr<CBlock> pay_body;
 
@@ -60,7 +40,7 @@ void CallState::endVisit(ContractDefinition const& _node)
     auto uint256_type = TypeConverter::get_simple_ctype(IntegerType(256));
 
     // TODO(scottwe): Required fields should be discovered.
-    if (!m_forward_declare)
+    if (!_forward_declare)
     {
         cs_fields = make_shared<CParams>();
         cs_fields->push_back(make_shared<CVarDecl>(addr_type, "sender"));
@@ -79,7 +59,16 @@ void CallState::endVisit(ContractDefinition const& _node)
         }, move(pay_body)
     );
 
-    (*m_ostream) << cs << pay;
+    _stream << cs << pay;
+}
+
+// -------------------------------------------------------------------------- //
+
+void CallState::register_primitives(PrimitiveTypeGenerator& _gen) const
+{
+    // TODO(scottwe): See below; this should not be hard-coded...
+    _gen.record_address();
+    _gen.record_uint(256);
 }
 
 // -------------------------------------------------------------------------- //

@@ -41,10 +41,8 @@
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/modelcheck/ADTConverter.h>
-#include <libsolidity/modelcheck/CallState.h>
 #include <libsolidity/modelcheck/FunctionConverter.h>
 #include <libsolidity/modelcheck/MainFunctionGenerator.h>
-#include <libsolidity/modelcheck/PrimitiveTypeGenerator.h>
 
 #include <libyul/AssemblyStack.h>
 
@@ -1235,14 +1233,25 @@ void CommandLineInterface::handleAst(string const& _argStr)
 
 void CommandLineInterface::handleCModel()
 {
+	// Generates an AST for each Solidity source unit.
 	vector<SourceUnit const*> asts;
-	modelcheck::TypeConverter converter;
 	for (auto const& sourceCode: m_sourceCodes)
 	{
 		SourceUnit const& ast = m_compiler->ast(sourceCode.first);
-		converter.record(ast);
 		asts.push_back(&ast);
 	}
+
+	// A first pass over the Solidity sources to aggregate type data.
+	modelcheck::CallState callstate;
+	modelcheck::TypeConverter converter;
+	modelcheck::PrimitiveTypeGenerator primitive_set;
+	for (auto const& ast: asts)
+	{
+		callstate.record(*ast);
+		converter.record(*ast);
+		primitive_set.record(*ast);
+	}
+	callstate.register_primitives(primitive_set);
 
 	// TODO(scottwe): This was quick to set up, but it leads to the same AST
 	//                evaluations being repeated...
@@ -1254,9 +1263,9 @@ void CommandLineInterface::handleCModel()
 		copyDirectory((m_install_dir / "include/solc/libverify").string(), "libverify", true);
 		
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
-		handleCModelHeaders(asts, converter, cmodel_h_data);
-		handleCModelBody(asts, converter, cmodel_cpp_data);
-		handleCModelPrimitives(asts, primitive_data);
+		handleCModelHeaders(asts, converter, callstate, cmodel_h_data);
+		handleCModelBody(asts, converter, callstate, cmodel_cpp_data);
+		handleCModelPrimitives(primitive_set, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
 		createFile("cmodel.c", cmodel_cpp_data.str());
@@ -1265,55 +1274,37 @@ void CommandLineInterface::handleCModel()
 	else
 	{
 		sout() << "====== primitive.h =====" << endl;
-		handleCModelPrimitives(asts, sout());
+		handleCModelPrimitives(primitive_set, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
-		handleCModelHeaders(asts, converter, sout());
+		handleCModelHeaders(asts, converter, callstate, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(asts, converter, sout());
+		handleCModelBody(asts, converter, callstate, sout());
 		sout() << endl;
 	}
 }
 
 void CommandLineInterface::handleCModelPrimitives(
-	vector<SourceUnit const*> const& _asts, ostream& _os
+	modelcheck::PrimitiveTypeGenerator _gen, ostream& _os
 )
 {
-	using dev::solidity::modelcheck::PrimitiveTypeGenerator;
-	using dev::solidity::modelcheck::CallState;
-
-	PrimitiveTypeGenerator gen;
-	for (auto const& ast : _asts)
-	{
-		// TODO(scottwe): This isn't going to work. It will print multiple
-		//                CallStates.
-		gen.record(*ast);
-		CallState(*ast, false).register_primitives(gen);
-	}
-
-	_os << "#pragma once" << endl;
-	_os << "#include \"libverify/verify.h\"" << endl;
-	gen.print(_os);
+	_os << "#pragma once" << endl
+	    << "#include \"libverify/verify.h\"" << endl;
+	_gen.print(_os);
 }
 
 
 void CommandLineInterface::handleCModelHeaders(
 	vector<SourceUnit const*> const& _asts,
 	modelcheck::TypeConverter const& _con,
+	modelcheck::CallState const& _cs,
 	ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
-	using dev::solidity::modelcheck::CallState;
-	_os << "#pragma once" << endl;
-	_os << "#include \"primitive.h\"" << endl;
-	for (auto const& ast : _asts)
-	{
-		// TODO(scottwe): This isn't going to work. It will print multiple
-		//                CallStates.
-		CallState cov(*ast, true);
-		cov.print(_os);
-	}
+	_os << "#pragma once" << endl
+	    << "#include \"primitive.h\"" << endl;
+	_cs.print(_os, true);
 	for (auto const& ast : _asts)
 	{
 		ADTConverter cov(*ast, _con, true);
@@ -1329,21 +1320,15 @@ void CommandLineInterface::handleCModelHeaders(
 void CommandLineInterface::handleCModelBody(
 	vector<SourceUnit const*> const& _asts,
 	modelcheck::TypeConverter const& _con,
+	modelcheck::CallState const& _cs,
 	ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
-	using dev::solidity::modelcheck::CallState;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 	_os << "#include \"cmodel.h\"" << endl;
-	for (auto const& ast : _asts)
-	{
-		// TODO(scottwe): This isn't going to work. It will print multiple
-		//                CallStates.
-		CallState cov(*ast, false);
-		cov.print(_os);
-	}
+	_cs.print(_os, false);
 	for (auto const& ast : _asts)
 	{
 		ADTConverter cov(*ast, _con, false);
