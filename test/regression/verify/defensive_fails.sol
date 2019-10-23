@@ -6,22 +6,25 @@
 // RUN: make cexcmodel | OutputCheck %s --comment=//
 // CHECK: __VERIFIER_error
 
-// This contract implements a common crowdfunding dapp. It follows a three mode
-// model, as described below.
-//   INVEST_PHASE: (now <= end)
-//   OPTOUT_PHASE: (now > end) && (target < balance)
-//   PAYOUT_PHASE: (now > end) && (target > balance)
-// This contract is manually instrumented to achieve a defensive check. A
-// defensive check passes if under any sequence of transactions, the system
-// remains in one of its possible modes.
-//
-// This test checks the reachability of a state in which the conjunction of all
-// modes is false.
-//
-// In this implementation, the modes have been defined poorly, and a defensive
-// check should fail. The undefined mode is (now > end) && (target == balance).
-//
-// The proof of this property is independant of the investment map.
+/*
+ * This contract implements a common crowdfunding dapp. It follows a three mode
+ * model, as described below.
+ *   INVEST_PHASE: (now <= end)
+ *   OPTOUT_PHASE: (now > end) && (target < balance)
+ *   PAYOUT_PHASE: (now > end) && (target > balance)
+ * This contract is manually instrumented to achieve a defensive check. A
+ * defensive check passes if under any sequence of transactions, the system
+ * remains in one of its possible modes.
+ *
+ * This test checks the reachability of a state in which the conjunction of all
+ * modes is false.
+ *
+ * In this implementation, the modes have been defined poorly, and a defensive
+ * check should fail. The undefined mode is (now > end) && (target == balance).
+ *
+ * The proof of this property is independant of the investment map.
+ */
+
 contract Crowdfund {
 	uint end;
 	uint target;

@@ -77,6 +77,12 @@ private:
         std::shared_ptr<const CVarDecl> _state
     );
 
+    // Generate the instructions required to update the call state.
+    void update_call_state(
+        CBlockList & _stmts,
+        std::shared_ptr<const CVarDecl> _state
+    );
+
     static CExprPtr get_nd_sol_val(Type const& _type, std::string const& _msg);
     static CExprPtr get_nd_byte(std::string const& _msg);
 };

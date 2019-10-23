@@ -30,8 +30,6 @@ MainFunctionGenerator::MainFunctionGenerator(
 
 void MainFunctionGenerator::print(std::ostream& _stream)
 {
-    CBlockList stmts;
-
     auto contracts = ASTNode::filteredNodes<ContractDefinition>(m_ast.nodes());
     if (contracts.size() > 1)
     {
@@ -41,24 +39,13 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     auto const CURSTATE = make_shared<CVarDecl>("struct CallState", "curstate");
     auto const NXTSTATE = make_shared<CVarDecl>("struct CallState", "nxtstate");
 
+    // Pre-analyzes contracts for fields, etc.
     map<VariableDeclaration const*, shared_ptr<CVarDecl>> param_decls;
     map<ContractDefinition const*, shared_ptr<CVarDecl>> contract_decls;
     map<FunctionDefinition const*, uint64_t> func_id;
     analyze_decls(contracts, param_decls, contract_decls, func_id);
 
-    for (auto param_pair : param_decls) stmts.push_back(param_pair.second);
-    stmts.push_back(CURSTATE);
-    stmts.push_back(CURSTATE->access("blocknum")->assign(
-        TypeConverter::init_val_by_simple_type(IntegerType(256))
-    )->stmt());
-    stmts.push_back(NXTSTATE);
-    for (auto contract_pair : contract_decls)
-    {
-        auto const& DECL = contract_pair.second;
-        stmts.push_back(DECL);
-        stmts.push_back(init_contract(*contract_pair.first, DECL, CURSTATE));
-    }
-
+    // Generates function switch.
     auto call_cases = make_shared<CSwitch>(
         get_nd_byte("Select next call"), CBlockList{make_require(NULL_LIT)}
     );
@@ -73,34 +60,42 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         }
     }
 
-    stmts.push_back(make_shared<CWhileLoop>(
-        make_shared<CBlock>(CBlockList{
-            make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt(),
-            NXTSTATE->access("sender")->assign(
-                get_nd_sol_val(
-                    AddressType(StateMutability::Payable),
-                    "Select the next sender's address"
-                )
-            )->stmt(),
-            NXTSTATE->access("value")->assign(
-                get_nd_sol_val(IntegerType(256), "Select next message value")
-            )->stmt(),
-            NXTSTATE->access("blocknum")->assign(
-                get_nd_sol_val(IntegerType(256), "Select next blocknum")
-            )->stmt(),
-            make_require(make_shared<CBinaryOp>(
-                make_shared<CMemberAccess>(NXTSTATE->access("blocknum"), "v"),
-                ">=",
-                make_shared<CMemberAccess>(CURSTATE->access("blocknum"), "v")
-            )),
-            CURSTATE->assign(NXTSTATE->id())->stmt(),
-            call_cases
-        }),
-        get_nd_byte("Select 0 to terminate"), false
+    // Generates fixed-point iteration.
+    CBlockList fixpoint;
+    fixpoint.push_back(
+        make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
+    );
+    update_call_state(fixpoint, NXTSTATE);
+    fixpoint.push_back(
+        make_require(make_shared<CBinaryOp>(
+            make_shared<CMemberAccess>(NXTSTATE->access("blocknum"), "v"),
+            ">=",
+            make_shared<CMemberAccess>(CURSTATE->access("blocknum"), "v")
+        ))
+    );
+    fixpoint.push_back(CURSTATE->assign(NXTSTATE->id())->stmt());
+    fixpoint.push_back(call_cases);
+
+    // Contract setup and tear-down.v
+    CBlockList main;
+    for (auto param_pair : param_decls) main.push_back(param_pair.second);
+    main.push_back(CURSTATE);
+    update_call_state(main, CURSTATE);
+    main.push_back(NXTSTATE);
+    for (auto contract_pair : contract_decls)
+    {
+        auto const& DECL = contract_pair.second;
+        main.push_back(DECL);
+        main.push_back(init_contract(*contract_pair.first, DECL, CURSTATE));
+    }
+    main.push_back(make_shared<CWhileLoop>(
+        make_shared<CBlock>(move(fixpoint)),
+        get_nd_byte("Select 0 to terminate"),
+        false
     ));
 
     auto id = make_shared<CVarDecl>("void", "run_model");
-    _stream << CFuncDef(id, CParams{}, make_shared<CBlock>(move(stmts)));
+    _stream << CFuncDef(id, CParams{}, make_shared<CBlock>(move(main)));
 }
 
 // -------------------------------------------------------------------------- //
@@ -200,6 +195,27 @@ CBlockList MainFunctionGenerator::build_case(
     call_body.push_back(make_shared<CBreak>());
 
     return call_body;
+}
+
+// -------------------------------------------------------------------------- //
+
+void MainFunctionGenerator::update_call_state(
+    CBlockList & _stmts,
+    shared_ptr<const CVarDecl> _state
+)
+{
+    AddressType ADDR(StateMutability::Payable);
+    IntegerType UINT256(256, IntegerType::Modifier::Unsigned);
+
+    _stmts.push_back(_state->access("sender")->assign(
+        get_nd_sol_val(ADDR, "msg_sender"))->stmt()
+    );
+    _stmts.push_back(_state->access("value")->assign(
+        get_nd_sol_val(UINT256, "msg_value"))->stmt()
+    );
+    _stmts.push_back(_state->access("blocknum")->assign(
+        get_nd_sol_val(UINT256, "block_number"))->stmt()
+    );
 }
 
 // -------------------------------------------------------------------------- //
