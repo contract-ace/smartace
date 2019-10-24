@@ -7,6 +7,8 @@
 
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
+
+#include <map>
 #include <sstream>
 #include <stdexcept>
 
@@ -18,6 +20,18 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+// Maps all Etherum globals to their call state representatitves.
+// TODO(scottwe): block.coinbase, block.difficulty, block.gaslimit, msg.data,
+//                msg.sig, tx.gasprice, tx.origin.
+static map<pair<MagicType::Kind, string>, CallStateField> const  G_ETH_GLOBALS{{
+	{{MagicType::Kind::Block, "number"}, CallStateField::BLOCKNUM},
+	{{MagicType::Kind::Block, "timestamp"}, CallStateField::BLOCKNUM},
+	{{MagicType::Kind::Message, "sender"}, CallStateField::SENDER},
+	{{MagicType::Kind::Message, "value"}, CallStateField::VALUE}
+}};
 
 // -------------------------------------------------------------------------- //
 
@@ -164,6 +178,23 @@ string escape_decl_name(Declaration const& _decl)
         if (c == '_') oss << '_'; 
     }
     return oss.str();
+}
+
+// -------------------------------------------------------------------------- //
+
+CallStateField parse_magic_type(Type const& _type, std::string _field)
+{
+	auto const MAGIC_TYPE = dynamic_cast<MagicType const*>(&_type);
+	if (!MAGIC_TYPE)
+	{
+		throw runtime_error("Resolution of MagicType failed in MemberAccess.");
+	}
+	auto const RES = G_ETH_GLOBALS.find({MAGIC_TYPE->kind(), _field});
+	if (RES == G_ETH_GLOBALS.end())
+	{
+		throw runtime_error("Unable to resolve member of Magic type.");
+	}
+	return RES->second;
 }
 
 // -------------------------------------------------------------------------- //

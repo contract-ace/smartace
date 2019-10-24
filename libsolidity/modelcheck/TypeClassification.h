@@ -70,6 +70,13 @@ bool has_simple_type(Expression const& _node);
  */
 std::string escape_decl_name(Declaration const& _decl);
 
+/**
+ * Maps a given magic type, _type, and its member name, _field, to a field in
+ * the call state. This field is expressed by an enum class value.
+ */
+enum class CallStateField { SENDER, VALUE, BLOCKNUM };
+CallStateField parse_magic_type(Type const& _type, std::string _field); 
+
 }
 }
 }

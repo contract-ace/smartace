@@ -8,6 +8,7 @@
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
+
 #include <stdexcept>
 
 using namespace std;
@@ -18,24 +19,6 @@ namespace solidity
 {
 namespace modelcheck
 {
-
-// -------------------------------------------------------------------------- //
-
-map<pair<MagicType::Kind, string>, string> const 
-	ExpressionConverter::m_magic_members{{
-	{{MagicType::Kind::Block, "coinbase"}, ""},
-	{{MagicType::Kind::Block, "difficulty"}, ""},
-	{{MagicType::Kind::Block, "gaslimit"}, ""},
-	{{MagicType::Kind::Block, "number"}, "state->blocknum"},
-	{{MagicType::Kind::Block, "timestamp"}, "state->blocknum"},
-	{{MagicType::Kind::Message, "data"}, ""},
-	{{MagicType::Kind::Message, "gas"}, ""},
-	{{MagicType::Kind::Message, "sender"}, "state->sender"},
-	{{MagicType::Kind::Message, "sig"}, ""},
-	{{MagicType::Kind::Message, "value"}, "state->value"},
-	{{MagicType::Kind::Transaction, "gasprice"}, ""},
-	{{MagicType::Kind::Transaction, "origin"}, ""}
-}};
 
 // -------------------------------------------------------------------------- //
 
@@ -838,17 +821,18 @@ void ExpressionConverter::print_magic_member(
 	TypePointer _type, string const& _member
 )
 {
-	auto const MAGIC_TYPE = dynamic_cast<MagicType const*>(_type);
-	if (!MAGIC_TYPE)
+	switch (parse_magic_type(*_type, _member))
 	{
-		throw runtime_error("Resolution of MagicType failed in MemberAccess.");
+	case CallStateField::BLOCKNUM:
+		m_subexpr = make_shared<CIdentifier>("state->blocknum", false);
+		break;
+	case CallStateField::SENDER:
+		m_subexpr = make_shared<CIdentifier>("state->sender", false);
+		break;
+	case CallStateField::VALUE:
+		m_subexpr = make_shared<CIdentifier>("state->value", false);
+		break;
 	}
-	auto const RES = m_magic_members.find({MAGIC_TYPE->kind(), _member});
-	if (RES == m_magic_members.end() || RES->second == "")
-	{
-		throw runtime_error("Unable to resolve member of Magic type.");
-	}
-	m_subexpr = make_shared<CIdentifier>(RES->second, false);
 }
 
 // -------------------------------------------------------------------------- //

@@ -9,7 +9,7 @@
 #include <libsolidity/modelcheck/SimpleCCore.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
 #include <libsolidity/modelcheck/VariableScopeResolver.h>
-#include <map>
+
 #include <string>
 #include <vector>
 #include <type_traits>
@@ -172,9 +172,6 @@ private:
 
 	bool m_lval = false;
 	bool m_find_ref;
-
-	static std::map<std::pair<MagicType::Kind, std::string>, std::string> const
-		m_magic_members;
 
 	// In the present model, all primitives are reduced to integers. This map
 	// produces such integers from Solidity literals.
