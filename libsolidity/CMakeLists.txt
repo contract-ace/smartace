@@ -118,6 +118,8 @@ set(sources
 	modelcheck/FunctionConverter.h
 	modelcheck/MainFunctionGenerator.cpp
 	modelcheck/MainFunctionGenerator.h
+	modelcheck/Mapping.h
+	modelcheck/Mapping.cpp
 	modelcheck/PrimitiveTypeGenerator.cpp
 	modelcheck/PrimitiveTypeGenerator.h
 	modelcheck/SimpleCCore.cpp

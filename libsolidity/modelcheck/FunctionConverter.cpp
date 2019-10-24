@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/BlockConverter.h>
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+#include <libsolidity/modelcheck/Mapping.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
@@ -226,14 +227,14 @@ bool FunctionConverter::visit(Mapping const& _node)
         string const KMSG = "Set key in " + MAP_NAME;
         string const VMSG = "Set value in " + MAP_NAME;
 
-        auto tmp_set = TMP->access("m_set");
-        auto tmp_cur = TMP->access("m_curr");
-        auto tmp_dat = TMP->access("d_");
-        auto tmp_ndd = TMP->access("d_nd");
-        auto a_set = arr->access("m_set");
-        auto a_cur = arr->access("m_curr");
-        auto a_dat = arr->access("d_");
-        auto a_ndd = arr->access("d_nd");
+        auto tmp_set = TMP->access(MappingUtilities::SET_FIELD);
+        auto tmp_cur = TMP->access(MappingUtilities::CURR_FIELD);
+        auto tmp_dat = TMP->access(MappingUtilities::DATA_FIELD);
+        auto tmp_ndd = TMP->access(MappingUtilities::ND_FIELD);
+        auto a_set = arr->access(MappingUtilities::SET_FIELD);
+        auto a_cur = arr->access(MappingUtilities::CURR_FIELD);
+        auto a_dat = arr->access(MappingUtilities::DATA_FIELD);
+        auto a_ndd = arr->access(MappingUtilities::ND_FIELD);
 
         auto init_set = TypeConverter::init_val_by_simple_type(BoolType{});
         auto init_key = M_CONVERTER.get_init_val(_node.keyType());

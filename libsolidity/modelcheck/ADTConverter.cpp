@@ -5,8 +5,10 @@
 
 #include <libsolidity/modelcheck/ADTConverter.h>
 
+#include <libsolidity/modelcheck/Mapping.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
+#include <libsolidity/modelcheck/VariableScopeResolver.h>
 #include <sstream>
 
 using namespace std;
@@ -66,10 +68,10 @@ void ADTConverter::endVisit(Mapping const& _node)
         string const KEY_TYPE = M_CONVERTER.get_type(_node.keyType());
         string const VAL_TYPE = M_CONVERTER.get_type(_node.valueType());
         fields = make_shared<CParams>(CParams{
-            make_shared<CVarDecl>(SET_TYPE, "m_set"),
-            make_shared<CVarDecl>(KEY_TYPE, "m_curr"),
-            make_shared<CVarDecl>(VAL_TYPE, "d_"),
-            make_shared<CVarDecl>(VAL_TYPE, "d_nd")
+            make_shared<CVarDecl>(SET_TYPE, MappingUtilities::SET_FIELD),
+            make_shared<CVarDecl>(KEY_TYPE, MappingUtilities::CURR_FIELD),
+            make_shared<CVarDecl>(VAL_TYPE, MappingUtilities::DATA_FIELD),
+            make_shared<CVarDecl>(VAL_TYPE, MappingUtilities::ND_FIELD)
         });
     }
     CStructDef mapping(M_CONVERTER.get_name(_node), move(fields));
