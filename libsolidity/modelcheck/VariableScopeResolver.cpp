@@ -6,6 +6,9 @@
 
 #include <libsolidity/modelcheck/VariableScopeResolver.h>
 
+#include <libsolidity/modelcheck/TypeClassification.h>
+#include <sstream>
+
 using namespace std;
 
 namespace dev
@@ -54,6 +57,20 @@ string VariableScopeResolver::resolve_identifier(Identifier const& _id) const
     {
         return "self->d_" + NAME;
     }
+}
+
+string VariableScopeResolver::rewrite(string _sym, bool _gen, VarContext _ctx)
+{
+    ostringstream oss;
+
+    if (_ctx == VarContext::FUNCTION) oss << "func_";
+    else if (_ctx == VarContext::MODIFIER) oss << "mod_";
+
+    oss << (_gen ? "model_" : "user_");
+
+    oss << escape_decl_name_string(_sym);
+
+    return oss.str();
 }
 
 }

@@ -62,6 +62,11 @@ bool has_simple_type(TypeName const& _node);
 bool has_simple_type(Expression const& _node);
 
 /**
+ * See escape_decl_name: escape_decl_name(A) = escape_decl_name_string(A.name())
+ */
+std::string escape_decl_name_string(std::string const& _name);
+
+/**
  * Extracts the name from a declaration. The name is rewritten such that an odd
  * run of underscores will never occur. This is done such that if A.name()
  * equals B.name() if and only if escape_decl_name(A) = escape_decl_name(B).

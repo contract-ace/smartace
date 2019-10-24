@@ -18,6 +18,8 @@ namespace solidity
 namespace modelcheck
 {
 
+enum class VarContext { STRUCT, FUNCTION, MODIFIER };
+
 /*
  * Maintains a hierarchy of scopes and their declaration names. Allows variable
  * names to be mapped to their names within the C-model, given the present
@@ -35,6 +37,14 @@ public:
 
     // Maps an indentifer to its C-model name in the present scope.
     std::string resolve_identifier(Identifier const& _id) const;
+
+    // Automatically rewrites identifier names, to avoid variable aliasing. A
+    // rewrite has form ("func_","mod_","")("client_","model_")escape(_sym).
+    // This allows for disambiguating between...
+    // 1. modifier variables and function variables after inlining.
+    // 2. local variables and global symbols (function names, etc).
+    // 3. client variables and tooling generated instrumentation variables.
+    static std::string rewrite(std::string _sym, bool _gen, VarContext _ctx);
 
 private:
     std::list<std::set<std::string>> m_scopes;

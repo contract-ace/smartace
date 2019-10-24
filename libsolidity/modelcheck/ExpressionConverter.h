@@ -9,7 +9,6 @@
 #include <libsolidity/modelcheck/SimpleCCore.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
 #include <libsolidity/modelcheck/VariableScopeResolver.h>
-
 #include <string>
 #include <vector>
 #include <type_traits>

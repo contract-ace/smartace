@@ -155,6 +155,35 @@ BOOST_AUTO_TEST_CASE(state_resolution)
     BOOST_CHECK_EQUAL(resolver.resolve_identifier(now), "state->blocknum");
 }
 
+BOOST_AUTO_TEST_CASE(variable_name_rewriting)
+{
+    string orig = "a_b__c";
+    BOOST_CHECK_EQUAL(
+        VariableScopeResolver::rewrite(orig, true, VarContext::STRUCT),
+        "model_a__b____c"
+    );
+    BOOST_CHECK_EQUAL(
+        VariableScopeResolver::rewrite(orig, false, VarContext::STRUCT),
+        "user_a__b____c"
+    );
+    BOOST_CHECK_EQUAL(
+        VariableScopeResolver::rewrite(orig, true, VarContext::MODIFIER),
+        "mod_model_a__b____c"
+    );
+    BOOST_CHECK_EQUAL(
+        VariableScopeResolver::rewrite(orig, false, VarContext::MODIFIER),
+        "mod_user_a__b____c"
+    );
+    BOOST_CHECK_EQUAL(
+        VariableScopeResolver::rewrite(orig, true, VarContext::FUNCTION),
+        "func_model_a__b____c"
+    );
+    BOOST_CHECK_EQUAL(
+        VariableScopeResolver::rewrite(orig, false, VarContext::FUNCTION),
+        "func_user_a__b____c"
+    );
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 }

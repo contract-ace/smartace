@@ -6,8 +6,8 @@
  */
 
 #include <libsolidity/modelcheck/TypeClassification.h>
-#include <libsolidity/modelcheck/Utility.h>
 
+#include <libsolidity/modelcheck/Utility.h>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -169,15 +169,20 @@ bool has_simple_type(Expression const& _node)
 
 // -------------------------------------------------------------------------- //
 
-string escape_decl_name(Declaration const& _decl)
+string escape_decl_name_string(string const& _name)
 {
     ostringstream oss;
-    for (char const& c : _decl.name())
+    for (char const& c : _name)
     {
         oss << c;
         if (c == '_') oss << '_'; 
     }
     return oss.str();
+}
+
+string escape_decl_name(Declaration const& _decl)
+{
+    return escape_decl_name_string(_decl.name());
 }
 
 // -------------------------------------------------------------------------- //

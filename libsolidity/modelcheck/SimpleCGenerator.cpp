@@ -4,6 +4,7 @@
  */
 
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
+
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 

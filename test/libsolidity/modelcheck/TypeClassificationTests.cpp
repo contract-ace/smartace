@@ -175,7 +175,10 @@ BOOST_AUTO_TEST_CASE(name_escaping)
     for (auto const& c : cases)
     {
         ContractDefinition def(SourceLocation(), c.first, nullptr, {}, {});
-        BOOST_CHECK_EQUAL(escape_decl_name(def), c.second);
+
+        string escaped_name = escape_decl_name(def);
+        BOOST_CHECK_EQUAL(escaped_name, c.second);
+        BOOST_CHECK_EQUAL(escaped_name, escape_decl_name_string(def.name()));
     }
 }
 
