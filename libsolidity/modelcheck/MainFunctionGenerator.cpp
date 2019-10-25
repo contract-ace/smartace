@@ -123,12 +123,16 @@ void MainFunctionGenerator::analyze_decls(
         for (unsigned int j = 0; j < CONTRACT->definedFunctions().size(); ++j)
         {
             auto const* FUNC = CONTRACT->definedFunctions()[j];
-            if (FUNC->isConstructor()) continue;
-            for (auto const PARAM : FUNC->parameters())
+            if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
+            for (unsigned int k = 0; k < FUNC->parameters().size(); ++k)
             {
+                ASTPointer<const VariableDeclaration> PARAM
+                    = FUNC->parameters()[k];
+
                 string const TYPE = m_converter.get_type(*PARAM);
                 ostringstream param_name;
-                param_name << "c" << i << "_f" << j << "_" << PARAM->name();
+                param_name << "c" << i << "_f" << j << "_a" << k;
+                if (!PARAM->name().empty()) param_name << "_" << PARAM->name();
 
                 auto param_decl = make_shared<CVarDecl>(TYPE, param_name.str());
                 _dcls[PARAM.get()] = param_decl;

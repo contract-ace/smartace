@@ -813,7 +813,10 @@ void ExpressionConverter::print_adt_member(
 )
 {
 	_node.accept(*this);
-	m_subexpr = make_shared<CMemberAccess>(m_subexpr, "d_" + _member);
+	m_subexpr = make_shared<CMemberAccess>(
+		m_subexpr,
+		VariableScopeResolver::rewrite(_member, false, VarContext::STRUCT)
+	);
 }
 
 void ExpressionConverter::print_magic_member(

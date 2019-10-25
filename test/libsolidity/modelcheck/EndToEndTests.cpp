@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     func_expect << "struct A Init_A(void);";
     func_expect << "struct A_StructB Init_0_A_StructB(void);";
     func_expect << "struct A_StructB Init_A_StructB"
-                << "(sol_uint256_t a,sol_uint256_t b);";
+                << "(sol_uint256_t user_a,sol_uint256_t user_b);";
     func_expect << "struct A_StructB ND_A_StructB(void);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -154,7 +154,8 @@ BOOST_AUTO_TEST_CASE(simple_func)
     ostringstream func_expect;
     func_expect << "struct A Init_A(void);";
     func_expect << "sol_uint256_t Method_A_FuncsimpleFunc"
-                << "(struct A*self,struct CallState*state,sol_uint256_t _in);";
+                << "(struct A*self,struct CallState*state,"
+                << "sol_uint256_t func_user___in);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -224,7 +225,8 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     ostringstream func_expect;
     func_expect << "struct A Init_A(void);";
     func_expect << "void Method_A_FuncsimpleFunc"
-                << "(struct A*self,struct CallState*state,sol_uint256_t _in);";
+                << "(struct A*self,struct CallState*state,"
+                << "sol_uint256_t func_user___in);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -446,10 +448,11 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     adt_expect << "struct A_StructB;" << "struct A;";
     func_expect << "struct A Init_A(void);";
     func_expect << "struct A_StructB Init_0_A_StructB(void);";
-    func_expect << "struct A_StructB Init_A_StructB(sol_uint256_t a);";
+    func_expect << "struct A_StructB Init_A_StructB(sol_uint256_t user_a);";
     func_expect << "struct A_StructB ND_A_StructB(void);";
     func_expect << "struct A_StructB Method_A_FuncadvFunc"
-                << "(struct A*self,struct CallState*state,sol_uint256_t _in);";
+                << "(struct A*self,struct CallState*state,"
+                << "sol_uint256_t func_user___in);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());

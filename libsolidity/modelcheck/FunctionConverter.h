@@ -9,6 +9,7 @@
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/TypeTranslator.h>
+#include <libsolidity/modelcheck/VariableScopeResolver.h>
 #include <list>
 #include <ostream>
 #include <string>
@@ -60,13 +61,20 @@ private:
 	View const M_VIEW;
 	bool const M_FWD_DCL;
 
+	// Helper structure to communicate parameters to the parameter generator.
+	struct ParamTmpl
+	{
+		VarContext context;
+		bool instrumentation;
+		ASTPointer<const VariableDeclaration> decl;
+	};
+
 	// Formats all declarations as a C-function argument list. The given order
 	// of arguments is maintained. If a scope is provided, then the arguments
 	// are assumed to be of a stateful Solidity method, bound to structures of
 	// the given type.
 	CParams generate_params(
-		std::vector<ASTPointer<VariableDeclaration>> const& _args,
-		ASTNode const* _scope
+		std::vector<ParamTmpl> const& _args, ASTNode const* _scope
 	);
 };
 

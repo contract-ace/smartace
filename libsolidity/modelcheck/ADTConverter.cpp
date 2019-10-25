@@ -51,8 +51,12 @@ void ADTConverter::endVisit(ContractDefinition const& _node)
         fields = make_shared<CParams>();
         for (auto decl : _node.stateVariables())
         {
-            auto const TYPE = M_CONVERTER.get_type(*decl);
-            fields->push_back(make_shared<CVarDecl>(TYPE, "d_" + decl->name()));
+            string const TYPE = M_CONVERTER.get_type(*decl);
+            string const NAME = VariableScopeResolver::rewrite(
+                decl->name(), false, VarContext::STRUCT
+            );
+
+            fields->push_back(make_shared<CVarDecl>(TYPE, NAME));
         }
     }
     CStructDef contract(M_CONVERTER.get_name(_node), move(fields));
@@ -86,8 +90,12 @@ void ADTConverter::endVisit(StructDefinition const& _node)
         fields = make_shared<CParams>();
         for (auto decl : _node.members())
         {
-            auto const TYPE = M_CONVERTER.get_type(*decl);
-            fields->push_back(make_shared<CVarDecl>(TYPE, "d_" + decl->name()));
+            string const TYPE = M_CONVERTER.get_type(*decl);
+            string const NAME = VariableScopeResolver::rewrite(
+                decl->name(), false, VarContext::STRUCT
+            );
+
+            fields->push_back(make_shared<CVarDecl>(TYPE, NAME));
         }
     }
     CStructDef structure(M_CONVERTER.get_name(_node), move(fields));

@@ -18,60 +18,98 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
+VariableScopeResolver::VariableScopeResolver(
+    VarContext _context
+): M_CONTEXT(_context) {}
+
+// -------------------------------------------------------------------------- //
+
 void VariableScopeResolver::enter() { m_scopes.emplace_back(); }
 
 void VariableScopeResolver::exit() { m_scopes.pop_back(); }
 
+// -------------------------------------------------------------------------- //
+
 void VariableScopeResolver::record_declaration(VariableDeclaration const& _decl)
 {
-    m_scopes.back().insert(_decl.name());
+    if (!_decl.name().empty())
+    {
+        m_scopes.back().insert(_decl.name());
+    }
 }
+
+// -------------------------------------------------------------------------- //
 
 string VariableScopeResolver::resolve_identifier(Identifier const& _id) const
 {
-    auto const& NAME = _id.name();
-
-    for (auto scope = m_scopes.crbegin(); scope != m_scopes.crend(); scope++)
-    {
-        auto const& MATCH = scope->find(NAME);
-        if (MATCH != scope->cend()) return NAME;
-    }
-
-    if (NAME == "this")
-    {
-        return "self";
-    }
-    else if (NAME == "super")
-    {
-        throw runtime_error("Keyword super not supported.");
-    }
-    else if (NAME == "block" || NAME == "msg" || NAME == "tx")
-    {
-        return "state";
-    }
-    else if (NAME == "now")
-    {
-        return "state->blocknum";
-    }
-    else
-    {
-        return "self->d_" + NAME;
-    }
+    return resolve_sym(_id.name());
 }
+
+string VariableScopeResolver::resolve_declaration(
+    VariableDeclaration const& _decl
+) const
+{
+    return resolve_sym(_decl.name());
+}
+
+// -------------------------------------------------------------------------- //
 
 string VariableScopeResolver::rewrite(string _sym, bool _gen, VarContext _ctx)
 {
     ostringstream oss;
 
-    if (_ctx == VarContext::FUNCTION) oss << "func_";
-    else if (_ctx == VarContext::MODIFIER) oss << "mod_";
+    if (!_sym.empty())
+    {
+        if (_ctx == VarContext::FUNCTION) oss << "func_";
+        else if (_ctx == VarContext::MODIFIER) oss << "mod_";
 
-    oss << (_gen ? "model_" : "user_");
+        oss << (_gen ? "model_" : "user_");
 
-    oss << escape_decl_name_string(_sym);
+        oss << escape_decl_name_string(_sym);
+    }
 
     return oss.str();
 }
+
+// -------------------------------------------------------------------------- //
+
+string VariableScopeResolver::resolve_sym(string const& _sym) const
+{
+    if (_sym.empty()) return _sym;
+
+    for (auto scope = m_scopes.crbegin(); scope != m_scopes.crend(); scope++)
+    {
+        if (scope->find(_sym) != scope->cend())
+        {
+            return rewrite(_sym, false, M_CONTEXT);
+        }
+    }
+
+    if (_sym == "this")
+    {
+        return "self";
+    }
+    else if (_sym == "super")
+    {
+        throw runtime_error("Keyword super not supported.");
+    }
+    else if (_sym == "block" || _sym == "msg" || _sym == "tx")
+    {
+        return "state";
+    }
+    else if (_sym == "now")
+    {
+        return "state->blocknum";
+    }
+    else
+    {
+        return "self->" + rewrite(_sym, false, VarContext::STRUCT);
+    }
+}
+
+// -------------------------------------------------------------------------- //
 
 }
 }

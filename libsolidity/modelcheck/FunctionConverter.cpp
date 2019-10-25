@@ -53,7 +53,18 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
     CParams params;
     if (auto ctor = _node.constructor())
     {
-        params = generate_params(ctor->parameters(), &_node);
+        FunctionConverter::ParamTmpl tmpl;
+        tmpl.context = VarContext::STRUCT;
+        tmpl.instrumentation = false;
+
+        vector<FunctionConverter::ParamTmpl> param_tmpls;
+        for (auto arg : ctor->parameters())
+        {
+            tmpl.decl = arg;
+            param_tmpls.push_back(tmpl);
+        }
+
+        params = generate_params(param_tmpls, &_node);
     }
 
     shared_ptr<CBlock> body;
@@ -62,11 +73,18 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         CBlockList stmts{make_shared<CVarDecl>(CTRX_TYPE, "tmp")};
         for (auto decl : _node.stateVariables())
         {
-            auto member = TMP->access("d_" + decl->name());
+            auto const NAME = VariableScopeResolver::rewrite(
+                decl->name(), false, VarContext::STRUCT
+            );
+
+            auto member = TMP->access(NAME);
             CExprPtr init;
             if (decl->value())
             {
-                init = ExpressionConverter(*decl->value(), {}, {}).convert();
+                init = ExpressionConverter(
+                    *decl->value(), {}, { VarContext::FUNCTION }
+                ).convert();
+
                 if (is_wrapped_type(*decl->type()))
                 {
                     init = make_shared<CFuncCall>(
@@ -78,6 +96,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             {
                 init = M_CONVERTER.get_init_val(*decl);
             }
+
             stmts.push_back(member->assign(move(init))->stmt());
         }
         if (auto ctor = _node.constructor())
@@ -87,7 +106,11 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             builder.push(make_shared<CIdentifier>("state", true));
             for (auto decl : ctor->parameters())
             {
-                builder.push(make_shared<CIdentifier>(decl->name(), false));
+                auto const NAME = VariableScopeResolver::rewrite(
+                    decl->name(), false, VarContext::STRUCT
+                );
+
+                builder.push(make_shared<CIdentifier>(NAME, false));
             }
             stmts.push_back(builder.merge_and_pop_stmt());
         }
@@ -110,10 +133,20 @@ bool FunctionConverter::visit(StructDefinition const& _node)
     string const STRCT_NAME = M_CONVERTER.get_name(_node);
     string const STRCT_TYPE = M_CONVERTER.get_type(_node);
 
-    vector<ASTPointer<VariableDeclaration>> initializable_members;
-    for (auto const& member : _node.members())
+    vector<FunctionConverter::ParamTmpl> initializable_members;
     {
-        if (has_simple_type(*member)) initializable_members.push_back(member);
+        FunctionConverter::ParamTmpl tmpl;
+        tmpl.context = VarContext::STRUCT;
+        tmpl.instrumentation = false;
+
+        for (auto const& member : _node.members())
+        {
+            if (has_simple_type(*member))
+            {
+                tmpl.decl = member;
+                initializable_members.push_back(tmpl);
+            }
+        }
     }
 
     auto zero_id = make_shared<CVarDecl>(STRCT_TYPE, "Init_0_" + STRCT_NAME);
@@ -129,7 +162,11 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp"));
         for (auto decl : _node.members())
         {
-            auto member = TMP->access("d_" + decl->name());
+            string const NAME = VariableScopeResolver::rewrite(
+                decl->name(), false, VarContext::STRUCT
+            );
+
+            auto member = TMP->access(NAME);
             auto init = M_CONVERTER.get_init_val(*decl);
             stmts.push_back(member->assign(move(init))->stmt());
         }
@@ -140,8 +177,12 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp", false, zinit));
         for (auto m : initializable_members)
         {
-            auto member = TMP->access("d_" + m->name());
-            auto param = make_shared<CIdentifier>(m->name(), false);
+            string const NAME = VariableScopeResolver::rewrite(
+                m.decl->name(), false, VarContext::STRUCT
+            );
+
+            auto member = TMP->access(NAME);
+            auto param = make_shared<CIdentifier>(NAME, false);
             stmts.push_back(member->assign(move(param))->stmt());
         }
         stmts.push_back(make_shared<CReturn>(TMP));
@@ -151,7 +192,11 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         for (auto decl : _node.members())
         {
             string const MSG = "Set " + decl->name() + " in " + _node.name();
-            auto member = TMP->access("d_" + decl->name());
+            string const NAME = VariableScopeResolver::rewrite(
+                decl->name(), false, VarContext::STRUCT
+            );
+    
+            auto member = TMP->access(NAME);
             auto init = M_CONVERTER.get_nd_val(*decl, MSG);
             stmts.push_back(member->assign(move(init))->stmt());
         }
@@ -176,8 +221,21 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return false;
 
     const bool IS_MUTABLE = _node.stateMutability() != StateMutability::Pure;
-    auto params = generate_params(
-        _node.parameters(), IS_MUTABLE ? _node.scope() : nullptr
+
+    vector<FunctionConverter::ParamTmpl> param_tmpls;
+    {
+        FunctionConverter::ParamTmpl tmpl;
+        tmpl.context = VarContext::FUNCTION;
+        tmpl.instrumentation = false;
+
+        for (auto arg : _node.parameters())
+        {
+            tmpl.decl = arg;
+            param_tmpls.push_back(tmpl);
+        }
+    }
+    CParams params = generate_params(
+        param_tmpls, IS_MUTABLE ? _node.scope() : nullptr
     );
 
     shared_ptr<CBlock> body;
@@ -318,7 +376,7 @@ bool FunctionConverter::visit(Mapping const& _node)
 // -------------------------------------------------------------------------- //
 
 CParams FunctionConverter::generate_params(
-    vector<ASTPointer<VariableDeclaration>> const& _args, ASTNode const* _scope
+    vector<FunctionConverter::ParamTmpl> const& _args, ASTNode const* _scope
 )
 {
     CParams params;
@@ -331,8 +389,12 @@ CParams FunctionConverter::generate_params(
     }
     for (auto arg : _args)
     {
-        string const ARG_TYPE = M_CONVERTER.get_type(*arg);
-        params.push_back(make_shared<CVarDecl>(ARG_TYPE, arg->name()));
+        string const ARG_TYPE = M_CONVERTER.get_type(*arg.decl);
+        string const ARG_NAME = VariableScopeResolver::rewrite(
+            arg.decl->name(), arg.instrumentation, arg.context
+        );
+
+        params.push_back(make_shared<CVarDecl>(ARG_TYPE, ARG_NAME));
     }
     return params;
 }

@@ -24,7 +24,7 @@ namespace modelcheck
 
 BlockConverter::BlockConverter(
 	FunctionDefinition const& _func, TypeConverter const& _types
-): M_BODY(_func.body()), M_TYPES(_types)
+): M_BODY(_func.body()), M_TYPES(_types), m_decls(VarContext::FUNCTION)
 {
 	// TODO(scottwe): support multiple return types.
 	if (_func.returnParameters().size() > 1)
@@ -67,7 +67,9 @@ bool BlockConverter::visit(Block const& _node)
 	if (top_level_swap.old() && HAS_NAMED_RV)
 	{
 		m_decls.record_declaration(*m_rv);
-		rv = make_shared<CVarDecl>(M_TYPES.get_type(*m_rv), m_rv->name());
+		rv = make_shared<CVarDecl>(
+			M_TYPES.get_type(*m_rv), m_decls.resolve_declaration(*m_rv)
+		);
 		stmts.push_back(rv);
 	}
 	for (auto const& stmt : _node.statements())
@@ -215,7 +217,9 @@ bool BlockConverter::visit(VariableDeclarationStatement const& _node)
 				val = builder.merge_and_pop();
 			}
 		}
-		m_substmt = make_shared<CVarDecl>(TYPE, DECL.name(), IS_REF, val);
+		m_substmt = make_shared<CVarDecl>(
+			TYPE, m_decls.resolve_declaration(DECL), IS_REF, val)
+		;
 	}
 
 	return false;
