@@ -46,13 +46,6 @@ bool ExpressionConverter::visit(EnumValue const& _node)
 	throw runtime_error("Enum value not yet supported.");
 }
 
-bool ExpressionConverter::visit(ModifierInvocation const& _node)
-{
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Modifier invocations not yet supported.");
-}
-
 bool ExpressionConverter::visit(Conditional const& _node)
 {
 	_node.condition().accept(*this);

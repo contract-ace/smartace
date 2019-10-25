@@ -108,14 +108,15 @@ set(sources
 	interface/Version.h
 	modelcheck/ADTConverter.cpp
 	modelcheck/ADTConverter.h
-	modelcheck/BlockConverter.cpp
 	modelcheck/BlockConverter.h
 	modelcheck/CallState.cpp
 	modelcheck/CallState.h
 	modelcheck/ExpressionConverter.cpp
 	modelcheck/ExpressionConverter.h
+	modelcheck/FunctionBlockConverter.cpp
 	modelcheck/FunctionConverter.cpp
 	modelcheck/FunctionConverter.h
+	modelcheck/GeneralBlockConverter.cpp
 	modelcheck/MainFunctionGenerator.cpp
 	modelcheck/MainFunctionGenerator.h
 	modelcheck/Mapping.h

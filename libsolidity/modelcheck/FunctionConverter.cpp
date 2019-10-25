@@ -220,8 +220,6 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     if (!(IS_PUB || IS_EXT) && M_VIEW == View::EXT) return false;
     if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return false;
 
-    const bool IS_MUTABLE = _node.stateMutability() != StateMutability::Pure;
-
     vector<FunctionConverter::ParamTmpl> param_tmpls;
     {
         FunctionConverter::ParamTmpl tmpl;
@@ -234,6 +232,8 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
             param_tmpls.push_back(tmpl);
         }
     }
+
+    const bool IS_MUTABLE = _node.stateMutability() != StateMutability::Pure;
     CParams params = generate_params(
         param_tmpls, IS_MUTABLE ? _node.scope() : nullptr
     );
@@ -241,7 +241,7 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     shared_ptr<CBlock> body;
     if (!M_FWD_DCL)
     {
-        body = BlockConverter(_node, M_CONVERTER).convert();
+        body = FunctionBlockConverter(_node, M_CONVERTER).convert();
     }
 
     string const FUNC_TYPE = M_CONVERTER.get_type(_node);

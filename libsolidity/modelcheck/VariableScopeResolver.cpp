@@ -54,6 +54,11 @@ string VariableScopeResolver::resolve_declaration(
     return resolve_sym(_decl.name());
 }
 
+string VariableScopeResolver::resolve_generative(string _sym) const
+{
+    return rewrite(_sym, true, M_CONTEXT);
+}
+
 // -------------------------------------------------------------------------- //
 
 string VariableScopeResolver::rewrite(string _sym, bool _gen, VarContext _ctx)

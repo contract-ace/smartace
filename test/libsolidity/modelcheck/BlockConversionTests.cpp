@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(argument_registration)
     converter.record(unit);
 
     ostringstream actual;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     BOOST_CHECK_EQUAL(actual.str(), "{(func_user_a).v;(func_user_b).v;}");
 }
 
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     converter.record(unit);
 
     ostringstream actual_if, expected_if;
-    actual_if << *BlockConverter(*if_stmt, converter).convert();
+    actual_if << *FunctionBlockConverter(*if_stmt, converter).convert();
     expected_if << "{";
     expected_if << "if(((self->user_a).v)==(1))";
     expected_if << "{";
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     BOOST_CHECK_EQUAL(actual_if.str(), expected_if.str());
 
     ostringstream actual_else, expected_else;
-    actual_else << *BlockConverter(*else_stmt, converter).convert();
+    actual_else << *FunctionBlockConverter(*else_stmt, converter).convert();
     expected_else << "{";
     expected_else << "if(((self->user_a).v)==(1)){}";
     expected_else << "else {}";
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
     auto while_stmt = (fncs[0]->name() == "while_stmt") ? fncs[0] : fncs[1];
     ostringstream actual_while, expected_while;
-    actual_while << *BlockConverter(*while_stmt, converter).convert();
+    actual_while << *FunctionBlockConverter(*while_stmt, converter).convert();
     expected_while << "{";
     expected_while << "while(((self->user_a).v)!=((self->user_a).v)){}";
     expected_while << "while(((self->user_a).v)!=((self->user_a).v))";
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
     auto for_stmt = (fncs[0]->name() == "while_stmt") ? fncs[1] : fncs[0];
     ostringstream actual_for, expected_for;
-    actual_for << *BlockConverter(*for_stmt, converter).convert();
+    actual_for << *FunctionBlockConverter(*for_stmt, converter).convert();
     expected_for << "{";
     expected_for << "for(;((self->user_a).v)<(10);++((self->user_a).v))"
                  << "{sol_int256_t func_user_i;}";
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(continue_statement)
     converter.record(unit);
 
     ostringstream actual;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     BOOST_CHECK_EQUAL(actual.str(), "{while(0){continue;}}");
 }
 
@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(break_statement)
     converter.record(unit);
 
     ostringstream actual;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     BOOST_CHECK_EQUAL(actual.str(), "{while(0){break;}}");
 }
 
@@ -233,12 +233,12 @@ BOOST_AUTO_TEST_CASE(return_statement)
 
     auto void_func = (fncs[0]->name() == "void_func") ? fncs[0] : fncs[1];
     ostringstream actual_void;
-    actual_void << *BlockConverter(*void_func, converter).convert();
+    actual_void << *FunctionBlockConverter(*void_func, converter).convert();
     BOOST_CHECK_EQUAL(actual_void.str(), "{return;}");
 
     auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int;
-    actual_int << *BlockConverter(*int_func, converter).convert();
+    actual_int << *FunctionBlockConverter(*int_func, converter).convert();
     BOOST_CHECK_EQUAL(actual_int.str(), "{return Init_sol_int256_t((10)+(5));}");
 }
 
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "sol_int256_t func_user_b;";
     expected << "{";
@@ -313,12 +313,12 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
 
     auto unnamed = (fncs[0]->name() == "f") ? fncs[0] : fncs[1];
     ostringstream actual_unnamed;
-    actual_unnamed << *BlockConverter(*unnamed, converter).convert();
+    actual_unnamed << *FunctionBlockConverter(*unnamed, converter).convert();
     BOOST_CHECK_EQUAL(actual_unnamed.str(), "{return Init_sol_int256_t(5);}");
 
     auto named = (fncs[0]->name() == "f") ? fncs[1] : fncs[0];
     ostringstream actual_named, expected_named;
-    actual_named << *BlockConverter(*named, converter).convert();
+    actual_named << *FunctionBlockConverter(*named, converter).convert();
     expected_named << "{";
     expected_named << "sol_int256_t func_user_a;";
     expected_named << "((func_user_a).v)=(5);";
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "(self)->user_d;";
     expected << "((self->user_b).user_i).v;";
@@ -407,7 +407,7 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            actual << *BlockConverter(*func_ptr, converter).convert();
+            actual << *FunctionBlockConverter(*func_ptr, converter).convert();
             expected << "{";
             expected << "Method_A_Funcf(self,state);";
             expected << "Method_A_Funcg(self,state,Init_sol_int256_t(1));";
@@ -459,7 +459,7 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            actual << *BlockConverter(*func_ptr, converter).convert();
+            actual << *FunctionBlockConverter(*func_ptr, converter).convert();
             expected << "{";
             expected << "Method_A_Funcf(&(self->user_a),state);";
             expected << "Method_A_Funcg();";
@@ -495,7 +495,7 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "_pay(state,Init_sol_address_t((func_user_dst).v)"
              << ",Init_sol_uint256_t(5));";
@@ -529,7 +529,7 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "sol_require(1,0);";
     expected << "sol_require(1,0);";
@@ -561,7 +561,7 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "Init_A_StructB();";
     expected << "Init_A_StructC(Init_sol_uint256_t(1));";
@@ -598,7 +598,7 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "Init_A();";
     expected << "Init_B(nullptr,state,Init_sol_int256_t(10));";
@@ -635,7 +635,7 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "Read_A_Maparr1_submap1(&(self->user_arr1),Init_sol_int256_t((1"
              << ")+(2)));";
@@ -680,7 +680,7 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "Write_A_Mapa_submap1(&(self->user_a),Init_sol_int256_t(1),"
              << "Init_sol_int256_t(2));";
@@ -726,7 +726,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "((int)(5));";
     expected << "(self->user_a).v;";
@@ -766,7 +766,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_resolution)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "struct A_StructB*func_user_b__ref=&(self->user_b);";
     expected << "((func_user_b__ref)->user_i).v;";
@@ -797,7 +797,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "struct A_StructB*func_user_b__ref=&(self->user_b);";
     expected << "(func_user_b__ref)=(&(self->user_b));";
@@ -828,7 +828,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_to_map)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "struct A_StructB*func_user_b__ref=Ref_A_Mapa_submap1("
              << "&(self->user_a),Init_sol_int256_t(0));";
@@ -857,7 +857,7 @@ BOOST_AUTO_TEST_CASE(else_if_formatting_regression)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(func, converter).convert();
+    actual << *FunctionBlockConverter(func, converter).convert();
     expected << "{";
     expected << "if(1){}";
     expected << "else if(0){}";
@@ -885,7 +885,7 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
     converter.record(unit);
 
     ostringstream actual, expected;
-    actual << *BlockConverter(*func, converter).convert();
+    actual << *FunctionBlockConverter(*func, converter).convert();
     BOOST_CHECK_EQUAL(actual.str(), "{(Method_A_Funcf()).v;}");
 }
 

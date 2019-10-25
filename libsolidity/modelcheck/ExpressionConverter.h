@@ -149,7 +149,6 @@ public:
 
 protected:
 	bool visit(EnumValue const& _node) override;
-	bool visit(ModifierInvocation const& _node) override;
 	bool visit(Conditional const& _node) override;
 	bool visit(Assignment const& _node) override;
 	bool visit(TupleExpression const& _node) override;

@@ -41,6 +41,7 @@ public:
     // Maps an indentifer to its C-model name in the present scope.
     std::string resolve_identifier(Identifier const& _id) const;
     std::string resolve_declaration(VariableDeclaration const& _decl) const;
+    std::string resolve_generative(std::string _sym) const;
 
     // Automatically rewrites identifier names, to avoid variable aliasing. A
     // rewrite has form ("func_","mod_","")("client_","model_")escape(_sym).

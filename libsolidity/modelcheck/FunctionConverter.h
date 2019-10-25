@@ -44,6 +44,7 @@ public:
 	// functions, such as constructors and accessors are also generated.
     void print(std::ostream& _stream);
 
+protected:
 	bool visit(ContractDefinition const& _node) override;
 	bool visit(StructDefinition const& _node) override;
 	bool visit(FunctionDefinition const& _node) override;

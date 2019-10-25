@@ -214,6 +214,12 @@ BOOST_AUTO_TEST_CASE(nameless_decl)
     BOOST_CHECK_EQUAL(resolver.resolve_identifier(id), "");
 }
 
+BOOST_AUTO_TEST_CASE(handles_generative_vars)
+{
+    VariableScopeResolver resolver(VarContext::FUNCTION);
+    BOOST_CHECK_EQUAL(resolver.resolve_generative("sym"), "func_model_sym");
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 }
