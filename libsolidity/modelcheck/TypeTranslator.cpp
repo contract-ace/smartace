@@ -172,8 +172,20 @@ void TypeConverter::record(SourceUnit const& _unit)
                 fun_oss << "_Func" << escape_decl_name(*fun);
             }
 
-            m_name_lookup.insert({fun, fun_oss.str()});
-            m_type_lookup.insert({fun, get_type(*returnParams)});
+            auto const FUNC_RETURN_TYPE = get_type(*returnParams);
+            auto const FUNC_NAME = fun_oss.str();
+            m_name_lookup.insert({fun, FUNC_NAME});
+            m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
+
+            for (unsigned int i = 0; i < fun->modifiers().size(); ++i)
+            {
+                ostringstream mod_oss;
+                mod_oss << FUNC_NAME << "_mod" << i;
+
+                ModifierInvocation const* modifier = fun->modifiers()[i].get();
+                m_name_lookup.insert({modifier, mod_oss.str()});
+                m_type_lookup.insert({modifier, FUNC_RETURN_TYPE});
+            }
 
             fun->parameterList().accept(*this);
         }
