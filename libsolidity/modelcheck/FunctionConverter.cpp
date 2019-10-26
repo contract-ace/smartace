@@ -81,9 +81,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             CExprPtr init;
             if (decl->value())
             {
-                init = ExpressionConverter(
-                    *decl->value(), {}, { VarContext::FUNCTION }
-                ).convert();
+                init = ExpressionConverter(*decl->value(), {}, {}).convert();
 
                 if (is_wrapped_type(*decl->type()))
                 {

@@ -34,7 +34,9 @@ class GeneralBlockConverter : public ASTConstVisitor
 {
 public:
 	// Constructs a printer for the C code corresponding to a Solidity function.
-	// The converter should provide translations for all typed ASTNodes.
+	// The converter should provide translations for all typed ASTNodes. This
+	// assumes that user function params will be set up, corresponding to _args.
+	// The _body will be expanded, using these parameters, along with _type.
 	GeneralBlockConverter(
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
 		Block const& _body,
@@ -104,7 +106,9 @@ private:
 class FunctionBlockConverter : public GeneralBlockConverter
 {
 public:
-	//
+	// Creates a block converter for _func's main body. It is assumed that
+	// _types is able to resolve all types in the AST of the source unit(s)
+	// associated with _func.
 	FunctionBlockConverter(
 		FunctionDefinition const& _func, TypeConverter const& _types
 	);
@@ -127,13 +131,56 @@ private:
 
 /**
  * Specializes GeneralBlockConverter to handle ModifierDefinition semantics.
+ * A single block will correspond to a single modifier, but specialized to the
+ * given function. Otherwise, the size of the code could explode exponentially.
+ * 
+ * For instance, if func _f has n modifiers, each with at least m > 1
+ * placeholder operations, then inline(_f) has at least m^n blocks to expand.
  */
-class ModifierConverter : public GeneralBlockConverter
+class ModifierBlockConverter : public GeneralBlockConverter
 {
+public:
+	// Creates a block converter for the (_i)-th modifier of function _func. It
+	// is assumed that _types is able to resolve all types in the AST of the
+	// source unit(s) associated with _func.
+	ModifierBlockConverter(
+		FunctionDefinition const& _func, size_t _i, TypeConverter const& _types
+	);
+
+	~ModifierBlockConverter() override = default;
+
 protected:
-	bool visit(Return const& _node) override;
+	void enter(CBlockList & _stmts, VariableScopeResolver & _decls) override;
+	void exit(CBlockList & _stmts, VariableScopeResolver &) override;
+
+	bool visit(Return const&) override;
 
 	void endVisit(PlaceholderStatement const&) override;
+
+private:
+	TypeConverter const& M_TYPES;
+	std::vector<ASTPointer<VariableDeclaration>> const& M_TRUE_PARAMS;
+	std::vector<ASTPointer<VariableDeclaration>> const& M_USER_PARAMS;
+	std::vector<ASTPointer<Expression>> const& M_USER_ARGS;
+	std::string const M_NEXT_CALL;
+	bool const M_HAS_STATEFUL_PLACEHOLDER;
+
+	VariableScopeResolver m_shadow_decls;
+	std::shared_ptr<CVarDecl> m_rv = nullptr;
+
+	// Internal constructor parameters.
+	struct Context
+	{
+		Context(FunctionDefinition const& _func, size_t _i);
+		FunctionDefinition const& func;
+		ModifierInvocation const* curr = nullptr;
+		ASTNode const* next = nullptr;
+		ModifierDefinition const* def = nullptr;
+		bool next_is_stateful = true;
+	};
+
+	// Internal constructor implementation. Expects _i be expanded to modifier.
+	ModifierBlockConverter(Context const& _ctx, TypeConverter const& _types);
 };
 
 // -------------------------------------------------------------------------- //

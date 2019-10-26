@@ -529,12 +529,43 @@ BOOST_AUTO_TEST_CASE(modifier_names)
     TypeConverter converter;
     converter.record(ast);
 
+    BOOST_CHECK_NE(func.modifiers().size(), 0);
     for (unsigned int i = 0; i < func.modifiers().size(); ++i)
     {
         BOOST_CHECK_EQUAL(
             converter.get_name(func) + "_mod" + std::to_string(i),
             converter.get_name(*func.modifiers()[i])
         );
+        BOOST_CHECK_EQUAL(
+            converter.get_type(func),
+            converter.get_type(*func.modifiers()[i])
+        );
+    }
+}
+
+BOOST_AUTO_TEST_CASE(modifier_types)
+{
+    char const* text = R"(
+        contract A {
+            modifier m1() { _; }
+            modifier m2(int a) { _; }
+            modifier m3(int a, int b) { _; }
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(ast, "A");
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    BOOST_CHECK_NE(ctrt.functionModifiers().size(), 0);
+    for (auto modifier : ctrt.functionModifiers())
+    {
+        for (auto param : modifier->parameters())
+        {
+            BOOST_CHECK_NO_THROW(converter.get_type(*param));
+        }
     }
 }
 

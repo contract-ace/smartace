@@ -884,9 +884,121 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
     TypeConverter converter;
     converter.record(unit);
 
-    ostringstream actual, expected;
+    ostringstream actual;
     actual << *FunctionBlockConverter(*func, converter).convert();
     BOOST_CHECK_EQUAL(actual.str(), "{(Method_A_Funcf()).v;}");
+}
+
+BOOST_AUTO_TEST_CASE(modifier_nesting)
+{
+    char const* text = R"(
+        contract A {
+            modifier modA() {
+                _;
+                _;
+                return;
+            }
+            modifier modB() {
+                _;
+                return;
+            }
+            function f() public modA() modB() pure { }
+            function g() public modA() modB() { }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& fncs = ctrt.definedFunctions();
+
+    auto const& func_f = (fncs[0]->name() == "f") ? *fncs[0] : *fncs[1];
+    auto const& func_g = (fncs[0]->name() == "f") ? *fncs[1] : *fncs[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream f0_actual, f1_actual, g0_actual, g1_actual;
+    f0_actual << *ModifierBlockConverter(func_f, 0, converter).convert();
+    f1_actual << *ModifierBlockConverter(func_f, 1, converter).convert();
+    g0_actual << *ModifierBlockConverter(func_g, 0, converter).convert();
+    g1_actual << *ModifierBlockConverter(func_g, 1, converter).convert();
+
+    BOOST_CHECK_EQUAL(
+        f0_actual.str(),
+        "{Method_A_Funcf_mod1(self,state);Method_A_Funcf_mod1(self,state);return;}"
+    );
+    BOOST_CHECK_EQUAL(
+        g0_actual.str(),
+        "{Method_A_Funcg_mod1(self,state);Method_A_Funcg_mod1(self,state);return;}"
+    );
+    BOOST_CHECK_EQUAL(f1_actual.str(), "{Method_A_Funcf();return;}");
+    BOOST_CHECK_EQUAL(g1_actual.str(), "{Method_A_Funcg(self,state);return;}");
+}
+
+BOOST_AUTO_TEST_CASE(modifier_retval)
+{
+    char const* text = R"(
+        contract A {
+            modifier modA() {
+                _;
+                return;
+                _;
+            }
+            function f() modA() public returns (int) { return 5; }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream expected, actual;
+    actual << *ModifierBlockConverter(func, 0, converter).convert();
+    expected << "{";
+    expected << "sol_int256_t func_model_rv;";
+    expected << "(func_model_rv)=(Method_A_Funcf(self,state));";
+    expected << "return func_model_rv;";
+    expected << "(func_model_rv)=(Method_A_Funcf(self,state));";
+    expected << "return func_model_rv;";
+    expected << "}";
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
+BOOST_AUTO_TEST_CASE(modifier_args)
+{
+    char const* text = R"(
+        contract A {
+            modifier modA(int a, int b) {
+                require(a > b);
+                _;
+            }
+            function f(int a, int b) modA(b + 5, a) public { }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt = *retrieveContractByName(unit, "A");
+    const auto& func = *ctrt.definedFunctions()[0];
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream expected, actual;
+    actual << *ModifierBlockConverter(func, 0, converter).convert();
+    expected << "{";
+    expected << "sol_int256_t func_user_a=Init_sol_int256_t("
+             << "((func_model_b).v)+(5));";
+    expected << "sol_int256_t func_user_b=Init_sol_int256_t("
+             << "(func_model_a).v);";
+    expected << "sol_require(((func_user_a).v)>((func_user_b).v),0);";
+    expected << "Method_A_Funcf(self,state,func_model_a,func_model_b);";
+    expected << "}";
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

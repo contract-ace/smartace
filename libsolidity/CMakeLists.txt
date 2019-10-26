@@ -121,6 +121,7 @@ set(sources
 	modelcheck/MainFunctionGenerator.h
 	modelcheck/Mapping.h
 	modelcheck/Mapping.cpp
+	modelcheck/ModifierBlockConverter.cpp
 	modelcheck/PrimitiveTypeGenerator.cpp
 	modelcheck/PrimitiveTypeGenerator.h
 	modelcheck/SimpleCCore.cpp

@@ -21,8 +21,10 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 VariableScopeResolver::VariableScopeResolver(
-    VarContext _context
-): M_CONTEXT(_context) {}
+    bool _instrument
+): M_SHADOW(_instrument)
+{
+}
 
 // -------------------------------------------------------------------------- //
 
@@ -54,11 +56,6 @@ string VariableScopeResolver::resolve_declaration(
     return resolve_sym(_decl.name());
 }
 
-string VariableScopeResolver::resolve_generative(string _sym) const
-{
-    return rewrite(_sym, true, M_CONTEXT);
-}
-
 // -------------------------------------------------------------------------- //
 
 string VariableScopeResolver::rewrite(string _sym, bool _gen, VarContext _ctx)
@@ -68,7 +65,6 @@ string VariableScopeResolver::rewrite(string _sym, bool _gen, VarContext _ctx)
     if (!_sym.empty())
     {
         if (_ctx == VarContext::FUNCTION) oss << "func_";
-        else if (_ctx == VarContext::MODIFIER) oss << "mod_";
 
         oss << (_gen ? "model_" : "user_");
 
@@ -88,7 +84,7 @@ string VariableScopeResolver::resolve_sym(string const& _sym) const
     {
         if (scope->find(_sym) != scope->cend())
         {
-            return rewrite(_sym, false, M_CONTEXT);
+            return rewrite(_sym, M_SHADOW, VarContext::FUNCTION);
         }
     }
 
@@ -110,7 +106,7 @@ string VariableScopeResolver::resolve_sym(string const& _sym) const
     }
     else
     {
-        return "self->" + rewrite(_sym, false, VarContext::STRUCT);
+        return "self->" + rewrite(_sym, M_SHADOW, VarContext::STRUCT);
     }
 }
 

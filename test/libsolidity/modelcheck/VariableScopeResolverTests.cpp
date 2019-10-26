@@ -31,7 +31,7 @@ BOOST_FIXTURE_TEST_SUITE(
 // should be remapped onto a state variable `self->d_var`.
 BOOST_AUTO_TEST_CASE(member_variables_no_scope)
 {
-    VariableScopeResolver resolver(VarContext::FUNCTION);
+    VariableScopeResolver resolver;
 
     Identifier id(langutil::SourceLocation(), make_shared<string>("var"));
     BOOST_CHECK_EQUAL(resolver.resolve_identifier(id), "self->user_var");
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(member_variables_scoped)
     auto const &ctrt = *retrieveContractByName(unit, "A");
     auto const &decl = *ctrt.stateVariables()[0];
 
-    VariableScopeResolver resolver(VarContext::FUNCTION);
+    VariableScopeResolver resolver;
     resolver.enter();
     resolver.record_declaration(decl);
 
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(local_variables_scoped)
     auto const &decl_b = *ctrt.stateVariables()[1];
     auto const &decl_c = *ctrt.stateVariables()[2];
 
-    VariableScopeResolver resolver(VarContext::FUNCTION);
+    VariableScopeResolver resolver;
     Identifier id_a(langutil::SourceLocation(), make_shared<string>("a"));
     Identifier id_b(langutil::SourceLocation(), make_shared<string>("b"));
     Identifier id_c(langutil::SourceLocation(), make_shared<string>("c"));
@@ -125,30 +125,6 @@ BOOST_AUTO_TEST_CASE(local_variables_scoped)
     BOOST_CHECK_EQUAL(resolver.resolve_identifier(id_c), "self->user_c");
 }
 
-// A single scope is set up, with a single declaration. The resolutions of
-// verious special-case keywords are validated.
-BOOST_AUTO_TEST_CASE(modifier_resolution)
-{
-    char const* text = R"(
-		contract A {
-            int a;
-		}
-	)";
-
-    auto const &unit = *parseAndAnalyse(text);
-    auto const &ctrt = *retrieveContractByName(unit, "A");
-    auto const &decl = *ctrt.stateVariables()[0];
-
-    VariableScopeResolver resolver(VarContext::MODIFIER);
-    resolver.enter();
-    resolver.record_declaration(decl);
-
-    Identifier id1(langutil::SourceLocation(), make_shared<string>("var"));
-    Identifier id2(langutil::SourceLocation(), make_shared<string>("a"));
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(id1), "self->user_var");
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(id2), "mod_user_a");
-}
-
 BOOST_AUTO_TEST_CASE(state_resolution)
 {
     char const* text = R"(
@@ -161,7 +137,7 @@ BOOST_AUTO_TEST_CASE(state_resolution)
     auto const &ctrt = *retrieveContractByName(unit, "A");
     auto const &decl = *ctrt.stateVariables()[0];
 
-    VariableScopeResolver resolver(VarContext::FUNCTION);
+    VariableScopeResolver resolver;
     resolver.enter();
     resolver.record_declaration(decl);
 
@@ -189,14 +165,6 @@ BOOST_AUTO_TEST_CASE(variable_name_rewriting)
         "user_a__b____c"
     );
     BOOST_CHECK_EQUAL(
-        VariableScopeResolver::rewrite(orig, true, VarContext::MODIFIER),
-        "mod_model_a__b____c"
-    );
-    BOOST_CHECK_EQUAL(
-        VariableScopeResolver::rewrite(orig, false, VarContext::MODIFIER),
-        "mod_user_a__b____c"
-    );
-    BOOST_CHECK_EQUAL(
         VariableScopeResolver::rewrite(orig, true, VarContext::FUNCTION),
         "func_model_a__b____c"
     );
@@ -208,16 +176,32 @@ BOOST_AUTO_TEST_CASE(variable_name_rewriting)
 
 BOOST_AUTO_TEST_CASE(nameless_decl)
 {
-    VariableScopeResolver resolver(VarContext::FUNCTION);
+    VariableScopeResolver resolver;
 
     Identifier id(langutil::SourceLocation(), make_shared<string>(""));
     BOOST_CHECK_EQUAL(resolver.resolve_identifier(id), "");
 }
 
-BOOST_AUTO_TEST_CASE(handles_generative_vars)
+BOOST_AUTO_TEST_CASE(shadow_scope)
 {
-    VariableScopeResolver resolver(VarContext::FUNCTION);
-    BOOST_CHECK_EQUAL(resolver.resolve_generative("sym"), "func_model_sym");
+    char const* text = R"(
+		contract A {
+            int a;
+		}
+	)";
+
+    auto const &unit = *parseAndAnalyse(text);
+    auto const &ctrt = *retrieveContractByName(unit, "A");
+    auto const &decl = *ctrt.stateVariables()[0];
+
+    VariableScopeResolver resolver(true);
+    resolver.enter();
+    resolver.record_declaration(decl);
+
+    Identifier id1(langutil::SourceLocation(), make_shared<string>("var"));
+    Identifier id2(langutil::SourceLocation(), make_shared<string>("a"));
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(id1), "self->model_var");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(id2), "func_model_a");
 }
 
 BOOST_AUTO_TEST_SUITE_END();

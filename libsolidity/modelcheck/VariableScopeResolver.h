@@ -18,7 +18,7 @@ namespace solidity
 namespace modelcheck
 {
 
-enum class VarContext { STRUCT, FUNCTION, MODIFIER };
+enum class VarContext { STRUCT, FUNCTION };
 
 /*
  * Maintains a hierarchy of scopes and their declaration names. Allows variable
@@ -28,8 +28,9 @@ enum class VarContext { STRUCT, FUNCTION, MODIFIER };
 class VariableScopeResolver
 {
 public:
-    // Describes the context under which variables are being scoped.
-    VariableScopeResolver(VarContext _context);
+    // When false, the variable scope maps to user variables. Otherwise, acts as
+    // a shadow scope for instrumentation variables.
+    VariableScopeResolver(bool _instrument = false);
 
     // Creates or destroys a variable scope.
     void enter();
@@ -41,7 +42,6 @@ public:
     // Maps an indentifer to its C-model name in the present scope.
     std::string resolve_identifier(Identifier const& _id) const;
     std::string resolve_declaration(VariableDeclaration const& _decl) const;
-    std::string resolve_generative(std::string _sym) const;
 
     // Automatically rewrites identifier names, to avoid variable aliasing. A
     // rewrite has form ("func_","mod_","")("client_","model_")escape(_sym).
@@ -52,7 +52,7 @@ public:
     static std::string rewrite(std::string _sym, bool _gen, VarContext _ctx);
 
 private:
-    VarContext const M_CONTEXT;
+    bool const M_SHADOW;
 
     std::list<std::set<std::string>> m_scopes;
 

@@ -182,12 +182,17 @@ void TypeConverter::record(SourceUnit const& _unit)
                 ostringstream mod_oss;
                 mod_oss << FUNC_NAME << "_mod" << i;
 
-                ModifierInvocation const* modifier = fun->modifiers()[i].get();
+                auto const* modifier = fun->modifiers()[i].get();
                 m_name_lookup.insert({modifier, mod_oss.str()});
                 m_type_lookup.insert({modifier, FUNC_RETURN_TYPE});
             }
 
             fun->parameterList().accept(*this);
+        }
+
+        for (auto modifier : contract->functionModifiers())
+        {
+            modifier->parameterList().accept(*this);
         }
     }
 
@@ -199,6 +204,11 @@ void TypeConverter::record(SourceUnit const& _unit)
         for (auto fun : contract->definedFunctions())
         {
             fun->body().accept(*this);
+        }
+
+        for (auto modifier : contract->functionModifiers())
+        {
+            modifier->body().accept(*this);
         }
     }
 }

@@ -32,7 +32,7 @@ using SubD = Literal::SubDenomination;
 VariableScopeResolver _prime_resolver(shared_ptr<string> name)
 {
     using DeclVis = Declaration::Visibility;
-    VariableScopeResolver resolver(VarContext::FUNCTION);
+    VariableScopeResolver resolver;
     resolver.enter();
     resolver.record_declaration(VariableDeclaration(
         SourceLocation(), nullptr, name, nullptr, DeclVis::Public
@@ -91,7 +91,7 @@ string _convert_literal(Token tok, string src, SubD subdom = SubD::None)
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
 
     ostringstream oss;
-    oss << *ExpressionConverter(lit, {}, { VarContext::FUNCTION }).convert();
+    oss << *ExpressionConverter(lit, {}, {}).convert();
     return oss.str();
 }
 
@@ -253,9 +253,7 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
     // TODO(scottwe): n element array, large n
 
     ostringstream oss;
-    oss << *ExpressionConverter(
-        one_tuple, {}, { VarContext::FUNCTION }
-    ).convert();
+    oss << *ExpressionConverter(one_tuple, {}, {}).convert();
     BOOST_CHECK_EQUAL(oss.str(), "(self->user_a).v");
 }
 

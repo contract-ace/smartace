@@ -647,13 +647,13 @@ void ExpressionConverter::print_method(
 {
 	// Finds mutability of the function.
 	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
-	const bool is_mutable = (decl.stateMutability() != StateMutability::Pure);
+	const bool is_stateful = (decl.stateMutability() != StateMutability::Pure);
 
 	// Starts generating the function call.
 	CFuncCallBuilder builder(M_TYPES.get_name(decl));
 
 	// If required, the state variables are passed on.
-	if (is_mutable)
+	if (is_stateful)
 	{
 		if (_ctx)
 		{

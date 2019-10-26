@@ -26,7 +26,7 @@ GeneralBlockConverter::GeneralBlockConverter(
 	std::vector<ASTPointer<VariableDeclaration>> const& _args,
 	Block const& _body,
 	TypeConverter const& _types
-): M_BODY(_body), M_TYPES(_types), m_decls(VarContext::FUNCTION)
+): M_BODY(_body), M_TYPES(_types)
 {
 	m_decls.enter();
 	for (auto const& arg : _args)
