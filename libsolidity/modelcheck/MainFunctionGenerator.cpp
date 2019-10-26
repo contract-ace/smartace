@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/MainFunctionGenerator.h>
 
+#include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 
 using namespace std;
@@ -177,12 +178,11 @@ CBlockList MainFunctionGenerator::build_case(
     shared_ptr<const CVarDecl> _state
 )
 {
-    CFuncCallBuilder call_builder(m_converter.get_name(_def));
-    if (_def.stateMutability() != StateMutability::Pure)
-    {
-        call_builder.push(make_shared<CReference>(_id->id()));
-        call_builder.push(make_shared<CReference>(_state->id()));
-    }
+    auto const& root = FunctionUtilities::extract_root(_def);
+
+    CFuncCallBuilder call_builder(m_converter.get_name(root));
+    call_builder.push(make_shared<CReference>(_id->id()));
+    call_builder.push(make_shared<CReference>(_state->id()));
 
     CBlockList call_body;
     for (auto arg : _def.parameters())

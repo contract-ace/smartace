@@ -163,7 +163,6 @@ private:
 	std::vector<ASTPointer<VariableDeclaration>> const& M_USER_PARAMS;
 	std::vector<ASTPointer<Expression>> const& M_USER_ARGS;
 	std::string const M_NEXT_CALL;
-	bool const M_HAS_STATEFUL_PLACEHOLDER;
 
 	VariableScopeResolver m_shadow_decls;
 	std::shared_ptr<CVarDecl> m_rv = nullptr;
@@ -176,7 +175,6 @@ private:
 		ModifierInvocation const* curr = nullptr;
 		ASTNode const* next = nullptr;
 		ModifierDefinition const* def = nullptr;
-		bool next_is_stateful = true;
 	};
 
 	// Internal constructor implementation. Expects _i be expanded to modifier.

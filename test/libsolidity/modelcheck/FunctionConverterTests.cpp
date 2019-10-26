@@ -50,7 +50,8 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     expect << "struct A tmp;";
     expect << "return tmp;";
     expect << "}";
-    expect << "sol_uint40_t Method_A_Funcf(void)";
+    expect << "sol_uint40_t Method_A_Funcf(struct A*self"
+           << ",struct CallState*state)";
     expect << "{";
     expect << "return Init_sol_uint40_t(20);";
     expect << "}";
@@ -279,7 +280,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
         ast, converter, FunctionConverter::View::EXT, true
     ).print(ext_actual);
     ext_expect << "struct A Init_A(void);";
-    ext_expect << "void Method_A_Funcf(void);";
+    ext_expect << "void Method_A_Funcf(struct A*self,struct CallState*state);";
 
     ostringstream int_actual, int_expect;
     FunctionConverter(
@@ -296,7 +297,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
                << ",sol_int256_t idx,sol_int256_t d);";
     int_expect << "sol_int256_t*Ref_A_Mapm_submap1(struct A_Mapm_submap1*a"
                << ",sol_int256_t idx);";
-    int_expect << "void Method_A_Funcg(void);";
+    int_expect << "void Method_A_Funcg(struct A*self,struct CallState*state);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
     BOOST_CHECK_EQUAL(int_actual.str(), int_expect.str());

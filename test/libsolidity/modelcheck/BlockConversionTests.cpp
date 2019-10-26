@@ -413,9 +413,9 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
             expected << "Method_A_Funcg(self,state,Init_sol_int256_t(1));";
             expected << "Method_A_Funch(self,state,Init_sol_int256_t(1)"
                      << ",Init_sol_int256_t(2));";
-            expected << "Method_A_Funcp();";
-            expected << "Method_A_Funcq(Init_sol_int256_t(1));";
-            expected << "Method_A_Funcr(Init_sol_int256_t(1)"
+            expected << "Method_A_Funcp(self,state);";
+            expected << "Method_A_Funcq(self,state,Init_sol_int256_t(1));";
+            expected << "Method_A_Funcr(self,state,Init_sol_int256_t(1)"
                      << ",Init_sol_int256_t(2));";
             expected << "}";
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
@@ -462,7 +462,7 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
             actual << *FunctionBlockConverter(*func_ptr, converter).convert();
             expected << "{";
             expected << "Method_A_Funcf(&(self->user_a),state);";
-            expected << "Method_A_Funcg();";
+            expected << "Method_A_Funcg(&(self->user_a),state);";
             expected << "Method_B_Funcf(&(self->user_b),state);";
             expected << "Method_B_Funcf(self,state);";
             expected << "Method_B_Funcf(self,state);";
@@ -886,7 +886,7 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
 
     ostringstream actual;
     actual << *FunctionBlockConverter(*func, converter).convert();
-    BOOST_CHECK_EQUAL(actual.str(), "{(Method_A_Funcf()).v;}");
+    BOOST_CHECK_EQUAL(actual.str(), "{(Method_A_Funcf(self,state)).v;}");
 }
 
 BOOST_AUTO_TEST_CASE(modifier_nesting)
@@ -931,7 +931,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
         g0_actual.str(),
         "{Method_A_Funcg_mod1(self,state);Method_A_Funcg_mod1(self,state);return;}"
     );
-    BOOST_CHECK_EQUAL(f1_actual.str(), "{Method_A_Funcf();return;}");
+    BOOST_CHECK_EQUAL(f1_actual.str(), "{Method_A_Funcf(self,state);return;}");
     BOOST_CHECK_EQUAL(g1_actual.str(), "{Method_A_Funcg(self,state);return;}");
 }
 

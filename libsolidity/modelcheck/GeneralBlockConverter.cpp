@@ -50,8 +50,7 @@ shared_ptr<CBlock> GeneralBlockConverter::convert()
 
 CExprPtr GeneralBlockConverter::expand(Expression const& _expr, bool _ref)
 {
-	ExpressionConverter converter(_expr, M_TYPES, m_decls, _ref);
-	return converter.convert();
+	return ExpressionConverter(_expr, M_TYPES, m_decls, _ref).convert();
 }
 
 // -------------------------------------------------------------------------- //

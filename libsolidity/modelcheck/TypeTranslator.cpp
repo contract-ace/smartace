@@ -182,7 +182,7 @@ void TypeConverter::record(SourceUnit const& _unit)
                 ostringstream mod_oss;
                 mod_oss << FUNC_NAME << "_mod" << i;
 
-                auto const* modifier = fun->modifiers()[i].get();
+                ModifierInvocation const* modifier = fun->modifiers()[i].get();
                 m_name_lookup.insert({modifier, mod_oss.str()});
                 m_type_lookup.insert({modifier, FUNC_RETURN_TYPE});
             }

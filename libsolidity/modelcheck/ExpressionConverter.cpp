@@ -5,6 +5,7 @@
 
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 
+#include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
@@ -647,30 +648,27 @@ void ExpressionConverter::print_method(
 {
 	// Finds mutability of the function.
 	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
-	const bool is_stateful = (decl.stateMutability() != StateMutability::Pure);
+	auto &root = FunctionUtilities::extract_root(decl);
 
 	// Starts generating the function call.
-	CFuncCallBuilder builder(M_TYPES.get_name(decl));
+	CFuncCallBuilder builder(M_TYPES.get_name(root));
 
 	// If required, the state variables are passed on.
-	if (is_stateful)
+	if (_ctx)
 	{
-		if (_ctx)
+		_ctx->accept(*this);
+		auto id = LValueSniffer<Identifier>(*_ctx).find();
+		if (!(id && M_TYPES.is_pointer(*id)))
 		{
-			_ctx->accept(*this);
-			auto id = LValueSniffer<Identifier>(*_ctx).find();
-			if (!(id && M_TYPES.is_pointer(*id)))
-			{
-				m_subexpr = make_shared<CReference>(m_subexpr);
-			}
-			builder.push(m_subexpr);
+			m_subexpr = make_shared<CReference>(m_subexpr);
 		}
-		else
-		{
-			builder.push(make_shared<CIdentifier>("self", true));
-		}
-		builder.push(make_shared<CIdentifier>("state", true));
+		builder.push(m_subexpr);
 	}
+	else
+	{
+		builder.push(make_shared<CIdentifier>("self", true));
+	}
+	builder.push(make_shared<CIdentifier>("state", true));
 
 	// Pushes all user provided arguments, performing any implicit cases of
 	// wrapped data types.

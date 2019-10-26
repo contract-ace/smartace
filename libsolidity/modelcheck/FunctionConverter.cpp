@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/BlockConverter.h>
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+#include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/Mapping.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
@@ -99,7 +100,9 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         }
         if (auto ctor = _node.constructor())
         {
-            CFuncCallBuilder builder("Ctor_" + CTRX_NAME);
+            auto const& ROOT = FunctionUtilities::extract_root(*ctor);
+
+            CFuncCallBuilder builder(M_CONVERTER.get_name(ROOT));
             builder.push(make_shared<CReference>(TMP));
             builder.push(make_shared<CIdentifier>("state", true));
             for (auto decl : ctor->parameters())
@@ -218,36 +221,62 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     if (!(IS_PUB || IS_EXT) && M_VIEW == View::EXT) return false;
     if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return false;
 
-    vector<FunctionConverter::ParamTmpl> param_tmpls;
+    vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
     {
         FunctionConverter::ParamTmpl tmpl;
         tmpl.context = VarContext::FUNCTION;
-        tmpl.instrumentation = false;
 
         for (auto arg : _node.parameters())
         {
             tmpl.decl = arg;
-            param_tmpls.push_back(tmpl);
+
+            tmpl.instrumentation = false;
+            base_tmpl.push_back(tmpl);
+
+            tmpl.instrumentation = true;
+            mod_tmpl.push_back(tmpl);
         }
     }
 
-    const bool IS_MUTABLE = _node.stateMutability() != StateMutability::Pure;
-    CParams params = generate_params(
-        param_tmpls, IS_MUTABLE ? _node.scope() : nullptr
-    );
-
+    vector<CFuncDef> defs;
     shared_ptr<CBlock> body;
-    if (!M_FWD_DCL)
+
     {
-        body = FunctionBlockConverter(_node, M_CONVERTER).convert();
+        CParams params = generate_params(base_tmpl,_node.scope());
+
+        if (!M_FWD_DCL)
+        {
+            body = FunctionBlockConverter(_node, M_CONVERTER).convert();
+        }
+
+        string const FUNC_TYPE = M_CONVERTER.get_type(_node);
+        string const FUNC_NAME = M_CONVERTER.get_name(_node);
+        auto id = make_shared<CVarDecl>(FUNC_TYPE, FUNC_NAME);
+        defs.emplace_back(id, move(params), move(body));
     }
 
-    string const FUNC_TYPE = M_CONVERTER.get_type(_node);
-    string const FUNC_NAME = M_CONVERTER.get_name(_node);
-    auto id = make_shared<CVarDecl>(FUNC_TYPE, FUNC_NAME);
-    CFuncDef func(id, move(params), move(body));
+    CParams const mod_params = generate_params(mod_tmpl, _node.scope());
+    for (size_t i = _node.modifiers().size(); i > 0; --i)
+    {
+        size_t const IDX = i - 1;
+    
+        if (!M_FWD_DCL)
+        {
+            body = ModifierBlockConverter(_node, IDX, M_CONVERTER).convert();
+        }
 
-    (*m_ostream) << func;
+        ModifierInvocation const& mod = *_node.modifiers()[IDX];
+
+        string const MOD_TYPE = M_CONVERTER.get_type(mod);
+        string const MOD_NAME = M_CONVERTER.get_name(mod);
+        auto id = make_shared<CVarDecl>(MOD_TYPE, MOD_NAME);
+        defs.emplace_back(id, mod_params, move(body));
+    }
+
+    for (auto const& def : defs)
+    {
+        (*m_ostream) << def;
+    }
 
     return false;
 }

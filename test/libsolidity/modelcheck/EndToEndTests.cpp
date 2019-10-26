@@ -161,42 +161,6 @@ BOOST_AUTO_TEST_CASE(simple_func)
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
 
-// Ensures that when functions are pure (as opposed to just views), that said
-// function will take no state variables
-BOOST_AUTO_TEST_CASE(pure_func)
-{
-    char const* text = R"(
-        contract A {
-            function simpleFuncA() public pure returns (uint _out) {
-                _out = 4;
-            }
-            function simpleFuncB() public view returns (uint _out) {
-                _out = 4;
-            }
-        }
-    )";
-
-    auto const &ast = *parseAndAnalyse(text);
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, true).print(adt_actual);
-    FunctionConverter(
-        ast, converter, FunctionConverter::View::FULL, true
-    ).print(func_actual);
-
-    ostringstream func_expect;
-    func_expect << "struct A Init_A(void);";
-    func_expect << "sol_uint256_t Method_A_FuncsimpleFuncA(void);";
-    func_expect << "sol_uint256_t Method_A_FuncsimpleFuncB"
-                << "(struct A*self,struct CallState*state);";
-
-    BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
-    BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
-}
-
 // Ensures that when a function has no return value, its return values are
 // assumed to be void.
 BOOST_AUTO_TEST_CASE(simple_void_func)
