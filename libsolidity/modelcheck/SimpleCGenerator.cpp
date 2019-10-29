@@ -46,6 +46,19 @@ void CIntLiteral::print(ostream & _out) const { _out << m_val; }
 
 // -------------------------------------------------------------------------- //
 
+CIndexAccess::CIndexAccess(CExprPtr _expr, CExprPtr _idx)
+: m_expr(move(_expr)), m_idx(move(_idx)) {}
+
+CIndexAccess::CIndexAccess(CExprPtr _expr, size_t _idx)
+: m_expr(move(_expr)), m_idx(make_shared<CIntLiteral>(_idx)) {}
+
+void CIndexAccess::print(std::ostream & _out) const
+{
+    _out << "(" << m_expr << ")" << "[" << m_idx << "]";
+}
+
+// -------------------------------------------------------------------------- //
+
 CStringLiteral::CStringLiteral(string const& _val)
 {
     ostringstream stream;
@@ -239,18 +252,24 @@ void CExprStmt::print_impl(ostream & _out) const { _out << *m_expr; }
 
 // -------------------------------------------------------------------------- //
 
+CVarDecl::CVarDecl(string _type, string _name, int _len, CExprPtr _init)
+: m_type(move(_type)), m_name(move(_name)), m_len(_len), m_init(move(_init)) {}
+
 CVarDecl::CVarDecl(string _type, string _name, bool _ptr, CExprPtr _init)
-: m_type(move(_type)), m_name(move(_name)), m_ptr(_ptr), m_init(move(_init)) {}
+: CVarDecl(move(_type), move(_name), (_ptr ? -1 : 0), move(_init)) {}
 
 CVarDecl::CVarDecl(string _type, string _name, bool _ptr)
 : CVarDecl(move(_type), move(_name), _ptr, nullptr) {}
+
+CVarDecl::CVarDecl(string _type, string _name, int _len)
+: CVarDecl(move(_type), move(_name), _len, nullptr) {}
 
 CVarDecl::CVarDecl(string _type, string _name)
 : CVarDecl(move(_type), move(_name), false) {}
 
 shared_ptr<CIdentifier> CVarDecl::id() const
 {
-    return make_shared<CIdentifier>(m_name, m_ptr);
+    return make_shared<CIdentifier>(m_name, m_len == -1);
 }
 
 shared_ptr<CAssign> CVarDecl::assign(CExprPtr _rhs) const
@@ -265,7 +284,8 @@ shared_ptr<CMemberAccess> CVarDecl::access(string _member) const
 
 void CVarDecl::print_impl(ostream & _out) const
 {
-    _out << m_type << (m_ptr ? "*" : " ") << m_name;
+    _out << m_type << ((m_len == -1) ? "*" : " ") << m_name;
+    if (m_len > 0) _out << "[" << m_len << "]";
     if (m_init) _out << "=" << *m_init;
 }
 

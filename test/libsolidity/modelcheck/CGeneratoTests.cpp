@@ -76,6 +76,36 @@ BOOST_AUTO_TEST_CASE(switch_with_default)
     test_switch_case(switch_stmt, "return 5;");
 }
 
+// Tests the various variable declarations.
+BOOST_AUTO_TEST_CASE(var_decl_types)
+{
+    CVarDecl basic1("type", "name");
+    CVarDecl basic2("type", "name", false);
+    CVarDecl ptr("type", "name", true);
+    CVarDecl set_val("type", "name", false, make_shared<CIntLiteral>(42));
+    CVarDecl arr("type", "name", 42);
+
+    ostringstream basic1_actual;
+    basic1_actual << basic1;
+    BOOST_CHECK_EQUAL(basic1_actual.str(), "type name;");
+
+    ostringstream basic2_actual;
+    basic2_actual << basic2;
+    BOOST_CHECK_EQUAL(basic2_actual.str(), "type name;");
+
+    ostringstream ptr_actual;
+    ptr_actual << ptr;
+    BOOST_CHECK_EQUAL(ptr_actual.str(), "type*name;");
+
+    ostringstream set_val_actual;
+    set_val_actual << set_val;
+    BOOST_CHECK_EQUAL(set_val_actual.str(), "type name=42;");
+
+    ostringstream arr_actual;
+    arr_actual << arr;
+    BOOST_CHECK_EQUAL(arr_actual.str(), "type name[42];");
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 }
