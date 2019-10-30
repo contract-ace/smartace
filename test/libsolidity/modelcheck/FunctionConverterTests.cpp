@@ -291,12 +291,12 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     int_expect << "struct A_StructB ND_A_StructB(void);";
     int_expect << "struct A_Mapm_submap1 Init_0_A_Mapm_submap1(void);";
     int_expect << "struct A_Mapm_submap1 ND_A_Mapm_submap1(void);";
-    int_expect << "sol_int256_t Read_A_Mapm_submap1(struct A_Mapm_submap1*a"
-               << ",sol_int256_t idx);";
-    int_expect << "void Write_A_Mapm_submap1(struct A_Mapm_submap1*a"
-               << ",sol_int256_t idx,sol_int256_t d);";
-    int_expect << "sol_int256_t*Ref_A_Mapm_submap1(struct A_Mapm_submap1*a"
-               << ",sol_int256_t idx);";
+    int_expect << "sol_int256_t Read_A_Mapm_submap1(struct A_Mapm_submap1*arr"
+               << ",sol_int256_t key);";
+    int_expect << "void Write_A_Mapm_submap1(struct A_Mapm_submap1*arr"
+               << ",sol_int256_t key,sol_int256_t dat);";
+    int_expect << "sol_int256_t*Ref_A_Mapm_submap1(struct A_Mapm_submap1*arr"
+               << ",sol_int256_t key);";
     int_expect << "void Method_A_Funcg(struct A*self,struct CallState*state);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());

@@ -19,6 +19,28 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+shared_ptr<CAssign> CData::assign(CExprPtr _rhs) const
+{
+    return make_shared<CAssign>(expr(), move(_rhs));
+}
+
+shared_ptr<CMemberAccess> CData::access(string _member) const
+{
+    return make_shared<CMemberAccess>(expr(), move(_member));
+}
+
+shared_ptr<CIndexAccess> CData::offset(CExprPtr idx) const
+{
+    return make_shared<CIndexAccess>(expr(), move(idx));
+}
+
+shared_ptr<CIndexAccess> CData::offset(size_t idx) const
+{
+    return make_shared<CIndexAccess>(expr(), idx);
+}
+
+// -------------------------------------------------------------------------- //
+
 CIdentifier::CIdentifier(string _name, bool _ptr)
 : m_name(move(_name)), m_ptr(_ptr) {}
 
@@ -26,16 +48,9 @@ void CIdentifier::print(ostream & _out) const { _out << m_name; }
 
 bool CIdentifier::is_pointer() const { return m_ptr; }
 
-shared_ptr<CAssign> CIdentifier::assign(CExprPtr _rhs) const
+CExprPtr CIdentifier::expr() const
 {
-    auto id = make_shared<CIdentifier>(m_name, m_ptr);
-    return make_shared<CAssign>(move(id), _rhs);
-}
-
-shared_ptr<CMemberAccess> CIdentifier::access(string _member) const
-{
-    auto id = make_shared<CIdentifier>(m_name, m_ptr);
-    return make_shared<CMemberAccess>(move(id), move(_member));
+    return make_shared<CIdentifier>(m_name, m_ptr);
 }
 
 // -------------------------------------------------------------------------- //
@@ -54,7 +69,12 @@ CIndexAccess::CIndexAccess(CExprPtr _expr, size_t _idx)
 
 void CIndexAccess::print(std::ostream & _out) const
 {
-    _out << "(" << m_expr << ")" << "[" << m_idx << "]";
+    _out << "(" << *m_expr << ")" << "[" << *m_idx << "]";
+}
+
+CExprPtr CIndexAccess::expr() const
+{
+    return make_shared<CIndexAccess>(m_expr, m_idx);
 }
 
 // -------------------------------------------------------------------------- //
@@ -142,16 +162,9 @@ void CMemberAccess::print(ostream & _out) const
     _out << "(" << *m_expr << ")" << (is_ptr ? "->" : ".") << m_member;
 }
 
-shared_ptr<CAssign> CMemberAccess::assign(CExprPtr _rhs) const
+CExprPtr CMemberAccess::expr() const
 {
-    auto access = make_shared<CMemberAccess>(m_expr, m_member);
-    return make_shared<CAssign>(move(access), _rhs);
-}
-
-shared_ptr<CMemberAccess> CMemberAccess::access(string _member) const
-{
-    auto access = make_shared<CMemberAccess>(m_expr, m_member);
-    return make_shared<CMemberAccess>(move(access), move(_member));
+    return make_shared<CMemberAccess>(m_expr, m_member);
 }
 
 // -------------------------------------------------------------------------- //
@@ -272,14 +285,9 @@ shared_ptr<CIdentifier> CVarDecl::id() const
     return make_shared<CIdentifier>(m_name, m_len == -1);
 }
 
-shared_ptr<CAssign> CVarDecl::assign(CExprPtr _rhs) const
+CExprPtr CVarDecl::expr() const
 {
-    return make_shared<CAssign>(id(), _rhs);
-}
-
-shared_ptr<CMemberAccess> CVarDecl::access(string _member) const
-{
-    return make_shared<CMemberAccess>(id(), move(_member));
+    return id();
 }
 
 void CVarDecl::print_impl(ostream & _out) const

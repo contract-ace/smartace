@@ -65,21 +65,7 @@ void ADTConverter::endVisit(ContractDefinition const& _node)
 
 void ADTConverter::endVisit(Mapping const& _node)
 {
-    shared_ptr<CParams> fields;
-    if (!M_FWD_DCL)
-    {
-        string const SET_TYPE = TypeConverter::get_simple_ctype(BoolType{});
-        string const KEY_TYPE = M_CONVERTER.get_type(_node.keyType());
-        string const VAL_TYPE = M_CONVERTER.get_type(_node.valueType());
-        fields = make_shared<CParams>(CParams{
-            make_shared<CVarDecl>(SET_TYPE, MappingUtilities::SET_FIELD),
-            make_shared<CVarDecl>(KEY_TYPE, MappingUtilities::CURR_FIELD),
-            make_shared<CVarDecl>(VAL_TYPE, MappingUtilities::DATA_FIELD),
-            make_shared<CVarDecl>(VAL_TYPE, MappingUtilities::ND_FIELD)
-        });
-    }
-    CStructDef mapping(M_CONVERTER.get_name(_node), move(fields));
-    (*m_ostream) << mapping;
+    (*m_ostream) << MapGenerator(_node, 1, M_CONVERTER).declare(M_FWD_DCL);
 }
 
 void ADTConverter::endVisit(StructDefinition const& _node)

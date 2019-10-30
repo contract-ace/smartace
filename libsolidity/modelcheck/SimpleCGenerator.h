@@ -8,6 +8,7 @@
 #include <libsolidity/modelcheck/SimpleCCore.h>
 #include <map>
 #include <string>
+#include <type_traits>
 
 namespace dev
 {
@@ -22,6 +23,34 @@ namespace modelcheck
 
 class TypeConverter;
 class VariableScopeResolver;
+
+// -------------------------------------------------------------------------- //
+
+class CAssign;
+class CMemberAccess;
+class CIndexAccess;
+
+/**
+ * Defines an interface for accessible data.
+ */
+class CData
+{
+public:
+    // Sets the value of this declaration to the given expression. This is
+    // equivalent to CAssign(decl, rhs).
+    std::shared_ptr<CAssign> assign(CExprPtr _rhs) const;
+
+    // Similar to ID, except for the fact that a member access is returned.
+    std::shared_ptr<CMemberAccess> access(std::string _member) const;
+
+    // Returns an expression corresponding to the idx-th index of the array.
+    std::shared_ptr<CIndexAccess> offset(CExprPtr idx) const;
+    std::shared_ptr<CIndexAccess> offset(size_t idx) const;
+
+protected:
+    // Returns the expr used in all interfaces.
+    virtual CExprPtr expr() const = 0;
+};
 
 // -------------------------------------------------------------------------- //
 
@@ -65,7 +94,7 @@ public:
 /**
  * Generalizes member access, both to pointers and to references.
  */
-class CMemberAccess : public CExpr
+class CMemberAccess : public CExpr, public CData
 {
 public:
     // Encodes one of (_expr)._member or (_expr)->_member, based on context.
@@ -75,12 +104,8 @@ public:
 
     void print(std::ostream & _out) const override;
 
-    // Sets the value of this declaration to the given expression. This is
-    // equivalent to CAssign(decl, rhs).
-    std::shared_ptr<CAssign> assign(CExprPtr _rhs) const;
-
-    // Similar to ID, except for the fact that a member access is returned.
-    std::shared_ptr<CMemberAccess> access(std::string _member) const;
+protected:
+    CExprPtr expr() const override;
 
 private:
     CExprPtr const m_expr;
@@ -92,7 +117,7 @@ private:
 /**
  * Represents a named identifier in C.
  */
-class CIdentifier : public CExpr
+class CIdentifier : public CExpr, public CData
 {
 public:
     // Creates a CElement which generates an identifier equivalent to _name. As
@@ -105,12 +130,8 @@ public:
     void print(std::ostream & _out) const override;
     bool is_pointer() const override;
 
-    // Sets the value of this declaration to the given expression. This is
-    // equivalent to CAssign(decl, rhs).
-    std::shared_ptr<CAssign> assign(CExprPtr _rhs) const;
-
-    // Similar to ID, except for the fact that a member access is returned.
-    std::shared_ptr<CMemberAccess> access(std::string _member) const;
+protected:
+    CExprPtr expr() const override;
 
 private:
     std::string const m_name;
@@ -138,7 +159,7 @@ private:
 
 // -------------------------------------------------------------------------- //
 
-class CIndexAccess : public CExpr
+class CIndexAccess : public CExpr, public CData
 {
 public:
     // Encodes (_expr)[_idx].
@@ -148,6 +169,9 @@ public:
     ~CIndexAccess() = default;
 
     void print(std::ostream & _out) const override;
+
+protected:
+    CExprPtr expr() const override;
 
 private:
     CExprPtr const m_expr;
@@ -367,7 +391,7 @@ private:
 /**
  * The class of one variable declaration statements, with opt. initialization.
  */
-class CVarDecl : public CStmt
+class CVarDecl : public CStmt, public CData
 {
 public:
     // Declares a variable of given base type and name. It may be set as a
@@ -385,16 +409,8 @@ public:
     // Generates an identifier for this declaration.
     std::shared_ptr<CIdentifier> id() const;
 
-    // Sets the value of this declaration to the given expression. This is
-    // equivalent to CAssign(decl, rhs).
-    std::shared_ptr<CAssign> assign(CExprPtr _rhs) const;
-
-    // Similar to ID, except for the fact that a member access is returned.
-    std::shared_ptr<CMemberAccess> access(std::string _member) const;
-
-    // Returns an expression corresponding to the idx-th index of the array.
-    std::shared_ptr<CIndexAccess> offset(CExprPtr idx) const;
-    std::shared_ptr<CIndexAccess> offset(size_t idx) const;
+protected:
+    CExprPtr expr() const override;
 
 private:
     std::string const m_type;
