@@ -83,7 +83,6 @@ BOOST_AUTO_TEST_CASE(var_decl_types)
     CVarDecl basic2("type", "name", false);
     CVarDecl ptr("type", "name", true);
     CVarDecl set_val("type", "name", false, make_shared<CIntLiteral>(42));
-    CVarDecl arr("type", "name", 42);
 
     ostringstream basic1_actual;
     basic1_actual << basic1;
@@ -100,10 +99,6 @@ BOOST_AUTO_TEST_CASE(var_decl_types)
     ostringstream set_val_actual;
     set_val_actual << set_val;
     BOOST_CHECK_EQUAL(set_val_actual.str(), "type name=42;");
-
-    ostringstream arr_actual;
-    arr_actual << arr;
-    BOOST_CHECK_EQUAL(arr_actual.str(), "type name[42];");
 }
 
 BOOST_AUTO_TEST_SUITE_END();

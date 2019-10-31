@@ -36,6 +36,7 @@ public:
     FunctionConverter(
         ASTNode const& _ast,
 		TypeConverter const& _converter,
+		size_t _map_k,
 		View _view,
 		bool _fwd_dcl
     );
@@ -58,6 +59,8 @@ private:
 
 	ASTNode const& M_AST;
 	TypeConverter const& M_CONVERTER;
+
+	size_t const M_MAP_K;
 
 	View const M_VIEW;
 	bool const M_FWD_DCL;

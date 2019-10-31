@@ -29,16 +29,6 @@ shared_ptr<CMemberAccess> CData::access(string _member) const
     return make_shared<CMemberAccess>(expr(), move(_member));
 }
 
-shared_ptr<CIndexAccess> CData::offset(CExprPtr idx) const
-{
-    return make_shared<CIndexAccess>(expr(), move(idx));
-}
-
-shared_ptr<CIndexAccess> CData::offset(size_t idx) const
-{
-    return make_shared<CIndexAccess>(expr(), idx);
-}
-
 // -------------------------------------------------------------------------- //
 
 CIdentifier::CIdentifier(string _name, bool _ptr)
@@ -58,24 +48,6 @@ CExprPtr CIdentifier::expr() const
 CIntLiteral::CIntLiteral(long long int _val): m_val(_val) {}
 
 void CIntLiteral::print(ostream & _out) const { _out << m_val; }
-
-// -------------------------------------------------------------------------- //
-
-CIndexAccess::CIndexAccess(CExprPtr _expr, CExprPtr _idx)
-: m_expr(move(_expr)), m_idx(move(_idx)) {}
-
-CIndexAccess::CIndexAccess(CExprPtr _expr, size_t _idx)
-: m_expr(move(_expr)), m_idx(make_shared<CIntLiteral>(_idx)) {}
-
-void CIndexAccess::print(std::ostream & _out) const
-{
-    _out << "(" << *m_expr << ")" << "[" << *m_idx << "]";
-}
-
-CExprPtr CIndexAccess::expr() const
-{
-    return make_shared<CIndexAccess>(m_expr, m_idx);
-}
 
 // -------------------------------------------------------------------------- //
 
@@ -265,24 +237,18 @@ void CExprStmt::print_impl(ostream & _out) const { _out << *m_expr; }
 
 // -------------------------------------------------------------------------- //
 
-CVarDecl::CVarDecl(string _type, string _name, int _len, CExprPtr _init)
-: m_type(move(_type)), m_name(move(_name)), m_len(_len), m_init(move(_init)) {}
-
 CVarDecl::CVarDecl(string _type, string _name, bool _ptr, CExprPtr _init)
-: CVarDecl(move(_type), move(_name), (_ptr ? -1 : 0), move(_init)) {}
+: m_type(move(_type)), m_name(move(_name)), m_ptr(_ptr), m_init(move(_init)) {}
 
 CVarDecl::CVarDecl(string _type, string _name, bool _ptr)
 : CVarDecl(move(_type), move(_name), _ptr, nullptr) {}
-
-CVarDecl::CVarDecl(string _type, string _name, int _len)
-: CVarDecl(move(_type), move(_name), _len, nullptr) {}
 
 CVarDecl::CVarDecl(string _type, string _name)
 : CVarDecl(move(_type), move(_name), false) {}
 
 shared_ptr<CIdentifier> CVarDecl::id() const
 {
-    return make_shared<CIdentifier>(m_name, m_len == -1);
+    return make_shared<CIdentifier>(m_name, m_ptr);
 }
 
 CExprPtr CVarDecl::expr() const
@@ -292,8 +258,7 @@ CExprPtr CVarDecl::expr() const
 
 void CVarDecl::print_impl(ostream & _out) const
 {
-    _out << m_type << ((m_len == -1) ? "*" : " ") << m_name;
-    if (m_len > 0) _out << "[" << m_len << "]";
+    _out << m_type << (m_ptr ? "*" : " ") << m_name;
     if (m_init) _out << "=" << *m_init;
 }
 

@@ -29,7 +29,10 @@ public:
 	// converter should provide translations for all typed ASTNodes. If forward
 	// declare is set, then the structure bodies are not generated.
     ADTConverter(
-        ASTNode const& _ast, TypeConverter const& _converter, bool _fwd_dcl
+        ASTNode const& _ast,
+		TypeConverter const& _converter,
+		size_t _map_k,
+		bool _fwd_dcl
     );
 
     // Prints each ADT declaration once, in some order.
@@ -45,6 +48,8 @@ protected:
 private:
 	ASTNode const& M_AST;
 	TypeConverter const& M_CONVERTER;
+
+	size_t const M_MAP_K;
 
 	const bool M_FWD_DCL;
 

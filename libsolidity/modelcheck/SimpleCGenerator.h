@@ -43,10 +43,6 @@ public:
     // Similar to ID, except for the fact that a member access is returned.
     std::shared_ptr<CMemberAccess> access(std::string _member) const;
 
-    // Returns an expression corresponding to the idx-th index of the array.
-    std::shared_ptr<CIndexAccess> offset(CExprPtr idx) const;
-    std::shared_ptr<CIndexAccess> offset(size_t idx) const;
-
 protected:
     // Returns the expr used in all interfaces.
     virtual CExprPtr expr() const = 0;
@@ -155,27 +151,6 @@ public:
 
 private:
     long long int m_val;
-};
-
-// -------------------------------------------------------------------------- //
-
-class CIndexAccess : public CExpr, public CData
-{
-public:
-    // Encodes (_expr)[_idx].
-    CIndexAccess(CExprPtr _expr, CExprPtr _idx);
-    CIndexAccess(CExprPtr _expr, size_t _idx);
-
-    ~CIndexAccess() = default;
-
-    void print(std::ostream & _out) const override;
-
-protected:
-    CExprPtr expr() const override;
-
-private:
-    CExprPtr const m_expr;
-    CExprPtr const m_idx;
 };
 
 // -------------------------------------------------------------------------- //
@@ -395,12 +370,8 @@ class CVarDecl : public CStmt, public CData
 {
 public:
     // Declares a variable of given base type and name. It may be set as a
-    // pointer, adding * to the declaration, and may take an initial value. If a
-    // len isgth is provided, it is assumed to be an array. The index should be
-    // strictly positive.
-    CVarDecl(std::string _type, std::string _name, int _len, CExprPtr _init);
+    // pointer, adding * to the declaration, and may take an initial value.
     CVarDecl(std::string _type, std::string _name, bool _ptr, CExprPtr _init);
-    CVarDecl(std::string _type, std::string _name, int _len);
     CVarDecl(std::string _type, std::string _name, bool _ptr);
     CVarDecl(std::string _type, std::string _name);
 
@@ -415,7 +386,7 @@ protected:
 private:
     std::string const m_type;
     std::string const m_name;
-    int const m_len;
+    bool const m_ptr;
     CExprPtr const m_init;
 
     void print_impl(std::ostream & _out) const override;

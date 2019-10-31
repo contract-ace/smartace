@@ -23,8 +23,13 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 ADTConverter::ADTConverter(
-    ASTNode const& _ast, TypeConverter const& _converter, bool _fwd_dcl
-): M_AST(_ast), M_CONVERTER(_converter), M_FWD_DCL(_fwd_dcl) {}
+    ASTNode const& _ast,
+    TypeConverter const& _converter,
+    size_t _map_k,
+    bool _fwd_dcl
+): M_AST(_ast), M_CONVERTER(_converter), M_MAP_K(_map_k), M_FWD_DCL(_fwd_dcl)
+{
+}
 
 void ADTConverter::print(ostream& _stream)
 {
@@ -65,7 +70,8 @@ void ADTConverter::endVisit(ContractDefinition const& _node)
 
 void ADTConverter::endVisit(Mapping const& _node)
 {
-    (*m_ostream) << MapGenerator(_node, 1, M_CONVERTER).declare(M_FWD_DCL);
+    MapGenerator mapgen(_node, M_MAP_K, M_CONVERTER);
+    (*m_ostream) << mapgen.declare(M_FWD_DCL);
 }
 
 void ADTConverter::endVisit(StructDefinition const& _node)

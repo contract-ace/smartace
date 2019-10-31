@@ -30,18 +30,16 @@ shared_ptr<CIntLiteral> const MapGenerator::FALSE = make_shared<CIntLiteral>(0);
 // -------------------------------------------------------------------------- //
 
 MapGenerator::MapGenerator(
-    Mapping const& _src, int _ct, TypeConverter const& _converter
+    Mapping const& _src, size_t _ct, TypeConverter const& _converter
 )
 : M_LEN(_ct),
   M_NAME(_converter.get_name(_src)),
   M_TYPE(_converter.get_type(_src)),
-  M_KEY_TYPE(_converter.get_type(_src.keyType())),
-  M_VAL_TYPE(_converter.get_type(_src.valueType())),
+  M_KEY_T(_converter.get_type(_src.keyType())),
+  M_VAL_T(_converter.get_type(_src.valueType())),
   M_INIT_KEY(_converter.get_init_val(_src.keyType())),
   M_INIT_VAL(_converter.get_init_val(_src.valueType())),
-  M_ND_KEY(_converter.get_nd_val(_src.keyType(), M_NAME + "_key")),
-  M_ND_VAL(_converter.get_nd_val(_src.valueType(), M_NAME + "_val")),
-  M_LEN_LITERAL(make_shared<CIntLiteral>(M_LEN))
+  M_ND_VAL(_converter.get_nd_val(_src.valueType(), M_NAME + "_val"))
 {
 }
 
@@ -49,17 +47,20 @@ MapGenerator::MapGenerator(
 
 CStructDef MapGenerator::declare(bool _forward_declare) const
 {
-    shared_ptr<CParams> fields;
+    shared_ptr<CParams> t;
     if (!_forward_declare)
     {
-        fields = make_shared<CParams>(CParams{
-            make_shared<CVarDecl>("uint8_t", SET_FIELD, M_LEN),
-            make_shared<CVarDecl>(M_KEY_TYPE, CURR_FIELD, M_LEN),
-            make_shared<CVarDecl>(M_VAL_TYPE, DATA_FIELD, M_LEN),
-            make_shared<CVarDecl>(M_VAL_TYPE, ND_FIELD)
-        });
+        t = make_shared<CParams>();
+        t->reserve(1 + 3 * M_LEN);
+        t->push_back(make_shared<CVarDecl>(M_VAL_T, ND_FIELD));
+        for (unsigned int i = 0; i < M_LEN; ++i)
+        {
+            t->push_back(make_shared<CVarDecl>("uint8_t", field(SET_FIELD, i)));
+            t->push_back(make_shared<CVarDecl>(M_KEY_T, field(CURR_FIELD, i)));
+            t->push_back(make_shared<CVarDecl>(M_VAL_T, field(DATA_FIELD, i)));
+        }
     }
-    return CStructDef(M_NAME, move(fields));
+    return CStructDef(M_NAME, move(t));
 }
 
 // -------------------------------------------------------------------------- //
@@ -69,129 +70,97 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
     auto fid = make_shared<CVarDecl>(M_TYPE, "Init_0_" + M_NAME);
 
     shared_ptr<CBlock> body;
-    if (!_forward_declare)
-    {
-        auto const TMP = make_tmp();
-        body = make_shared<CBlock>(CBlockList{
-            TMP,
-            expand_loop_template(make_shared<CBlock>(CBlockList{
-                read_tmp_field(SET_FIELD)->assign(FALSE)->stmt(),
-                read_tmp_field(CURR_FIELD)->assign(M_INIT_KEY)->stmt(),
-                read_tmp_field(DATA_FIELD)->assign(M_INIT_VAL)->stmt(),
-                TMP->access(ND_FIELD)->assign(M_INIT_VAL)->stmt()
-            }), true),
-            make_shared<CReturn>(TMP->id())
-        });
-    }
+    if (!_forward_declare) body = expand_init(M_INIT_VAL);
 
     return CFuncDef(move(fid), {}, move(body));
 }
+
+// -------------------------------------------------------------------------- //
 
 CFuncDef MapGenerator::declare_nd_initializer(bool _forward_declare) const
 {
     auto fid = make_shared<CVarDecl>(M_TYPE, "ND_" + M_NAME);
 
     shared_ptr<CBlock> body;
-    if (!_forward_declare)
-    {
-        auto const TMP = make_tmp();
-        body = make_shared<CBlock>(CBlockList{
-            TMP,
-            expand_loop_template(make_shared<CBlock>(CBlockList{
-                read_tmp_field(SET_FIELD)->assign(FALSE)->stmt(),
-                read_tmp_field(CURR_FIELD)->assign(M_INIT_KEY)->stmt(),
-                read_tmp_field(DATA_FIELD)->assign(M_INIT_VAL)->stmt(),
-                TMP->access(ND_FIELD)->assign(M_ND_VAL)->stmt()
-            }), true),
-            make_shared<CReturn>(TMP->id())
-        });
-    }
+    if (!_forward_declare) body = expand_init(M_ND_VAL);
 
     return CFuncDef(move(fid), {}, move(body));
 }
+
+// -------------------------------------------------------------------------- //
 
 CFuncDef MapGenerator::declare_write(bool _forward_declare) const
 {
     auto fid = make_shared<CVarDecl>("void", "Write_" + M_NAME);
 
-    auto arr = make_arr();
-    auto key = make_key();
-    auto data = make_shared<CVarDecl>(M_VAL_TYPE, "dat");
+    auto arr = make_shared<CVarDecl>(M_TYPE, "arr", true);
+    auto key = make_shared<CVarDecl>(M_KEY_T, "key");
+    auto data = make_shared<CVarDecl>(M_VAL_T, "dat");
 
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto idx = generate_loop_idx();
-
-        body = make_shared<CBlock>(CBlockList{
-            idx,
-            expand_array_search(),
-            make_shared<CIf>(
-                make_shared<CBinaryOp>(idx->id(), "<", M_LEN_LITERAL),
-                read_arr_field(DATA_FIELD)->assign(data->id())->stmt(),
-                nullptr
-            )
-        });
+        CStmtPtr chain = nullptr;
+        for (size_t i = 0; i < M_LEN; ++i)
+        {
+            auto store = write_field_stmt(*arr, DATA_FIELD, i, data->id());
+            chain = expand_iteration(i, *arr, *key, move(store), chain);
+        }
+        body = make_shared<CBlock>(CBlockList{ move(chain) });
     }
 
     return CFuncDef(move(fid), CParams{ arr, key, data }, move(body));
 }
 
+// -------------------------------------------------------------------------- //
+
 CFuncDef MapGenerator::declare_read(bool _forward_declare) const
 {
-    auto fid = make_shared<CVarDecl>(M_VAL_TYPE, "Read_" + M_NAME);
+    auto fid = make_shared<CVarDecl>(M_VAL_T, "Read_" + M_NAME);
 
-    auto arr = make_arr();
-    auto key = make_key();
+    auto arr = make_shared<CVarDecl>(M_TYPE, "arr", true);
+    auto key = make_shared<CVarDecl>(M_KEY_T, "key");
 
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto idx = generate_loop_idx();
-
+        CStmtPtr chain = nullptr;
+        for (size_t i = 0; i < M_LEN; ++i)
+        {
+            auto rv = make_shared<CReturn>(arr->access(field(DATA_FIELD, i)));
+            chain = expand_iteration(i, *arr, *key, move(rv), chain);
+        }
         body = make_shared<CBlock>(CBlockList{
-            idx,
-            expand_array_search(),
-            make_shared<CIf>(
-                make_shared<CBinaryOp>(idx->id(), "==", M_LEN_LITERAL),
-                make_shared<CReturn>(M_ND_VAL),
-                nullptr
-            ),
-            make_shared<CReturn>(read_arr_field(DATA_FIELD))
+            move(chain), make_shared<CReturn>(M_ND_VAL)
         });
     }
 
     return CFuncDef(move(fid), CParams{ arr, key }, move(body));
 }
+
+// -------------------------------------------------------------------------- //
 
 CFuncDef MapGenerator::declare_ref(bool _forward_declare) const
 {
-    auto fid = make_shared<CVarDecl>(M_VAL_TYPE, "Ref_" + M_NAME, true);
+    auto fid = make_shared<CVarDecl>(M_VAL_T, "Ref_" + M_NAME, true);
 
-    auto arr = make_arr();
-    auto key = make_key();
+    auto arr = make_shared<CVarDecl>(M_TYPE, "arr", true);
+    auto key = make_shared<CVarDecl>(M_KEY_T, "key");
 
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto idx = generate_loop_idx();
-
+        CStmtPtr chain = nullptr;
+        for (size_t i = 0; i < M_LEN; ++i)
+        {
+            auto v = make_shared<CReference>(arr->access(field(DATA_FIELD, i)));
+            auto rv = make_shared<CReturn>(move(v));
+            chain = expand_iteration(i, *arr, *key, move(rv), chain);
+        }
         body = make_shared<CBlock>(CBlockList{
-            idx,
-            expand_array_search(),
-            make_shared<CIf>(
-                make_shared<CBinaryOp>(idx->id(), "==", M_LEN_LITERAL),
-                make_shared<CBlock>(CBlockList{
-                    arr->access(ND_FIELD)->assign(M_ND_VAL)->stmt(),
-                    make_shared<CReturn>(
-                        make_shared<CReference>(arr->access(ND_FIELD))
-                    )
-                }),
-                nullptr
-            ),
-            make_shared<CReturn>(
-                make_shared<CReference>(read_arr_field(DATA_FIELD))
-            )
+            move(chain),
+            arr->access(ND_FIELD)->assign(M_ND_VAL)->stmt(),
+            make_shared<CReturn>(make_shared<CReference>(arr->access(ND_FIELD)))
         });
     }
 
@@ -200,73 +169,63 @@ CFuncDef MapGenerator::declare_ref(bool _forward_declare) const
 
 // -------------------------------------------------------------------------- //
 
-shared_ptr<CVarDecl> MapGenerator::generate_loop_idx() const
+shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
 {
-    return make_shared<CVarDecl>("int", "i", false, FALSE);
-}
-
-shared_ptr<CForLoop> MapGenerator::expand_loop_template(
-    shared_ptr<CBlock> _body, bool _new_idx
-) const
-{
-    auto idx = generate_loop_idx();
-    auto loop_bnds = make_shared<CBinaryOp>(idx->id(), "<", M_LEN_LITERAL);
-    auto loop_incr = make_shared<CUnaryOp>("++", idx->id(), true)->stmt();
-    shared_ptr<CVarDecl> init = (_new_idx) ? idx : nullptr;
-
-    return make_shared<CForLoop>(init, loop_bnds, loop_incr, _body);
-}
-
-shared_ptr<CForLoop> MapGenerator::expand_array_search() const
-{
-    return expand_loop_template(make_shared<CBlock>(CBlockList{
-        make_shared<CIf>(
-            make_shared<CBinaryOp>(read_arr_field(SET_FIELD), "!=", TRUE),
-            make_shared<CBlock>(CBlockList{
-                read_arr_field(CURR_FIELD)->assign(make_key()->id())->stmt(),
-                read_arr_field(SET_FIELD)->assign(TRUE)->stmt(),
-                make_shared<CBreak>()
-            }),
-            make_shared<CIf>(
-                make_shared<CBinaryOp>(
-                    read_arr_field(CURR_FIELD)->access("v"),
-                    "==",
-                    make_key()->access("v")
-                ),
-                make_shared<CBreak>(),
-                nullptr
-            )
-        )
-    }), false);
+    auto const TMP = make_shared<CVarDecl>(M_TYPE, "tmp", false, nullptr);
+    CBlockList block;
+    block.reserve(2 + 3 * M_LEN + 1);
+    block.push_back(TMP);
+    block.push_back(TMP->access(ND_FIELD)->assign(M_INIT_VAL)->stmt());
+    for (size_t i = 0; i < M_LEN; ++i)
+    {
+        block.push_back(write_field_stmt(*TMP, SET_FIELD, i, FALSE));
+        block.push_back(write_field_stmt(*TMP, CURR_FIELD, i, M_INIT_KEY));
+        block.push_back(write_field_stmt(*TMP, DATA_FIELD, i, _init_data));
+    }
+    block.push_back(make_shared<CReturn>(TMP->id()));
+    return make_shared<CBlock>(move(block));
 }
 
 // -------------------------------------------------------------------------- //
 
-shared_ptr<CVarDecl> MapGenerator::make_tmp() const
+CStmtPtr MapGenerator::expand_iteration(
+    size_t _i,
+    CVarDecl const& _arr,
+    CVarDecl const& _key,
+    CStmtPtr _exec,
+    CStmtPtr _chain
+)
 {
-    return make_shared<CVarDecl>(M_TYPE, "tmp", false, nullptr);
+    auto is_match = make_shared<CBinaryOp>(
+        _arr.access(field(CURR_FIELD, _i))->access("v"), "==", _key.access("v")
+    );
+
+    _chain = make_shared<CIf>(move(is_match), _exec, move(_chain));
+    return make_shared<CIf>(
+        make_shared<CBinaryOp>(_arr.access(field(SET_FIELD, _i)), "==", FALSE),
+        make_shared<CBlock>(CBlockList{
+            write_field_stmt(_arr, SET_FIELD, _i, TRUE),
+            write_field_stmt(_arr, CURR_FIELD, _i, _key.id()),
+            move(_exec)
+        }),
+        move(_chain)
+    );
 }
 
-shared_ptr<CVarDecl> MapGenerator::make_arr() const
+// -------------------------------------------------------------------------- //
+
+string MapGenerator::field(string const& _base, size_t _i)
 {
-    return make_shared<CVarDecl>(M_TYPE, "arr", true);
+    return _base + to_string(_i);
 }
 
-shared_ptr<CVarDecl> MapGenerator::make_key() const
-{
-    return make_shared<CVarDecl>(M_KEY_TYPE, "key");
-}
+// -------------------------------------------------------------------------- //
 
-shared_ptr<CIndexAccess> MapGenerator::read_tmp_field(string _field) const
+CStmtPtr MapGenerator::write_field_stmt(
+    CData const& _base, string const& _field, size_t _i, CExprPtr _data
+)
 {
-    auto idx = generate_loop_idx()->id();
-    return make_tmp()->id()->access(_field)->offset(idx);
-}
-
-shared_ptr<CIndexAccess> MapGenerator::read_arr_field(string _field) const
-{
-    auto idx = generate_loop_idx()->id();
-    return make_arr()->id()->access(_field)->offset(idx);
+    return _base.access(field(_field, _i))->assign(move(_data))->stmt();
 }
 
 // -------------------------------------------------------------------------- //

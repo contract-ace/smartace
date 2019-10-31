@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, converter, FunctionConverter::View::FULL, false
+        ast, converter, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     expect << "struct A Init_A(void)";
     expect << "{";
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, converter, FunctionConverter::View::FULL, false
+        ast, converter, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_A
     expect << "struct A Init_A(void)";
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, converter, FunctionConverter::View::FULL, false
+        ast, converter, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_A
     expect << "struct A Init_A(struct A*self,struct CallState*state"
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, converter, FunctionConverter::View::FULL, false
+        ast, converter, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_A
     expect << "struct A Init_A(void)";
@@ -277,14 +277,14 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
-        ast, converter, FunctionConverter::View::EXT, true
+        ast, converter, 1, FunctionConverter::View::EXT, true
     ).print(ext_actual);
     ext_expect << "struct A Init_A(void);";
     ext_expect << "void Method_A_Funcf(struct A*self,struct CallState*state);";
 
     ostringstream int_actual, int_expect;
     FunctionConverter(
-        ast, converter, FunctionConverter::View::INT, true
+        ast, converter, 1, FunctionConverter::View::INT, true
     ).print(int_actual);
     int_expect << "struct A_StructB Init_0_A_StructB(void);";
     int_expect << "struct A_StructB Init_A_StructB(sol_int256_t user_i);";

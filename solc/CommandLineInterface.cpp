@@ -120,6 +120,7 @@ static string const g_strAstCompactJson = "ast-compact-json";
 static string const g_strBinary = "bin";
 static string const g_strBinaryRuntime = "bin-runtime";
 static string const g_strCModel = "c-model";
+static string const g_strModelMapLen = "map-k";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -173,6 +174,7 @@ static string const g_argAstJson = g_strAstJson;
 static string const g_argBinary = g_strBinary;
 static string const g_argBinaryRuntime = g_strBinaryRuntime;
 static string const g_argCModel = g_strCModel;
+static string const g_argModelMapLen = g_strModelMapLen;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -765,7 +767,12 @@ Allowed options)",
 		(g_argColor.c_str(), "Force colored output.")
 		(g_argNoColor.c_str(), "Explicitly disable colored output, disabling terminal auto-detection.")
 		(g_argNewReporter.c_str(), "Enables new diagnostics reporter.")
-		(g_argIgnoreMissingFiles.c_str(), "Ignore missing files.");
+		(g_argIgnoreMissingFiles.c_str(), "Ignore missing files.")
+		(
+			g_argModelMapLen.c_str(),
+			po::value<size_t>()->value_name("k")->default_value(1),
+			"When modeling maps for the intent of model-checking, k entries will be represented."
+		);
 	po::options_description outputComponents("Output Components");
 	outputComponents.add_options()
 		(g_argAst.c_str(), "AST of all source files.")
@@ -1302,17 +1309,20 @@ void CommandLineInterface::handleCModelHeaders(
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
+	size_t map_k = m_args[g_argModelMapLen].as<size_t>();
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
 	_cs.print(_os, true);
 	for (auto const& ast : _asts)
 	{
-		ADTConverter cov(*ast, _con, true);
+		ADTConverter cov(*ast, _con, map_k, true);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
-		FunctionConverter cov(*ast, _con, FunctionConverter::View::EXT, true);
+		FunctionConverter cov(
+			*ast, _con, map_k, FunctionConverter::View::EXT, true
+		);
 		cov.print(_os);
 	}
 }
@@ -1327,21 +1337,26 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
+	size_t map_k = m_args[g_argModelMapLen].as<size_t>();
 	_os << "#include \"cmodel.h\"" << endl;
 	_cs.print(_os, false);
 	for (auto const& ast : _asts)
 	{
-		ADTConverter cov(*ast, _con, false);
+		ADTConverter cov(*ast, _con, map_k, false);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
-		FunctionConverter cov(*ast, _con, FunctionConverter::View::INT, true);
+		FunctionConverter cov(
+			*ast, _con, map_k, FunctionConverter::View::INT, true
+		);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
 	{
-		FunctionConverter cov(*ast, _con, FunctionConverter::View::FULL, false);
+		FunctionConverter cov(
+			*ast, _con, map_k, FunctionConverter::View::FULL, false
+		);
 		cov.print(_os);
 	}
 	for (auto const& ast : _asts)
