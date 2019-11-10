@@ -97,23 +97,24 @@ foreach(d ${CMODEL_COMPILE_DEFS_RAW})
     list(APPEND CMODEL_COMPILE_DEFS "-D${d}")
 endforeach(d)
 
+set(CMODEL_SEA_ARGS "${SEA_ARGS};--inline;--sea-dsa=cs;--dsa=sea-cs")
 if(SEA_EXE)
     # MVC: Generates call to seahorn.
     add_custom_target(
         verify
-        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --inline --show-invars
+	COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --show-invars
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         cex
-        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --inline --cex=cex.ll
+	COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --cex=cex.ll
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         cexcmodel
-	COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${SEA_ARGS} --inline -o cexcmodel
+	COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} -o cexcmodel
         COMMAND_EXPAND_LISTS
     )
 endif()
