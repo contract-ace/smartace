@@ -78,7 +78,7 @@ ModifierBlockConverter::ModifierBlockConverter(
  , M_TYPES(_types)
  , M_TRUE_PARAMS(_ctx.func.parameters())
  , M_USER_PARAMS(_ctx.def->parameters())
- , M_USER_ARGS(*_ctx.curr->arguments())
+ , M_USER_ARGS(_ctx.curr->arguments())
  , M_NEXT_CALL(_types.get_name(*_ctx.next))
  , m_shadow_decls(true)
 {
@@ -114,22 +114,26 @@ void ModifierBlockConverter::enter(
 		_stmts.push_back(m_rv);
     }
 
-    for (unsigned int i = 0; i < M_USER_ARGS.size(); ++i)
+    if (M_USER_ARGS)
     {
-        auto const& PARAM = *M_USER_PARAMS[i];
-        auto const& ARG = *M_USER_ARGS[i];
-
-        auto const TYPE = M_TYPES.get_type(PARAM);
-        auto const SYM = _decls.resolve_declaration(PARAM);
-
-        auto expr = ExpressionConverter(ARG, M_TYPES, m_shadow_decls).convert();
-        if (has_wrapped_data(ARG))
+        for (unsigned int i = 0; i < M_USER_ARGS->size(); ++i)
         {
-            CFuncCallBuilder builder("Init_" + TYPE);
-            builder.push(expr);
-            expr = builder.merge_and_pop();
+            auto const& PARAM = *M_USER_PARAMS[i];
+            auto const& ARG = *((*M_USER_ARGS)[i]);
+
+            auto const TYPE = M_TYPES.get_type(PARAM);
+            auto const SYM = _decls.resolve_declaration(PARAM);
+
+            ExpressionConverter arg_converter(ARG, M_TYPES, m_shadow_decls);
+            auto expr = arg_converter.convert();
+            if (has_wrapped_data(ARG))
+            {
+                CFuncCallBuilder builder("Init_" + TYPE);
+                builder.push(expr);
+                expr = builder.merge_and_pop();
+            }
+            _stmts.push_back(make_shared<CVarDecl>(TYPE, SYM, false, expr));
         }
-        _stmts.push_back(make_shared<CVarDecl>(TYPE, SYM, false, expr));
     }
 }
 

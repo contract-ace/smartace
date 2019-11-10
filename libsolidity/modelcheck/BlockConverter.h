@@ -161,7 +161,7 @@ private:
 	TypeConverter const& M_TYPES;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_TRUE_PARAMS;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_USER_PARAMS;
-	std::vector<ASTPointer<Expression>> const& M_USER_ARGS;
+	std::vector<ASTPointer<Expression>> const* M_USER_ARGS;
 	std::string const M_NEXT_CALL;
 
 	VariableScopeResolver m_shadow_decls;
