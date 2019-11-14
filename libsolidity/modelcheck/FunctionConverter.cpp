@@ -6,6 +6,7 @@
 #include <libsolidity/modelcheck/FunctionConverter.h>
 
 #include <libsolidity/modelcheck/BlockConverter.h>
+#include <libsolidity/modelcheck/Contract.h>
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 #include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/Mapping.h>
@@ -79,6 +80,13 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
     if (!M_FWD_DCL)
     {
         CBlockList stmts{make_shared<CVarDecl>(CTRX_TYPE, "tmp")};
+        {
+            auto const NAME = ContractUtilities::balance_member();
+            auto const* TYPE = ContractUtilities::balance_type();
+            stmts.push_back(TMP->access(NAME)->assign(
+                TypeConverter::init_val_by_simple_type(*TYPE)
+            )->stmt());
+        }
         for (auto decl : _node.stateVariables())
         {
             auto const NAME = VariableScopeResolver::rewrite(
@@ -246,11 +254,11 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     }
 
     vector<CFuncDef> defs;
-    shared_ptr<CBlock> body;
 
     {
         CParams params = generate_params(base_tmpl,_node.scope());
 
+        shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
             body = FunctionBlockConverter(_node, M_CONVERTER).convert();
@@ -267,6 +275,7 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
     {
         size_t const IDX = i - 1;
     
+        shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
             body = ModifierBlockConverter(_node, IDX, M_CONVERTER).convert();

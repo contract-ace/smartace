@@ -773,9 +773,17 @@ void ExpressionConverter::print_address_member(
 {
 	if (_member == "balance")
 	{
-		// TODO(scottwe): add `_balance(state, addr)` call to runtime.
-		(void) _node;
-		throw runtime_error("Address balance not yet supported.");
+		auto const* _base = NodeSniffer<Identifier>(_node, true).find();
+		if (_base && _base->name() == "this")
+		{
+			_base->accept(*this);
+			string const FIELD = ContractUtilities::balance_member();
+			m_subexpr = make_shared<CMemberAccess>(m_subexpr, FIELD);
+		}
+		else
+		{
+			throw runtime_error("Balance of arbitrary address not supported.");
+		}
 	}
 	else
 	{

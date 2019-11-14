@@ -48,11 +48,49 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     expect << "struct A Init_A(void)";
     expect << "{";
     expect << "struct A tmp;";
+    expect << "((tmp).model_balance)=(Init_sol_uint256_t(0));";
     expect << "return tmp;";
     expect << "}";
     expect << "sol_uint40_t Method_A_Funcf(struct A*self"
            << ",struct CallState*state)";
     expect << "{";
+    expect << "sol_require((((state)->value).v)==(0),0);";
+    expect << "return Init_sol_uint40_t(20);";
+    expect << "}";
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
+}
+
+// Checks that payable functions generate the appropriate source..
+BOOST_AUTO_TEST_CASE(payable_method)
+{
+    char const* text = R"(
+        contract A {
+            function f() public payable returns (uint40) {
+                return 20;
+            }
+        }
+    )";
+
+    auto const &ast = *parseAndAnalyse(text);
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    ostringstream actual, expect;
+    FunctionConverter(
+        ast, converter, 1, FunctionConverter::View::FULL, false
+    ).print(actual);
+    expect << "struct A Init_A(void)";
+    expect << "{";
+    expect << "struct A tmp;";
+    expect << "((tmp).model_balance)=(Init_sol_uint256_t(0));";
+    expect << "return tmp;";
+    expect << "}";
+    expect << "sol_uint40_t Method_A_Funcf(struct A*self"
+           << ",struct CallState*state)";
+    expect << "{";
+    expect << "(((self)->model_balance).v)+=(((state)->value).v);";
     expect << "return Init_sol_uint40_t(20);";
     expect << "}";
 
@@ -88,6 +126,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "struct A Init_A(void)";
     expect << "{";
     expect << "struct A tmp;";
+    expect << "((tmp).model_balance)=(Init_sol_uint256_t(0));";
     expect << "((tmp).user_a)=(Init_sol_uint256_t(0));";
     expect << "((tmp).user_b)=(Init_sol_uint256_t(10));";
     expect << "((tmp).user_c)=(Init_0_A_StructB());";
@@ -147,6 +186,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
            << ",sol_uint256_t user___a)";
     expect << "{";
     expect << "struct A tmp;";
+    expect << "((tmp).model_balance)=(Init_sol_uint256_t(0));";
     expect << "((tmp).user_a)=(Init_sol_uint256_t(0));";
     expect << "((tmp).user_b)=(Init_sol_uint256_t(0));";
     expect << "Ctor_A(&(tmp),state,user___a);";
@@ -156,6 +196,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     expect << "void Ctor_A(struct A*self,struct CallState*state"
            << ",sol_uint256_t func_user___a)";
     expect << "{";
+    expect << "sol_require((((state)->value).v)==(0),0);";
     expect << "((self->user_a).v)=((func_user___a).v);";
     expect << "}";
 
@@ -193,6 +234,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "struct A Init_A(void)";
     expect << "{";
     expect << "struct A tmp;";
+    expect << "((tmp).model_balance)=(Init_sol_uint256_t(0));";
     expect << "return tmp;";
     expect << "}";
     // -- Init_0_A_StructB

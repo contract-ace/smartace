@@ -23,11 +23,21 @@ namespace modelcheck
 class ContractUtilities
 {
 public:
+    // Returns the name of the address field of each contract.
     static std::string address_member();
+
+    // Returns the name of the balance field of each contract.
+    static std::string balance_member();
+
+    // Returns the type of the address field of each contract.
     static TypePointer address_type();
+
+    // Returns the type of the balance field of each contract.
+    static TypePointer balance_type();
 
 private:
     static AddressType ADDRESS_MEMBER_TYPE;
+    static IntegerType BALANCE_MEMBER_TYPE;
 };
 
 }

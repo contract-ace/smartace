@@ -62,6 +62,13 @@ void ADTConverter::endVisit(ContractDefinition const& _node)
 
             fields->push_back(make_shared<CVarDecl>(TYPE_NAME, NAME));
         }
+        {
+            TypePointer TYPE = ContractUtilities::balance_type();
+            string const TYPE_NAME = TypeConverter::get_simple_ctype(*TYPE);
+            string const NAME = ContractUtilities::balance_member();
+
+            fields->push_back(make_shared<CVarDecl>(TYPE_NAME, NAME));
+        }
         for (auto decl : _node.stateVariables())
         {
             string const TYPE = M_CONVERTER.get_type(*decl);

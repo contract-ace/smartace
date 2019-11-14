@@ -62,6 +62,10 @@ ModifierBlockConverter::Context::Context(
     {
         next = &func;
     }
+
+    // Determines payment behaviour.
+    manage_pay = (_i == 0);
+    is_payable = _func.isPayable();
 }
 
 // -------------------------------------------------------------------------- //
@@ -74,8 +78,13 @@ ModifierBlockConverter::ModifierBlockConverter(
 
 ModifierBlockConverter::ModifierBlockConverter(
     Context const& _ctx, TypeConverter const& _types
-): GeneralBlockConverter(_ctx.def->parameters(), _ctx.def->body(), _types)
- , M_TYPES(_types)
+): GeneralBlockConverter(
+    _ctx.def->parameters(),
+    _ctx.def->body(),
+    _types,
+    _ctx.manage_pay,
+    _ctx.is_payable
+), M_TYPES(_types)
  , M_TRUE_PARAMS(_ctx.func.parameters())
  , M_USER_PARAMS(_ctx.def->parameters())
  , M_USER_ARGS(_ctx.curr->arguments())

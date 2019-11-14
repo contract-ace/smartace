@@ -5,6 +5,7 @@
 
 #include <libsolidity/modelcheck/BlockConverter.h>
 
+#include <libsolidity/modelcheck/Contract.h>
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
@@ -25,8 +26,13 @@ namespace modelcheck
 GeneralBlockConverter::GeneralBlockConverter(
 	std::vector<ASTPointer<VariableDeclaration>> const& _args,
 	Block const& _body,
-	TypeConverter const& _types
-): M_BODY(_body), M_TYPES(_types)
+	TypeConverter const& _types,
+	bool _manage_pay,
+	bool _is_payable
+): M_BODY(_body)
+ , M_TYPES(_types)
+ , M_MANAGE_PAY(_manage_pay)
+ , M_IS_PAYABLE(_is_payable)
 {
 	m_decls.enter();
 	for (auto const& arg : _args)
@@ -73,6 +79,22 @@ bool GeneralBlockConverter::visit(Block const& _node)
 	// Performs setup specific to the top-level block.
 	if (top_level_swap.old())
 	{
+		auto const state = make_shared<CIdentifier>("state", true);
+		auto VAL = state->access("value")->access("v");
+		if (M_MANAGE_PAY && M_IS_PAYABLE)
+		{
+			string const BAL_MEMBER = ContractUtilities::balance_member();
+			auto const self = make_shared<CIdentifier>("self", true);
+			auto BAL = self->access(BAL_MEMBER)->access("v");
+			stmts.push_back(CBinaryOp(BAL, "+=", VAL).stmt());
+		}
+		else if (M_MANAGE_PAY)
+		{
+			auto const NULL_LIT = make_shared<CIntLiteral>(0);
+			stmts.push_back(make_shared<CFuncCall>("sol_require", CArgList{
+				make_shared<CBinaryOp>(VAL, "==", NULL_LIT), NULL_LIT
+			})->stmt());
+		}
 		enter(stmts, m_decls);
 	}
 

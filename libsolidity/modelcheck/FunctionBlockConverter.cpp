@@ -25,8 +25,13 @@ namespace modelcheck
 
 FunctionBlockConverter::FunctionBlockConverter(
     FunctionDefinition const& _func, TypeConverter const& _types
-): GeneralBlockConverter(_func.parameters(), _func.body(), _types)
- , M_TYPES(_types)
+): GeneralBlockConverter(
+	_func.parameters(),
+	_func.body(),
+	_types,
+	_func.modifiers().empty(),
+	_func.isPayable()
+), M_TYPES(_types)
 {
 	// TODO(scottwe): support multiple return types.
 	if (_func.returnParameters().size() > 1)

@@ -40,7 +40,9 @@ public:
 	GeneralBlockConverter(
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
 		Block const& _body,
-		TypeConverter const& _types
+		TypeConverter const& _types,
+		bool _manage_pay,
+		bool _is_payable
 	);
 
 	virtual ~GeneralBlockConverter() = 0;
@@ -88,6 +90,9 @@ protected:
 private:
 	Block const& M_BODY;
 	TypeConverter const& M_TYPES;
+
+	bool const M_MANAGE_PAY;
+	bool const M_IS_PAYABLE;
 
 	VariableScopeResolver m_decls;
 
@@ -175,6 +180,8 @@ private:
 		ModifierInvocation const* curr = nullptr;
 		ASTNode const* next = nullptr;
 		ModifierDefinition const* def = nullptr;
+		bool manage_pay = false;
+		bool is_payable = false;
 	};
 
 	// Internal constructor implementation. Expects _i be expanded to modifier.

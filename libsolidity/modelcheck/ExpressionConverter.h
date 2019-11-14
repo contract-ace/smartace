@@ -37,7 +37,8 @@ public:
 	);
 
 	// Wraps an AST node from which a node of type T is located.
-	NodeSniffer(Expression const& _expr): m_expr(_expr) {}
+	NodeSniffer(Expression const& _expr, bool _fargs = false)
+	: m_expr(_expr), m_fargs(_fargs) {}
 
 	// Returns the node of type T if possible, or nullptr.
 	T const* find()
@@ -63,14 +64,15 @@ protected:
 
 	bool visit(FunctionCall const& _node) override
 	{
-		_node.expression().accept(*this);
-		return false;
+		if (!m_fargs) _node.expression().accept(*this);
+		return m_fargs;
 	}
 
 	void endVisit(T const& _node) override { m_ret = &_node; }
 
 private:
     Expression const& m_expr;
+	bool const m_fargs;
     T const* m_ret;
 };
 
