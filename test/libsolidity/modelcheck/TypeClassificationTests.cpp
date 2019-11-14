@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(unwrap_on_types)
     BOOST_CHECK_EQUAL(&unwrap(NATURAL_TYPE), NATURAL_TYPE.integerType());
     BOOST_CHECK_EQUAL(&unwrap(RATIONAL_TYPE), RATIONAL_TYPE.fixedPointType());
     BOOST_CHECK_EQUAL(&unwrap(BOOL_TYPE), &BOOL_TYPE);
-    BOOST_CHECK_EQUAL(&unwrap(ENUM_TYPE), &ENUM_TYPE);
+    BOOST_CHECK_NE(static_cast<IntegerType const*>(&unwrap(ENUM_TYPE)), nullptr);
     BOOST_CHECK_EQUAL(&unwrap(FIXED_PT_TYPE), &FIXED_PT_TYPE);
     BOOST_CHECK_EQUAL(&unwrap(SIMPLE_TYPE_TYPE), SIMPLE_TYPE_TYPE.actualType());
     BOOST_CHECK_EQUAL(&unwrap(COMPLEX_TYPE_TYPE), COMPLEX_TYPE_TYPE.actualType());
@@ -154,6 +154,7 @@ BOOST_AUTO_TEST_CASE(is_wrapped_on_types)
     BOOST_CHECK(is_wrapped_type(BOOL_TYPE));
     BOOST_CHECK(is_wrapped_type(FIXED_PT_TYPE));
     BOOST_CHECK(is_wrapped_type(UFIXED_PT_TYPE));
+    BOOST_CHECK(is_wrapped_type(ENUM_TYPE));
     BOOST_CHECK(!is_wrapped_type(*CTRX_TYPE.newExpressionType()));
     BOOST_CHECK(!is_wrapped_type(STRUCT_TYPE));
     BOOST_CHECK(!is_wrapped_type(MAPPING_TYPE));

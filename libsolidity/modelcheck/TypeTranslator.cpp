@@ -122,6 +122,11 @@ void TypeConverter::record(SourceUnit const& _unit)
         ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
         string cname = escape_decl_name(*contract);
 
+        for (auto e : contract->definedEnums())
+        {
+            m_type_lookup.insert({e, get_simple_ctype(*e->type())});
+        }
+
         for (auto structure : contract->definedStructs())
         {
             ostringstream struct_oss;

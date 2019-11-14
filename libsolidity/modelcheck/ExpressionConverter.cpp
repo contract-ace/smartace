@@ -40,13 +40,6 @@ CExprPtr ExpressionConverter::convert()
 
 // -------------------------------------------------------------------------- //
 
-bool ExpressionConverter::visit(EnumValue const& _node)
-{
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Enum value not yet supported.");
-}
-
 bool ExpressionConverter::visit(Conditional const& _node)
 {
 	_node.condition().accept(*this);
@@ -174,6 +167,7 @@ bool ExpressionConverter::visit(MemberAccess const& _node)
 	auto const EXPR_TYPE = _node.expression().annotation().type;
 	ScopedSwap<bool> find_ref(m_find_ref, false);
 
+	bool auto_unwrapped = false;
 	switch (EXPR_TYPE->category())
 	{
 	case Type::Category::Address:
@@ -191,6 +185,10 @@ bool ExpressionConverter::visit(MemberAccess const& _node)
 	case Type::Category::Magic:
 		print_magic_member(EXPR_TYPE, _node.memberName());
 		break;
+	case Type::Category::TypeType:
+		print_enum_member(EXPR_TYPE, _node.memberName());
+		auto_unwrapped = true;
+		break;
 	default:
 		throw runtime_error("MemberAccess applied to invalid type.");
 	}
@@ -199,7 +197,7 @@ bool ExpressionConverter::visit(MemberAccess const& _node)
 	{
 		m_subexpr = make_shared<CReference>(m_subexpr);
 	}
-	else if (is_wrapped_type(*_node.annotation().type))
+	else if (is_wrapped_type(*_node.annotation().type) && !auto_unwrapped)
 	{
 		m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
 	}
@@ -826,6 +824,19 @@ void ExpressionConverter::print_magic_member(
 		m_subexpr = make_shared<CIdentifier>("state->value", false);
 		break;
 	}
+}
+
+void ExpressionConverter::print_enum_member(
+	TypePointer _type, std::string const& _member
+)
+{
+	const auto* WRAPPED_T = dynamic_cast<TypeType const*>(_type);
+	const auto* ENUM_T = dynamic_cast<EnumType const*>(WRAPPED_T->actualType());
+	if (!ENUM_T)
+	{
+		throw runtime_error("EnumValue lacks EnumType.");
+	}
+	m_subexpr = make_shared<CIntLiteral>(ENUM_T->memberValue(_member));
 }
 
 // -------------------------------------------------------------------------- //

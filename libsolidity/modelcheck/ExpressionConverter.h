@@ -148,7 +148,6 @@ public:
     CExprPtr convert();
 
 protected:
-	bool visit(EnumValue const& _node) override;
 	bool visit(Conditional const& _node) override;
 	bool visit(Assignment const& _node) override;
 	bool visit(TupleExpression const& _node) override;
@@ -215,6 +214,7 @@ private:
 	);
 	void print_adt_member(Expression const& _node, std::string const& _member);
 	void print_magic_member(TypePointer _type, std::string const& _member);
+	void print_enum_member(TypePointer _type, std::string const& _member);
 };
 
 // -------------------------------------------------------------------------- //

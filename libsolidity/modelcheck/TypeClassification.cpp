@@ -35,6 +35,10 @@ static map<pair<MagicType::Kind, string>, CallStateField> const  G_ETH_GLOBALS{{
 
 // -------------------------------------------------------------------------- //
 
+static const IntegerType G_ENUM_TYPE(8, IntegerType::Modifier::Unsigned);
+
+// -------------------------------------------------------------------------- //
+
 Type const& unwrap(Type const& _type)
 {
     Type const* type = &_type;
@@ -48,6 +52,15 @@ Type const& unwrap(Type const& _type)
     {
         if (rat_type->isFractional()) type = rat_type->fixedPointType();
         else type = rat_type->integerType();
+    }
+
+    if (auto enum_type = dynamic_cast<EnumType const*>(type))
+    {
+        if (enum_type->numberOfMembers() > G_ENUM_TYPE.maxValue())
+        {
+            throw runtime_error("Enum has unsupported number of values.");
+        }
+        type = &G_ENUM_TYPE;
     }
 
     return *type;
@@ -143,7 +156,6 @@ bool is_simple_type(Type const& _type)
     case Type::Category::RationalNumber:
     case Type::Category::Bool:
     case Type::Category::FixedPoint:
-    case Type::Category::Enum:
         return true;
     default:
         return false;

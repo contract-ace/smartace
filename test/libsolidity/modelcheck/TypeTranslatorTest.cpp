@@ -72,6 +72,7 @@ BOOST_AUTO_TEST_CASE(simple_types)
 {
     char const* text = R"(
         contract A {
+            enum MyEnum { A, B, C }
             bool a;
             address b;
             int32 c;
@@ -82,6 +83,7 @@ BOOST_AUTO_TEST_CASE(simple_types)
             fixed40x11 h;
             ufixed32x10 i;
             ufixed40x11 j;
+            MyEnum k;
         }
     )";
 
@@ -89,7 +91,8 @@ BOOST_AUTO_TEST_CASE(simple_types)
         {"a", "sol_bool_t"}, {"b", "sol_address_t"}, {"c", "sol_int32_t"},
         {"d", "sol_int40_t"}, {"e", "sol_uint32_t"}, {"f", "sol_uint40_t"},
         {"g", "sol_fixed32X10_t"}, {"h", "sol_fixed40X11_t"},
-        {"i", "sol_ufixed32X10_t"}, {"j", "sol_ufixed40X11_t"}
+        {"i", "sol_ufixed32X10_t"}, {"j", "sol_ufixed40X11_t"},
+        {"k", "sol_uint8_t"}
     };
 
     auto const& ast = *parseAndAnalyse(text);
