@@ -5,6 +5,7 @@
 
 #include <libsolidity/modelcheck/ADTConverter.h>
 
+#include <libsolidity/modelcheck/Contract.h>
 #include <libsolidity/modelcheck/Mapping.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/Utility.h>
@@ -54,6 +55,13 @@ void ADTConverter::endVisit(ContractDefinition const& _node)
     if (!M_FWD_DCL)
     {
         fields = make_shared<CParams>();
+        {
+            TypePointer TYPE = ContractUtilities::address_type();
+            string const TYPE_NAME = TypeConverter::get_simple_ctype(*TYPE);
+            string const NAME = ContractUtilities::address_member();
+
+            fields->push_back(make_shared<CVarDecl>(TYPE_NAME, NAME));
+        }
         for (auto decl : _node.stateVariables())
         {
             string const TYPE = M_CONVERTER.get_type(*decl);

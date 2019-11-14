@@ -5,6 +5,7 @@
 
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 
+#include <libsolidity/modelcheck/Contract.h>
 #include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
@@ -490,8 +491,9 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		}
 		else if (cast_type->category() == Type::Category::Address)
 		{
-			// TODO(scottwe): implement Address/Contract association.
-			throw runtime_error("Contract/Address casts unimplemented");
+			string const FIELD = ContractUtilities::address_member();
+			m_subexpr = make_shared<CMemberAccess>(m_subexpr, FIELD);
+			m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
 		}
 		else
 		{

@@ -111,6 +111,8 @@ set(sources
 	modelcheck/BlockConverter.h
 	modelcheck/CallState.cpp
 	modelcheck/CallState.h
+	modelcheck/Contract.cpp
+	modelcheck/Contract.h
 	modelcheck/ExpressionConverter.cpp
 	modelcheck/ExpressionConverter.h
 	modelcheck/Function.cpp

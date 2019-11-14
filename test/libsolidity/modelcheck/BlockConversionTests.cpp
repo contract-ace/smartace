@@ -714,6 +714,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
                 address(s); int(s); uint(s);
                 address(u); int(u); uint(u);
                 bool(b);
+                address(this);
             }
         }
 	)";
@@ -739,6 +740,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
     expected << "((int)((self->user_u).v));";
     expected << "(self->user_u).v;";
     expected << "(self->user_b).v;";
+    expected << "((self)->model_address).v;";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

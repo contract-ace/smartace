@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/MainFunctionGenerator.h>
 
+#include <libsolidity/modelcheck/Contract.h>
 #include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 
@@ -75,7 +76,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     fixpoint.push_back(CURSTATE->assign(NXTSTATE->id())->stmt());
     fixpoint.push_back(call_cases);
 
-    // Contract setup and tear-down.v
+    // Contract setup and tear-down.
     CBlockList main;
     for (auto param_pair : param_decls) main.push_back(param_pair.second);
     main.push_back(CURSTATE);
@@ -84,8 +85,16 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     for (auto contract_pair : contract_decls)
     {
         auto const& DECL = contract_pair.second;
+        auto const& ADDR = DECL->access(ContractUtilities::address_member());
+        string const ADDRMSG = "Init address of " + contract_pair.first->name();
         main.push_back(DECL);
         main.push_back(init_contract(*contract_pair.first, DECL, CURSTATE));
+        main.push_back(ADDR->assign(
+            get_nd_sol_val(*ContractUtilities::address_type(), ADDRMSG)
+        )->stmt());
+        main.push_back(make_require(make_shared<CBinaryOp>(
+            make_shared<CMemberAccess>(ADDR, "v"), "!=", NULL_LIT
+        )));
     }
     main.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(move(fixpoint)),
