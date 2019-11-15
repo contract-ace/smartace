@@ -3,7 +3,7 @@
  * Targets libsolidity/modelcheck/VariableScopeResolver.{cpp,h}.
  */
 
-#include <libsolidity/modelcheck/VariableScopeResolver.h>
+#include <libsolidity/modelcheck/analysis/VariableScope.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>

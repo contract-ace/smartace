@@ -6,7 +6,7 @@
  * Targets libsolidity/modelcheck/Utility.h.
  */
 
-#include <libsolidity/modelcheck/Utility.h>
+#include <libsolidity/modelcheck/utils/General.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -42,23 +42,6 @@ BOOST_AUTO_TEST_CASE(scope_swap)
         BOOST_CHECK_EQUAL(my_var, 2);
     }
     BOOST_CHECK_EQUAL(my_var, 1);
-}
-
-BOOST_AUTO_TEST_CASE(is_pow_of_2)
-{
-    short next_pow = 1;
-    for (char i = -127; i < 127; ++i)
-    {
-        if (i == next_pow)
-        {
-            BOOST_CHECK_EQUAL(is_power_of_two<char>(i), true);
-            next_pow *= 2;
-        }
-        else
-        {
-            BOOST_CHECK_EQUAL(is_power_of_two<char>(i), false);
-        }
-    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

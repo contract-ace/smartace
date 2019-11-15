@@ -40,9 +40,9 @@
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
-#include <libsolidity/modelcheck/ADTConverter.h>
-#include <libsolidity/modelcheck/FunctionConverter.h>
-#include <libsolidity/modelcheck/MainFunctionGenerator.h>
+#include <libsolidity/modelcheck/translation/ADT.h>
+#include <libsolidity/modelcheck/translation/Function.h>
+#include <libsolidity/modelcheck/translation/MainFunction.h>
 
 #include <libyul/AssemblyStack.h>
 

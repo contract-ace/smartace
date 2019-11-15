@@ -3,7 +3,7 @@
  * Targets libsolidity/modelcheck/TypeTranslator.{h,cpp}.
  */
 
-#include <libsolidity/modelcheck/TypeTranslator.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>

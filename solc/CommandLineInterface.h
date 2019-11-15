@@ -22,9 +22,9 @@
 #pragma once
 
 #include <libsolidity/interface/CompilerStack.h>
-#include <libsolidity/modelcheck/CallState.h>
-#include <libsolidity/modelcheck/PrimitiveTypeGenerator.h>
-#include <libsolidity/modelcheck/TypeTranslator.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/Primitives.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
 
 #include <libyul/AssemblyStack.h>
 #include <liblangutil/EVMVersion.h>

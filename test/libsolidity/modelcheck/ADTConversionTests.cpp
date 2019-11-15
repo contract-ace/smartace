@@ -3,7 +3,7 @@
  * Specific tests for libsolidity/modelcheck/FunctionChecker.h
  */
 
-#include <libsolidity/modelcheck/ADTConverter.h>
+#include <libsolidity/modelcheck/translation/ADT.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>

@@ -3,7 +3,7 @@
  * Comprehensive tests for libsolidity/modelcheck/BlockConversionVisitor.{h,cpp}.
  */
 
-#include <libsolidity/modelcheck/BlockConverter.h>
+#include <libsolidity/modelcheck/translation/Block.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>

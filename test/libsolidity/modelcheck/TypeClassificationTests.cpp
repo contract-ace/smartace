@@ -3,7 +3,7 @@
  * Specific tests for libsolidity/modelcheck/TypeClassification.h
  */
 
-#include <libsolidity/modelcheck/TypeClassification.h>
+#include <libsolidity/modelcheck/utils/Types.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>

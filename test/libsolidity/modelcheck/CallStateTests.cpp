@@ -3,7 +3,7 @@
  * Specific tests for libsolidity/modelcheck/CallState.h
  */
 
-#include <libsolidity/modelcheck/CallState.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>

@@ -11,7 +11,7 @@
  * types.
  */
 
-#include <libsolidity/modelcheck/PrimitiveTypeGenerator.h>
+#include <libsolidity/modelcheck/analysis/Primitives.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>

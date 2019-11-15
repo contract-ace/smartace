@@ -3,7 +3,7 @@
  * Specific tests for libsolidity/modelcheck/SimpleCGenerator.cpp
  */
 
-#include <libsolidity/modelcheck/SimpleCGenerator.h>
+#include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
