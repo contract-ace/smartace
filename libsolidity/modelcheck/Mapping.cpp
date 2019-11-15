@@ -6,6 +6,8 @@
 
 #include <libsolidity/modelcheck/Mapping.h>
 
+#include <libsolidity/modelcheck/TranslationLiterals.h>
+
 using namespace std;
 
 namespace dev
@@ -21,11 +23,6 @@ const std::string MapGenerator::SET_FIELD = "set";
 const std::string MapGenerator::CURR_FIELD = "curr";
 const std::string MapGenerator::DATA_FIELD = "data";
 const std::string MapGenerator::ND_FIELD = "nd_data";
-
-// -------------------------------------------------------------------------- //
-
-shared_ptr<CIntLiteral> const MapGenerator::TRUE = make_shared<CIntLiteral>(1);
-shared_ptr<CIntLiteral> const MapGenerator::FALSE = make_shared<CIntLiteral>(0);
 
 // -------------------------------------------------------------------------- //
 
@@ -178,7 +175,7 @@ shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
     block.push_back(TMP->access(ND_FIELD)->assign(M_INIT_VAL)->stmt());
     for (size_t i = 0; i < M_LEN; ++i)
     {
-        block.push_back(write_field_stmt(*TMP, SET_FIELD, i, FALSE));
+        block.push_back(write_field_stmt(*TMP, SET_FIELD, i, Literals::ZERO));
         block.push_back(write_field_stmt(*TMP, CURR_FIELD, i, M_INIT_KEY));
         block.push_back(write_field_stmt(*TMP, DATA_FIELD, i, _init_data));
     }
@@ -202,9 +199,11 @@ CStmtPtr MapGenerator::expand_iteration(
 
     _chain = make_shared<CIf>(move(is_match), _exec, move(_chain));
     return make_shared<CIf>(
-        make_shared<CBinaryOp>(_arr.access(field(SET_FIELD, _i)), "==", FALSE),
+        make_shared<CBinaryOp>(
+            _arr.access(field(SET_FIELD, _i)), "==", Literals::ZERO
+        ),
         make_shared<CBlock>(CBlockList{
-            write_field_stmt(_arr, SET_FIELD, _i, TRUE),
+            write_field_stmt(_arr, SET_FIELD, _i, Literals::ONE),
             write_field_stmt(_arr, CURR_FIELD, _i, _key.id()),
             move(_exec)
         }),

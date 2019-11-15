@@ -40,8 +40,6 @@ public:
     void print(std::ostream& _stream);
 
 private:
-    CExprPtr const NULL_LIT;
-
 	SourceUnit const& m_ast;
 	TypeConverter const& m_converter;
 
@@ -83,7 +81,6 @@ private:
         std::shared_ptr<const CVarDecl> _state
     );
 
-    static CExprPtr get_nd_sol_val(Type const& _type, std::string const& _msg);
     static CExprPtr get_nd_byte(std::string const& _msg);
 };
 

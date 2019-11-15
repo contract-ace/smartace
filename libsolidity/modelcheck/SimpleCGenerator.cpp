@@ -5,6 +5,7 @@
 
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 
+#include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/ExpressionConverter.h>
 
@@ -176,7 +177,7 @@ CFuncCallBuilder::CFuncCallBuilder(string _name): m_name(move(_name)) {}
 
 void CFuncCallBuilder::push(CExprPtr _expr, Type const* _t)
 {
-    if (_t) _expr = wrap_with_type(move(_expr), *_t);
+    if (_t) _expr = FunctionUtilities::try_to_wrap(*_t, move(_expr));
     m_args.push_back(move(_expr));
 }
 
@@ -193,7 +194,7 @@ void CFuncCallBuilder::push(
     if (!_t) _t = _expr.annotation().type;
 
     auto cexpr = converter.convert();
-    if (_t) cexpr = wrap_with_type(move(cexpr), *_t);
+    if (_t) cexpr = FunctionUtilities::try_to_wrap(*_t, move(cexpr));
     m_args.push_back(move(cexpr));
 }
 
@@ -205,17 +206,6 @@ shared_ptr<CFuncCall> CFuncCallBuilder::merge_and_pop()
 CStmtPtr CFuncCallBuilder::merge_and_pop_stmt()
 {
     return merge_and_pop()->stmt();
-}
-
-CExprPtr CFuncCallBuilder::wrap_with_type(CExprPtr && _expr, Type const& _t)
-{
-    // TODO(scottwe): this is dulicated in 2 places...
-    if (is_wrapped_type(_t))
-    {
-        string const INIT_CALL = "Init_" + TypeConverter::get_simple_ctype(_t);
-        _expr = make_shared<CFuncCall>(INIT_CALL, CArgList{ move(_expr) });
-    }
-    return _expr;
 }
 
 // -------------------------------------------------------------------------- //

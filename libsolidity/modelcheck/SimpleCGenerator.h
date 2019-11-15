@@ -319,8 +319,6 @@ public:
 private:
     std::string const m_name;
     CArgList m_args;
-
-    CExprPtr wrap_with_type(CExprPtr && _expr, Type const& _t);
 };
 
 // -------------------------------------------------------------------------- //

@@ -98,13 +98,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             if (decl->value())
             {
                 init = ExpressionConverter(*decl->value(), {}, {}).convert();
-
-                if (is_wrapped_type(*decl->type()))
-                {
-                    init = make_shared<CFuncCall>(
-                        "Init_" + M_CONVERTER.get_type(*decl), CArgList{init}
-                    );
-                }
+                init = FunctionUtilities::try_to_wrap(*decl->type(), move(init));
             }
             else
             {

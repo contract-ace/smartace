@@ -7,14 +7,15 @@
 
 #include <libsolidity/modelcheck/TypeTranslator.h>
 
+#include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
+#include <libsolidity/modelcheck/TranslationLiterals.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <sstream>
 #include <stdexcept>
 
 using namespace std;
-using namespace boost;
 
 namespace dev
 {
@@ -299,13 +300,7 @@ CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
         throw ("init_val_by_simple_type expects a simple type.");
     }
 
-    CExprPtr init_val = make_shared<CIntLiteral>(0);
-    if (is_wrapped_type(_type))
-    {
-        string const INIT_CALL = "Init_" + get_simple_ctype(_type);
-        init_val = make_shared<CFuncCall>(INIT_CALL, CArgList{init_val});
-    }
-    return init_val;
+    return FunctionUtilities::try_to_wrap(_type, Literals::ZERO);
 }
 
 CExprPtr TypeConverter::nd_val_by_simple_type(
@@ -324,12 +319,7 @@ CExprPtr TypeConverter::nd_val_by_simple_type(
 
     auto msg_lit = make_shared<CStringLiteral>(_msg);
     auto nd_val = make_shared<CFuncCall>(call.str(), CArgList{msg_lit});
-    if (is_wrapped_type(_type))
-    {
-        string const INIT_CALL = "Init_" + get_simple_ctype(_type);
-        nd_val = make_shared<CFuncCall>(INIT_CALL, CArgList{nd_val});
-    }
-    return nd_val;
+    return FunctionUtilities::try_to_wrap(_type, move(nd_val));
 }
 
 CExprPtr TypeConverter::get_init_val(TypeName const& _typename) const

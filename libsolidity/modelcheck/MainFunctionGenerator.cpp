@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/Contract.h>
 #include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
+#include <libsolidity/modelcheck/TranslationLiterals.h>
 
 using namespace std;
 
@@ -24,7 +25,7 @@ namespace modelcheck
 
 MainFunctionGenerator::MainFunctionGenerator(
     SourceUnit const& _ast, TypeConverter const& _converter
-): NULL_LIT(make_shared<CIntLiteral>(0)), m_ast(_ast), m_converter(_converter)
+): m_ast(_ast), m_converter(_converter)
 {
 }
 
@@ -49,7 +50,8 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     // Generates function switch.
     auto call_cases = make_shared<CSwitch>(
-        get_nd_byte("Select next call"), CBlockList{make_require(NULL_LIT)}
+        get_nd_byte("Select next call"),
+        CBlockList{make_require(Literals::ZERO)}
     );
     for (auto const* CONTRACT : contracts)
     {
@@ -90,10 +92,12 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         main.push_back(DECL);
         main.push_back(init_contract(*contract_pair.first, DECL, CURSTATE));
         main.push_back(ADDR->assign(
-            get_nd_sol_val(*ContractUtilities::address_type(), ADDRMSG)
+            TypeConverter::nd_val_by_simple_type(
+                *ContractUtilities::address_type(), ADDRMSG
+            )
         )->stmt());
         main.push_back(make_require(make_shared<CBinaryOp>(
-            make_shared<CMemberAccess>(ADDR, "v"), "!=", NULL_LIT
+            make_shared<CMemberAccess>(ADDR, "v"), "!=", Literals::ZERO
         )));
     }
     main.push_back(make_shared<CWhileLoop>(
@@ -110,7 +114,9 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
 CStmtPtr MainFunctionGenerator::make_require(CExprPtr _cond)
 {
-    auto fn = make_shared<CFuncCall>("sol_require", CArgList{_cond, NULL_LIT});
+    auto fn = make_shared<CFuncCall>(
+        "sol_require", CArgList{_cond, Literals::ZERO
+    });
     return fn->stmt();
 }
 
@@ -219,30 +225,23 @@ void MainFunctionGenerator::update_call_state(
     IntegerType UINT256(256, IntegerType::Modifier::Unsigned);
 
     _stmts.push_back(_state->access("sender")->assign(
-        get_nd_sol_val(ADDR, "msg_sender"))->stmt()
+        TypeConverter::nd_val_by_simple_type(ADDR, "msg_sender"))->stmt()
     );
     _stmts.push_back(_state->access("value")->assign(
-        get_nd_sol_val(UINT256, "msg_value"))->stmt()
+        TypeConverter::nd_val_by_simple_type(UINT256, "msg_value"))->stmt()
     );
     _stmts.push_back(_state->access("blocknum")->assign(
-        get_nd_sol_val(UINT256, "block_number"))->stmt()
+        TypeConverter::nd_val_by_simple_type(UINT256, "block_number"))->stmt()
     );
 
     _stmts.push_back(make_require(make_shared<CBinaryOp>(
         make_shared<CMemberAccess>(_state->access("sender"), "v"),
         "!=",
-        NULL_LIT
+        Literals::ZERO
     )));
 }
 
 // -------------------------------------------------------------------------- //
-
-CExprPtr MainFunctionGenerator::get_nd_sol_val(
-    Type const& _type, string const& _msg
-)
-{
-    return TypeConverter::nd_val_by_simple_type(_type, _msg);
-}
 
 CExprPtr MainFunctionGenerator::get_nd_byte(string const& _msg)
 {
@@ -250,6 +249,8 @@ CExprPtr MainFunctionGenerator::get_nd_byte(string const& _msg)
         "rt_nd_byte", CArgList{make_shared<CStringLiteral>(_msg)}
     );
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }

@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/BlockConverter.h>
 
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+#include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
@@ -76,20 +77,13 @@ void FunctionBlockConverter::exit(
 
 bool FunctionBlockConverter::visit(Return const& _node)
 {
-	CExprPtr retval = nullptr;
+	CExprPtr rv = nullptr;
 	if (_node.expression())
 	{
-        retval = expand(*_node.expression());
-
-		auto const& TYPE = *m_rv->annotation().type;
-		if (is_wrapped_type(TYPE))
-		{
-			// TODO(scottwe): this is dulicated in 2 places...
-			string const WRAP = "Init_" + TypeConverter::get_simple_ctype(TYPE);
-			retval = make_shared<CFuncCall>( WRAP, CArgList{ move(retval) } );
-		}
+        rv = expand(*_node.expression());
+		rv = FunctionUtilities::try_to_wrap(*m_rv->annotation().type, move(rv));
 	}
-    new_substmt<CReturn>(retval);
+    new_substmt<CReturn>(rv);
 	return false;
 }
 

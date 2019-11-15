@@ -7,7 +7,9 @@
 
 #include <libsolidity/modelcheck/Contract.h>
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+#include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
+#include <libsolidity/modelcheck/TranslationLiterals.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <stdexcept>
@@ -80,19 +82,18 @@ bool GeneralBlockConverter::visit(Block const& _node)
 	if (top_level_swap.old())
 	{
 		auto const state = make_shared<CIdentifier>("state", true);
-		auto VAL = state->access("value")->access("v");
+		auto V = state->access("value")->access("v");
 		if (M_MANAGE_PAY && M_IS_PAYABLE)
 		{
 			string const BAL_MEMBER = ContractUtilities::balance_member();
 			auto const self = make_shared<CIdentifier>("self", true);
 			auto BAL = self->access(BAL_MEMBER)->access("v");
-			stmts.push_back(CBinaryOp(BAL, "+=", VAL).stmt());
+			stmts.push_back(CBinaryOp(BAL, "+=", V).stmt());
 		}
 		else if (M_MANAGE_PAY)
 		{
-			auto const NULL_LIT = make_shared<CIntLiteral>(0);
 			stmts.push_back(make_shared<CFuncCall>("sol_require", CArgList{
-				make_shared<CBinaryOp>(VAL, "==", NULL_LIT), NULL_LIT
+				make_shared<CBinaryOp>(V, "==", Literals::ZERO), Literals::ZERO
 			})->stmt());
 		}
 		enter(stmts, m_decls);
@@ -216,7 +217,6 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 	else if (!_node.declarations().empty())
 	{
 		auto const &DECL = *_node.declarations()[0];
-		auto const TYPE = M_TYPES.get_type(DECL);
 		bool const IS_REF
 			= DECL.referenceLocation() == VariableDeclaration::Storage;
 
@@ -226,14 +226,10 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 		if (_node.initialValue())
 		{
 			val = expand(*_node.initialValue(), IS_REF);
-			if (has_wrapped_data(DECL))
-			{
-				CFuncCallBuilder builder("Init_" + TYPE);
-				builder.push(val);
-				val = builder.merge_and_pop();
-			}
+			val = FunctionUtilities::try_to_wrap(*DECL.type(), move(val));
 		}
 
+		auto const TYPE = M_TYPES.get_type(DECL);
 		new_substmt<CVarDecl>(
 			TYPE, m_decls.resolve_declaration(DECL), IS_REF, val
 		);

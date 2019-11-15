@@ -132,6 +132,8 @@ set(sources
 	modelcheck/SimpleCCore.h
 	modelcheck/SimpleCGenerator.cpp
 	modelcheck/SimpleCGenerator.h
+	modelcheck/TranslationLiterals.cpp
+	modelcheck/TranslationLiterals.h
 	modelcheck/TypeClassification.cpp
 	modelcheck/TypeClassification.h
 	modelcheck/TypeTranslator.cpp

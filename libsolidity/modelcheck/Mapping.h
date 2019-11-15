@@ -52,10 +52,6 @@ public:
     CFuncDef declare_ref(bool _forward_declare) const;
 
 private:
-    // Static literals for true and false values.
-    static std::shared_ptr<CIntLiteral> const TRUE;
-    static std::shared_ptr<CIntLiteral> const FALSE;
-
     // The number of elements modeling the map.
     size_t const M_LEN;
 

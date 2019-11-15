@@ -8,6 +8,7 @@
 #include <libsolidity/modelcheck/Contract.h>
 #include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
+#include <libsolidity/modelcheck/TranslationLiterals.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 #include <libsolidity/modelcheck/Utility.h>
 #include <stdexcept>
@@ -262,10 +263,10 @@ bool ExpressionConverter::visit(Literal const& _node)
 	switch (_node.token())
 	{
 	case Token::TrueLiteral:
-		m_subexpr = make_shared<CIntLiteral>(1);
+		m_subexpr = Literals::ONE;
 		break;
 	case Token::FalseLiteral:
-		m_subexpr = make_shared<CIntLiteral>(0);
+		m_subexpr = Literals::ZERO;
 		break;
 	case Token::Number:
 		m_subexpr = make_shared<CIntLiteral>(literal_to_number(_node));
@@ -761,7 +762,7 @@ void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 	CFuncCallBuilder builder(_type);
 	const InaccessibleDynamicType RAW_TYPE;
 	builder.push(*_args[0], M_TYPES, m_decls, false, &RAW_TYPE);
-	builder.push(make_shared<CIntLiteral>(0));
+	builder.push(Literals::ZERO);
 	m_subexpr = builder.merge_and_pop();
 }
 

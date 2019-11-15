@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/BlockConverter.h>
 
 #include <libsolidity/modelcheck/ExpressionConverter.h>
+#include <libsolidity/modelcheck/Function.h>
 #include <libsolidity/modelcheck/SimpleCGenerator.h>
 #include <libsolidity/modelcheck/TypeClassification.h>
 
@@ -135,12 +136,7 @@ void ModifierBlockConverter::enter(
 
             ExpressionConverter arg_converter(ARG, M_TYPES, m_shadow_decls);
             auto expr = arg_converter.convert();
-            if (has_wrapped_data(ARG))
-            {
-                CFuncCallBuilder builder("Init_" + TYPE);
-                builder.push(expr);
-                expr = builder.merge_and_pop();
-            }
+            expr = FunctionUtilities::try_to_wrap(*PARAM.type(), move(expr));
             _stmts.push_back(make_shared<CVarDecl>(TYPE, SYM, false, expr));
         }
     }
