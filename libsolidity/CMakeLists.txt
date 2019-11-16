@@ -106,6 +106,8 @@ set(sources
 	interface/StandardCompiler.h
 	interface/Version.cpp
 	interface/Version.h
+	modelcheck/analysis/AllocationSites.cpp
+	modelcheck/analysis/AllocationSites.h
 	modelcheck/analysis/CallState.cpp
 	modelcheck/analysis/CallState.h
 	modelcheck/analysis/Primitives.cpp
