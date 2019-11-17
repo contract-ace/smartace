@@ -158,13 +158,6 @@ bool ExpressionConverter::visit(FunctionCall const& _node)
 	return false;
 }
 
-bool ExpressionConverter::visit(NewExpression const& _node)
-{
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("New expressions not yet supported.");
-}
-
 bool ExpressionConverter::visit(MemberAccess const& _node)
 {
 	auto const EXPR_TYPE = _node.expression().annotation().type;

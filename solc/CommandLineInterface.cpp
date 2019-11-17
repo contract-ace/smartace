@@ -1254,7 +1254,7 @@ void CommandLineInterface::handleCModel()
 	modelcheck::TypeConverter converter;
 	modelcheck::PrimitiveTypeGenerator primitive_set;
 	modelcheck::NewCallGraph newcall_graph;
-	for (auto const& ast: asts)
+	for (auto const* ast: asts)
 	{
 		callstate.record(*ast);
 		converter.record(*ast);
@@ -1326,12 +1326,12 @@ void CommandLineInterface::handleCModelHeaders(
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
 	_cs.print(_os, true);
-	for (auto const& ast : _asts)
+	for (auto const* ast : _asts)
 	{
 		ADTConverter cov(*ast, _con, map_k, true);
 		cov.print(_os);
 	}
-	for (auto const& ast : _asts)
+	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
 			*ast, _con, map_k, FunctionConverter::View::EXT, true
@@ -1353,30 +1353,33 @@ void CommandLineInterface::handleCModelBody(
 	size_t map_k = m_args[g_argModelMapLen].as<size_t>();
 	_os << "#include \"cmodel.h\"" << endl;
 	_cs.print(_os, false);
-	for (auto const& ast : _asts)
+	for (auto const* ast : _asts)
 	{
 		ADTConverter cov(*ast, _con, map_k, false);
 		cov.print(_os);
 	}
-	for (auto const& ast : _asts)
+	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
 			*ast, _con, map_k, FunctionConverter::View::INT, true
 		);
 		cov.print(_os);
 	}
-	for (auto const& ast : _asts)
+	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
 			*ast, _con, map_k, FunctionConverter::View::FULL, false
 		);
 		cov.print(_os);
 	}
-	for (auto const& ast : _asts)
+
+	modelcheck::MainFunctionGenerator main_gen(_con);
+	for (auto const* ast : _asts)
 	{
-		MainFunctionGenerator cov(*ast, _con);
-		cov.print(_os);
+		main_gen.record(*ast);
 	}
+	main_gen.print(_os);
+
 	_os << "int main(int argc,const char**argv){"
 	    << "sol_setup(argc,argv);"
 		<< "run_model();"

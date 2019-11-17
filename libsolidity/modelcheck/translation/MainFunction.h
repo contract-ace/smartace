@@ -9,6 +9,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
+#include <list>
 #include <ostream>
 
 namespace dev
@@ -21,27 +22,23 @@ namespace modelcheck
 /**
  * Prints a forward declaration for the variable decalarations of contract,
  * globalstate and nextGS in main function.
- * 
- * TODO(scott.wesley): As with the original implementation, this failures when
- *                     there are two (or n) source units. This will generate two
- *                     (or n) entry-points. A solution similar to TypeTranslator
- *                     is needed.
  */
 class MainFunctionGenerator: public ASTConstVisitor
 {
 public:
     // Constructs a printer for all function forward decl's required by the ast.
-    MainFunctionGenerator(
-        SourceUnit const& _ast,
-		TypeConverter const& _converter
-    );
+    MainFunctionGenerator(TypeConverter const& _converter);
+
+    // Integrates a source unit with the main function.
+    void record(SourceUnit const& _ast);
 
     // Prints the main function.
     void print(std::ostream& _stream);
 
 private:
-	SourceUnit const& m_ast;
 	TypeConverter const& m_converter;
+
+    std::list<ContractDefinition const*> m_contracts;
 
     CStmtPtr make_require(CExprPtr _cond);
 

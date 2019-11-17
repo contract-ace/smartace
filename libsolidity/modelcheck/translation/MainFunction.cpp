@@ -24,36 +24,43 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 MainFunctionGenerator::MainFunctionGenerator(
-    SourceUnit const& _ast, TypeConverter const& _converter
-): m_ast(_ast), m_converter(_converter)
+    TypeConverter const& _converter
+): m_converter(_converter)
 {
+}
+
+// -------------------------------------------------------------------------- //
+
+void MainFunctionGenerator::record(SourceUnit const& _ast)
+{
+    auto inset = ASTNode::filteredNodes<ContractDefinition>(_ast.nodes());
+    m_contracts.insert(m_contracts.end(), inset.begin(), inset.end());
 }
 
 // -------------------------------------------------------------------------- //
 
 void MainFunctionGenerator::print(std::ostream& _stream)
 {
-    auto contracts = ASTNode::filteredNodes<ContractDefinition>(m_ast.nodes());
-    if (contracts.size() > 1)
-    {
-        throw runtime_error("Multiple contracts not yet supported.");
-    }
-
     auto const CURSTATE = make_shared<CVarDecl>("struct CallState", "curstate");
     auto const NXTSTATE = make_shared<CVarDecl>("struct CallState", "nxtstate");
+
+    // Determines the contracts to use by the harness.
+    vector<ContractDefinition const*> model;
+    model.reserve(m_contracts.size());
+    model.insert(model.begin(), m_contracts.begin(), m_contracts.end());
 
     // Pre-analyzes contracts for fields, etc.
     map<VariableDeclaration const*, shared_ptr<CVarDecl>> param_decls;
     map<ContractDefinition const*, shared_ptr<CVarDecl>> contract_decls;
     map<FunctionDefinition const*, uint64_t> func_id;
-    analyze_decls(contracts, param_decls, contract_decls, func_id);
+    analyze_decls(model, param_decls, contract_decls, func_id);
 
     // Generates function switch.
     auto call_cases = make_shared<CSwitch>(
         get_nd_byte("Select next call"),
         CBlockList{make_require(Literals::ZERO)}
     );
-    for (auto const* CONTRACT : contracts)
+    for (auto const* CONTRACT : model)
     {
         auto CDECL = contract_decls[CONTRACT];
         for (auto const* FUNC : CONTRACT->definedFunctions())
@@ -134,7 +141,8 @@ void MainFunctionGenerator::analyze_decls(
     {
         auto const* CONTRACT = _contracts[i];
         string const TYPE = m_converter.get_type(*CONTRACT);
-        _defs[CONTRACT] = make_shared<CVarDecl>(TYPE, "contract");
+        string const NAME = "contract_" + to_string(i);
+        _defs[CONTRACT] = make_shared<CVarDecl>(TYPE, NAME);
 
         for (unsigned int j = 0; j < CONTRACT->definedFunctions().size(); ++j)
         {
