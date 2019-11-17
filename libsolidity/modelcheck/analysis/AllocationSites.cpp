@@ -5,7 +5,6 @@
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 
-#include <map>
 #include <stdexcept>
 
 using namespace std;
@@ -83,6 +82,69 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
     }
 
     return false;
+}
+
+// -------------------------------------------------------------------------- //
+
+void NewCallGraph::record(SourceUnit const& _src)
+{
+    // Enforces record is called in the unfinalized state.
+    if (m_finalized)
+    {
+        throw runtime_error("NewCallGraph mutated after finalization.");
+    }
+
+    // Analyzes children and violations for all contracts.
+    auto contracts = ASTNode::filteredNodes<ContractDefinition>(_src.nodes());
+    for (auto contract : contracts)
+    {
+        NewCallSummary summary(*contract);
+        
+        auto violations = summary.violations();
+        m_violations.splice(m_violations.end(), violations);
+
+        m_vertices[contract] = summary.children();
+    }
+}
+
+void NewCallGraph::finalize()
+{
+    if (m_finalized) return;
+    m_finalized = true;
+
+    for (auto itr = m_vertices.begin(); itr != m_vertices.end(); ++itr)
+    {
+        analyze(itr);
+    }
+}
+
+size_t NewCallGraph::cost_of(ContractDefinition const* _vertex) const
+{
+    auto res = m_costs.find(_vertex);
+    if (res == m_costs.end())
+    {
+        throw runtime_error("Cost requested on vertex not in NewCallGraph");
+    }
+    return res->second;
+}
+
+NewCallSummary::CallGroup NewCallGraph::violations() const
+{
+    return m_violations;
+}
+
+void NewCallGraph::analyze(NewCallGraph::Graph::iterator _neighbourhood)
+{
+    if (m_costs.find(_neighbourhood->first) != m_costs.end()) return;
+
+    size_t cost = 1;
+    for (auto neighbour : _neighbourhood->second)
+    {
+        analyze(m_vertices.find(neighbour.type));
+        cost += neighbour.count * m_costs[neighbour.type];
+    }
+
+    m_costs[_neighbourhood->first] = cost;
 }
 
 // -------------------------------------------------------------------------- //

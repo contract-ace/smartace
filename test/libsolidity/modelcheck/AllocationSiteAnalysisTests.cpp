@@ -132,9 +132,9 @@ BOOST_AUTO_TEST_CASE(invalid_alloc_tests)
 
     const auto& unit = *parseAndAnalyse(text);
 
-    auto const& child_x = *retrieveContractByName(unit, "X");
-    auto const& child_y = *retrieveContractByName(unit, "Y");
-    auto const& child_z = *retrieveContractByName(unit, "Z");
+    auto const* child_x = retrieveContractByName(unit, "X");
+    auto const* child_y = retrieveContractByName(unit, "Y");
+    auto const* child_z = retrieveContractByName(unit, "Z");
 
     auto const& test = *retrieveContractByName(unit, "Test");
 
@@ -142,12 +142,109 @@ BOOST_AUTO_TEST_CASE(invalid_alloc_tests)
     BOOST_CHECK(app.children().empty());
 
     NewCallSummary::NewCall v1, v2, v3;
-    v1.type = &child_x; v1.context = test.definedFunctions()[0];
-    v2.type = &child_y; v2.context = test.definedFunctions()[1];
-    v3.type = &child_z; v3.context = test.definedFunctions()[2];
+    v1.type = child_x; v1.context = test.definedFunctions()[0];
+    v2.type = child_y; v2.context = test.definedFunctions()[1];
+    v3.type = child_z; v3.context = test.definedFunctions()[2];
     list<NewCallSummary::NewCall> expect({v1, v2, v3});
 
     auto const& actual = app.violations();
+
+    BOOST_CHECK_EQUAL(actual.size(), expect.size());
+    for (auto a_itr = actual.begin(); a_itr != actual.end(); ++a_itr)
+    {
+        bool match = false;
+        for (auto e_itr = expect.begin(); e_itr != expect.end(); ++e_itr)
+        {
+            bool type_match = (e_itr->type == a_itr->type);
+            bool count_match = (e_itr->context == a_itr->context);
+            match |= (type_match && count_match);
+        }
+        BOOST_CHECK(match);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(cost_analysis_test)
+{
+    char const* text = R"(
+        contract X {}
+        contract Y {
+            constructor() public {
+                new X();
+                new X();
+            }
+        }
+        contract Z {
+            constructor() public {
+                new X();
+                new Y();
+                new Y();
+            }
+        }
+        contract Q {
+            constructor() public {
+                new X();
+                new Y();
+            }
+        }
+        contract R {
+            constructor() public {
+                new Q();
+                new Z();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+
+    auto const* child_x = retrieveContractByName(unit, "X");
+    auto const* child_y = retrieveContractByName(unit, "Y");
+    auto const* child_z = retrieveContractByName(unit, "Z");
+    auto const* child_q = retrieveContractByName(unit, "Q");
+    auto const* child_r = retrieveContractByName(unit, "R");
+
+    NewCallGraph graph;
+    graph.record(unit);
+    graph.finalize();
+
+    BOOST_CHECK_EQUAL(graph.cost_of(child_x), 1);
+    BOOST_CHECK_EQUAL(graph.cost_of(child_y), 3);
+    BOOST_CHECK_EQUAL(graph.cost_of(child_z), 8);
+    BOOST_CHECK_EQUAL(graph.cost_of(child_q), 5);
+    BOOST_CHECK_EQUAL(graph.cost_of(child_r), 14);
+}
+
+BOOST_AUTO_TEST_CASE(aggregate_exploit_test)
+{
+    char const* text = R"(
+        contract X {}
+        contract Y {
+            function f() public {
+                new X();
+            }
+        }
+        contract Z {
+            function g() public {
+                new X();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+
+    auto const* child_x = retrieveContractByName(unit, "X");
+    auto const& child_y = *retrieveContractByName(unit, "Y");
+    auto const& child_z = *retrieveContractByName(unit, "Z");
+
+    NewCallGraph graph;
+    graph.record(unit);
+    graph.finalize();
+
+    NewCallSummary::NewCall v1, v2;
+    v1.type = child_x; v1.context = child_y.definedFunctions()[0];
+    v2.type = child_x; v2.context = child_z.definedFunctions()[0];
+    list<NewCallSummary::NewCall> expect({v1, v2});
+
+    auto const& actual = graph.violations();
 
     BOOST_CHECK_EQUAL(actual.size(), expect.size());
     for (auto a_itr = actual.begin(); a_itr != actual.end(); ++a_itr)
