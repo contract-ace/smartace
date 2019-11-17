@@ -260,6 +260,55 @@ BOOST_AUTO_TEST_CASE(aggregate_exploit_test)
     }
 }
 
+BOOST_AUTO_TEST_CASE(family_analysis_test)
+{
+    char const* text = R"(
+        contract X {}
+        contract Y {
+            constructor() public {
+                new X();
+                new X();
+            }
+        }
+        contract Z {
+            constructor() public {
+                new X();
+                new Y();
+                new Y();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+
+    auto const* x = retrieveContractByName(unit, "X");
+    auto const* y = retrieveContractByName(unit, "Y");
+    auto const* z = retrieveContractByName(unit, "Z");
+
+    NewCallGraph graph;
+    graph.record(unit);
+    graph.finalize();
+
+    list<ContractDefinition const*> x_family{ x };
+    list<ContractDefinition const*> y_family{ y, x, x };
+    list<ContractDefinition const*> z_family{ z, y, x, x, y, x, x, x };
+
+    auto x_actual = graph.family(x);
+    BOOST_CHECK_EQUAL_COLLECTIONS(
+        x_family.begin(), x_family.end(), x_actual.begin(), x_actual.end()
+    );
+
+    auto y_actual = graph.family(y);
+    BOOST_CHECK_EQUAL_COLLECTIONS(
+        y_family.begin(), y_family.end(), y_actual.begin(), y_actual.end()
+    );
+
+    auto z_actual = graph.family(z);
+    BOOST_CHECK_EQUAL_COLLECTIONS(
+        z_family.begin(), z_family.end(), z_actual.begin(), z_actual.end()
+    );
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

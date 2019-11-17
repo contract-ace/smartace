@@ -46,12 +46,12 @@ NewCallSummary::NewCallSummary(ContractDefinition const& _src)
     }
 }
 
-list<NewCallSummary::ChildType> const& NewCallSummary::children() const
+NewCallSummary::Children const& NewCallSummary::children() const
 {
     return m_children;
 }
 
-list<NewCallSummary::NewCall> const& NewCallSummary::violations() const
+NewCallSummary::CallGroup const& NewCallSummary::violations() const
 {
     return m_violations;
 }
@@ -104,6 +104,8 @@ void NewCallGraph::record(SourceUnit const& _src)
         m_violations.splice(m_violations.end(), violations);
 
         m_vertices[contract] = summary.children();
+
+        m_names[contract->name()] = contract;
     }
 }
 
@@ -118,12 +120,17 @@ void NewCallGraph::finalize()
     }
 }
 
-size_t NewCallGraph::cost_of(ContractDefinition const* _vertex) const
+size_t NewCallGraph::cost_of(Label _vertex) const
 {
-    auto res = m_costs.find(_vertex);
-    if (res == m_costs.end())
+    return family(_vertex).size();
+}
+
+list<NewCallGraph::Label> const& NewCallGraph::family(Label _root) const
+{
+    auto res = m_family.find(_root);
+    if (res == m_family.end())
     {
-        throw runtime_error("Cost requested on vertex not in NewCallGraph");
+        throw runtime_error("Data requested on vertex not in NewCallGraph");
     }
     return res->second;
 }
@@ -133,18 +140,31 @@ NewCallSummary::CallGroup NewCallGraph::violations() const
     return m_violations;
 }
 
+NewCallGraph::Label NewCallGraph::reverse_name(string _name) const
+{
+    auto res = m_names.find(_name);
+    if (res == m_names.end()) return nullptr;
+    return res->second;
+}
+
 void NewCallGraph::analyze(NewCallGraph::Graph::iterator _neighbourhood)
 {
-    if (m_costs.find(_neighbourhood->first) != m_costs.end()) return;
+    NewCallGraph::Label root = _neighbourhood->first;
+    if (m_family.find(root) != m_family.end()) return;
 
-    size_t cost = 1;
+    list<NewCallGraph::Label> family{root};
     for (auto neighbour : _neighbourhood->second)
     {
         analyze(m_vertices.find(neighbour.type));
-        cost += neighbour.count * m_costs[neighbour.type];
+
+        auto const& subtree = m_family[neighbour.type];
+        for (unsigned int i = 0; i < neighbour.count; ++i)
+        {
+            family.insert(family.end(), subtree.begin(), subtree.end());
+        }
     }
 
-    m_costs[_neighbourhood->first] = cost;
+    m_family[root] = move(family);
 }
 
 // -------------------------------------------------------------------------- //

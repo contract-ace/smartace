@@ -9,6 +9,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <string>
 
 namespace dev
 {
@@ -46,7 +47,7 @@ public:
     NewCallSummary(ContractDefinition const& _src);
 
     // Returns a summary of all children spawned by this contract.
-    const Children & children() const;
+    Children const& children() const;
 
     // Returns a list of new calls which violate our model. In theory this will
     // be any new call for which an exact bound is not inferred on the number of
@@ -90,6 +91,8 @@ private:
 class NewCallGraph
 {
 public:
+    using Label = ContractDefinition const*;
+
     // Records the NewCallSummary of each contract in _src.
     void record(SourceUnit const& _src);
 
@@ -99,21 +102,32 @@ public:
     // record() must not be called again.
     void finalize();
 
-    // Assuming finalize has been called, returns the cost of a given contract.
-    size_t cost_of(ContractDefinition const* _vertex) const;
+    // Assuming finalize() has been called, returns the cost of a given
+    // contract.
+    size_t cost_of(Label _vertex) const;
+
+    // Assuming finalize() has been called, returns the subgraph extended from a
+    // given vertex.
+    std::list<Label> const& family(Label _root) const;
 
     // Returns all violations found within the graph.
     NewCallSummary::CallGroup violations() const;
 
+    // Performs a reverse lookup from contract name to contract address.
+    Label reverse_name(std::string _name) const;
+
 private:
-    using Graph = std::map<ContractDefinition const*, NewCallSummary::Children>;
+    using Graph = std::map<Label, NewCallSummary::Children>;
+    using Reach = std::map<Label, std::list<Label>>;
+    using Alias = std::map<std::string, Label>;
 
     bool m_finalized = false;
 
     void analyze(Graph::iterator _neighbourhood);
 
     Graph m_vertices;
-    std::map<ContractDefinition const*, size_t> m_costs;
+    Reach m_family;
+    Alias m_names;
     NewCallSummary::CallGroup m_violations;
 };
 
