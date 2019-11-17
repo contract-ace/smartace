@@ -40,6 +40,7 @@
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/translation/ADT.h>
 #include <libsolidity/modelcheck/translation/Function.h>
 #include <libsolidity/modelcheck/translation/MainFunction.h>
@@ -1252,13 +1253,25 @@ void CommandLineInterface::handleCModel()
 	modelcheck::CallState callstate;
 	modelcheck::TypeConverter converter;
 	modelcheck::PrimitiveTypeGenerator primitive_set;
+	modelcheck::NewCallGraph newcall_graph;
 	for (auto const& ast: asts)
 	{
 		callstate.record(*ast);
 		converter.record(*ast);
 		primitive_set.record(*ast);
+		newcall_graph.record(*ast);
 	}
 	callstate.register_primitives(primitive_set);
+	newcall_graph.finalize();
+
+	// Checks for violations in the NewCallGraph.
+	if (!newcall_graph.violations().empty())
+	{
+		// TODO: report violations.
+		m_error = true;
+		serr() << "Disallowed allocation detected in AST." << endl;
+		return;
+	}
 
 	// TODO(scottwe): This was quick to set up, but it leads to the same AST
 	//                evaluations being repeated...
