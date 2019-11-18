@@ -24,8 +24,9 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 MainFunctionGenerator::MainFunctionGenerator(
+    list<ContractDefinition const *> const& _model,
     TypeConverter const& _converter
-): m_converter(_converter)
+): m_model(_model), m_converter(_converter)
 {
 }
 
@@ -46,28 +47,32 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     // Determines the contracts to use by the harness.
     vector<ContractDefinition const*> model;
-    model.reserve(m_contracts.size());
-    model.insert(model.begin(), m_contracts.begin(), m_contracts.end());
+    if (!m_model.empty())
+    {
+        model.reserve(m_model.size());
+        model.insert(model.begin(), m_model.begin(), m_model.end());
+    }
+    else
+    {
+        model.reserve(m_contracts.size());
+        model.insert(model.begin(), m_contracts.begin(), m_contracts.end());
+    }
 
     // Pre-analyzes contracts for fields, etc.
-    map<VariableDeclaration const*, shared_ptr<CVarDecl>> param_decls;
-    map<ContractDefinition const*, shared_ptr<CVarDecl>> contract_decls;
-    map<FunctionDefinition const*, uint64_t> func_id;
-    analyze_decls(model, param_decls, contract_decls, func_id);
+    list<Actor> actors = analyze_decls(model);
 
     // Generates function switch.
     auto call_cases = make_shared<CSwitch>(
         get_nd_byte("Select next call"),
         CBlockList{make_require(Literals::ZERO)}
     );
-    for (auto const* CONTRACT : model)
+    for (auto actor : actors)
     {
-        auto CDECL = contract_decls[CONTRACT];
-        for (auto const* FUNC : CONTRACT->definedFunctions())
+        for (auto const* FUNC : actor.contract->definedFunctions())
         {
             if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
-            auto call_body = build_case(*FUNC, param_decls, CDECL, CURSTATE);
-            call_cases->add_case(func_id[FUNC], move(call_body));
+            auto call_body = build_case(*FUNC, actor.fparams, actor.decl, CURSTATE);
+            call_cases->add_case(actor.fnums[FUNC], move(call_body));
         }
     }
 
@@ -87,17 +92,17 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     // Contract setup and tear-down.
     CBlockList main;
-    for (auto param_pair : param_decls) main.push_back(param_pair.second);
     main.push_back(CURSTATE);
     update_call_state(main, CURSTATE);
     main.push_back(NXTSTATE);
-    for (auto contract_pair : contract_decls)
+    for (auto actor : actors)
     {
-        auto const& DECL = contract_pair.second;
+        for (auto param_pair : actor.fparams) main.push_back(param_pair.second);
+        auto const& DECL = actor.decl;
         auto const& ADDR = DECL->access(ContractUtilities::address_member());
-        string const ADDRMSG = "Init address of " + contract_pair.first->name();
+        string const ADDRMSG = "Init address of " + actor.contract->name();
         main.push_back(DECL);
-        main.push_back(init_contract(*contract_pair.first, DECL, CURSTATE));
+        main.push_back(init_contract(*actor.contract, DECL, CURSTATE));
         main.push_back(ADDR->assign(
             TypeConverter::nd_val_by_simple_type(
                 *ContractUtilities::address_type(), ADDRMSG
@@ -129,26 +134,26 @@ CStmtPtr MainFunctionGenerator::make_require(CExprPtr _cond)
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::analyze_decls(
-    vector<ContractDefinition const*> const& _contracts, 
-    map<VariableDeclaration const*, shared_ptr<CVarDecl>> & _dcls,
-    map<ContractDefinition const*, shared_ptr<CVarDecl>> & _defs,
-    map<FunctionDefinition const*, uint64_t> & _funcs
+list<MainFunctionGenerator::Actor> MainFunctionGenerator::analyze_decls(
+    vector<ContractDefinition const*> const& _contracts
 )
 {
     uint32_t fid = 0;
-    for (unsigned int i = 0; i < _contracts.size(); ++i)
+    list<Actor> actors;
+    for (size_t i = 0; i < _contracts.size(); ++i)
     {
-        auto const* CONTRACT = _contracts[i];
-        string const TYPE = m_converter.get_type(*CONTRACT);
-        string const NAME = "contract_" + to_string(i);
-        _defs[CONTRACT] = make_shared<CVarDecl>(TYPE, NAME);
+        Actor actor;
+        actor.contract = _contracts[i];
 
-        for (unsigned int j = 0; j < CONTRACT->definedFunctions().size(); ++j)
+        string const TYPE = m_converter.get_type(*actor.contract);
+        string const NAME = "contract_" + to_string(i);
+        actor.decl = make_shared<CVarDecl>(TYPE, NAME);
+
+        for (size_t j = 0; j < actor.contract->definedFunctions().size(); ++j)
         {
-            auto const* FUNC = CONTRACT->definedFunctions()[j];
+            auto const* FUNC = actor.contract->definedFunctions()[j];
             if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
-            for (unsigned int k = 0; k < FUNC->parameters().size(); ++k)
+            for (size_t k = 0; k < FUNC->parameters().size(); ++k)
             {
                 ASTPointer<const VariableDeclaration> PARAM
                     = FUNC->parameters()[k];
@@ -159,12 +164,16 @@ void MainFunctionGenerator::analyze_decls(
                 if (!PARAM->name().empty()) param_name << "_" << PARAM->name();
 
                 auto param_decl = make_shared<CVarDecl>(TYPE, param_name.str());
-                _dcls[PARAM.get()] = param_decl;
+                actor.fparams[PARAM.get()] = param_decl;
             }
-            _funcs[FUNC] = fid;
+            actor.fnums[FUNC] = fid;
             ++fid;
         }
+
+        actors.push_back(move(actor));
     }
+
+    return actors;
 }
 
 // -------------------------------------------------------------------------- //

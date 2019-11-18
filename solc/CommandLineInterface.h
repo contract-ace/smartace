@@ -79,6 +79,7 @@ private:
 	);
 	void handleCModelBody(
 		std::vector<SourceUnit const*> const& _asts,
+		std::list<ContractDefinition const*> const& _model,
 		modelcheck::TypeConverter const& _con,
 		modelcheck::CallState const& _cs,
 		std::ostream & _os

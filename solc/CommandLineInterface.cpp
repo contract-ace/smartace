@@ -122,6 +122,7 @@ static string const g_strBinary = "bin";
 static string const g_strBinaryRuntime = "bin-runtime";
 static string const g_strCModel = "c-model";
 static string const g_strModelMapLen = "map-k";
+static string const g_strModelActor = "contract-list";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -176,6 +177,7 @@ static string const g_argBinary = g_strBinary;
 static string const g_argBinaryRuntime = g_strBinaryRuntime;
 static string const g_argCModel = g_strCModel;
 static string const g_argModelMapLen = g_strModelMapLen;
+static string const g_argModelActor = g_strModelActor;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -773,6 +775,11 @@ Allowed options)",
 			g_argModelMapLen.c_str(),
 			po::value<size_t>()->value_name("k")->default_value(1),
 			"When modeling maps for the intent of model-checking, k entries will be represented."
+		)
+		(
+			g_argModelActor.c_str(),
+			po::value<vector<string>>()->multitoken(),
+			"A list of contracts to instantiate in the model."
 		);
 	po::options_description outputComponents("Output Components");
 	outputComponents.add_options()
@@ -1273,6 +1280,19 @@ void CommandLineInterface::handleCModel()
 		return;
 	}
 
+	// Constructs a list of requested contracts.
+	size_t actor_count = 0;
+	list<ContractDefinition const*> major_actors;
+	if (!m_args[g_argModelActor].empty())
+	{
+		for (auto actor_name : m_args[g_argModelActor].as<vector<string>>())
+		{
+			auto const* actor = newcall_graph.reverse_name(actor_name);
+			major_actors.push_back(actor);
+			actor_count += newcall_graph.cost_of(actor);
+		}
+	}
+
 	// TODO(scottwe): This was quick to set up, but it leads to the same AST
 	//                evaluations being repeated...
 	if (m_args.count(g_argOutputDir))
@@ -1284,7 +1304,7 @@ void CommandLineInterface::handleCModel()
 		
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
 		handleCModelHeaders(asts, converter, callstate, cmodel_h_data);
-		handleCModelBody(asts, converter, callstate, cmodel_cpp_data);
+		handleCModelBody(asts, major_actors, converter, callstate, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1298,7 +1318,7 @@ void CommandLineInterface::handleCModel()
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(asts, converter, callstate, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(asts, converter, callstate, sout());
+		handleCModelBody(asts, major_actors, converter, callstate, sout());
 		sout() << endl;
 	}
 }
@@ -1342,6 +1362,7 @@ void CommandLineInterface::handleCModelHeaders(
 
 void CommandLineInterface::handleCModelBody(
 	vector<SourceUnit const*> const& _asts,
+	std::list<ContractDefinition const*> const& _model,
 	modelcheck::TypeConverter const& _con,
 	modelcheck::CallState const& _cs,
 	ostream& _os
@@ -1373,7 +1394,7 @@ void CommandLineInterface::handleCModelBody(
 		cov.print(_os);
 	}
 
-	modelcheck::MainFunctionGenerator main_gen(_con);
+	modelcheck::MainFunctionGenerator main_gen(_model, _con);
 	for (auto const* ast : _asts)
 	{
 		main_gen.record(*ast);

@@ -11,6 +11,7 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <list>
 #include <ostream>
+#include <utility>
 
 namespace dev
 {
@@ -27,7 +28,10 @@ class MainFunctionGenerator: public ASTConstVisitor
 {
 public:
     // Constructs a printer for all function forward decl's required by the ast.
-    MainFunctionGenerator(TypeConverter const& _converter);
+    MainFunctionGenerator(
+        std::list<ContractDefinition const *> const& _model,
+        TypeConverter const& _converter
+    );
 
     // Integrates a source unit with the main function.
     void record(SourceUnit const& _ast);
@@ -36,8 +40,24 @@ public:
     void print(std::ostream& _stream);
 
 private:
+    // Encodes the structures needed to represent a contract instance as a unique
+    // actor in the model.
+    struct Actor
+    {
+        ContractDefinition const* contract;
+        std::shared_ptr<CVarDecl> decl;
+        std::map<FunctionDefinition const*, size_t> fnums;
+        std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> fparams;
+    };
+
+    // The list of contracts requested for the model. If empty, then it one of
+    // each contract is instantiated.
+    std::list<ContractDefinition const*> const& m_model;
+
+    // Primed typpe converter.
 	TypeConverter const& m_converter;
 
+    // A list of all contracts observed by this translator.
     std::list<ContractDefinition const*> m_contracts;
 
     CStmtPtr make_require(CExprPtr _cond);
@@ -47,11 +67,8 @@ private:
     // contract, another declaration will be generated, and added to _defs. A
     // unique identifier will be given to each function for use within the
     // switch block. This is recorded within _funcs.
-    void analyze_decls(
-        std::vector<ContractDefinition const*> const& _contracts, 
-        std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> & _dcls,
-        std::map<ContractDefinition const*, std::shared_ptr<CVarDecl>> & _defs,
-        std::map<FunctionDefinition const*, uint64_t> & _funcs
+    std::list<Actor> analyze_decls(
+        std::vector<ContractDefinition const*> const& _contracts
     );
 
     // Consumes a contract declaration, and initializes it through
