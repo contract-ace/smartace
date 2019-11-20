@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/translation/MainFunction.h>
 
+#include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
@@ -25,8 +26,9 @@ namespace modelcheck
 
 MainFunctionGenerator::MainFunctionGenerator(
     list<ContractDefinition const *> const& _model,
+    NewCallGraph const& _new_graph,
     TypeConverter const& _converter
-): m_model(_model), m_converter(_converter)
+): m_model(_model), m_new_graph(_new_graph), m_converter(_converter)
 {
 }
 
@@ -91,6 +93,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     fixpoint.push_back(call_cases);
 
     // Contract setup and tear-down.
+    list<CExprPtr> addresses;
     CBlockList main;
     main.push_back(CURSTATE);
     update_call_state(main, CURSTATE);
@@ -102,7 +105,16 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         auto const& ADDR = DECL->access(ContractUtilities::address_member());
         string const ADDRMSG = "Init address of " + actor.contract->name();
         main.push_back(DECL);
-        main.push_back(init_contract(*actor.contract, DECL, CURSTATE));
+        if (actor.path)
+        {
+            main.push_back(
+                DECL->assign(make_shared<CReference>(actor.path))->stmt()
+            );
+        }
+        else
+        {
+            main.push_back(init_contract(*actor.contract, DECL, CURSTATE));
+        }
         main.push_back(ADDR->assign(
             TypeConverter::nd_val_by_simple_type(
                 *ContractUtilities::address_type(), ADDRMSG
@@ -111,6 +123,15 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         main.push_back(make_require(make_shared<CBinaryOp>(
             make_shared<CMemberAccess>(ADDR, "v"), "!=", Literals::ZERO
         )));
+        for (auto other_addr : addresses)
+        {
+            main.push_back(make_require(make_shared<CBinaryOp>(
+                make_shared<CMemberAccess>(ADDR, "v"),
+                "!=", 
+                make_shared<CMemberAccess>(other_addr, "v")
+            )));
+        }
+        addresses.push_back(ADDR);
     }
     main.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(move(fixpoint)),
@@ -134,46 +155,85 @@ CStmtPtr MainFunctionGenerator::make_require(CExprPtr _cond)
 
 // -------------------------------------------------------------------------- //
 
-list<MainFunctionGenerator::Actor> MainFunctionGenerator::analyze_decls(
-    vector<ContractDefinition const*> const& _contracts
-)
+MainFunctionGenerator::Actor::Actor(
+    TypeConverter const& _converter,
+    ContractDefinition const* _contract,
+    CExprPtr _path,
+    TicketSystem<uint16_t> & _cids,
+    TicketSystem<uint16_t> & _fids
+): contract(_contract), path(_path)
 {
-    uint32_t fid = 0;
-    list<Actor> actors;
-    for (size_t i = 0; i < _contracts.size(); ++i)
+    uint16_t cid = _cids.next();
+
+    decl = make_shared<CVarDecl>(
+        _converter.get_type(*_contract),
+        "contract_" + to_string(cid),
+        _path != nullptr
+    );
+
+    for (size_t fidx = 0; fidx < contract->definedFunctions().size(); ++fidx)
     {
-        Actor actor;
-        actor.contract = _contracts[i];
+        auto const* FUNC = contract->definedFunctions()[fidx];
+        if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
 
-        string const TYPE = m_converter.get_type(*actor.contract);
-        string const NAME = "contract_" + to_string(i);
-        actor.decl = make_shared<CVarDecl>(TYPE, NAME);
-
-        for (size_t j = 0; j < actor.contract->definedFunctions().size(); ++j)
+        for (size_t pidx = 0; pidx < FUNC->parameters().size(); ++pidx)
         {
-            auto const* FUNC = actor.contract->definedFunctions()[j];
-            if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
-            for (size_t k = 0; k < FUNC->parameters().size(); ++k)
-            {
-                ASTPointer<const VariableDeclaration> PARAM
-                    = FUNC->parameters()[k];
+            auto PARAM = FUNC->parameters()[pidx];
 
-                string const TYPE = m_converter.get_type(*PARAM);
-                ostringstream param_name;
-                param_name << "c" << i << "_f" << j << "_a" << k;
-                if (!PARAM->name().empty()) param_name << "_" << PARAM->name();
+            ostringstream pname;
+            pname << "c" << cid << "_f" << fidx << "_a" << pidx;
+            if (!PARAM->name().empty()) pname << "_" << PARAM->name();
 
-                auto param_decl = make_shared<CVarDecl>(TYPE, param_name.str());
-                actor.fparams[PARAM.get()] = param_decl;
-            }
-            actor.fnums[FUNC] = fid;
-            ++fid;
+            fparams[PARAM.get()] = make_shared<CVarDecl>(
+                _converter.get_type(*PARAM), pname.str()
+            );
         }
 
-        actors.push_back(move(actor));
+        fnums[FUNC] = _fids.next();
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+list<MainFunctionGenerator::Actor> MainFunctionGenerator::analyze_decls(
+    vector<ContractDefinition const*> const& _contracts
+) const
+{
+    list<Actor> actors;
+    TicketSystem<uint16_t> cids;
+    TicketSystem<uint16_t> fids;
+
+    for (auto contract : _contracts)
+    {
+        actors.emplace_back(m_converter, contract, nullptr, cids, fids);
+
+        auto const& DECL = actors.back().decl;
+        analyze_nested_decls(actors, DECL->id(), contract, cids, fids);
     }
 
     return actors;
+}
+
+void MainFunctionGenerator::analyze_nested_decls(
+    list<Actor> & _actors,
+    CExprPtr _path,
+    ContractDefinition const* _parent,
+    TicketSystem<uint16_t> & _cids,
+    TicketSystem<uint16_t> & _fids
+) const
+{
+    auto const& children = m_new_graph.children_of(_parent);
+
+    for (auto child : children)
+    {
+        auto const NAME = VariableScopeResolver::rewrite(
+            child.dest->name(), false, VarContext::STRUCT
+        );
+        auto const PATH = make_shared<CMemberAccess>(_path, NAME);
+
+        _actors.emplace_back(m_converter, child.type, PATH, _cids, _fids);
+        analyze_nested_decls(_actors, PATH, child.type, _cids, _fids);
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -212,8 +272,14 @@ CBlockList MainFunctionGenerator::build_case(
 {
     auto const& root = FunctionUtilities::extract_root(_def);
 
+    CExprPtr id = _id->id();
+    if (!id->is_pointer())
+    {
+        id = make_shared<CReference>(id);
+    }
+
     CFuncCallBuilder call_builder(m_converter.get_name(root));
-    call_builder.push(make_shared<CReference>(_id->id()));
+    call_builder.push(id);
     call_builder.push(make_shared<CReference>(_state->id()));
 
     CBlockList call_body;

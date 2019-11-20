@@ -62,6 +62,12 @@ BOOST_AUTO_TEST_CASE(valid_alloc_tests)
                 z3 = new Z();
             }
         }
+        contract Test3 {
+            X x;
+            constructor() public {
+                x = new X();
+            }
+        }
     )";
 
     const auto& unit = *parseAndAnalyse(text);
@@ -72,6 +78,7 @@ BOOST_AUTO_TEST_CASE(valid_alloc_tests)
 
     auto const& test1 = *retrieveContractByName(unit, "Test1");
     auto const& test2 = *retrieveContractByName(unit, "Test2");
+    auto const& test3 = *retrieveContractByName(unit, "Test3");
 
     NewCallSummary app1(test1);
     auto const& actviolations1 = app1.violations();
@@ -84,11 +91,14 @@ BOOST_AUTO_TEST_CASE(valid_alloc_tests)
     auto const& actviolations2 = app2.violations();
     auto const& actchild2 = app2.children();
 
-    NewCallSummary::ChildType c1, c2, c3;
-    c1.count = 1; c1.type = child_x;
-    c2.count = 2; c2.type = child_y;
-    c3.count = 3; c3.type = child_z;
-    list<NewCallSummary::ChildType> expchild2({ c1, c2, c3 });
+    NewCallSummary::NewCall c1, c2, c3, c4, c5, c6;
+    c1.type = child_x;
+    c2.type = child_y;
+    c3.type = child_y;
+    c4.type = child_z;
+    c5.type = child_z;
+    c6.type = child_z;
+    NewCallSummary::CallGroup expchild2({ c1, c2, c3, c4, c5, c6 });
 
     BOOST_CHECK(actviolations2.empty());
 
@@ -98,11 +108,16 @@ BOOST_AUTO_TEST_CASE(valid_alloc_tests)
         bool match = false;
         for (auto e_itr = expchild2.begin(); e_itr != expchild2.end(); ++e_itr)
         {
-            bool type_match = (e_itr->type == a_itr->type);
-            bool count_match = (e_itr->count == a_itr->count);
-            match |= (type_match && count_match);
+            match |= (e_itr->type == a_itr->type);
         }
         BOOST_CHECK(match);
+    }
+
+    NewCallSummary app3(test3);
+    BOOST_CHECK_EQUAL(app3.children().size(), 1);
+    if (app3.children().size() == 1)
+    {
+        BOOST_CHECK_EQUAL(app3.children().front().dest, test3.stateVariables()[0]);
     }
 }
 
@@ -118,6 +133,9 @@ BOOST_AUTO_TEST_CASE(invalid_alloc_tests)
             Y y;
             Z z;
             Q q;
+            constructor() public {
+                Q myQ = new Q();
+            }
             function f() public {
                 x = new X();
             }
@@ -135,17 +153,19 @@ BOOST_AUTO_TEST_CASE(invalid_alloc_tests)
     auto const* child_x = retrieveContractByName(unit, "X");
     auto const* child_y = retrieveContractByName(unit, "Y");
     auto const* child_z = retrieveContractByName(unit, "Z");
+    auto const* child_q = retrieveContractByName(unit, "Q");
 
     auto const& test = *retrieveContractByName(unit, "Test");
 
     NewCallSummary app(test);
     BOOST_CHECK(app.children().empty());
 
-    NewCallSummary::NewCall v1, v2, v3;
-    v1.type = child_x; v1.context = test.definedFunctions()[0];
-    v2.type = child_y; v2.context = test.definedFunctions()[1];
-    v3.type = child_z; v3.context = test.definedFunctions()[2];
-    list<NewCallSummary::NewCall> expect({v1, v2, v3});
+    NewCallSummary::NewCall v1, v2, v3, v4;
+    v1.type = child_q; v1.context = test.definedFunctions()[0];
+    v2.type = child_x; v2.context = test.definedFunctions()[1];
+    v3.type = child_y; v3.context = test.definedFunctions()[2];
+    v4.type = child_z; v4.context = test.definedFunctions()[3];
+    list<NewCallSummary::NewCall> expect({ v1, v2, v3, v4 });
 
     auto const& actual = app.violations();
 
@@ -168,28 +188,37 @@ BOOST_AUTO_TEST_CASE(cost_analysis_test)
     char const* text = R"(
         contract X {}
         contract Y {
+            X x1;
+            X x2;
             constructor() public {
-                new X();
-                new X();
+                x1 = new X();
+                x2 = new X();
             }
         }
         contract Z {
+            X x1;
+            Y y1;
+            Y y2;
             constructor() public {
-                new X();
-                new Y();
-                new Y();
+                x1 = new X();
+                y1 = new Y();
+                y2 = new Y();
             }
         }
         contract Q {
+            X x1;
+            Y y1;
             constructor() public {
-                new X();
-                new Y();
+                x1 = new X();
+                y1 = new Y();
             }
         }
         contract R {
+            Q q1;
+            Z z1;
             constructor() public {
-                new Q();
-                new Z();
+                q1 = new Q();
+                z1 = new Z();
             }
         }
     )";
@@ -218,13 +247,15 @@ BOOST_AUTO_TEST_CASE(aggregate_exploit_test)
     char const* text = R"(
         contract X {}
         contract Y {
+            X x;
             function f() public {
-                new X();
+                x = new X();
             }
         }
         contract Z {
+            X x;
             function g() public {
-                new X();
+                x = new X();
             }
         }
     )";
@@ -265,16 +296,21 @@ BOOST_AUTO_TEST_CASE(family_analysis_test)
     char const* text = R"(
         contract X {}
         contract Y {
+            X x1;
+            X x2;
             constructor() public {
-                new X();
-                new X();
+                x1 = new X();
+                x2 = new X();
             }
         }
         contract Z {
+            X x1;
+            X x2;
+            Y y1;
             constructor() public {
-                new X();
-                new Y();
-                new Y();
+                x1 = new X();
+                x2 = new X();
+                y1 = new Y();
             }
         }
     )";
@@ -289,24 +325,9 @@ BOOST_AUTO_TEST_CASE(family_analysis_test)
     graph.record(unit);
     graph.finalize();
 
-    list<ContractDefinition const*> x_family{ x };
-    list<ContractDefinition const*> y_family{ y, x, x };
-    list<ContractDefinition const*> z_family{ z, y, x, x, y, x, x, x };
-
-    auto x_actual = graph.family(x);
-    BOOST_CHECK_EQUAL_COLLECTIONS(
-        x_family.begin(), x_family.end(), x_actual.begin(), x_actual.end()
-    );
-
-    auto y_actual = graph.family(y);
-    BOOST_CHECK_EQUAL_COLLECTIONS(
-        y_family.begin(), y_family.end(), y_actual.begin(), y_actual.end()
-    );
-
-    auto z_actual = graph.family(z);
-    BOOST_CHECK_EQUAL_COLLECTIONS(
-        z_family.begin(), z_family.end(), z_actual.begin(), z_actual.end()
-    );
+    BOOST_CHECK(graph.children_of(x).empty());
+    BOOST_CHECK_EQUAL(graph.children_of(y).size(), 2);
+    BOOST_CHECK_EQUAL(graph.children_of(z).size(), 3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

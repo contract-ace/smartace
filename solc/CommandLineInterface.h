@@ -23,6 +23,7 @@
 
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 
@@ -80,6 +81,7 @@ private:
 	void handleCModelBody(
 		std::vector<SourceUnit const*> const& _asts,
 		std::list<ContractDefinition const*> const& _model,
+		modelcheck::NewCallGraph const& _graph,
 		modelcheck::TypeConverter const& _con,
 		modelcheck::CallState const& _cs,
 		std::ostream & _os

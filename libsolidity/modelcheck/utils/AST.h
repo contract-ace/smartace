@@ -108,6 +108,12 @@ protected:
 		return false;
 	}
 
+	bool visit(Assignment const&_node) override
+	{
+		_node.leftHandSide().accept(*this);
+		return false;
+	}
+
 	bool visit(FunctionCall const&) override { return false; }
 	bool visit(MemberAccess const&) override { return false; }
 	bool visit(IndexAccess const&) override { return false; }

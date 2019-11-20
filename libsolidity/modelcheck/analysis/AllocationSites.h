@@ -25,13 +25,11 @@ namespace modelcheck
 class NewCallSummary
 {
 public:
-    // Aggregates all `new` calls to a single type.
-    struct ChildType
-    {
-        ContractDefinition const* type;
-        size_t count;
-    };
-    using Children = std::list<ChildType>;
+    // Types of violations.
+    // - None:     the allocation is "safe"
+    // - Oprhaned: the allocation is not assigned to some state variable
+    // - Unbounded: the new operation may be called more than once
+    enum class ViolationType { None, Orphaned, Unbounded };
 
     // Summarizes a single `new` call.
     struct NewCall
@@ -39,6 +37,8 @@ public:
         ContractDefinition const* type;
         FunctionDefinition const* context;
         FunctionCall const* callsite;
+        VariableDeclaration const* dest;
+        ViolationType status;
     };
     using CallGroup = std::list<NewCall>;
 
@@ -47,7 +47,7 @@ public:
     NewCallSummary(ContractDefinition const& _src);
 
     // Returns a summary of all children spawned by this contract.
-    Children const& children() const;
+    CallGroup const& children() const;
 
     // Returns a list of new calls which violate our model. In theory this will
     // be any new call for which an exact bound is not inferred on the number of
@@ -58,7 +58,7 @@ public:
     CallGroup const& violations() const;
 
 private:
-    Children m_children;
+    CallGroup m_children;
     CallGroup m_violations;
 
     // Utility to traverse a function's AST, in order to exact each call to new.
@@ -71,9 +71,11 @@ private:
 
     protected:
         bool visit(FunctionCall const& _node) override;
+        bool visit(Assignment const& _node) override;
 
     private:
         FunctionDefinition const* m_context;
+        VariableDeclaration const* m_dest = nullptr;
     };
 };
 
@@ -106,19 +108,18 @@ public:
     // contract.
     size_t cost_of(Label _vertex) const;
 
-    // Assuming finalize() has been called, returns the subgraph extended from a
-    // given vertex.
-    std::list<Label> const& family(Label _root) const;
+    // Returns all direct children of a contract.
+    NewCallSummary::CallGroup const& children_of(Label _vertex) const;
 
     // Returns all violations found within the graph.
-    NewCallSummary::CallGroup violations() const;
+    NewCallSummary::CallGroup const& violations() const;
 
     // Performs a reverse lookup from contract name to contract address.
     Label reverse_name(std::string _name) const;
 
 private:
-    using Graph = std::map<Label, NewCallSummary::Children>;
-    using Reach = std::map<Label, std::list<Label>>;
+    using Graph = std::map<Label, NewCallSummary::CallGroup>;
+    using Reach = std::map<Label, size_t>;
     using Alias = std::map<std::string, Label>;
 
     bool m_finalized = false;
@@ -126,7 +127,7 @@ private:
     void analyze(Graph::iterator _neighbourhood);
 
     Graph m_vertices;
-    Reach m_family;
+    Reach m_reach;
     Alias m_names;
     NewCallSummary::CallGroup m_violations;
 };

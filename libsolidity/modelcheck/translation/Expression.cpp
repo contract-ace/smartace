@@ -768,10 +768,10 @@ void ExpressionConverter::print_address_member(
 {
 	if (_member == "balance")
 	{
-		auto const* _base = NodeSniffer<Identifier>(_node, true).find();
-		if (_base && _base->name() == "this")
+		auto const* id = NodeSniffer<Identifier>(_node, true).find();
+		if (id && id->annotation().type->category() == Type::Category::Contract)
 		{
-			_base->accept(*this);
+			id->accept(*this);
 			string const FIELD = ContractUtilities::balance_member();
 			m_subexpr = make_shared<CMemberAccess>(m_subexpr, FIELD);
 		}

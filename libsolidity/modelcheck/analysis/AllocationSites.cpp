@@ -5,6 +5,8 @@
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 
+#include <libsolidity/modelcheck/utils/AST.h>
+#include <libsolidity/modelcheck/utils/General.h>
 #include <stdexcept>
 
 using namespace std;
@@ -20,33 +22,33 @@ namespace modelcheck
 
 NewCallSummary::NewCallSummary(ContractDefinition const& _src)
 {
-    map<ContractDefinition const*, size_t> allocs;
     for (auto func : _src.definedFunctions())
     {
         Visitor visitor(func);
 
-        for (auto call : visitor.calls)
+        if (func->isConstructor())
         {
-            if (func->isConstructor())
+            for (auto const& call : visitor.calls)
             {
-                allocs[call.type] += 1;
-            }
-            else
-            {
-                m_violations.emplace_back(call);
+                if (call.dest && call.dest->isStateVariable())
+                {
+                    m_children.push_back(call);
+                }
+                else
+                {
+                    m_violations.push_back(call);
+                }
             }
         }
-    }
-
-    for (auto alloc : allocs)
-    {
-        m_children.emplace_back();
-        m_children.back().type = alloc.first;
-        m_children.back().count = alloc.second;
+        else
+        {
+            m_violations.splice(m_violations.end(), visitor.calls);
+        }
+        
     }
 }
 
-NewCallSummary::Children const& NewCallSummary::children() const
+NewCallSummary::CallGroup const& NewCallSummary::children() const
 {
     return m_children;
 }
@@ -72,6 +74,7 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
     {
         calls.emplace_back();
         calls.back().callsite = &_node;
+        calls.back().dest = m_dest;
         calls.back().context = m_context;
         calls.back().type = (&NEWTYPE->contractDefinition());
     }
@@ -80,6 +83,24 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
     {
         arg->accept(*this);
     }
+
+    return false;
+}
+
+bool NewCallSummary::Visitor::visit(Assignment const& _node)
+{
+    VariableDeclaration const* dest = nullptr;
+
+    auto const* id = LValueSniffer<Identifier>(_node).find();
+    if (id)
+    {
+        dest = dynamic_cast<VariableDeclaration const*>(
+            id->annotation().referencedDeclaration
+        );
+    }
+
+    ScopedSwap<VariableDeclaration const*> scope(m_dest, dest);
+    _node.rightHandSide().accept(*this);
 
     return false;
 }
@@ -122,20 +143,32 @@ void NewCallGraph::finalize()
 
 size_t NewCallGraph::cost_of(Label _vertex) const
 {
-    return family(_vertex).size();
-}
-
-list<NewCallGraph::Label> const& NewCallGraph::family(Label _root) const
-{
-    auto res = m_family.find(_root);
-    if (res == m_family.end())
+    if (!m_finalized)
     {
-        throw runtime_error("Data requested on vertex not in NewCallGraph");
+        throw runtime_error("NewCallGraph mutated after finalization.");
     }
-    return res->second;
+
+    auto itr = m_reach.find(_vertex);
+    if (itr != m_reach.end()) return itr->second;
+    return 0;
 }
 
-NewCallSummary::CallGroup NewCallGraph::violations() const
+NewCallSummary::CallGroup const& NewCallGraph::children_of(Label _vertex) const
+{
+    if (!m_finalized)
+    {
+        throw runtime_error("NewCallGraph mutated after finalization.");
+    }
+
+    auto itr = m_vertices.find(_vertex);
+    if (itr == m_vertices.end())
+    {
+        throw runtime_error("Unable to find vertex.");
+    }
+    return itr->second;
+}
+
+NewCallSummary::CallGroup const& NewCallGraph::violations() const
 {
     return m_violations;
 }
@@ -150,21 +183,16 @@ NewCallGraph::Label NewCallGraph::reverse_name(string _name) const
 void NewCallGraph::analyze(NewCallGraph::Graph::iterator _neighbourhood)
 {
     NewCallGraph::Label root = _neighbourhood->first;
-    if (m_family.find(root) != m_family.end()) return;
+    if (m_reach.find(root) != m_reach.end()) return;
 
-    list<NewCallGraph::Label> family{root};
+    size_t cost = 1;
     for (auto neighbour : _neighbourhood->second)
     {
         analyze(m_vertices.find(neighbour.type));
-
-        auto const& subtree = m_family[neighbour.type];
-        for (unsigned int i = 0; i < neighbour.count; ++i)
-        {
-            family.insert(family.end(), subtree.begin(), subtree.end());
-        }
+        cost += m_reach[neighbour.type];
     }
 
-    m_family[root] = move(family);
+    m_reach[root] = cost;
 }
 
 // -------------------------------------------------------------------------- //

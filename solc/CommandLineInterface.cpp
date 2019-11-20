@@ -1304,7 +1304,7 @@ void CommandLineInterface::handleCModel()
 		
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
 		handleCModelHeaders(asts, converter, callstate, cmodel_h_data);
-		handleCModelBody(asts, major_actors, converter, callstate, cmodel_cpp_data);
+		handleCModelBody(asts, major_actors, newcall_graph, converter, callstate, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1318,7 +1318,7 @@ void CommandLineInterface::handleCModel()
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(asts, converter, callstate, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(asts, major_actors, converter, callstate, sout());
+		handleCModelBody(asts, major_actors, newcall_graph, converter, callstate, sout());
 		sout() << endl;
 	}
 }
@@ -1363,6 +1363,7 @@ void CommandLineInterface::handleCModelHeaders(
 void CommandLineInterface::handleCModelBody(
 	vector<SourceUnit const*> const& _asts,
 	std::list<ContractDefinition const*> const& _model,
+	modelcheck::NewCallGraph const& _graph,
 	modelcheck::TypeConverter const& _con,
 	modelcheck::CallState const& _cs,
 	ostream& _os
@@ -1394,7 +1395,7 @@ void CommandLineInterface::handleCModelBody(
 		cov.print(_os);
 	}
 
-	modelcheck::MainFunctionGenerator main_gen(_model, _con);
+	modelcheck::MainFunctionGenerator main_gen(_model, _graph, _con);
 	for (auto const* ast : _asts)
 	{
 		main_gen.record(*ast);

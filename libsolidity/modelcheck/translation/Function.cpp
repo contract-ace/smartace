@@ -89,11 +89,13 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         }
         for (auto decl : _node.stateVariables())
         {
+            auto const DECLKIND = decl->annotation().type->category();
+            if (DECLKIND == Type::Category::Contract) break;
+
             auto const NAME = VariableScopeResolver::rewrite(
                 decl->name(), false, VarContext::STRUCT
             );
 
-            auto member = TMP->access(NAME);
             CExprPtr init;
             if (decl->value())
             {
@@ -105,6 +107,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
                 init = M_CONVERTER.get_init_val(*decl);
             }
 
+            auto member = TMP->access(NAME);
             stmts.push_back(member->assign(move(init))->stmt());
         }
         if (auto ctor = _node.constructor())

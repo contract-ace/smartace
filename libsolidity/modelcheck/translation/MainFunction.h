@@ -8,7 +8,9 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/utils/General.h>
 #include <list>
 #include <ostream>
 #include <utility>
@@ -30,6 +32,7 @@ public:
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
         std::list<ContractDefinition const *> const& _model,
+        NewCallGraph const& _new_graph,
         TypeConverter const& _converter
     );
 
@@ -44,15 +47,26 @@ private:
     // actor in the model.
     struct Actor
     {
+        Actor(
+            TypeConverter const& _converter,
+            ContractDefinition const* _contract,
+            CExprPtr _path,
+            TicketSystem<uint16_t> & _cids,
+            TicketSystem<uint16_t> & _fids
+        );
+
         ContractDefinition const* contract;
         std::shared_ptr<CVarDecl> decl;
         std::map<FunctionDefinition const*, size_t> fnums;
         std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> fparams;
+        CExprPtr path;
     };
 
     // The list of contracts requested for the model. If empty, then it one of
     // each contract is instantiated.
     std::list<ContractDefinition const*> const& m_model;
+
+    NewCallGraph const& m_new_graph;
 
     // Primed typpe converter.
 	TypeConverter const& m_converter;
@@ -69,7 +83,18 @@ private:
     // switch block. This is recorded within _funcs.
     std::list<Actor> analyze_decls(
         std::vector<ContractDefinition const*> const& _contracts
-    );
+    ) const;
+
+    // Extends analyze_decls to children. _actors will be mutated in-place.
+    // _path will accumulate the path to the current parent, starting from a top
+    // level contract.
+    void analyze_nested_decls(
+        std::list<Actor> & _actors,
+        CExprPtr _path,
+        ContractDefinition const* _parent,
+        TicketSystem<uint16_t> & _cids,
+        TicketSystem<uint16_t> & _fids
+    ) const;
 
     // Consumes a contract declaration, and initializes it through
     // non-deterministic construction.
