@@ -54,7 +54,7 @@ string _convert_assignment(Token tok)
     Assignment assgn(SourceLocation(), id, tok, op);
 
     ostringstream oss;
-    oss << *ExpressionConverter(assgn, {}, _prime_resolver(id_name)).convert();
+    oss << *ExpressionConverter(assgn, {}, {}, _prime_resolver(id_name)).convert();
     return oss.str();
 }
 
@@ -72,7 +72,7 @@ string _convert_binop(Token tok)
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
 
     ostringstream oss;
-    oss << *ExpressionConverter(op, {}, _prime_resolver(name_a)).convert();
+    oss << *ExpressionConverter(op, {}, {}, _prime_resolver(name_a)).convert();
     return oss.str();
 }
 
@@ -82,7 +82,7 @@ string _convert_unaryop(Token tok, shared_ptr<Expression> expr, bool prefix)
 
     ostringstream oss;
     auto resolver = _prime_resolver(make_shared<string>("a"));
-    oss << *ExpressionConverter(op, {}, resolver).convert();
+    oss << *ExpressionConverter(op, {}, {}, resolver).convert();
     return oss.str();
 }
 
@@ -91,7 +91,7 @@ string _convert_literal(Token tok, string src, SubD subdom = SubD::None)
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
 
     ostringstream oss;
-    oss << *ExpressionConverter(lit, {}, {}).convert();
+    oss << *ExpressionConverter(lit, {}, {}, {}).convert();
     return oss.str();
 }
 
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
     Conditional cond(SourceLocation(), var_a, var_b, var_c);
 
     ostringstream oss;
-    oss << *ExpressionConverter(cond, {}, _prime_resolver(name_a)).convert();
+    oss << *ExpressionConverter(cond, {}, {}, _prime_resolver(name_a)).convert();
     BOOST_CHECK_EQUAL(
         oss.str(), "((func_user_a).v)?((self->user_b).v):((self->user_c).v)"
     );
@@ -183,7 +183,7 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
     // TODO(scottwe): n element array, large n
 
     ostringstream oss;
-    oss << *ExpressionConverter(one_tuple, {}, {}).convert();
+    oss << *ExpressionConverter(one_tuple, {}, {}, {}).convert();
     BOOST_CHECK_EQUAL(oss.str(), "(self->user_a).v");
 }
 
@@ -276,22 +276,18 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
     auto name_a = make_shared<string>("a");
     Identifier id_a(SourceLocation(), name_a);
     Identifier id_b(SourceLocation(), make_shared<string>("b"));
-    Identifier msg(SourceLocation(), make_shared<string>("msg"));
 
     id_a.annotation().type = new IntegerType(32);
     id_b.annotation().type = new IntegerType(32);
-    msg.annotation().type = new MagicType(MagicType::Kind::Message);
 
     auto resolver = _prime_resolver(name_a);
 
     ostringstream a_oss, b_oss, msg_oss;
-    a_oss << *ExpressionConverter(id_a, {}, resolver).convert();
-    b_oss << *ExpressionConverter(id_b, {}, resolver).convert();
-    msg_oss << *ExpressionConverter(msg, {}, resolver).convert();
+    a_oss << *ExpressionConverter(id_a, {}, {}, resolver).convert();
+    b_oss << *ExpressionConverter(id_b, {}, {}, resolver).convert();
 
     BOOST_CHECK_EQUAL(a_oss.str(), "(func_user_a).v");
     BOOST_CHECK_EQUAL(b_oss.str(), "(self->user_b).v");
-    BOOST_CHECK_EQUAL(msg_oss.str(), "state");
 }
 
 // Ensures all literal types are converted in the expected way, and that all

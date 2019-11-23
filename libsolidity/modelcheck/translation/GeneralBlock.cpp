@@ -28,10 +28,12 @@ namespace modelcheck
 GeneralBlockConverter::GeneralBlockConverter(
 	std::vector<ASTPointer<VariableDeclaration>> const& _args,
 	Block const& _body,
+	CallState const& _statedata,
 	TypeConverter const& _types,
 	bool _manage_pay,
 	bool _is_payable
 ): M_BODY(_body)
+ , M_STATEDATA(_statedata)
  , M_TYPES(_types)
  , M_MANAGE_PAY(_manage_pay)
  , M_IS_PAYABLE(_is_payable)
@@ -58,7 +60,9 @@ shared_ptr<CBlock> GeneralBlockConverter::convert()
 
 CExprPtr GeneralBlockConverter::expand(Expression const& _expr, bool _ref)
 {
-	return ExpressionConverter(_expr, M_TYPES, m_decls, _ref).convert();
+	return ExpressionConverter(
+		_expr, M_STATEDATA, M_TYPES, m_decls, _ref
+	).convert();
 }
 
 // -------------------------------------------------------------------------- //
@@ -81,8 +85,11 @@ bool GeneralBlockConverter::visit(Block const& _node)
 	// Performs setup specific to the top-level block.
 	if (top_level_swap.old())
 	{
-		auto const state = make_shared<CIdentifier>("state", true);
-		auto V = state->access("value")->access("v");
+		auto const FIELD = CallStateUtilities::get_name(
+			CallStateUtilities::Field::Value
+		);
+
+		auto const V = make_shared<CIdentifier>(FIELD, false)->access("v");
 		if (M_MANAGE_PAY && M_IS_PAYABLE)
 		{
 			string const BAL_MEMBER = ContractUtilities::balance_member();

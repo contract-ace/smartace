@@ -72,20 +72,27 @@ ModifierBlockConverter::Context::Context(
 // -------------------------------------------------------------------------- //
 
 ModifierBlockConverter::ModifierBlockConverter(
-    FunctionDefinition const& _func, size_t _i, TypeConverter const& _types
-): ModifierBlockConverter(Context(_func, _i), _types)
+    FunctionDefinition const& _func,
+    size_t _i,
+	CallState const& _statedata,
+    TypeConverter const& _types
+): ModifierBlockConverter(Context(_func, _i), _statedata, _types)
 {
 }
 
 ModifierBlockConverter::ModifierBlockConverter(
-    Context const& _ctx, TypeConverter const& _types
+    Context const& _ctx,
+    CallState const& _statedata,
+    TypeConverter const& _types
 ): GeneralBlockConverter(
     _ctx.def->parameters(),
     _ctx.def->body(),
+    _statedata,
     _types,
     _ctx.manage_pay,
     _ctx.is_payable
-), M_TYPES(_types)
+), M_STATEDATA(_statedata)
+ , M_TYPES(_types)
  , M_TRUE_PARAMS(_ctx.func.parameters())
  , M_USER_PARAMS(_ctx.def->parameters())
  , M_USER_ARGS(_ctx.curr->arguments())
@@ -134,7 +141,10 @@ void ModifierBlockConverter::enter(
             auto const TYPE = M_TYPES.get_type(PARAM);
             auto const SYM = _decls.resolve_declaration(PARAM);
 
-            ExpressionConverter arg_converter(ARG, M_TYPES, m_shadow_decls);
+            ExpressionConverter arg_converter(
+                ARG, M_STATEDATA, M_TYPES, m_shadow_decls
+            );
+
             auto expr = arg_converter.convert();
             expr = FunctionUtilities::try_to_wrap(*PARAM.type(), move(expr));
             _stmts.push_back(make_shared<CVarDecl>(TYPE, SYM, false, expr));
@@ -169,7 +179,7 @@ void ModifierBlockConverter::endVisit(PlaceholderStatement const&)
 {
 	CFuncCallBuilder builder(M_NEXT_CALL);
 	builder.push(make_shared<CIdentifier>("self", true));
-	builder.push(make_shared<CIdentifier>("state", true));
+	M_STATEDATA.push_state_to(builder);
 
 	for (auto const& ARG : M_TRUE_PARAMS)
 	{

@@ -7,6 +7,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/utils/Types.h>
@@ -35,6 +36,7 @@ public:
     // Constructs a printer for all function forward decl's required by the ast.
     FunctionConverter(
         ASTNode const& _ast,
+		CallState const& _statedata,
 		TypeConverter const& _converter,
 		size_t _map_k,
 		View _view,
@@ -58,6 +60,7 @@ private:
 	std::ostream* m_ostream = nullptr;
 
 	ASTNode const& M_AST;
+	CallState const& M_STATEDATA;
 	TypeConverter const& M_CONVERTER;
 
 	size_t const M_MAP_K;

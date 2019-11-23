@@ -23,6 +23,15 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+CallState::CallState()
+{
+    add_field(CallStateUtilities::Field::Block);
+    add_field(CallStateUtilities::Field::Sender);
+    add_field(CallStateUtilities::Field::Value);
+}
+
+// -------------------------------------------------------------------------- //
+
 void CallState::record(ASTNode const& _ast)
 {
     _ast.accept(*this);
@@ -40,36 +49,62 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
     );
     auto uint256_type = TypeConverter::get_simple_ctype(IntegerType(256));
 
-    // TODO(scottwe): Required fields should be discovered.
-    if (!_forward_declare)
+    if (_forward_declare)
     {
-        cs_fields = make_shared<CParams>();
-        cs_fields->push_back(make_shared<CVarDecl>(addr_type, "sender"));
-        cs_fields->push_back(make_shared<CVarDecl>(uint256_type, "value"));
-        cs_fields->push_back(make_shared<CVarDecl>(uint256_type, "blocknum"));
-
         pay_body = make_shared<CBlock>(CBlockList{});
     }
 
-    CStructDef cs("CallState", move(cs_fields));
     CFuncDef pay(
         make_shared<CVarDecl>("void", "_pay"), CParams{
-            cs.decl("state", true),
             make_shared<CVarDecl>(addr_type, "dst"),
             make_shared<CVarDecl>(uint256_type, "amt")
         }, move(pay_body)
     );
 
-    _stream << cs << pay;
+    _stream << pay;
 }
 
 // -------------------------------------------------------------------------- //
 
 void CallState::register_primitives(PrimitiveTypeGenerator& _gen) const
 {
-    // TODO(scottwe): See below; this should not be hard-coded...
-    _gen.record_address();
-    _gen.record_uint(256);
+    for (auto field : m_field_order)
+    {
+        _gen.record_type(field.type);
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+list<CallState::FieldData> const& CallState::order() const
+{
+    return m_field_order;
+}
+
+// -------------------------------------------------------------------------- //
+
+void CallState::push_state_to(CFuncCallBuilder & _builder) const
+{
+    for (auto fld : order())
+    {
+        _builder.push(make_shared<CIdentifier>(fld.name, false));
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+void CallState::add_field(CallStateUtilities::Field _field)
+{
+    auto insert_res = m_recorded_fields.insert(_field);
+    if (!insert_res.second) return;
+
+    FieldData f;
+    f.field = _field;
+    f.name = CallStateUtilities::get_name(_field);
+    f.temp = f.name + "_tmp";
+    f.type = CallStateUtilities::get_type(_field);
+    f.tname = TypeConverter::get_simple_ctype(*f.type);
+    m_field_order.push_back(move(f));
 }
 
 // -------------------------------------------------------------------------- //

@@ -1354,7 +1354,7 @@ void CommandLineInterface::handleCModelHeaders(
 	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
-			*ast, _con, map_k, FunctionConverter::View::EXT, true
+			*ast, _cs, _con, map_k, FunctionConverter::View::EXT, true
 		);
 		cov.print(_os);
 	}
@@ -1383,19 +1383,19 @@ void CommandLineInterface::handleCModelBody(
 	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
-			*ast, _con, map_k, FunctionConverter::View::INT, true
+			*ast, _cs, _con, map_k, FunctionConverter::View::INT, true
 		);
 		cov.print(_os);
 	}
 	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
-			*ast, _con, map_k, FunctionConverter::View::FULL, false
+			*ast, _cs, _con, map_k, FunctionConverter::View::FULL, false
 		);
 		cov.print(_os);
 	}
 
-	modelcheck::MainFunctionGenerator main_gen(_model, _graph, _con);
+	modelcheck::MainFunctionGenerator main_gen(_model, _graph, _cs, _con);
 	for (auto const* ast : _asts)
 	{
 		main_gen.record(*ast);

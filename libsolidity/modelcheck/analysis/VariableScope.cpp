@@ -6,6 +6,7 @@
 
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 
+#include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 #include <sstream>
 
@@ -96,13 +97,9 @@ string VariableScopeResolver::resolve_sym(string const& _sym) const
     {
         throw runtime_error("Keyword super not supported.");
     }
-    else if (_sym == "block" || _sym == "msg" || _sym == "tx")
-    {
-        return "state";
-    }
     else if (_sym == "now")
     {
-        return "state->blocknum";
+        return CallStateUtilities::get_name(CallStateUtilities::Field::Block);
     }
     else
     {

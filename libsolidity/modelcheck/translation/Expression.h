@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
@@ -36,6 +37,7 @@ public:
 	// declaration set. Will also propogate and expose relevant expression data.
     ExpressionConverter(
         Expression const& _expr,
+		CallState const& _statedata,
         TypeConverter const& _converter,
         VariableScopeResolver const& _decls,
 		bool _is_ref = false
@@ -58,6 +60,7 @@ protected:
 
 private:
     Expression const* M_EXPR;
+	CallState const& m_statedata;
     TypeConverter const& M_TYPES;
 	VariableScopeResolver const& m_decls;
 
@@ -86,19 +89,10 @@ private:
 	// Helper functions to produce specialized function calls.
 	void print_struct_ctor(FunctionCall const& _call);
 	void print_cast(FunctionCall const& _call);
-	void print_function(Expression const& _call, SolArgList const& _args);
-	void print_method(
-		FunctionType const& _type,
-		Expression const* _ctx,
-		SolArgList const& _args
-	);
-	void print_ext_method(
-		FunctionType const& _type,
-		Expression const& _call,
-		SolArgList const& _args
-	);
-	void print_contract_ctor(Expression const& _call, SolArgList const& _args);
-	void print_payment(Expression const& _call, SolArgList const& _args);
+	void print_function(FunctionCall const& _call);
+	void print_method(FunctionType const& _type, FunctionCall const& _call);
+	void print_contract_ctor(FunctionCall const& _call);
+	void print_payment(FunctionCall const& _call);
 	void print_assertion(std::string _type, SolArgList const& _args);
 
 	// Helpe functions to handle certain member access cases.

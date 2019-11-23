@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
 #include <map>
 #include <string>
@@ -304,6 +305,7 @@ public:
     // of implicitly casting raw types.
     void push(
         Expression const& _expr,
+        CallState const& _state,
         TypeConverter const& _converter,
         VariableScopeResolver const& _decls,
         bool _is_ref,

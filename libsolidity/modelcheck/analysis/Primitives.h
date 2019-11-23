@@ -32,6 +32,9 @@ public:
     // Registers all primitive types from the given file.
     void record(ASTNode const& _root);
 
+    // Records a single type.
+    void record_type(Type const* _type);
+
     // Public interface to directly register types.
     void record_bool();
     void record_address();
@@ -75,9 +78,6 @@ private:
     static void declare_primitive(
         std::ostream& _out, std::string const& _type, std::string const& _data
     );
-
-    // Records the usage of _type in the AST.
-    void process_type(Type const* _type);
 
     bool m_uses_address = false;
     bool m_uses_bool = false;

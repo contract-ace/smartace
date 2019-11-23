@@ -42,10 +42,13 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
@@ -67,10 +70,13 @@ BOOST_AUTO_TEST_CASE(simple_map)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -110,10 +116,13 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -145,17 +154,20 @@ BOOST_AUTO_TEST_CASE(simple_func)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream func_expect;
     func_expect << "struct A Init_A(void);";
     func_expect << "sol_uint256_t Method_A_FuncsimpleFunc"
-                << "(struct A*self,struct CallState*state,"
-                << "sol_uint256_t func_user___in);";
+                << "(struct A*self,sol_uint256_t blocknum,sol_address_t sender,"
+                << "sol_uint256_t value,sol_uint256_t func_user___in);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -180,17 +192,20 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream func_expect;
     func_expect << "struct A Init_A(void);";
     func_expect << "void Method_A_FuncsimpleFunc"
-                << "(struct A*self,struct CallState*state,"
-                << "sol_uint256_t func_user___in);";
+                << "(struct A*self,sol_uint256_t blocknum,sol_address_t sender,"
+                << "sol_uint256_t value,sol_uint256_t func_user___in);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -215,10 +230,13 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -280,10 +298,13 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -338,10 +359,13 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -402,10 +426,13 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, converter, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -415,8 +442,8 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     func_expect << "struct A_StructB Init_A_StructB(sol_uint256_t user_a);";
     func_expect << "struct A_StructB ND_A_StructB(void);";
     func_expect << "struct A_StructB Method_A_FuncadvFunc"
-                << "(struct A*self,struct CallState*state,"
-                << "sol_uint256_t func_user___in);";
+                << "(struct A*self,sol_uint256_t blocknum,sol_address_t sender,"
+                << "sol_uint256_t value,sol_uint256_t func_user___in);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -461,14 +488,17 @@ BOOST_AUTO_TEST_CASE(reproducible)
     TypeConverter converter;
     converter.record(ast);
 
+    CallState statedata;
+    statedata.record(ast);
+
     ostringstream adt_1, adt_2, func_1, func_2;
     ADTConverter(ast, converter, 1, false).print(adt_1);
     ADTConverter(ast, converter, 1, false).print(adt_2);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, false
     ).print(func_1);
     FunctionConverter(
-        ast, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, converter, 1, FunctionConverter::View::FULL, false
     ).print(func_2);
 
     BOOST_CHECK_EQUAL(adt_1.str(), adt_2.str());

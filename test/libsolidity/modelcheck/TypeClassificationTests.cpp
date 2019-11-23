@@ -183,14 +183,6 @@ BOOST_AUTO_TEST_CASE(name_escaping)
     }
 }
 
-BOOST_AUTO_TEST_CASE(handling_magic_types)
-{
-    BOOST_CHECK(parse_magic_type(BLOCK_TYPE, "number") == CallStateField::BLOCKNUM);
-    BOOST_CHECK(parse_magic_type(BLOCK_TYPE, "timestamp") == CallStateField::BLOCKNUM);
-    BOOST_CHECK(parse_magic_type(MESSAGE_TYPE, "sender") == CallStateField::SENDER);
-    BOOST_CHECK(parse_magic_type(MESSAGE_TYPE, "value") == CallStateField::VALUE);
-}
-
 BOOST_AUTO_TEST_SUITE_END();
 
 }

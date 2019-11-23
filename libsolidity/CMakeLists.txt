@@ -110,6 +110,8 @@ set(sources
 	modelcheck/analysis/AllocationSites.h
 	modelcheck/analysis/CallState.cpp
 	modelcheck/analysis/CallState.h
+	modelcheck/analysis/FunctionCall.cpp
+	modelcheck/analysis/FunctionCall.h
 	modelcheck/analysis/Primitives.cpp
 	modelcheck/analysis/Primitives.h
 	modelcheck/analysis/Types.cpp
@@ -137,6 +139,8 @@ set(sources
 	modelcheck/translation/MainFunction.h
 	modelcheck/translation/ModifierBlock.cpp
 	modelcheck/utils/AST.h
+	modelcheck/utils/CallState.cpp
+	modelcheck/utils/CallState.h
 	modelcheck/utils/Contract.cpp
 	modelcheck/utils/Contract.h
 	modelcheck/utils/Function.cpp

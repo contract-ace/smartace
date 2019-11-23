@@ -32,15 +32,17 @@ const shared_ptr<CIdentifier> FunctionConverter::TMP =
 
 FunctionConverter::FunctionConverter(
     ASTNode const& _ast,
+    CallState const& _statedata,
 	TypeConverter const& _converter,
     size_t _map_k,
     View _view,
     bool _fwd_dcl
-): M_AST(_ast),
-   M_CONVERTER(_converter),
-   M_MAP_K(_map_k),
-   M_VIEW(_view),
-   M_FWD_DCL(_fwd_dcl)
+): M_AST(_ast)
+ , M_STATEDATA(_statedata)
+ , M_CONVERTER(_converter)
+ , M_MAP_K(_map_k)
+ , M_VIEW(_view)
+ , M_FWD_DCL(_fwd_dcl)
 {
 }
 
@@ -99,7 +101,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             CExprPtr init;
             if (decl->value())
             {
-                init = ExpressionConverter(*decl->value(), {}, {}).convert();
+                init = ExpressionConverter(*decl->value(), {}, {}, {}).convert();
                 init = FunctionUtilities::try_to_wrap(*decl->type(), move(init));
             }
             else
@@ -116,7 +118,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 
             CFuncCallBuilder builder(M_CONVERTER.get_name(ROOT));
             builder.push(make_shared<CReference>(TMP));
-            builder.push(make_shared<CIdentifier>("state", true));
+            M_STATEDATA.push_state_to(builder);
             for (auto decl : ctor->parameters())
             {
                 auto const NAME = VariableScopeResolver::rewrite(
@@ -258,7 +260,9 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            body = FunctionBlockConverter(_node, M_CONVERTER).convert();
+            body = FunctionBlockConverter(
+                _node, M_STATEDATA, M_CONVERTER
+            ).convert();
         }
 
         string const FUNC_TYPE = M_CONVERTER.get_type(_node);
@@ -275,7 +279,9 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            body = ModifierBlockConverter(_node, IDX, M_CONVERTER).convert();
+            body = ModifierBlockConverter(
+                _node,  IDX, M_STATEDATA, M_CONVERTER
+            ).convert();
         }
 
         ModifierInvocation const& mod = *_node.modifiers()[IDX];
@@ -320,9 +326,11 @@ CParams FunctionConverter::generate_params(
     if (auto contract_scope = dynamic_cast<ContractDefinition const*>(_scope))
     {
         string const SELF_TYPE = M_CONVERTER.get_type(*contract_scope);
-        auto const STATE_TYPE = "struct CallState";
         params.push_back(make_shared<CVarDecl>(SELF_TYPE, "self", true));
-        params.push_back(make_shared<CVarDecl>(STATE_TYPE, "state", true));
+        for (auto const& fld : M_STATEDATA.order())
+        {
+            params.push_back(make_shared<CVarDecl>(fld.tname, fld.name, false));
+        }
     }
     for (auto arg : _args)
     {

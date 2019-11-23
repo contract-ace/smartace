@@ -25,10 +25,13 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 FunctionBlockConverter::FunctionBlockConverter(
-    FunctionDefinition const& _func, TypeConverter const& _types
+    FunctionDefinition const& _func,
+		CallState const& _statedata,
+		TypeConverter const& _types
 ): GeneralBlockConverter(
 	_func.parameters(),
 	_func.body(),
+	_statedata,
 	_types,
 	_func.modifiers().empty(),
 	_func.isPayable()

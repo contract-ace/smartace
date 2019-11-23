@@ -9,6 +9,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <list>
@@ -33,6 +34,7 @@ public:
     MainFunctionGenerator(
         std::list<ContractDefinition const *> const& _model,
         NewCallGraph const& _new_graph,
+        CallState const& _statedata,
         TypeConverter const& _converter
     );
 
@@ -67,8 +69,7 @@ private:
     std::list<ContractDefinition const*> const& m_model;
 
     NewCallGraph const& m_new_graph;
-
-    // Primed typpe converter.
+    CallState const& m_statedata;
 	TypeConverter const& m_converter;
 
     // A list of all contracts observed by this translator.
@@ -99,9 +100,7 @@ private:
     // Consumes a contract declaration, and initializes it through
     // non-deterministic construction.
     CStmtPtr init_contract(
-        ContractDefinition const& _contract,
-        std::shared_ptr<const CVarDecl> _id,
-        std::shared_ptr<const CVarDecl> _state
+        ContractDefinition const& _contract, std::shared_ptr<const CVarDecl> _id
     );
 
     // For each method on each contract, this will generate a case for the
@@ -110,15 +109,11 @@ private:
     CBlockList build_case(
         FunctionDefinition const& _def,
         std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> & _args,
-        std::shared_ptr<const CVarDecl> _id,
-        std::shared_ptr<const CVarDecl> _state
+        std::shared_ptr<const CVarDecl> _id
     );
 
     // Generate the instructions required to update the call state.
-    void update_call_state(
-        CBlockList & _stmts,
-        std::shared_ptr<const CVarDecl> _state
-    );
+    void update_call_state(CBlockList & _stmts);
 
     static CExprPtr get_nd_byte(std::string const& _msg);
 };

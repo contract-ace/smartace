@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/translation/MainFunction.h>
 
+#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
@@ -27,8 +28,12 @@ namespace modelcheck
 MainFunctionGenerator::MainFunctionGenerator(
     list<ContractDefinition const *> const& _model,
     NewCallGraph const& _new_graph,
+    CallState const& _statedata,
     TypeConverter const& _converter
-): m_model(_model), m_new_graph(_new_graph), m_converter(_converter)
+): m_model(_model)
+ , m_new_graph(_new_graph)
+ , m_statedata(_statedata)
+ , m_converter(_converter)
 {
 }
 
@@ -44,9 +49,6 @@ void MainFunctionGenerator::record(SourceUnit const& _ast)
 
 void MainFunctionGenerator::print(std::ostream& _stream)
 {
-    auto const CURSTATE = make_shared<CVarDecl>("struct CallState", "curstate");
-    auto const NXTSTATE = make_shared<CVarDecl>("struct CallState", "nxtstate");
-
     // Determines the contracts to use by the harness.
     vector<ContractDefinition const*> model;
     if (!m_model.empty())
@@ -73,7 +75,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         for (auto const* FUNC : actor.contract->definedFunctions())
         {
             if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
-            auto call_body = build_case(*FUNC, actor.fparams, actor.decl, CURSTATE);
+            auto call_body = build_case(*FUNC, actor.fparams, actor.decl);
             call_cases->add_case(actor.fnums[FUNC], move(call_body));
         }
     }
@@ -83,21 +85,25 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     fixpoint.push_back(
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
-    update_call_state(fixpoint, NXTSTATE);
-    fixpoint.push_back(make_require(make_shared<CBinaryOp>(
-        make_shared<CMemberAccess>(NXTSTATE->access("blocknum"), "v"),
-        ">=",
-        make_shared<CMemberAccess>(CURSTATE->access("blocknum"), "v")
-    )));
-    fixpoint.push_back(CURSTATE->assign(NXTSTATE->id())->stmt());
+    update_call_state(fixpoint);
     fixpoint.push_back(call_cases);
 
     // Contract setup and tear-down.
     list<CExprPtr> addresses;
     CBlockList main;
-    main.push_back(CURSTATE);
-    update_call_state(main, CURSTATE);
-    main.push_back(NXTSTATE);
+    for (auto fld : m_statedata.order())
+    {
+        auto const DECL = make_shared<CVarDecl>(fld.tname, fld.name);
+        main.push_back(DECL);
+
+        if (fld.field == CallStateUtilities::Field::Block)
+        {
+            auto const TMP_DECL = make_shared<CVarDecl>(fld.tname, fld.temp);
+            main.push_back(TMP_DECL);
+            main.push_back(DECL->access("v")->assign(Literals::ZERO)->stmt());
+        }
+    } 
+    update_call_state(main);
     for (auto actor : actors)
     {
         for (auto param_pair : actor.fparams) main.push_back(param_pair.second);
@@ -113,7 +119,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         }
         else
         {
-            main.push_back(init_contract(*actor.contract, DECL, CURSTATE));
+            main.push_back(init_contract(*actor.contract, DECL));
         }
         main.push_back(ADDR->assign(
             TypeConverter::nd_val_by_simple_type(
@@ -239,9 +245,7 @@ void MainFunctionGenerator::analyze_nested_decls(
 // -------------------------------------------------------------------------- //
 
 CStmtPtr MainFunctionGenerator::init_contract(
-    ContractDefinition const& _contract,
-    shared_ptr<const CVarDecl> _id,
-    shared_ptr<const CVarDecl> _state
+    ContractDefinition const& _contract, shared_ptr<const CVarDecl> _id
 )
 {
     CFuncCallBuilder init_builder("Init_" + m_converter.get_name(_contract));
@@ -249,7 +253,7 @@ CStmtPtr MainFunctionGenerator::init_contract(
     if (auto ctor = _contract.constructor())
     {
         init_builder.push(make_shared<CReference>(_id->id()));
-        init_builder.push(make_shared<CReference>(_state->id()));
+        m_statedata.push_state_to(init_builder);
         for (auto const param : ctor->parameters())
         {
             string const MSG
@@ -266,8 +270,7 @@ CStmtPtr MainFunctionGenerator::init_contract(
 CBlockList MainFunctionGenerator::build_case(
     FunctionDefinition const& _def,
     map<VariableDeclaration const*, shared_ptr<CVarDecl>> & _args,
-    shared_ptr<const CVarDecl> _id,
-    shared_ptr<const CVarDecl> _state
+    shared_ptr<const CVarDecl> _id
 )
 {
     auto const& root = FunctionUtilities::extract_root(_def);
@@ -280,7 +283,7 @@ CBlockList MainFunctionGenerator::build_case(
 
     CFuncCallBuilder call_builder(m_converter.get_name(root));
     call_builder.push(id);
-    call_builder.push(make_shared<CReference>(_state->id()));
+    m_statedata.push_state_to(call_builder);
 
     CBlockList call_body;
     for (auto arg : _def.parameters())
@@ -299,29 +302,33 @@ CBlockList MainFunctionGenerator::build_case(
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::update_call_state(
-    CBlockList & _stmts,
-    shared_ptr<const CVarDecl> _state
-)
+void MainFunctionGenerator::update_call_state(CBlockList & _stmts)
 {
-    AddressType ADDR(StateMutability::Payable);
-    IntegerType UINT256(256, IntegerType::Modifier::Unsigned);
+    for (auto fld : m_statedata.order())
+    {
+        auto state = make_shared<CIdentifier>(fld.name, false);
+        auto nd = TypeConverter::raw_simple_nd(*fld.type, fld.name);
 
-    _stmts.push_back(_state->access("sender")->assign(
-        TypeConverter::nd_val_by_simple_type(ADDR, "msg_sender"))->stmt()
-    );
-    _stmts.push_back(_state->access("value")->assign(
-        TypeConverter::nd_val_by_simple_type(UINT256, "msg_value"))->stmt()
-    );
-    _stmts.push_back(_state->access("blocknum")->assign(
-        TypeConverter::nd_val_by_simple_type(UINT256, "block_number"))->stmt()
-    );
-
-    _stmts.push_back(make_require(make_shared<CBinaryOp>(
-        make_shared<CMemberAccess>(_state->access("sender"), "v"),
-        "!=",
-        Literals::ZERO
-    )));
+        if (fld.field == CallStateUtilities::Field::Block)
+        {
+            auto tmp_state = make_shared<CIdentifier>(fld.temp, false);
+            _stmts.push_back(tmp_state->access("v")->assign(nd)->stmt());
+            _stmts.push_back(make_require(make_shared<CBinaryOp>(
+                state->access("v"), "<=", tmp_state->access("v")
+            )));
+            _stmts.push_back(state->assign(tmp_state)->stmt());
+        }
+        else
+        {
+            _stmts.push_back(state->assign(nd)->stmt());
+            if (fld.field == CallStateUtilities::Field::Sender)
+            {
+                _stmts.push_back(make_shared<CBinaryOp>(
+                    state->access("v"), "!=", Literals::ZERO
+                )->stmt());
+            }
+        }
+    }
 }
 
 // -------------------------------------------------------------------------- //

@@ -199,22 +199,22 @@ void PrimitiveTypeGenerator::endVisit(Mapping const&)
 
 void PrimitiveTypeGenerator::endVisit(UsingForDirective const& _node)
 {
-    process_type(_node.typeName()->annotation().type);
+    record_type(_node.typeName()->annotation().type);
 }
 
 void PrimitiveTypeGenerator::endVisit(VariableDeclaration const& _node)
 {
-    process_type(_node.type());
+    record_type(_node.type());
 }
 
 void PrimitiveTypeGenerator::endVisit(ElementaryTypeName const& _node)
 {
-    process_type(_node.annotation().type);
+    record_type(_node.annotation().type);
 }
 
 void PrimitiveTypeGenerator::endVisit(ElementaryTypeNameExpression const& _node)
 {
-    process_type(_node.annotation().type);
+    record_type(_node.annotation().type);
 }
 
 void PrimitiveTypeGenerator::endVisit(FunctionCall const& _node)
@@ -246,7 +246,7 @@ void PrimitiveTypeGenerator::endVisit(FunctionCall const& _node)
 
 // -------------------------------------------------------------------------- //
 
-void PrimitiveTypeGenerator::process_type(Type const* _type)
+void PrimitiveTypeGenerator::record_type(Type const* _type)
 {
     switch (_type->category())
     {

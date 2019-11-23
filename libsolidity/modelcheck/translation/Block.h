@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
@@ -40,6 +41,7 @@ public:
 	GeneralBlockConverter(
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
 		Block const& _body,
+		CallState const& _statedata,
 		TypeConverter const& _types,
 		bool _manage_pay,
 		bool _is_payable
@@ -89,6 +91,7 @@ protected:
 
 private:
 	Block const& M_BODY;
+	CallState const& M_STATEDATA;
 	TypeConverter const& M_TYPES;
 
 	bool const M_MANAGE_PAY;
@@ -115,7 +118,9 @@ public:
 	// _types is able to resolve all types in the AST of the source unit(s)
 	// associated with _func.
 	FunctionBlockConverter(
-		FunctionDefinition const& _func, TypeConverter const& _types
+		FunctionDefinition const& _func,
+		CallState const& _statedata,
+		TypeConverter const& _types
 	);
 
 	~FunctionBlockConverter() override = default;
@@ -149,7 +154,10 @@ public:
 	// is assumed that _types is able to resolve all types in the AST of the
 	// source unit(s) associated with _func.
 	ModifierBlockConverter(
-		FunctionDefinition const& _func, size_t _i, TypeConverter const& _types
+		FunctionDefinition const& _func,
+		size_t _i,
+		CallState const& _statedata,
+		TypeConverter const& _types
 	);
 
 	~ModifierBlockConverter() override = default;
@@ -163,6 +171,7 @@ protected:
 	void endVisit(PlaceholderStatement const&) override;
 
 private:
+	CallState const& M_STATEDATA;
 	TypeConverter const& M_TYPES;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_TRUE_PARAMS;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_USER_PARAMS;
@@ -185,7 +194,11 @@ private:
 	};
 
 	// Internal constructor implementation. Expects _i be expanded to modifier.
-	ModifierBlockConverter(Context const& _ctx, TypeConverter const& _types);
+	ModifierBlockConverter(
+		Context const& _ctx,
+		CallState const& _statedata,
+		TypeConverter const& _types
+	);
 };
 
 // -------------------------------------------------------------------------- //

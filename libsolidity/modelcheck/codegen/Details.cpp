@@ -183,13 +183,14 @@ void CFuncCallBuilder::push(CExprPtr _expr, Type const* _t)
 
 void CFuncCallBuilder::push(
     Expression const& _expr,
+    CallState const& _state,
     TypeConverter const& _converter,
     VariableScopeResolver const& _decls,
     bool _is_ref,
     Type const* _t
 )
 {
-    ExpressionConverter converter(_expr, _converter, _decls, _is_ref);
+    ExpressionConverter converter(_expr, _state, _converter, _decls, _is_ref);
 
     if (!_t) _t = _expr.annotation().type;
 

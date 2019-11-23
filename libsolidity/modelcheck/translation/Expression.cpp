@@ -5,9 +5,11 @@
 
 #include <libsolidity/modelcheck/translation/Expression.h>
 
+#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/AST.h>
+#include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
@@ -27,10 +29,17 @@ namespace modelcheck
 
 ExpressionConverter::ExpressionConverter(
 	Expression const& _expr,
+	CallState const& _statedata,
 	TypeConverter const& _types,
 	VariableScopeResolver const& _decls,
 	bool _is_ref
-): M_EXPR(&_expr), M_TYPES(_types), m_decls(_decls), m_find_ref(_is_ref) {}
+): M_EXPR(&_expr)
+ , m_statedata(_statedata)
+ , M_TYPES(_types)
+ , m_decls(_decls)
+ , m_find_ref(_is_ref)
+{
+}
 
 // -------------------------------------------------------------------------- //
 
@@ -141,7 +150,7 @@ bool ExpressionConverter::visit(FunctionCall const& _node)
 	FunctionCallKind const KIND = _node.annotation().kind;
 	if (KIND == FunctionCallKind::FunctionCall)
 	{
-		print_function(_node.expression(), _node.arguments());
+		print_function(_node);
 	}
 	else if (KIND == FunctionCallKind::TypeConversion)
 	{
@@ -338,8 +347,10 @@ void ExpressionConverter::generate_mapping_call(
 
 	// The type of baseExpression is an array, so it is not a wrapped type.
 	CFuncCallBuilder builder(_op + "_" + _id);
-	builder.push(_map.baseExpression(), M_TYPES, m_decls, true);
-	builder.push(*_map.indexExpression(), M_TYPES, m_decls, false, KEY_T);
+	builder.push(_map.baseExpression(), m_statedata, M_TYPES, m_decls, true);
+	builder.push(
+		*_map.indexExpression(), m_statedata, M_TYPES, m_decls, false, KEY_T
+	);
 	if (_v) builder.push(move(_v), MAP_T->valueType());
 	m_subexpr = builder.merge_and_pop();
 }
@@ -359,7 +370,7 @@ void ExpressionConverter::print_struct_ctor(FunctionCall const& _call)
 		{
 			auto const& ARG = *(_call.arguments()[i]);
 			auto const* TYPE = struct_def->members()[i]->type();
-			builder.push(ARG, M_TYPES, m_decls, false, TYPE);
+			builder.push(ARG, m_statedata, M_TYPES, m_decls, false, TYPE);
 		}
 		m_subexpr = builder.merge_and_pop();
 	}
@@ -506,11 +517,11 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 	}
 }
 
-void ExpressionConverter::print_function(
-	Expression const& _call, SolArgList const& _args
-)
+void ExpressionConverter::print_function(FunctionCall const& _call)
 {
-	auto ftype = dynamic_cast<FunctionType const*>(_call.annotation().type);
+	auto ftype = dynamic_cast<FunctionType const*>(
+		_call.expression().annotation().type
+	);
 	if (!ftype)
 	{
 		throw runtime_error("Function encountered without type annotations.");
@@ -519,16 +530,10 @@ void ExpressionConverter::print_function(
 	switch (ftype->kind())
 	{
 	case FunctionType::Kind::Internal:
-		print_method(*ftype, nullptr, _args);
-		break;
 	case FunctionType::Kind::External:
 	case FunctionType::Kind::BareCall:
 	case FunctionType::Kind::BareStaticCall:
-		// TODO(scottwe): STATICCALL prevents immutability, as opposed to
-		//     relying on only compile-time checks... should this be handled
-		//     seperately, and where did compile-time checks fail?
-		// TODO(scottwe): how does value behave when chaining calls?
-		print_ext_method(*ftype, _call, _args);
+		print_method(*ftype, _call);
 		break;
 	case FunctionType::Kind::DelegateCall:
 	case FunctionType::Kind::BareDelegateCall:
@@ -536,11 +541,11 @@ void ExpressionConverter::print_function(
 		// TODO(scottwe): report that calls to DELEGATECALL are not supported.
 		throw runtime_error("Delegate calls are unsupported.");
 	case FunctionType::Kind::Creation:
-		print_contract_ctor(_call, _args);
+		print_contract_ctor(_call);
 		break;
 	case FunctionType::Kind::Send:
 	case FunctionType::Kind::Transfer:
-		print_payment(_call, _args);
+		print_payment(_call);
 		break;
 	case FunctionType::Kind::KECCAK256:
 		// TODO(scottwe): implement.
@@ -594,10 +599,10 @@ void ExpressionConverter::print_function(
 		// TODO(scottwe): implement.
 		throw runtime_error("`new <array>` not yet supported.");
 	case FunctionType::Kind::Assert:
-		print_assertion("sol_assert", _args);
+		print_assertion("sol_assert", _call.arguments());
 		break;
 	case FunctionType::Kind::Require:
-		print_assertion("sol_require", _args);
+		print_assertion("sol_require", _call.arguments());
 		break;
 	case FunctionType::Kind::ABIEncode:
 		// TODO(scottwe): decide how/if this should be used.
@@ -625,20 +630,8 @@ void ExpressionConverter::print_function(
 	}
 }
 
-void ExpressionConverter::print_ext_method(
-	FunctionType const& _type, Expression const& _call, SolArgList const& _args
-)
-{
-	auto call = NodeSniffer<MemberAccess>(_call).find();
-	if (!call)
-	{
-		throw runtime_error("Unable to extract address from external call.");
-	}
-	print_method(_type, &call->expression(), _args);
-}
-
 void ExpressionConverter::print_method(
-	FunctionType const& _type, Expression const* _ctx, SolArgList const& _args
+	FunctionType const& _type, FunctionCall const& _call
 )
 {
 	// Finds mutability of the function.
@@ -648,12 +641,12 @@ void ExpressionConverter::print_method(
 	// Starts generating the function call.
 	CFuncCallBuilder builder(M_TYPES.get_name(root));
 
-	// If required, the state variables are passed on.
-	if (_ctx)
+	// Sets state for the next call.
+	FunctionCallAnalyzer calldata(_call);
+	if (calldata.context())
 	{
-		_ctx->accept(*this);
-		auto id = LValueSniffer<Identifier>(*_ctx).find();
-		if (!(id && M_TYPES.is_pointer(*id)))
+		calldata.context()->accept(*this);
+		if (!(calldata.id() && M_TYPES.is_pointer(*calldata.id())))
 		{
 			m_subexpr = make_shared<CReference>(m_subexpr);
 		}
@@ -663,14 +656,15 @@ void ExpressionConverter::print_method(
 	{
 		builder.push(make_shared<CIdentifier>("self", true));
 	}
-	builder.push(make_shared<CIdentifier>("state", true));
+	m_statedata.push_state_to(builder);
 
-	// Pushes all user provided arguments, performing any implicit cases of
-	// wrapped data types.
-	for (unsigned int i = 0; i < _args.size(); ++i)
+	// Pushes all user provided arguments.
+	for (unsigned int i = 0; i < calldata.args().size(); ++i)
 	{
 		auto const* ARG_TYPE = decl.parameters()[i]->type();
-		builder.push(*_args[i], M_TYPES, m_decls, false, ARG_TYPE);
+		builder.push(
+			*calldata.args()[i], m_statedata, M_TYPES, m_decls, false, ARG_TYPE
+		);
 	}
 
 	// Generates the function call.
@@ -686,9 +680,7 @@ void ExpressionConverter::print_method(
 	}
 }
 
-void ExpressionConverter::print_contract_ctor(
-	Expression const& _call, SolArgList const& _args
-)
+void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 {
 	if (auto contract_type = NodeSniffer<UserDefinedTypeName>(_call).find())
 	{
@@ -699,11 +691,15 @@ void ExpressionConverter::print_contract_ctor(
 			if (auto const& ctor = contract->constructor())
 			{
 				builder.push(make_shared<CIdentifier>("nullptr", true));
-				builder.push(make_shared<CIdentifier>("state", true));
-				for (unsigned int i = 0; i < _args.size(); ++i)
+				m_statedata.push_state_to(builder);
+
+				auto const& args = _call.arguments();
+				for (unsigned int i = 0; i < args.size(); ++i)
 				{
 					auto const* ARG_TYPE = ctor->parameters()[i]->type();
-					builder.push(*_args[i], M_TYPES, m_decls, false, ARG_TYPE);
+					builder.push(
+						*args[i], m_statedata, M_TYPES, m_decls, false, ARG_TYPE
+					);
 				}
 			}
 		}
@@ -720,23 +716,25 @@ void ExpressionConverter::print_contract_ctor(
 	}
 }
 
-void ExpressionConverter::print_payment(
-	Expression const& _call, SolArgList const& _args
-)
+void ExpressionConverter::print_payment(FunctionCall const& _call)
 {
-	const AddressType ARG_1_TYPE(StateMutability::Payable);
-	const IntegerType ARG_2_TYPE(256, IntegerType::Modifier::Unsigned);
+	const AddressType ARG1_TYPE(StateMutability::Payable);
+	const IntegerType ARG2_TYPE(256, IntegerType::Modifier::Unsigned);
 
-	if (_args.size() != 1)
+	auto const& args = _call.arguments();
+	if (args.size() != 1)
 	{
 		throw runtime_error("Payment calls require payment amount.");
 	}
 	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
 	{
 		CFuncCallBuilder builder("_pay");
-		builder.push(make_shared<CIdentifier>("state", true));
-		builder.push(call->expression(), M_TYPES, m_decls, false, &ARG_1_TYPE);
-		builder.push(*_args[0], M_TYPES, m_decls, false, &ARG_2_TYPE);
+		builder.push(
+			call->expression(), m_statedata, M_TYPES, m_decls, false, &ARG1_TYPE
+		);
+		builder.push(
+			*args[0], m_statedata, M_TYPES, m_decls, false, &ARG2_TYPE
+		);
 		m_subexpr = builder.merge_and_pop();
 	}
 	else
@@ -755,7 +753,7 @@ void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 	// TODO(scottwe): support for messages.
 	CFuncCallBuilder builder(_type);
 	const InaccessibleDynamicType RAW_TYPE;
-	builder.push(*_args[0], M_TYPES, m_decls, false, &RAW_TYPE);
+	builder.push(*_args[0], m_statedata, M_TYPES, m_decls, false, &RAW_TYPE);
 	builder.push(Literals::ZERO);
 	m_subexpr = builder.merge_and_pop();
 }
@@ -817,18 +815,9 @@ void ExpressionConverter::print_magic_member(
 	TypePointer _type, string const& _member
 )
 {
-	switch (parse_magic_type(*_type, _member))
-	{
-	case CallStateField::BLOCKNUM:
-		m_subexpr = make_shared<CIdentifier>("state->blocknum", false);
-		break;
-	case CallStateField::SENDER:
-		m_subexpr = make_shared<CIdentifier>("state->sender", false);
-		break;
-	case CallStateField::VALUE:
-		m_subexpr = make_shared<CIdentifier>("state->value", false);
-		break;
-	}
+	auto const TYPE = CallStateUtilities::parse_magic_type(*_type, _member);
+	auto const NAME = CallStateUtilities::get_name(TYPE);
+	m_subexpr = make_shared<CIdentifier>(NAME, false);
 }
 
 void ExpressionConverter::print_enum_member(
