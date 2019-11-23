@@ -643,7 +643,9 @@ void ExpressionConverter::print_method(
 
 	// Sets state for the next call.
 	FunctionCallAnalyzer calldata(_call);
-	if (calldata.context())
+	const bool IS_EXT = (calldata.context() != nullptr);
+	auto self_id = make_shared<CIdentifier>("self", true);
+	if (IS_EXT)
 	{
 		calldata.context()->accept(*this);
 		if (!(calldata.id() && M_TYPES.is_pointer(*calldata.id())))
@@ -654,9 +656,20 @@ void ExpressionConverter::print_method(
 	}
 	else
 	{
-		builder.push(make_shared<CIdentifier>("self", true));
+		builder.push(self_id);
 	}
-	m_statedata.push_state_to(builder);
+	for (auto f : m_statedata.order())
+	{
+		if (IS_EXT && f.field == CallStateUtilities::Field::Sender)
+		{
+			string const ADDRESS = ContractUtilities::address_member();
+			builder.push(make_shared<CMemberAccess>(self_id, ADDRESS));
+		}
+		else
+		{
+			builder.push(make_shared<CIdentifier>(f.name, false));
+		}
+	}
 
 	// Pushes all user provided arguments.
 	for (unsigned int i = 0; i < calldata.args().size(); ++i)
@@ -690,7 +703,7 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 		{
 			if (auto const& ctor = contract->constructor())
 			{
-				builder.push(make_shared<CIdentifier>("nullptr", true));
+				builder.push(make_shared<CIdentifier>("NULL", true));
 				m_statedata.push_state_to(builder);
 
 				auto const& args = _call.arguments();

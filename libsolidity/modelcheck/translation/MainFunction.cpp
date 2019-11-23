@@ -320,12 +320,12 @@ void MainFunctionGenerator::update_call_state(CBlockList & _stmts)
         }
         else
         {
-            _stmts.push_back(state->assign(nd)->stmt());
+            _stmts.push_back(state->access("v")->assign(nd)->stmt());
             if (fld.field == CallStateUtilities::Field::Sender)
             {
-                _stmts.push_back(make_shared<CBinaryOp>(
+                _stmts.push_back(make_require(make_shared<CBinaryOp>(
                     state->access("v"), "!=", Literals::ZERO
-                )->stmt());
+                )));
             }
         }
     }
