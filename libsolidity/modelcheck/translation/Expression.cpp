@@ -655,7 +655,6 @@ void ExpressionConverter::print_method(
 	// Sets state for the next call.
 	FunctionCallAnalyzer calldata(_call);
 	const bool IS_EXT = (calldata.context() != nullptr);
-	auto self_id = make_shared<CIdentifier>("self", true);
 	if (IS_EXT)
 	{
 		calldata.context()->accept(*this);
@@ -667,20 +666,9 @@ void ExpressionConverter::print_method(
 	}
 	else
 	{
-		builder.push(self_id);
+		builder.push(make_shared<CIdentifier>("self", true));
 	}
-	for (auto f : m_statedata.order())
-	{
-		if (IS_EXT && f.field == CallStateUtilities::Field::Sender)
-		{
-			string const ADDRESS = ContractUtilities::address_member();
-			builder.push(make_shared<CMemberAccess>(self_id, ADDRESS));
-		}
-		else
-		{
-			builder.push(make_shared<CIdentifier>(f.name, false));
-		}
-	}
+	pass_next_call_state(_call, builder, IS_EXT);
 
 	// Pushes all user provided arguments.
 	for (unsigned int i = 0; i < calldata.args().size(); ++i)
@@ -716,7 +704,7 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 			builder.push(make_shared<CReference>(
 				make_shared<CIdentifier>(DECL, false)
 			));
-			m_statedata.push_state_to(builder);
+			pass_next_call_state(_call, builder, true);
 
 			if (auto const& ctor = contract->constructor())
 			{
@@ -783,6 +771,26 @@ void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 	builder.push(*_args[0], m_statedata, M_TYPES, m_decls, false, &RAW_TYPE);
 	builder.push(Literals::ZERO);
 	m_subexpr = builder.merge_and_pop();
+}
+
+void ExpressionConverter::pass_next_call_state(
+	FunctionCall const& _call, CFuncCallBuilder & _builder, bool _is_ext
+)
+{
+	FunctionCallAnalyzer calldata(_call);
+	for (auto f : m_statedata.order())
+	{
+		if (_is_ext && f.field == CallStateUtilities::Field::Sender)
+		{
+			auto self_id = make_shared<CIdentifier>("self", true);
+			string const ADDRESS = ContractUtilities::address_member();
+			_builder.push(make_shared<CMemberAccess>(self_id, ADDRESS));
+		}
+		else
+		{
+			_builder.push(make_shared<CIdentifier>(f.name, false));
+		}
+	}
 }
 
 // -------------------------------------------------------------------------- //

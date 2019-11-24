@@ -11,6 +11,7 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <list>
 #include <ostream>
@@ -113,7 +114,10 @@ private:
     );
 
     // Generate the instructions required to update the call state.
-    void update_call_state(CBlockList & _stmts);
+    void update_call_state(
+        CBlockList & _stmts,
+        std::list<std::shared_ptr<CMemberAccess>> const& _addresses
+    );
 
     static CExprPtr get_nd_byte(std::string const& _msg);
 };

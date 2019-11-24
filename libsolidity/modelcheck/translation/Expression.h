@@ -95,6 +95,9 @@ private:
 	void print_contract_ctor(FunctionCall const& _call);
 	void print_payment(FunctionCall const& _call);
 	void print_assertion(std::string _type, SolArgList const& _args);
+	void pass_next_call_state(
+		FunctionCall const& _call, CFuncCallBuilder & _builder, bool _is_ext
+	);
 
 	// Helpe functions to handle certain member access cases.
 	void print_address_member(

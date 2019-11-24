@@ -70,7 +70,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         get_nd_byte("Select next call"),
         CBlockList{make_require(Literals::ZERO)}
     );
-    for (auto actor : actors)
+    for (auto & actor : actors)
     {
         for (auto const* FUNC : actor.contract->definedFunctions())
         {
@@ -80,18 +80,11 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         }
     }
 
-    // Generates fixed-point iteration.
-    CBlockList fixpoint;
-    fixpoint.push_back(
-        make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
-    );
-    update_call_state(fixpoint);
-    fixpoint.push_back(call_cases);
-
     // Contract setup and tear-down.
-    list<CExprPtr> addresses;
     CBlockList main;
-    for (auto fld : m_statedata.order())
+
+    // Declres all state variables.
+    for (auto const& fld : m_statedata.order())
     {
         auto const DECL = make_shared<CVarDecl>(fld.tname, fld.name);
         main.push_back(DECL);
@@ -102,25 +95,28 @@ void MainFunctionGenerator::print(std::ostream& _stream)
             main.push_back(TMP_DECL);
             main.push_back(DECL->access("v")->assign(Literals::ZERO)->stmt());
         }
-    } 
-    update_call_state(main);
-    for (auto actor : actors)
+    }
+
+    // Declares contracts and resolves pointers.
+    for (auto const& actor : actors)
     {
         for (auto param_pair : actor.fparams) main.push_back(param_pair.second);
-        auto const& DECL = actor.decl;
-        auto const& ADDR = DECL->access(ContractUtilities::address_member());
-        string const ADDRMSG = "Init address of " + actor.contract->name();
-        main.push_back(DECL);
+        main.push_back(actor.decl);
         if (actor.path)
         {
             main.push_back(
-                DECL->assign(make_shared<CReference>(actor.path))->stmt()
+                actor.decl->assign(make_shared<CReference>(actor.path))->stmt()
             );
         }
-        else
-        {
-            main.push_back(init_contract(*actor.contract, DECL));
-        }
+    }
+
+    // Assigns a unique address to each contract.
+    list<shared_ptr<CMemberAccess>> addresses;
+    for (auto const& actor : actors)
+    {
+        auto const& DECL = actor.decl;
+        auto const& ADDR = DECL->access(ContractUtilities::address_member());
+        string const ADDRMSG = "Init address of " + actor.contract->name();
         main.push_back(ADDR->assign(
             TypeConverter::nd_val_by_simple_type(
                 *ContractUtilities::address_type(), ADDRMSG
@@ -129,7 +125,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         main.push_back(make_require(make_shared<CBinaryOp>(
             make_shared<CMemberAccess>(ADDR, "v"), "!=", Literals::ZERO
         )));
-        for (auto other_addr : addresses)
+        for (auto const other_addr : addresses)
         {
             main.push_back(make_require(make_shared<CBinaryOp>(
                 make_shared<CMemberAccess>(ADDR, "v"),
@@ -139,12 +135,33 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         }
         addresses.push_back(ADDR);
     }
+
+    // Initializes all actors.
+    for (auto const& actor : actors)
+    {
+        if (!actor.path)
+        {
+            update_call_state(main, addresses);
+            main.push_back(init_contract(*actor.contract, actor.decl));
+        }
+    }
+
+    // Generates fixed-point iteration.
+    CBlockList fixpoint;
+    fixpoint.push_back(
+        make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
+    );
+    update_call_state(fixpoint, addresses);
+    fixpoint.push_back(call_cases);
+
+    // Adds fixpoint look to end of body.
     main.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(move(fixpoint)),
         get_nd_byte("Select 0 to terminate"),
         false
     ));
 
+    // Implements body as a run_model function.
     auto id = make_shared<CVarDecl>("void", "run_model");
     _stream << CFuncDef(id, CParams{}, make_shared<CBlock>(move(main)));
 }
@@ -209,7 +226,7 @@ list<MainFunctionGenerator::Actor> MainFunctionGenerator::analyze_decls(
     TicketSystem<uint16_t> cids;
     TicketSystem<uint16_t> fids;
 
-    for (auto contract : _contracts)
+    for (auto const contract : _contracts)
     {
         actors.emplace_back(m_converter, contract, nullptr, cids, fids);
 
@@ -230,7 +247,7 @@ void MainFunctionGenerator::analyze_nested_decls(
 {
     auto const& children = m_new_graph.children_of(_parent);
 
-    for (auto child : children)
+    for (auto const& child : children)
     {
         auto const NAME = VariableScopeResolver::rewrite(
             child.dest->name(), false, VarContext::STRUCT
@@ -252,7 +269,7 @@ CStmtPtr MainFunctionGenerator::init_contract(
     init_builder.push(make_shared<CReference>(_id->id()));
     m_statedata.push_state_to(init_builder);
 
-    if (auto ctor = _contract.constructor())
+    if (auto const ctor = _contract.constructor())
     {
         for (auto const param : ctor->parameters())
         {
@@ -286,7 +303,7 @@ CBlockList MainFunctionGenerator::build_case(
     m_statedata.push_state_to(call_builder);
 
     CBlockList call_body;
-    for (auto arg : _def.parameters())
+    for (auto const arg : _def.parameters())
     {
         string const MSG = "Set " + arg->name() + " for call " + _def.name();
         auto const& PDECL = _args[arg.get()];
@@ -302,9 +319,11 @@ CBlockList MainFunctionGenerator::build_case(
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::update_call_state(CBlockList & _stmts)
+void MainFunctionGenerator::update_call_state(
+    CBlockList & _stmts, list<shared_ptr<CMemberAccess>> const& _addresses
+)
 {
-    for (auto fld : m_statedata.order())
+    for (auto const& fld : m_statedata.order())
     {
         auto state = make_shared<CIdentifier>(fld.name, false);
         auto nd = TypeConverter::raw_simple_nd(*fld.type, fld.name);
@@ -326,6 +345,12 @@ void MainFunctionGenerator::update_call_state(CBlockList & _stmts)
                 _stmts.push_back(make_require(make_shared<CBinaryOp>(
                     state->access("v"), "!=", Literals::ZERO
                 )));
+                for (auto const addr : _addresses)
+                {
+                    _stmts.push_back(make_require(make_shared<CBinaryOp>(
+                        state->access("v"), "!=", addr->access("v")
+                    )));
+                }
             }
         }
     }
