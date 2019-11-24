@@ -778,13 +778,36 @@ void ExpressionConverter::pass_next_call_state(
 )
 {
 	FunctionCallAnalyzer calldata(_call);
+	auto self_id = make_shared<CIdentifier>("self", true);
 	for (auto f : m_statedata.order())
 	{
 		if (_is_ext && f.field == CallStateUtilities::Field::Sender)
 		{
-			auto self_id = make_shared<CIdentifier>("self", true);
 			string const ADDRESS = ContractUtilities::address_member();
 			_builder.push(make_shared<CMemberAccess>(self_id, ADDRESS));
+		}
+		else if (_is_ext && f.field == CallStateUtilities::Field::Value)
+		{
+			if (calldata.value())
+			{
+				string const BAL = ContractUtilities::balance_member();
+				CFuncCallBuilder val_builder("_pay_by_val");
+				val_builder.push(make_shared<CReference>(self_id->access(BAL)));
+				val_builder.push(
+					*calldata.value(),
+					m_statedata,
+					M_TYPES,
+					m_decls,
+					false,
+					ContractUtilities::balance_type()
+				);
+				_builder.push(val_builder.merge_and_pop());
+			}
+			else
+			{
+				_builder.push(TypeConverter::init_val_by_simple_type(*f.type));
+			}
+			
 		}
 		else
 		{

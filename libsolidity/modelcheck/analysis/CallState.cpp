@@ -9,6 +9,7 @@
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <sstream>
 
@@ -41,27 +42,54 @@ void CallState::record(ASTNode const& _ast)
 
 void CallState::print(std::ostream& _stream, bool _forward_declare) const
 {
-    shared_ptr<CParams> cs_fields;
-    shared_ptr<CBlock> pay_body;
-
-    auto addr_type = TypeConverter::get_simple_ctype(
-        AddressType(StateMutability::Payable)
+    auto const VALUE_T = TypeConverter::get_simple_ctype(
+        *CallStateUtilities::get_type(CallStateUtilities::Field::Value)
     );
-    auto uint256_type = TypeConverter::get_simple_ctype(IntegerType(256));
+    auto const SENDER_T = TypeConverter::get_simple_ctype(
+        *CallStateUtilities::get_type(CallStateUtilities::Field::Sender)
+    );
+
+    shared_ptr<CBlock> pay_body;
+    shared_ptr<CBlock> pay_by_val_body;
+
+    auto const dst_var = make_shared<CVarDecl>(SENDER_T, "dst");
+    auto const amt_var = make_shared<CVarDecl>(VALUE_T, "amt");
+    auto const bal_var = make_shared<CVarDecl>(VALUE_T, "bal", true);
 
     if (_forward_declare)
     {
+        auto bal_cond = make_shared<CBinaryOp>(
+            bal_var->access("v"), ">=", amt_var->access("v")
+        );
+        auto bal_check = make_shared<CFuncCall>(
+            "sol_require", CArgList{ bal_cond, Literals::ZERO }
+        );
+        auto bal_change = make_shared<CBinaryOp>(
+            bal_var->access("v"), "-=", amt_var->access("v")
+        );
+
         pay_body = make_shared<CBlock>(CBlockList{});
+
+        pay_by_val_body = make_shared<CBlock>(CBlockList{
+            bal_check->stmt(),
+            bal_change->stmt(),
+            make_shared<CReturn>(amt_var->id())
+        });
     }
 
     CFuncDef pay(
         make_shared<CVarDecl>("void", "_pay"), CParams{
-            make_shared<CVarDecl>(addr_type, "dst"),
-            make_shared<CVarDecl>(uint256_type, "amt")
+            dst_var, amt_var
         }, move(pay_body)
     );
 
-    _stream << pay;
+    CFuncDef pay_by_value(
+        make_shared<CVarDecl>(VALUE_T, "_pay_by_val"), CParams{
+            bal_var, amt_var
+        }, move(pay_by_val_body)
+    );
+
+    _stream << pay << pay_by_value;
 }
 
 // -------------------------------------------------------------------------- //
