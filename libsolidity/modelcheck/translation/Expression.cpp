@@ -743,14 +743,22 @@ void ExpressionConverter::print_payment(FunctionCall const& _call)
 	}
 	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
 	{
+		auto const BAL_MEMBER = ContractUtilities::balance_member();
+		auto src = make_shared<CIdentifier>("self", true);
+		auto bal = make_shared<CMemberAccess>(src, BAL_MEMBER);
+
+		auto balref = make_shared<CReference>(bal);
+		auto const& DST = call->expression();
+		auto const& AMT = *args[0];
+
 		CFuncCallBuilder builder("_pay");
-		builder.push(
-			call->expression(), m_statedata, M_TYPES, m_decls, false, &ARG1_TYPE
-		);
-		builder.push(
-			*args[0], m_statedata, M_TYPES, m_decls, false, &ARG2_TYPE
-		);
+		builder.push(balref);
+		builder.push(DST, m_statedata, M_TYPES, m_decls, false, &ARG1_TYPE);
+		builder.push(AMT, m_statedata, M_TYPES, m_decls, false, &ARG2_TYPE);
 		m_subexpr = builder.merge_and_pop();
+
+		// TODO: handle fallbacks.
+		// TODO: map target to address space.
 	}
 	else
 	{

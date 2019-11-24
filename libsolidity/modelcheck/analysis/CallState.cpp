@@ -68,7 +68,11 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
             bal_var->access("v"), "-=", amt_var->access("v")
         );
 
-        pay_body = make_shared<CBlock>(CBlockList{});
+        pay_body = make_shared<CBlock>(CBlockList{
+            bal_check->stmt(),
+            bal_change->stmt()
+            // TODO: when address is in range
+        });
 
         pay_by_val_body = make_shared<CBlock>(CBlockList{
             bal_check->stmt(),
@@ -79,7 +83,7 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
 
     CFuncDef pay(
         make_shared<CVarDecl>("void", "_pay"), CParams{
-            dst_var, amt_var
+            bal_var, dst_var, amt_var
         }, move(pay_body)
     );
 
