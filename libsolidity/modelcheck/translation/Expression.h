@@ -65,6 +65,7 @@ private:
 	VariableScopeResolver const& m_decls;
 
 	CExprPtr m_subexpr;
+	Identifier const* m_last_assignment;
 
 	bool m_lval = false;
 	bool m_find_ref;

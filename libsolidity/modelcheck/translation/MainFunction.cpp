@@ -249,11 +249,11 @@ CStmtPtr MainFunctionGenerator::init_contract(
 )
 {
     CFuncCallBuilder init_builder("Init_" + m_converter.get_name(_contract));
+    init_builder.push(make_shared<CReference>(_id->id()));
+    m_statedata.push_state_to(init_builder);
 
     if (auto ctor = _contract.constructor())
     {
-        init_builder.push(make_shared<CReference>(_id->id()));
-        m_statedata.push_state_to(init_builder);
         for (auto const param : ctor->parameters())
         {
             string const MSG
@@ -262,7 +262,7 @@ CStmtPtr MainFunctionGenerator::init_contract(
         }
     }
 
-    return _id->assign(init_builder.merge_and_pop())->stmt();
+    return init_builder.merge_and_pop()->stmt();
 }
 
 // -------------------------------------------------------------------------- //

@@ -46,6 +46,7 @@ ExpressionConverter::ExpressionConverter(
 CExprPtr ExpressionConverter::convert()
 {
 	m_subexpr = nullptr;
+	m_last_assignment = nullptr;
 	M_EXPR->accept(*this);
 	return m_subexpr;
 }
@@ -65,8 +66,17 @@ bool ExpressionConverter::visit(Conditional const& _node)
 
 bool ExpressionConverter::visit(Assignment const& _node)
 {
+	// Finds base identifier and detects contract instantiation.
+	auto const ID = LValueSniffer<Identifier>(_node.leftHandSide()).find();
+	if (ID && ID->annotation().type->category() == Type::Category::Contract)
 	{
-		auto const ID = LValueSniffer<Identifier>(_node.leftHandSide()).find();
+		ScopedSwap<Identifier const*> swap(m_last_assignment, ID);
+		_node.rightHandSide().accept(*this);
+		return false;
+	}
+
+	// Establishes RHS
+	{
 		ScopedSwap<bool> swap(m_find_ref, ID && M_TYPES.is_pointer(*ID));
 		if (_node.assignmentOperator() != Token::Assign)
 		{
@@ -83,6 +93,7 @@ bool ExpressionConverter::visit(Assignment const& _node)
 	}
 	auto rhs = m_subexpr;
 
+	// Equals LHS to RHS.
 	{
 		ScopedSwap<bool> swap(m_lval, true);
 		if (auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find())
@@ -701,11 +712,14 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 		auto const DECL = contract_type->annotation().referencedDeclaration;
 		if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
 		{
+			auto const DECL = m_decls.resolve_identifier(*m_last_assignment);
+			builder.push(make_shared<CReference>(
+				make_shared<CIdentifier>(DECL, false)
+			));
+			m_statedata.push_state_to(builder);
+
 			if (auto const& ctor = contract->constructor())
 			{
-				builder.push(make_shared<CIdentifier>("NULL", true));
-				m_statedata.push_state_to(builder);
-
 				auto const& args = _call.arguments();
 				for (unsigned int i = 0; i < args.size(); ++i)
 				{

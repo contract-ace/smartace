@@ -62,30 +62,32 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
     string const CTRX_NAME = M_CONVERTER.get_name(_node);
 
     CParams params;
-    if (auto ctor = _node.constructor())
     {
-        FunctionConverter::ParamTmpl tmpl;
-        tmpl.context = VarContext::STRUCT;
-        tmpl.instrumentation = false;
-
         vector<FunctionConverter::ParamTmpl> param_tmpls;
-        for (auto arg : ctor->parameters())
+        if (auto ctor = _node.constructor())
         {
-            tmpl.decl = arg;
-            param_tmpls.push_back(tmpl);
-        }
+            FunctionConverter::ParamTmpl tmpl;
+            tmpl.context = VarContext::STRUCT;
+            tmpl.instrumentation = false;
 
+            for (auto arg : ctor->parameters())
+            {
+                tmpl.decl = arg;
+                param_tmpls.push_back(tmpl);
+            }
+        }
         params = generate_params(param_tmpls, &_node);
     }
 
     shared_ptr<CBlock> body;
     if (!M_FWD_DCL)
     {
-        CBlockList stmts{make_shared<CVarDecl>(CTRX_TYPE, "tmp")};
+        CBlockList stmts;
+        auto self_ptr = params[0]->id();
         {
             auto const NAME = ContractUtilities::balance_member();
             auto const* TYPE = ContractUtilities::balance_type();
-            stmts.push_back(TMP->access(NAME)->assign(
+            stmts.push_back(self_ptr->access(NAME)->assign(
                 TypeConverter::init_val_by_simple_type(*TYPE)
             )->stmt());
         }
@@ -109,7 +111,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
                 init = M_CONVERTER.get_init_val(*decl);
             }
 
-            auto member = TMP->access(NAME);
+            auto member = self_ptr->access(NAME);
             stmts.push_back(member->assign(move(init))->stmt());
         }
         if (auto ctor = _node.constructor())
@@ -117,7 +119,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             auto const& ROOT = FunctionUtilities::extract_root(*ctor);
 
             CFuncCallBuilder builder(M_CONVERTER.get_name(ROOT));
-            builder.push(make_shared<CReference>(TMP));
+            builder.push(self_ptr);
             M_STATEDATA.push_state_to(builder);
             for (auto decl : ctor->parameters())
             {
@@ -129,12 +131,11 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             }
             stmts.push_back(builder.merge_and_pop_stmt());
         }
-        stmts.push_back(make_shared<CReturn>(TMP));
 
         body = make_shared<CBlock>(move(stmts));
     }
 
-    auto id = make_shared<CVarDecl>(CTRX_TYPE, "Init_" + CTRX_NAME);
+    auto id = make_shared<CVarDecl>("void", "Init_" + CTRX_NAME);
     CFuncDef init(id, move(params), move(body));
     (*m_ostream) << init;
 
