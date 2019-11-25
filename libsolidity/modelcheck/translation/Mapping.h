@@ -31,7 +31,6 @@ class MapGenerator
 {
 public:
     // The fields used by a map.
-    static const std::string SET_FIELD;
     static const std::string CURR_FIELD;
     static const std::string DATA_FIELD;
     static const std::string ND_FIELD;
@@ -40,8 +39,8 @@ public:
     // _ct entries. Its key and value types are converted using _converter,
     // along iwth the map itself.
     MapGenerator(
-        Mapping const& _src, size_t _ct, TypeConverter const& _converter)
-    ;
+        Mapping const& _src, size_t _ct, TypeConverter const& _converter
+    );
 
     // Declares all structures and functions used by a map.
     CStructDef declare(bool _forward_declare) const;
@@ -50,6 +49,9 @@ public:
     CFuncDef declare_write(bool _forward_declare) const;
     CFuncDef declare_read(bool _forward_declare) const;
     CFuncDef declare_ref(bool _forward_declare) const;
+
+    // Generates a name for each global index.
+    static std::string name_global_key(size_t _id);
 
 private:
     // The number of elements modeling the map.

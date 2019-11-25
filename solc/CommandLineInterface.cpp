@@ -41,9 +41,11 @@
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/translation/ADT.h>
 #include <libsolidity/modelcheck/translation/Function.h>
 #include <libsolidity/modelcheck/translation/MainFunction.h>
+#include <libsolidity/modelcheck/translation/Mapping.h>
 
 #include <libyul/AssemblyStack.h>
 
@@ -1374,6 +1376,11 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 	size_t map_k = m_args[g_argModelMapLen].as<size_t>();
 	_os << "#include \"cmodel.h\"" << endl;
+	for (size_t i = 0; i < map_k; ++i)
+	{
+		auto const NAME = modelcheck::MapGenerator::name_global_key(i);
+        _os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
+	}
 	_cs.print(_os, false);
 	for (auto const* ast : _asts)
 	{
@@ -1395,7 +1402,7 @@ void CommandLineInterface::handleCModelBody(
 		cov.print(_os);
 	}
 
-	modelcheck::MainFunctionGenerator main_gen(_model, _graph, _cs, _con);
+	modelcheck::MainFunctionGenerator main_gen(map_k, _model, _graph, _cs, _con);
 	for (auto const* ast : _asts)
 	{
 		main_gen.record(*ast);

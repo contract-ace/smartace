@@ -2,7 +2,7 @@
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make icmodel
-// RUN: echo 10 20 1 0 0 1 1 10 0 0 0 | ./icmodel 2>&1
+// RUN: echo 1 10 20 1 0 0 1 1 10 0 0 0 | ./icmodel 2>&1
 
 /*
  * Tests that payments to "the null" work.

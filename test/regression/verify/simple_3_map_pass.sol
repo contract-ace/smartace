@@ -11,6 +11,8 @@
  * verification engine's ability to reason about it.
  */
 
+// TODO: this test currently fails now that keys are set globally.
+
 contract ThreeMap {
 	int a;
 	int b;

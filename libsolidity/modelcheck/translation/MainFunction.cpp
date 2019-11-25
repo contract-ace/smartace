@@ -11,6 +11,7 @@
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/translation/Mapping.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 
@@ -26,11 +27,13 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 MainFunctionGenerator::MainFunctionGenerator(
+    size_t _keyspace,
     list<ContractDefinition const *> const& _model,
     NewCallGraph const& _new_graph,
     CallState const& _statedata,
     TypeConverter const& _converter
-): m_model(_model)
+): M_KEYSPACE(_keyspace)
+ , m_model(_model)
  , m_new_graph(_new_graph)
  , m_statedata(_statedata)
  , m_converter(_converter)
@@ -97,43 +100,57 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         }
     }
 
-    // Declares contracts and resolves pointers.
+    // Declares function parameters.
     for (auto const& actor : actors)
     {
-        for (auto param_pair : actor.fparams) main.push_back(param_pair.second);
         main.push_back(actor.decl);
-        if (actor.path)
-        {
-            main.push_back(
-                actor.decl->assign(make_shared<CReference>(actor.path))->stmt()
-            );
-        }
+        for (auto param_pair : actor.fparams) main.push_back(param_pair.second);
     }
 
-    // Assigns a unique address to each contract.
-    list<shared_ptr<CMemberAccess>> addresses;
+    // Declares all addresses.
+    auto const* ADDR_T = ContractUtilities::address_type();
+    list<shared_ptr<CMemberAccess>> contract_addrs;
+    vector<CExprPtr> addrs;
+    addrs.reserve(M_KEYSPACE + actors.size());
+    for (size_t i = 0; i < M_KEYSPACE; ++i)
+    {
+        auto const NAME = MapGenerator::name_global_key(i);
+        auto const ADDRMSG = "Init address of " + NAME;
+        auto decl = make_shared<CIdentifier>(NAME, false);
+        main.push_back(decl->assign(make_shared<CMemberAccess>(
+            TypeConverter::nd_val_by_simple_type(*ADDR_T, ADDRMSG), "v"
+        ))->stmt());
+        addrs.push_back(decl);
+    }
     for (auto const& actor : actors)
     {
         auto const& DECL = actor.decl;
+        if (actor.path)
+        {
+            main.push_back(
+                DECL->assign(make_shared<CReference>(actor.path))->stmt()
+            );
+        }
+
         auto const& ADDR = DECL->access(ContractUtilities::address_member());
         string const ADDRMSG = "Init address of " + actor.contract->name();
-        main.push_back(ADDR->assign(
-            TypeConverter::nd_val_by_simple_type(
-                *ContractUtilities::address_type(), ADDRMSG
-            )
-        )->stmt());
+        main.push_back(ADDR->assign(TypeConverter::nd_val_by_simple_type(
+            *ADDR_T, ADDRMSG
+        ))->stmt());
+        contract_addrs.push_back(ADDR);
+        addrs.push_back(ADDR->access("v"));
+    }
+    for (unsigned int i = 0; i < addrs.size(); ++i)
+    {
         main.push_back(make_require(make_shared<CBinaryOp>(
-            make_shared<CMemberAccess>(ADDR, "v"), "!=", Literals::ZERO
+            addrs[i], "!=", Literals::ZERO
         )));
-        for (auto const other_addr : addresses)
+        for (unsigned int j = 0; j < i; ++j)
         {
             main.push_back(make_require(make_shared<CBinaryOp>(
-                make_shared<CMemberAccess>(ADDR, "v"),
-                "!=", 
-                make_shared<CMemberAccess>(other_addr, "v")
+                addrs[i], "!=", addrs[j]
             )));
         }
-        addresses.push_back(ADDR);
     }
 
     // Initializes all actors.
@@ -141,7 +158,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     {
         if (!actor.path)
         {
-            update_call_state(main, addresses);
+            update_call_state(main, contract_addrs);
             main.push_back(init_contract(*actor.contract, actor.decl));
         }
     }
@@ -151,7 +168,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     fixpoint.push_back(
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
-    update_call_state(fixpoint, addresses);
+    update_call_state(fixpoint, contract_addrs);
     fixpoint.push_back(call_cases);
 
     // Adds fixpoint look to end of body.

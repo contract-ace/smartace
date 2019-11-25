@@ -6,6 +6,7 @@
 
 #include <libsolidity/modelcheck/translation/Mapping.h>
 
+#include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 
 using namespace std;
@@ -19,7 +20,6 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-const std::string MapGenerator::SET_FIELD = "set";
 const std::string MapGenerator::CURR_FIELD = "curr";
 const std::string MapGenerator::DATA_FIELD = "data";
 const std::string MapGenerator::ND_FIELD = "nd_data";
@@ -28,15 +28,14 @@ const std::string MapGenerator::ND_FIELD = "nd_data";
 
 MapGenerator::MapGenerator(
     Mapping const& _src, size_t _ct, TypeConverter const& _converter
-)
-: M_LEN(_ct),
-  M_NAME(_converter.get_name(_src)),
-  M_TYPE(_converter.get_type(_src)),
-  M_KEY_T(_converter.get_type(_src.keyType())),
-  M_VAL_T(_converter.get_type(_src.valueType())),
-  M_INIT_KEY(_converter.get_init_val(_src.keyType())),
-  M_INIT_VAL(_converter.get_init_val(_src.valueType())),
-  M_ND_VAL(_converter.get_nd_val(_src.valueType(), M_NAME + "_val"))
+): M_LEN(_ct)
+ , M_NAME(_converter.get_name(_src))
+ , M_TYPE(_converter.get_type(_src))
+ , M_KEY_T(_converter.get_type(_src.keyType()))
+ , M_VAL_T(_converter.get_type(_src.valueType()))
+ , M_INIT_KEY(_converter.get_init_val(_src.keyType()))
+ , M_INIT_VAL(_converter.get_init_val(_src.valueType()))
+ , M_ND_VAL(_converter.get_nd_val(_src.valueType(), M_NAME + "_val"))
 {
 }
 
@@ -52,7 +51,6 @@ CStructDef MapGenerator::declare(bool _forward_declare) const
         t->push_back(make_shared<CVarDecl>(M_VAL_T, ND_FIELD));
         for (unsigned int i = 0; i < M_LEN; ++i)
         {
-            t->push_back(make_shared<CVarDecl>("uint8_t", field(SET_FIELD, i)));
             t->push_back(make_shared<CVarDecl>(M_KEY_T, field(CURR_FIELD, i)));
             t->push_back(make_shared<CVarDecl>(M_VAL_T, field(DATA_FIELD, i)));
         }
@@ -175,12 +173,22 @@ shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
     block.push_back(TMP->access(ND_FIELD)->assign(M_INIT_VAL)->stmt());
     for (size_t i = 0; i < M_LEN; ++i)
     {
-        block.push_back(write_field_stmt(*TMP, SET_FIELD, i, Literals::ZERO));
-        block.push_back(write_field_stmt(*TMP, CURR_FIELD, i, M_INIT_KEY));
+        block.push_back(TMP->access(field(CURR_FIELD, i))->access("v")->assign(
+            make_shared<CIdentifier>(name_global_key(i), false)
+        )->stmt());
         block.push_back(write_field_stmt(*TMP, DATA_FIELD, i, _init_data));
     }
     block.push_back(make_shared<CReturn>(TMP->id()));
     return make_shared<CBlock>(move(block));
+}
+
+// -------------------------------------------------------------------------- //
+
+string MapGenerator::name_global_key(size_t _id)
+{
+    return VariableScopeResolver::rewrite(
+        "addr_" + to_string(_id), true, VarContext::STRUCT
+    );
 }
 
 // -------------------------------------------------------------------------- //
@@ -197,18 +205,7 @@ CStmtPtr MapGenerator::expand_iteration(
         _arr.access(field(CURR_FIELD, _i))->access("v"), "==", _key.access("v")
     );
 
-    _chain = make_shared<CIf>(move(is_match), _exec, move(_chain));
-    return make_shared<CIf>(
-        make_shared<CBinaryOp>(
-            _arr.access(field(SET_FIELD, _i)), "==", Literals::ZERO
-        ),
-        make_shared<CBlock>(CBlockList{
-            write_field_stmt(_arr, SET_FIELD, _i, Literals::ONE),
-            write_field_stmt(_arr, CURR_FIELD, _i, _key.id()),
-            move(_exec)
-        }),
-        move(_chain)
-    );
+    return make_shared<CIf>(move(is_match), _exec, move(_chain));
 }
 
 // -------------------------------------------------------------------------- //

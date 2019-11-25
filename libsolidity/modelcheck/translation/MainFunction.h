@@ -33,6 +33,7 @@ class MainFunctionGenerator: public ASTConstVisitor
 public:
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
+        size_t _keyspace,
         std::list<ContractDefinition const *> const& _model,
         NewCallGraph const& _new_graph,
         CallState const& _statedata,
@@ -64,6 +65,9 @@ private:
         std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> fparams;
         CExprPtr path;
     };
+
+    // Stores the size of the keyspace.
+    size_t const M_KEYSPACE;
 
     // The list of contracts requested for the model. If empty, then it one of
     // each contract is instantiated.
