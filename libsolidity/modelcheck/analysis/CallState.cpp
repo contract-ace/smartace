@@ -29,6 +29,7 @@ CallState::CallState()
     add_field(CallStateUtilities::Field::Sender);
     add_field(CallStateUtilities::Field::Value);
     add_field(CallStateUtilities::Field::Block);
+    add_field(CallStateUtilities::Field::Paid);
 }
 
 // -------------------------------------------------------------------------- //
@@ -47,6 +48,9 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
     );
     auto const SENDER_T = TypeConverter::get_simple_ctype(
         *CallStateUtilities::get_type(CallStateUtilities::Field::Sender)
+    );
+    auto const PAID_T = TypeConverter::get_simple_ctype(
+        *CallStateUtilities::get_type(CallStateUtilities::Field::Paid)
     );
 
     shared_ptr<CBlock> pay_body;

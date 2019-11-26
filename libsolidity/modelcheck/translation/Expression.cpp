@@ -815,7 +815,11 @@ void ExpressionConverter::pass_next_call_state(
 			{
 				_builder.push(TypeConverter::init_val_by_simple_type(*f.type));
 			}
-			
+		}
+		else if (f.field == CallStateUtilities::Field::Paid)
+		{
+			auto const& PAID_RAW = _is_ext ? Literals::ONE : Literals::ZERO;
+			_builder.push(FunctionUtilities::try_to_wrap(*f.type, PAID_RAW));
 		}
 		else
 		{

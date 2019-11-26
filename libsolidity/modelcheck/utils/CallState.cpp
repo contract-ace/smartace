@@ -30,6 +30,8 @@ AddressType const CallStateUtilities::SENDER_TYPE(StateMutability::Payable);
 
 IntegerType const CallStateUtilities::COUNTABLE_TYPE(256);
 
+BoolType const CallStateUtilities::BOOLEAN_TYPE;
+
 // -------------------------------------------------------------------------- //
 
 CallStateUtilities::Field CallStateUtilities::parse_magic_type(
@@ -71,6 +73,10 @@ string CallStateUtilities::get_name(CallStateUtilities::Field _field)
     {
         retval = "value";
     }
+    else if (_field == CallStateUtilities::Field::Paid)
+    {
+        retval = "paid";
+    }
     return retval;
 }
 
@@ -83,6 +89,7 @@ Type const* CallStateUtilities::get_type(CallStateUtilities::Field _field)
     case CallStateUtilities::Field::Block: return &COUNTABLE_TYPE;
     case CallStateUtilities::Field::Sender: return &SENDER_TYPE;
     case CallStateUtilities::Field::Value: return &COUNTABLE_TYPE;
+    case CallStateUtilities::Field::Paid: return &BOOLEAN_TYPE;
     default: return nullptr;
     };
 }

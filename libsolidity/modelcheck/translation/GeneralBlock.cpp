@@ -85,22 +85,28 @@ bool GeneralBlockConverter::visit(Block const& _node)
 	// Performs setup specific to the top-level block.
 	if (top_level_swap.old())
 	{
-		auto const FIELD = CallStateUtilities::get_name(
+		auto const VAL_FLD = CallStateUtilities::get_name(
 			CallStateUtilities::Field::Value
 		);
+		auto const PAY_FLD = CallStateUtilities::get_name(
+			CallStateUtilities::Field::Paid
+		);
 
-		auto const V = make_shared<CIdentifier>(FIELD, false)->access("v");
+		auto const VAL = make_shared<CIdentifier>(VAL_FLD, false)->access("v");
+		auto const PAY = make_shared<CIdentifier>(PAY_FLD, false)->access("v");
 		if (M_MANAGE_PAY && M_IS_PAYABLE)
 		{
 			string const BAL_MEMBER = ContractUtilities::balance_member();
 			auto const self = make_shared<CIdentifier>("self", true);
 			auto BAL = self->access(BAL_MEMBER)->access("v");
-			stmts.push_back(CBinaryOp(BAL, "+=", V).stmt());
+			auto CHG = CBinaryOp(BAL, "+=", VAL).stmt();
+			auto CHK = make_shared<CBinaryOp>(PAY, "==", Literals::ONE);
+			stmts.push_back(make_shared<CIf>(CHK, CHG, nullptr));
 		}
 		else if (M_MANAGE_PAY)
 		{
 			stmts.push_back(make_shared<CFuncCall>("sol_require", CArgList{
-				make_shared<CBinaryOp>(V, "==", Literals::ZERO), Literals::ZERO
+				make_shared<CBinaryOp>(VAL, "==", Literals::ZERO), Literals::ZERO
 			})->stmt());
 		}
 		enter(stmts, m_decls);

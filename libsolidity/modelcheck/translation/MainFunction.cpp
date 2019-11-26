@@ -98,6 +98,10 @@ void MainFunctionGenerator::print(std::ostream& _stream)
             main.push_back(TMP_DECL);
             main.push_back(DECL->access("v")->assign(Literals::ZERO)->stmt());
         }
+        else if (fld.field == CallStateUtilities::Field::Paid)
+        {
+            main.push_back(DECL->access("v")->assign(Literals::ONE)->stmt());
+        }
     }
 
     // Declares function parameters.
@@ -117,9 +121,9 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         auto const NAME = MapGenerator::name_global_key(i);
         auto const ADDRMSG = "Init address of " + NAME;
         auto decl = make_shared<CIdentifier>(NAME, false);
-        main.push_back(decl->assign(make_shared<CMemberAccess>(
-            TypeConverter::nd_val_by_simple_type(*ADDR_T, ADDRMSG), "v"
-        ))->stmt());
+        main.push_back(decl->assign(
+            TypeConverter::raw_simple_nd(*ADDR_T, ADDRMSG)
+        )->stmt());
         addrs.push_back(decl);
     }
     for (auto const& actor : actors)
@@ -134,7 +138,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
         auto const& ADDR = DECL->access(ContractUtilities::address_member());
         string const ADDRMSG = "Init address of " + actor.contract->name();
-        main.push_back(ADDR->assign(TypeConverter::nd_val_by_simple_type(
+        main.push_back(ADDR->access("v")->assign(TypeConverter::raw_simple_nd(
             *ADDR_T, ADDRMSG
         ))->stmt());
         contract_addrs.push_back(ADDR);
@@ -290,8 +294,7 @@ CStmtPtr MainFunctionGenerator::init_contract(
     {
         for (auto const param : ctor->parameters())
         {
-            string const MSG
-                = "Init field " + param->name() + " in " + _contract.name();
+            string const MSG = "Set " + _contract.name() + ":" + param->name();
             init_builder.push(m_converter.get_nd_val(*param, MSG));
         }
     }
@@ -322,7 +325,7 @@ CBlockList MainFunctionGenerator::build_case(
     CBlockList call_body;
     for (auto const arg : _def.parameters())
     {
-        string const MSG = "Set " + arg->name() + " for call " + _def.name();
+        string const MSG = "Set " + _def.name() + ":" + arg->name();
         auto const& PDECL = _args[arg.get()];
         auto const ND_VAL = m_converter.get_nd_val(*arg, MSG);
         call_body.push_back(PDECL->assign(ND_VAL)->stmt());
@@ -344,6 +347,8 @@ void MainFunctionGenerator::update_call_state(
     {
         auto state = make_shared<CIdentifier>(fld.name, false);
         auto nd = TypeConverter::raw_simple_nd(*fld.type, fld.name);
+
+        if (fld.field == CallStateUtilities::Field::Paid) continue;
 
         if (fld.field == CallStateUtilities::Field::Block)
         {

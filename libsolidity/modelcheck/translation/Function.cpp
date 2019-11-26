@@ -94,7 +94,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         for (auto decl : _node.stateVariables())
         {
             auto const DECLKIND = decl->annotation().type->category();
-            if (DECLKIND == Type::Category::Contract) break;
+            if (DECLKIND == Type::Category::Contract) continue;
 
             auto const NAME = VariableScopeResolver::rewrite(
                 decl->name(), false, VarContext::STRUCT

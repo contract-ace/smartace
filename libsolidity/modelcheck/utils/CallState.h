@@ -22,7 +22,7 @@ class CallStateUtilities
 {
 public:
     // An enum for supported call state variables.
-    enum class Field { Sender, Value, Block };
+    enum class Field { Sender, Value, Block, Paid };
 
     // Maps a magic type to a field.
     static Field parse_magic_type(Type const& _type, std::string _field);
@@ -41,6 +41,7 @@ private:
     // Static type instances to reference in return values
     static AddressType const SENDER_TYPE;
     static IntegerType const COUNTABLE_TYPE;
+    static BoolType const BOOLEAN_TYPE;
 };
 
 }
