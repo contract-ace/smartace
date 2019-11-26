@@ -179,7 +179,7 @@ void ModifierBlockConverter::endVisit(PlaceholderStatement const&)
 {
 	CFuncCallBuilder builder(M_NEXT_CALL);
 	builder.push(make_shared<CIdentifier>("self", true));
-	M_STATEDATA.push_state_to(builder);
+	M_STATEDATA.compute_next_state_for(builder, false, nullptr);
 
 	for (auto const& ARG : M_TRUE_PARAMS)
 	{

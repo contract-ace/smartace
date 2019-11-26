@@ -7,6 +7,7 @@
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
+#include <map>
 #include <sstream>
 
 using namespace std;
@@ -96,7 +97,7 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
         for (int j = 0; j <= 16; ++j)
         {
             ostringstream target;
-            target << "set" << j;
+            target << "curr" << j;
             if (j < i)
             {
                 BOOST_CHECK(actual.str().find(target.str()) != string::npos);
@@ -107,6 +108,42 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
             }
         }
     }
+}
+
+BOOST_AUTO_TEST_CASE(member_inheritance)
+{
+    char const* text = R"(
+        contract A {
+            int a; int b; int c;
+        }
+        contract B is A {
+            int c; int d; int e;
+        }
+        contract C is B {
+            int e; int f; int g;
+        }
+    )";
+
+    auto const &unit = *parseAndAnalyse(text);
+    auto const &ctrt = *retrieveContractByName(unit, "C");
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    ostringstream actual, expect;
+    ADTConverter(ctrt, converter, 1, false).print(actual);
+    expect << "struct Escrow"
+           << "{"
+           << "sol_address_t model_address;"
+           << "sol_uint256_t model_balance;"
+           << "sol_uint256_t user_a;"
+           << "sol_uint256_t user_b;"
+           << "sol_uint256_t user_c;"
+           << "sol_uint256_t user_d;"
+           << "sol_uint256_t user_e;"
+           << "sol_uint256_t user_f;"
+           << "sol_uint256_t user_g;"
+           << "}";
 }
 
 BOOST_AUTO_TEST_SUITE_END();

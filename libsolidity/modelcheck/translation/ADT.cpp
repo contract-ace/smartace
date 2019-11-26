@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/translation/Mapping.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/General.h>
+#include <set>
 #include <sstream>
 
 using namespace std;
@@ -69,14 +70,22 @@ void ADTConverter::endVisit(ContractDefinition const& _node)
 
             fields->push_back(make_shared<CVarDecl>(TYPE_NAME, NAME));
         }
-        for (auto decl : _node.stateVariables())
-        {
-            string const TYPE = M_CONVERTER.get_type(*decl);
-            string const NAME = VariableScopeResolver::rewrite(
-                decl->name(), false, VarContext::STRUCT
-            );
 
-            fields->push_back(make_shared<CVarDecl>(TYPE, NAME));
+        set<string> vars;
+        for (auto const* base : _node.annotation().linearizedBaseContracts)
+        {
+            for (auto decl : base->stateVariables())
+            {
+                auto res = vars.insert(decl->name());
+                if (!res.second) break;
+
+                string const TYPE = M_CONVERTER.get_type(*decl);
+                string const NAME = VariableScopeResolver::rewrite(
+                    decl->name(), false, VarContext::STRUCT
+                );
+
+                fields->push_back(make_shared<CVarDecl>(TYPE, NAME));
+            }
         }
     }
     CStructDef contract(M_CONVERTER.get_name(_node), move(fields));

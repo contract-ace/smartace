@@ -10,6 +10,8 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/utils/Contract.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <sstream>
 
@@ -125,6 +127,47 @@ void CallState::push_state_to(CFuncCallBuilder & _builder) const
     {
         _builder.push(make_shared<CIdentifier>(fld.name, false));
     }
+}
+
+// -------------------------------------------------------------------------- //
+
+void CallState::compute_next_state_for(
+    CFuncCallBuilder & _builder, bool _external, CExprPtr _value
+) const
+{
+	auto self_id = make_shared<CIdentifier>("self", true);
+	for (auto const& f : order())
+	{
+		if (_external && f.field == CallStateUtilities::Field::Sender)
+		{
+			string const ADDRESS = ContractUtilities::address_member();
+			_builder.push(make_shared<CMemberAccess>(self_id, ADDRESS));
+		}
+		else if (_external && f.field == CallStateUtilities::Field::Value)
+		{
+			if (_value)
+			{
+				string const BAL = ContractUtilities::balance_member();
+				CFuncCallBuilder val_builder("_pay_by_val");
+				val_builder.push(make_shared<CReference>(self_id->access(BAL)));
+				val_builder.push(_value);
+				_builder.push(val_builder.merge_and_pop());
+			}
+			else
+			{
+				_builder.push(TypeConverter::init_val_by_simple_type(*f.type));
+			}
+		}
+		else if (f.field == CallStateUtilities::Field::Paid)
+		{
+			auto const& PAID_RAW = _external ? Literals::ONE : Literals::ZERO;
+			_builder.push(FunctionUtilities::try_to_wrap(*f.type, PAID_RAW));
+		}
+		else
+		{
+			_builder.push(make_shared<CIdentifier>(f.name, false));
+		}
+	}
 }
 
 // -------------------------------------------------------------------------- //

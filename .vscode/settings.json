@@ -73,7 +73,10 @@
         "streambuf": "cpp",
         "cfenv": "cpp",
         "cinttypes": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "*.cmake": "cpp",
+        "*.make": "cpp",
+        "*.internal": "cpp"
     },
     "C_Cpp.default.cppStandard": "c++14",
     "C_Cpp.default.defines": ["MC_USE_STDINT"]

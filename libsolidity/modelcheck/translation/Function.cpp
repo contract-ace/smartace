@@ -120,7 +120,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 
             CFuncCallBuilder builder(M_CONVERTER.get_name(ROOT));
             builder.push(self_ptr);
-            M_STATEDATA.push_state_to(builder);
+            M_STATEDATA.compute_next_state_for(builder, false, nullptr);
             for (auto decl : ctor->parameters())
             {
                 auto const NAME = VariableScopeResolver::rewrite(

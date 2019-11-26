@@ -410,7 +410,7 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, statedata, converter).convert();
     expected << "{";
-    expected << "(((self)->model_balance).v)+=((value).v);";
+    expected << "if(((paid).v)==(1))(((self)->model_balance).v)+=((value).v);";
     expected << "(self)->user_d;";
     expected << "((self->user_b).user_i).v;";
     expected << "(((self->user_c).user_b).user_i).v;";
@@ -464,13 +464,20 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
             actual << *FunctionBlockConverter(*func_ptr, statedata, converter).convert();
             expected << "{";
             expected << "sol_require(((value).v)==(0),0);";
-            expected << "Method_A_Funcf(self,blocknum,sender,value);";
-            expected << "Method_A_Funcg(self,blocknum,sender,value,Init_sol_int256_t(1));";
-            expected << "Method_A_Funch(self,blocknum,sender,value,Init_sol_int256_t(1)"
+            expected << "Method_A_Funcf(self,sender,value,blocknum"
+                     << ",Init_sol_bool_t(0));";
+            expected << "Method_A_Funcg(self,sender,value,blocknum"
+                     << ",Init_sol_bool_t(0)"
+                     << ",Init_sol_int256_t(1));";
+            expected << "Method_A_Funch(self,sender,value,blocknum"
+                     << ",Init_sol_bool_t(0),Init_sol_int256_t(1)"
                      << ",Init_sol_int256_t(2));";
-            expected << "Method_A_Funcp(self,blocknum,sender,value);";
-            expected << "Method_A_Funcq(self,blocknum,sender,value,Init_sol_int256_t(1));";
-            expected << "Method_A_Funcr(self,blocknum,sender,value,Init_sol_int256_t(1)"
+            expected << "Method_A_Funcp(self,sender,value,blocknum"
+                     << ",Init_sol_bool_t(0));";
+            expected << "Method_A_Funcq(self,sender,value,blocknum,"
+                     << "Init_sol_bool_t(0),Init_sol_int256_t(1));";
+            expected << "Method_A_Funcr(self,sender,value,blocknum"
+                     << ",Init_sol_bool_t(0),Init_sol_int256_t(1)"
                      << ",Init_sol_int256_t(2));";
             expected << "}";
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
@@ -520,11 +527,16 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
             actual << *FunctionBlockConverter(*func_ptr, statedata, converter).convert();
             expected << "{";
             expected << "sol_require(((value).v)==(0),0);";
-            expected << "Method_A_Funcf(&(self->user_a),blocknum,sender,value);";
-            expected << "Method_A_Funcg(&(self->user_a),blocknum,sender,value);";
-            expected << "Method_B_Funcf(&(self->user_b),blocknum,sender,value);";
-            expected << "Method_B_Funcf(self,blocknum,sender,value);";
-            expected << "Method_B_Funcf(self,blocknum,sender,value);";
+            expected << "Method_A_Funcf(&(self->user_a),(self)->model_address"
+                     << ",Init_sol_uint256_t(0),blocknum,Init_sol_bool_t(1));";
+            expected << "Method_A_Funcg(&(self->user_a),(self)->model_address"
+                     << ",Init_sol_uint256_t(0),blocknum,Init_sol_bool_t(1));";
+            expected << "Method_B_Funcf(&(self->user_b),(self)->model_address"
+                     << ",Init_sol_uint256_t(0),blocknum,Init_sol_bool_t(1));";
+            expected << "Method_B_Funcf(self,(self)->model_address"
+                     << ",Init_sol_uint256_t(0),blocknum,Init_sol_bool_t(1));";
+            expected << "Method_B_Funcf(self,(self)->model_address"
+                     << ",Init_sol_uint256_t(0),blocknum,Init_sol_bool_t(1));";
             expected << "}";;
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;
@@ -560,12 +572,12 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
     actual << *FunctionBlockConverter(func, statedata, converter).convert();
     expected << "{";
     expected << "sol_require(((value).v)==(0),0);";
-    expected << "_pay(Init_sol_address_t((func_user_dst).v)"
-             << ",Init_sol_uint256_t(5));";
-    expected << "_pay(Init_sol_address_t((func_user_dst).v)"
-             << ",Init_sol_uint256_t(10));";
-    expected << "_pay(Init_sol_address_t((func_user_dst).v)"
-             << ",Init_sol_uint256_t(15));";
+    expected << "_pay(&((self)->model_balance),Init_sol_address_t("
+             << "(func_user_dst).v),Init_sol_uint256_t(5));";
+    expected << "_pay(&((self)->model_balance),Init_sol_address_t("
+             << "(func_user_dst).v),Init_sol_uint256_t(10));";
+    expected << "_pay(&((self)->model_balance),Init_sol_address_t("
+             << "(func_user_dst).v),Init_sol_uint256_t(15));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -654,9 +666,11 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
             }
         }
 		contract C {
+            A a;
+            B b;
 			function f() public {
-                new A();
-                new B(10);
+                a = new A();
+                b = new B(10);
             }
 		}
 	)";
@@ -675,8 +689,11 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
     actual << *FunctionBlockConverter(func, statedata, converter).convert();
     expected << "{";
     expected << "sol_require(((value).v)==(0),0);";
-    expected << "Init_A();";
-    expected << "Init_B(nullptr,blocknum,sender,value,Init_sol_int256_t(10));";
+    expected << "Init_A(&(self->user_a),(self)->model_address"
+             << ",Init_sol_uint256_t(0),blocknum,Init_sol_bool_t(1));";
+    expected << "Init_B(&(self->user_b),(self)->model_address"
+             << ",Init_sol_uint256_t(0),blocknum,Init_sol_bool_t(1)"
+             << ",Init_sol_int256_t(10));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -996,7 +1013,7 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
     actual << *FunctionBlockConverter(*func, statedata, converter).convert();
     expect << "{";
     expect << "sol_require(((value).v)==(0),0);";
-    expect << "(Method_A_Funcf(self,blocknum,sender,value)).v;";
+    expect << "(Method_A_Funcf(self,sender,value,blocknum,Init_sol_bool_t(0))).v;";
     expect << "}";
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
@@ -1036,8 +1053,8 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     f0_actual << *ModifierBlockConverter(func_f, 0, statedata, converter).convert();
     f0_expect << "{";
     f0_expect << "sol_require(((value).v)==(0),0);";
-    f0_expect << "Method_A_Funcf_mod1(self,blocknum,sender,value);";
-    f0_expect << "Method_A_Funcf_mod1(self,blocknum,sender,value);";
+    f0_expect << "Method_A_Funcf_mod1(self,sender,value,blocknum,Init_sol_bool_t(0));";
+    f0_expect << "Method_A_Funcf_mod1(self,sender,value,blocknum,Init_sol_bool_t(0));";
     f0_expect << "return;";
     f0_expect << "}";
     BOOST_CHECK_EQUAL(f0_actual.str(), f0_expect.str());
@@ -1046,17 +1063,27 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     g0_actual << *ModifierBlockConverter(func_g, 0, statedata, converter).convert();
     g0_expect << "{";
     g0_expect << "sol_require(((value).v)==(0),0);";
-    g0_expect << "Method_A_Funcg_mod1(self,blocknum,sender,value);";
-    g0_expect << "Method_A_Funcg_mod1(self,blocknum,sender,value);";
+    g0_expect << "Method_A_Funcg_mod1(self,sender,value,blocknum,Init_sol_bool_t(0));";
+    g0_expect << "Method_A_Funcg_mod1(self,sender,value,blocknum,Init_sol_bool_t(0));";
     g0_expect << "return;";
     g0_expect << "}";
     BOOST_CHECK_EQUAL(g0_actual.str(), g0_expect.str());
 
-    ostringstream f1_actual, g1_actual;
+    ostringstream f1_actual, f1_expect;
     f1_actual << *ModifierBlockConverter(func_f, 1, statedata, converter).convert();
+    f1_expect << "{";
+    f1_expect << "Method_A_Funcf(self,sender,value,blocknum,Init_sol_bool_t(0));";
+    f1_expect << "return;";
+    f1_expect << "}";
+    BOOST_CHECK_EQUAL(f1_actual.str(), f1_expect.str());
+
+    ostringstream g1_actual, g1_expect;
     g1_actual << *ModifierBlockConverter(func_g, 1, statedata, converter).convert();
-    BOOST_CHECK_EQUAL(f1_actual.str(), "{Method_A_Funcf(self,blocknum,sender,value);return;}");
-    BOOST_CHECK_EQUAL(g1_actual.str(), "{Method_A_Funcg(self,blocknum,sender,value);return;}");
+    g1_expect << "{";
+    g1_expect << "Method_A_Funcg(self,sender,value,blocknum,Init_sol_bool_t(0));";
+    g1_expect << "return;";
+    g1_expect << "}";
+    BOOST_CHECK_EQUAL(g1_actual.str(), g1_expect.str());
 }
 
 BOOST_AUTO_TEST_CASE(modifier_retval)
@@ -1087,9 +1114,9 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
     expected << "{";
     expected << "sol_require(((value).v)==(0),0);";
     expected << "sol_int256_t func_model_rv;";
-    expected << "(func_model_rv)=(Method_A_Funcf(self,blocknum,sender,value));";
+    expected << "(func_model_rv)=(Method_A_Funcf(self,sender,value,blocknum,Init_sol_bool_t(0)));";
     expected << "return func_model_rv;";
-    expected << "(func_model_rv)=(Method_A_Funcf(self,blocknum,sender,value));";
+    expected << "(func_model_rv)=(Method_A_Funcf(self,sender,value,blocknum,Init_sol_bool_t(0)));";
     expected << "return func_model_rv;";
     expected << "}";
 
@@ -1127,7 +1154,7 @@ BOOST_AUTO_TEST_CASE(modifier_args)
     expected << "sol_int256_t func_user_b=Init_sol_int256_t("
              << "(func_model_a).v);";
     expected << "sol_require(((func_user_a).v)>((func_user_b).v),0);";
-    expected << "Method_A_Funcf(self,blocknum,sender,value,func_model_a,func_model_b);";
+    expected << "Method_A_Funcf(self,sender,value,blocknum,Init_sol_bool_t(0),func_model_a,func_model_b);";
     expected << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expected.str());

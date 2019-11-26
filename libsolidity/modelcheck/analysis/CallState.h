@@ -7,6 +7,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/codegen/Core.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <list>
 #include <ostream>
@@ -58,6 +59,11 @@ public:
 
     // Appends all argument ID's to an argument list, in order.
     void push_state_to(CFuncCallBuilder & _builder) const;
+
+    // Handles callstate updates for intermediate calls.
+    void compute_next_state_for(
+        CFuncCallBuilder & _builder, bool _external, CExprPtr _value
+    ) const;
 
 private:
     // Adds a new field (and its associated data) to the field list.

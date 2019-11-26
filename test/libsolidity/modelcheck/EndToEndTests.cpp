@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     ).print(func_actual);
 
     BOOST_CHECK_EQUAL(adt_actual.str(), "struct A;");
-    BOOST_CHECK_EQUAL(func_actual.str(), "struct A Init_A(void);");
+    BOOST_CHECK_EQUAL(func_actual.str(), "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);");
 }
 
 // Ensures that the non-recursive map case generates the correct structure and
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_Mapa_submap1;" << "struct A;";
-    func_expect << "struct A Init_A(void);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);";
     func_expect << "struct A_Mapa_submap1 Init_0_A_Mapa_submap1(void);";
     func_expect << "struct A_Mapa_submap1 ND_A_Mapa_submap1(void);";
     func_expect << "sol_uint256_t Read_A_Mapa_submap1"
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_StructB;" << "struct A;";
-    func_expect << "struct A Init_A(void);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);";
     func_expect << "struct A_StructB Init_0_A_StructB(void);";
     func_expect << "struct A_StructB Init_A_StructB"
                 << "(sol_uint256_t user_a,sol_uint256_t user_b);";
@@ -244,7 +244,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     adt_expect << "struct A_StructB_Mapa_submap1;";
     adt_expect << "struct A_StructB;";
     adt_expect << "struct A;";
-    func_expect << "struct A Init_A(void);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);";
     func_expect << "struct A_StructB Init_0_A_StructB(void);";
     func_expect << "struct A_StructB Init_A_StructB(void);";
     func_expect << "struct A_StructB ND_A_StructB(void);";
@@ -313,7 +313,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct A;";
     adt_expect << "struct C_Mapb_submap1;";
     adt_expect << "struct C;";
-    func_expect << "struct A Init_A(void);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);";
     func_expect << "struct A_StructB Init_0_A_StructB(void);";
     func_expect << "struct A_StructB Init_A_StructB(void);";
     func_expect << "struct A_StructB ND_A_StructB(void);";
@@ -328,7 +328,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
                 << ",sol_uint256_t dat);";
     func_expect << "sol_uint256_t*Ref_A_StructB_Mapa_submap1"
                 << "(struct A_StructB_Mapa_submap1*arr,sol_uint256_t key);";
-    func_expect << "struct C Init_C(void);";
+    func_expect << "void Init_C(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);";
     func_expect << "struct C_Mapb_submap1 Init_0_C_Mapb_submap1(void);";
     func_expect << "struct C_Mapb_submap1 ND_C_Mapb_submap1(void);";
     func_expect << "sol_uint256_t Read_C_Mapb_submap1"
@@ -373,7 +373,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     adt_expect << "struct A_Mapa_submap2;";
     adt_expect << "struct A_Mapa_submap1;";
     adt_expect << "struct A;";
-    func_expect << "struct A Init_A(void);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);";
     func_expect << "struct A_Mapa_submap1 Init_0_A_Mapa_submap1(void);";
     func_expect << "struct A_Mapa_submap1 ND_A_Mapa_submap1(void);";
     func_expect << "struct A_Mapa_submap2 Read_A_Mapa_submap1"
