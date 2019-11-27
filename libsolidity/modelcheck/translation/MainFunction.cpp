@@ -163,7 +163,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         if (!actor.path)
         {
             update_call_state(main, contract_addrs);
-            main.push_back(init_contract(*actor.contract, actor.decl));
+            init_contract(main, *actor.contract, actor.decl);
         }
     }
 
@@ -282,8 +282,10 @@ void MainFunctionGenerator::analyze_nested_decls(
 
 // -------------------------------------------------------------------------- //
 
-CStmtPtr MainFunctionGenerator::init_contract(
-    ContractDefinition const& _contract, shared_ptr<const CVarDecl> _id
+void MainFunctionGenerator::init_contract(
+    CBlockList & _stmts,
+    ContractDefinition const& _contract,
+    shared_ptr<const CVarDecl> _id
 )
 {
     CFuncCallBuilder init_builder("Init_" + m_converter.get_name(_contract));
@@ -292,14 +294,19 @@ CStmtPtr MainFunctionGenerator::init_contract(
 
     if (auto const ctor = _contract.constructor())
     {
+        if (ctor->isPayable())
+        {
+            set_payment_value(_stmts);
+        }
+
         for (auto const param : ctor->parameters())
         {
-            string const MSG = "Set " + _contract.name() + ":" + param->name();
+            string const MSG = _contract.name() + ":" + param->name();
             init_builder.push(m_converter.get_nd_val(*param, MSG));
         }
     }
 
-    return init_builder.merge_and_pop()->stmt();
+    _stmts.push_back(init_builder.merge_and_pop()->stmt());
 }
 
 // -------------------------------------------------------------------------- //
@@ -323,9 +330,13 @@ CBlockList MainFunctionGenerator::build_case(
     m_statedata.push_state_to(call_builder);
 
     CBlockList call_body;
+    if (_def.isPayable())
+    {
+        set_payment_value(call_body);
+    }
     for (auto const arg : _def.parameters())
     {
-        string const MSG = "Set " + _def.name() + ":" + arg->name();
+        string const MSG = _def.name() + ":" + arg->name();
         auto const& PDECL = _args[arg.get()];
         auto const ND_VAL = m_converter.get_nd_val(*arg, MSG);
         call_body.push_back(PDECL->assign(ND_VAL)->stmt());
@@ -359,6 +370,10 @@ void MainFunctionGenerator::update_call_state(
             )));
             _stmts.push_back(state->assign(tmp_state)->stmt());
         }
+        else if (fld.field == CallStateUtilities::Field::Value)
+        {
+            _stmts.push_back(state->access("v")->assign(Literals::ZERO)->stmt());
+        }
         else
         {
             _stmts.push_back(state->access("v")->assign(nd)->stmt());
@@ -376,6 +391,18 @@ void MainFunctionGenerator::update_call_state(
             }
         }
     }
+}
+
+// -------------------------------------------------------------------------- //
+
+void MainFunctionGenerator::set_payment_value(CBlockList & _stmts)
+{
+    auto const VAL_FIELD = CallStateUtilities::Field::Value;
+    auto const VAL_NAME = CallStateUtilities::get_name(VAL_FIELD);
+    auto const VAL_TYPE = CallStateUtilities::get_type(VAL_FIELD);
+    auto nd = TypeConverter::raw_simple_nd(*VAL_TYPE, VAL_NAME);
+    auto state = make_shared<CIdentifier>(VAL_NAME, false);
+    _stmts.push_back(state->access("v")->assign(nd)->stmt());
 }
 
 // -------------------------------------------------------------------------- //

@@ -23,6 +23,18 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
+ * Static helper utilities for block-like codeflow generation.
+ */
+class BlockUtilities
+{
+public:
+	// Generates the payment call.
+	static void add_value_handler(CBlockList & _block);
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * A utility visitor, designed to convert Solidity code blocks into executable
  * C-code. This is meant to be used a utility when converting a full Solidity
  * source unit. This splits data structure conversion from instruction

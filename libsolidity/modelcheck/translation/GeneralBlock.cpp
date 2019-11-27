@@ -25,6 +25,26 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+void BlockUtilities::add_value_handler(CBlockList & _block)
+{
+	auto const VALUE_SYM = CallStateUtilities::Field::Value;
+	auto const VALUE_FLD = CallStateUtilities::get_name(VALUE_SYM);
+	auto const VALUE = make_shared<CIdentifier>(VALUE_FLD, false)->access("v");
+
+	auto const PAID_SYM = CallStateUtilities::Field::Paid;
+	auto const PAID_FLD = CallStateUtilities::get_name(PAID_SYM);
+	auto const PAID = make_shared<CIdentifier>(PAID_FLD, false)->access("v");
+
+	auto const SELF = make_shared<CIdentifier>("self", true);
+	auto BAL = SELF->access(ContractUtilities::balance_member())->access("v");
+
+	auto CHECKS = make_shared<CBinaryOp>(PAID, "==", Literals::ONE);
+	auto CHANGE = CBinaryOp(BAL, "+=", VALUE).stmt();
+	_block.push_back(make_shared<CIf>(CHECKS, CHANGE, nullptr));
+}
+
+// -------------------------------------------------------------------------- //
+
 GeneralBlockConverter::GeneralBlockConverter(
 	std::vector<ASTPointer<VariableDeclaration>> const& _args,
 	Block const& _body,
@@ -85,29 +105,10 @@ bool GeneralBlockConverter::visit(Block const& _node)
 	// Performs setup specific to the top-level block.
 	if (top_level_swap.old())
 	{
-		auto const VAL_FLD = CallStateUtilities::get_name(
-			CallStateUtilities::Field::Value
-		);
-		auto const PAY_FLD = CallStateUtilities::get_name(
-			CallStateUtilities::Field::Paid
-		);
 
-		auto const VAL = make_shared<CIdentifier>(VAL_FLD, false)->access("v");
-		auto const PAY = make_shared<CIdentifier>(PAY_FLD, false)->access("v");
 		if (M_MANAGE_PAY && M_IS_PAYABLE)
 		{
-			string const BAL_MEMBER = ContractUtilities::balance_member();
-			auto const self = make_shared<CIdentifier>("self", true);
-			auto BAL = self->access(BAL_MEMBER)->access("v");
-			auto CHG = CBinaryOp(BAL, "+=", VAL).stmt();
-			auto CHK = make_shared<CBinaryOp>(PAY, "==", Literals::ONE);
-			stmts.push_back(make_shared<CIf>(CHK, CHG, nullptr));
-		}
-		else if (M_MANAGE_PAY)
-		{
-			stmts.push_back(make_shared<CFuncCall>("sol_require", CArgList{
-				make_shared<CBinaryOp>(VAL, "==", Literals::ZERO), Literals::ZERO
-			})->stmt());
+			BlockUtilities::add_value_handler(stmts);
 		}
 		enter(stmts, m_decls);
 	}

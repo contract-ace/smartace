@@ -104,8 +104,10 @@ private:
 
     // Consumes a contract declaration, and initializes it through
     // non-deterministic construction.
-    CStmtPtr init_contract(
-        ContractDefinition const& _contract, std::shared_ptr<const CVarDecl> _id
+    void init_contract(
+        CBlockList & _stmts,
+        ContractDefinition const& _contract,
+        std::shared_ptr<const CVarDecl> _id
     );
 
     // For each method on each contract, this will generate a case for the
@@ -122,6 +124,9 @@ private:
         CBlockList & _stmts,
         std::list<std::shared_ptr<CMemberAccess>> const& _addresses
     );
+
+    // Generates a value for a payable method.
+    void set_payment_value(CBlockList & _stmts);
 
     static CExprPtr get_nd_byte(std::string const& _msg);
 };
