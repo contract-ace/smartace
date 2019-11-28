@@ -162,38 +162,24 @@ void TypeConverter::record(SourceUnit const& _unit)
 
         for (auto fun : contract->definedFunctions())
         {
-            auto const* returnParams = fun->returnParameterList().get();
+            fun->parameterList().accept(*this);
+            if (fun->isConstructor()) continue;
 
+            auto const* returnParams = fun->returnParameterList().get();
             {
                 ScopedSwap<bool> swap(m_is_retval, true);
                 returnParams->accept(*this);
             }
 
             ostringstream fun_oss;
-            fun_oss << (fun->isConstructor() ? "Ctor" : "Method") << "_"
-                    << escape_decl_name(*contract);
+            fun_oss << "Method_" << escape_decl_name(*contract)
+                    << "_Func" << escape_decl_name(*fun);
 
-            if (!fun->isConstructor())
-            {
-                fun_oss << "_Func" << escape_decl_name(*fun);
-            }
 
             auto const FUNC_RETURN_TYPE = get_type(*returnParams);
             auto const FUNC_NAME = fun_oss.str();
             m_name_lookup.insert({fun, FUNC_NAME});
             m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
-
-            for (unsigned int i = 0; i < fun->modifiers().size(); ++i)
-            {
-                ostringstream mod_oss;
-                mod_oss << FUNC_NAME << "_mod" << i;
-
-                ModifierInvocation const* modifier = fun->modifiers()[i].get();
-                m_name_lookup.insert({modifier, mod_oss.str()});
-                m_type_lookup.insert({modifier, FUNC_RETURN_TYPE});
-            }
-
-            fun->parameterList().accept(*this);
         }
 
         for (auto modifier : contract->functionModifiers())

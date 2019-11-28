@@ -206,28 +206,6 @@ BOOST_AUTO_TEST_CASE(function)
     BOOST_CHECK_EQUAL(converter.get_type(f2), "void");
 }
 
-// Tests that constructors are annotated properly.
-BOOST_AUTO_TEST_CASE(constructor)
-{
-    char const* text = R"(
-        contract A {
-            int a;
-            constructor() public { a = 5; }
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-    auto const& func = *ctrt.definedFunctions()[0];
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    BOOST_CHECK(converter.has_record(func));
-    BOOST_CHECK_EQUAL(converter.get_name(func), "Ctor_A");
-    BOOST_CHECK_EQUAL(converter.get_type(func), "void");
-}
-
 // Integration test which should fail if a new member is added to the global
 // context, and that variable is not added to the type translator's lookup. This
 // lookup is m_global_context. Success occurs when no exceptions are thrown.
@@ -512,64 +490,6 @@ BOOST_AUTO_TEST_CASE(function_and_identifier_oreder_regression)
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.get_name(indx), "Method_A_Funcg");
-}
-
-BOOST_AUTO_TEST_CASE(modifier_names)
-{
-    char const* text = R"(
-        contract A {
-            modifier m1() { _; }
-            modifier m2() { _; }
-            modifier m3() { _; }
-            function f() public m1() m2() m3() pure { }
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-    auto const& func = *ctrt.definedFunctions()[0];
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    BOOST_CHECK_NE(func.modifiers().size(), 0);
-    for (unsigned int i = 0; i < func.modifiers().size(); ++i)
-    {
-        BOOST_CHECK_EQUAL(
-            converter.get_name(func) + "_mod" + std::to_string(i),
-            converter.get_name(*func.modifiers()[i])
-        );
-        BOOST_CHECK_EQUAL(
-            converter.get_type(func),
-            converter.get_type(*func.modifiers()[i])
-        );
-    }
-}
-
-BOOST_AUTO_TEST_CASE(modifier_types)
-{
-    char const* text = R"(
-        contract A {
-            modifier m1() { _; }
-            modifier m2(int a) { _; }
-            modifier m3(int a, int b) { _; }
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    BOOST_CHECK_NE(ctrt.functionModifiers().size(), 0);
-    for (auto modifier : ctrt.functionModifiers())
-    {
-        for (auto param : modifier->parameters())
-        {
-            BOOST_CHECK_NO_THROW(converter.get_type(*param));
-        }
-    }
 }
 
 // Ensures names are escaped, as per the translation specifications.

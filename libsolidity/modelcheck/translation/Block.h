@@ -167,6 +167,7 @@ public:
 	// source unit(s) associated with _func.
 	ModifierBlockConverter(
 		FunctionDefinition const& _func,
+		std::string name,
 		size_t _i,
 		CallState const& _statedata,
 		TypeConverter const& _types
@@ -196,10 +197,14 @@ private:
 	// Internal constructor parameters.
 	struct Context
 	{
-		Context(FunctionDefinition const& _func, size_t _i);
+		Context(
+			FunctionDefinition const& _func,
+			size_t _i,
+			std::string name
+		);
 		FunctionDefinition const& func;
 		ModifierInvocation const* curr = nullptr;
-		ASTNode const* next = nullptr;
+		std::string next;
 		ModifierDefinition const* def = nullptr;
 		bool manage_pay = false;
 		bool is_payable = false;

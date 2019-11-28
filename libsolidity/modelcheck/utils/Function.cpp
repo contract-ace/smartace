@@ -9,6 +9,7 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/Types.h>
+#include <sstream>
 
 using namespace std;
 
@@ -19,12 +20,6 @@ namespace solidity
 namespace modelcheck
 {
 
-ASTNode const& FunctionUtilities::extract_root(FunctionDefinition const& _func)
-{
-    if (_func.modifiers().empty()) return _func;
-    return *_func.modifiers()[0];
-}
-
 CExprPtr FunctionUtilities::try_to_wrap(Type const& _type, CExprPtr _expr)
 {
     if (is_wrapped_type(_type))
@@ -33,6 +28,29 @@ CExprPtr FunctionUtilities::try_to_wrap(Type const& _type, CExprPtr _expr)
         return make_shared<CFuncCall>( WRAP, CArgList{ move(_expr) } );
     }
     return _expr;
+}
+
+string FunctionUtilities::modifier_name(string _base, size_t _i)
+{
+    return _base + "_mod" + to_string(_i);
+}
+
+string FunctionUtilities::base_name(std::string _base)
+{
+    return _base + "_base";
+}
+
+string FunctionUtilities::ctor_name(
+    ContractDefinition const& _derived, ContractDefinition const& _base
+)
+{
+    ostringstream oss;
+    oss << "Ctor_" << _derived.name();
+    if (_derived.name() != _base.name())
+    {
+        oss << "_" << _base.name();
+    }
+    return oss.str();
 }
 
 }

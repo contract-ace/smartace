@@ -645,12 +645,9 @@ void ExpressionConverter::print_method(
 	FunctionType const& _type, FunctionCall const& _call
 )
 {
-	// Finds mutability of the function.
-	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
-	auto &root = FunctionUtilities::extract_root(decl);
-
 	// Starts generating the function call.
-	CFuncCallBuilder builder(M_TYPES.get_name(root));
+	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
+	CFuncCallBuilder builder(M_TYPES.get_name(decl));
 
 	// Sets state for the next call.
 	FunctionCallAnalyzer calldata(_call);

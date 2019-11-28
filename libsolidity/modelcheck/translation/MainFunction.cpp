@@ -317,15 +317,13 @@ CBlockList MainFunctionGenerator::build_case(
     shared_ptr<const CVarDecl> _id
 )
 {
-    auto const& root = FunctionUtilities::extract_root(_def);
-
     CExprPtr id = _id->id();
     if (!id->is_pointer())
     {
         id = make_shared<CReference>(id);
     }
 
-    CFuncCallBuilder call_builder(m_converter.get_name(root));
+    CFuncCallBuilder call_builder(m_converter.get_name(_def));
     call_builder.push(id);
     m_statedata.push_state_to(call_builder);
 

@@ -23,7 +23,7 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 ModifierBlockConverter::Context::Context(
-    FunctionDefinition const& _func, size_t _i
+    FunctionDefinition const& _func, size_t _i, string name
 ): func(_func)
 {
     // Checks that _i is in bounds.
@@ -57,12 +57,13 @@ ModifierBlockConverter::Context::Context(
     // Analyzes the "next call". next_is_stateful defualts to true for case 1.
     if (_i + 1 < func.modifiers().size())
     {
-        next = func.modifiers()[_i + 1].get();
+        next = FunctionUtilities::modifier_name(move(name), _i + 1);
     }
     else
     {
-        next = &func;
+        next = FunctionUtilities::base_name(move(name));
     }
+    
 
     // Determines payment behaviour.
     manage_pay = (_i == 0);
@@ -73,10 +74,11 @@ ModifierBlockConverter::Context::Context(
 
 ModifierBlockConverter::ModifierBlockConverter(
     FunctionDefinition const& _func,
+    string name,
     size_t _i,
 	CallState const& _statedata,
     TypeConverter const& _types
-): ModifierBlockConverter(Context(_func, _i), _statedata, _types)
+): ModifierBlockConverter(Context(_func, _i, move(name)), _statedata, _types)
 {
 }
 
@@ -96,7 +98,7 @@ ModifierBlockConverter::ModifierBlockConverter(
  , M_TRUE_PARAMS(_ctx.func.parameters())
  , M_USER_PARAMS(_ctx.def->parameters())
  , M_USER_ARGS(_ctx.curr->arguments())
- , M_NEXT_CALL(_types.get_name(*_ctx.next))
+ , M_NEXT_CALL(_ctx.next)
  , m_shadow_decls(true)
 {
 	// TODO(scottwe): support multiple return types.

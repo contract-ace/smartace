@@ -55,6 +55,7 @@ protected:
 	bool visit(Mapping const& _node) override;
 
 private:
+	static const FunctionDefinition PLACEHOLDER_FUNC;
 	static const std::shared_ptr<CIdentifier> TMP;
 
 	std::ostream* m_ostream = nullptr;
@@ -82,6 +83,18 @@ private:
 	// the given type.
 	CParams generate_params(
 		std::vector<ParamTmpl> const& _args, ASTNode const* _scope
+	);
+
+	// Generates a layer of the contract constructor.
+	void handle_function(
+		FunctionDefinition const& _func,
+		ASTNode const* _scope,
+		std::string _fname
+	);
+
+	// Recursively expands an initializer for a contract.
+	void handle_contract_initializer(
+    	ContractDefinition const& _contract, ContractDefinition const& _base
 	);
 };
 

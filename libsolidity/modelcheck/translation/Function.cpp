@@ -58,86 +58,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 {
     if (M_VIEW == View::INT) return true;
 
-    string const CTRX_TYPE = M_CONVERTER.get_type(_node);
-    string const CTRX_NAME = M_CONVERTER.get_name(_node);
-
-    CParams params;
-    {
-        vector<FunctionConverter::ParamTmpl> param_tmpls;
-        if (auto ctor = _node.constructor())
-        {
-            FunctionConverter::ParamTmpl tmpl;
-            tmpl.context = VarContext::STRUCT;
-            tmpl.instrumentation = false;
-
-            for (auto arg : ctor->parameters())
-            {
-                tmpl.decl = arg;
-                param_tmpls.push_back(tmpl);
-            }
-        }
-        params = generate_params(param_tmpls, &_node);
-    }
-
-    shared_ptr<CBlock> body;
-    if (!M_FWD_DCL)
-    {
-        CBlockList stmts;
-        auto self_ptr = params[0]->id();
-        {
-            auto const NAME = ContractUtilities::balance_member();
-            auto const* TYPE = ContractUtilities::balance_type();
-            stmts.push_back(self_ptr->access(NAME)->assign(
-                TypeConverter::init_val_by_simple_type(*TYPE)
-            )->stmt());
-        }
-        for (auto decl : _node.stateVariables())
-        {
-            auto const DECLKIND = decl->annotation().type->category();
-            if (DECLKIND == Type::Category::Contract) continue;
-
-            auto const NAME = VariableScopeResolver::rewrite(
-                decl->name(), false, VarContext::STRUCT
-            );
-
-            CExprPtr init;
-            if (decl->value())
-            {
-                init = ExpressionConverter(*decl->value(), {}, {}, {}).convert();
-                init = FunctionUtilities::try_to_wrap(*decl->type(), move(init));
-            }
-            else
-            {
-                init = M_CONVERTER.get_init_val(*decl);
-            }
-
-            auto member = self_ptr->access(NAME);
-            stmts.push_back(member->assign(move(init))->stmt());
-        }
-        if (auto ctor = _node.constructor())
-        {
-            auto const& ROOT = FunctionUtilities::extract_root(*ctor);
-
-            CFuncCallBuilder builder(M_CONVERTER.get_name(ROOT));
-            builder.push(self_ptr);
-            M_STATEDATA.compute_next_state_for(builder, false, nullptr);
-            for (auto decl : ctor->parameters())
-            {
-                auto const NAME = VariableScopeResolver::rewrite(
-                    decl->name(), false, VarContext::STRUCT
-                );
-
-                builder.push(make_shared<CIdentifier>(NAME, false));
-            }
-            stmts.push_back(builder.merge_and_pop_stmt());
-        }
-
-        body = make_shared<CBlock>(move(stmts));
-    }
-
-    auto id = make_shared<CVarDecl>("void", "Init_" + CTRX_NAME);
-    CFuncDef init(id, move(params), move(body));
-    (*m_ostream) << init;
+    handle_contract_initializer(_node, _node);
 
     return true;
 }
@@ -231,72 +152,14 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 
 bool FunctionConverter::visit(FunctionDefinition const& _node)
 {
+    if (_node.isConstructor()) return false;
+
     const bool IS_PUB = _node.visibility() == Declaration::Visibility::Public;
     const bool IS_EXT = _node.visibility() == Declaration::Visibility::External;
     if (!(IS_PUB || IS_EXT) && M_VIEW == View::EXT) return false;
     if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return false;
 
-    vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
-    {
-        FunctionConverter::ParamTmpl tmpl;
-        tmpl.context = VarContext::FUNCTION;
-
-        for (auto arg : _node.parameters())
-        {
-            tmpl.decl = arg;
-
-            tmpl.instrumentation = false;
-            base_tmpl.push_back(tmpl);
-
-            tmpl.instrumentation = true;
-            mod_tmpl.push_back(tmpl);
-        }
-    }
-
-    vector<CFuncDef> defs;
-
-    {
-        CParams params = generate_params(base_tmpl,_node.scope());
-
-        shared_ptr<CBlock> body;
-        if (!M_FWD_DCL)
-        {
-            body = FunctionBlockConverter(
-                _node, M_STATEDATA, M_CONVERTER
-            ).convert();
-        }
-
-        string const FUNC_TYPE = M_CONVERTER.get_type(_node);
-        string const FUNC_NAME = M_CONVERTER.get_name(_node);
-        auto id = make_shared<CVarDecl>(FUNC_TYPE, FUNC_NAME);
-        defs.emplace_back(id, move(params), move(body));
-    }
-
-    CParams const mod_params = generate_params(mod_tmpl, _node.scope());
-    for (size_t i = _node.modifiers().size(); i > 0; --i)
-    {
-        size_t const IDX = i - 1;
-    
-        shared_ptr<CBlock> body;
-        if (!M_FWD_DCL)
-        {
-            body = ModifierBlockConverter(
-                _node,  IDX, M_STATEDATA, M_CONVERTER
-            ).convert();
-        }
-
-        ModifierInvocation const& mod = *_node.modifiers()[IDX];
-
-        string const MOD_TYPE = M_CONVERTER.get_type(mod);
-        string const MOD_NAME = M_CONVERTER.get_name(mod);
-        auto id = make_shared<CVarDecl>(MOD_TYPE, MOD_NAME);
-        defs.emplace_back(id, mod_params, move(body));
-    }
-
-    for (auto const& def : defs)
-    {
-        (*m_ostream) << def;
-    }
+    handle_function(_node, _node.scope(), M_CONVERTER.get_name(_node));
 
     return false;
 }
@@ -346,6 +209,176 @@ CParams FunctionConverter::generate_params(
 }
 
 // -------------------------------------------------------------------------- //
+
+void FunctionConverter::handle_contract_initializer(
+    ContractDefinition const& _contract, ContractDefinition const& _base
+)
+{
+    string const CTRX_NAME = M_CONVERTER.get_name(_contract);
+    auto const* CTOR = _contract.constructor();
+
+    CParams params;
+    string ctor_name;
+    {
+        vector<FunctionConverter::ParamTmpl> param_tmpls;
+        if (CTOR)
+        {
+            FunctionConverter::ParamTmpl tmpl;
+            tmpl.context = VarContext::STRUCT;
+            tmpl.instrumentation = false;
+
+            for (auto arg : CTOR->parameters())
+            {
+                tmpl.decl = arg;
+                param_tmpls.push_back(tmpl);
+            }
+
+            ctor_name = FunctionUtilities::ctor_name(_contract, _base);
+            handle_function(*CTOR, &_contract, ctor_name);
+        }
+        params = generate_params(param_tmpls, &_contract);
+
+    }
+
+    shared_ptr<CBlock> body;
+    if (!M_FWD_DCL)
+    {
+        CBlockList stmts;
+        auto self_ptr = params[0]->id();
+        {
+            auto const NAME = ContractUtilities::balance_member();
+            auto const* TYPE = ContractUtilities::balance_type();
+            stmts.push_back(self_ptr->access(NAME)->assign(
+                TypeConverter::init_val_by_simple_type(*TYPE)
+            )->stmt());
+        }
+        for (auto decl : _contract.stateVariables())
+        {
+            auto const DECLKIND = decl->annotation().type->category();
+            if (DECLKIND == Type::Category::Contract) continue;
+
+            auto const NAME = VariableScopeResolver::rewrite(
+                decl->name(), false, VarContext::STRUCT
+            );
+
+            CExprPtr v0;
+            if (decl->value())
+            {
+                ExpressionConverter init_expr(*decl->value(), {}, {}, {});
+                v0 = init_expr.convert();
+                v0 = FunctionUtilities::try_to_wrap(*decl->type(), move(v0));
+            }
+            else
+            {
+                v0 = M_CONVERTER.get_init_val(*decl);
+            }
+
+            auto member = self_ptr->access(NAME);
+            stmts.push_back(member->assign(move(v0))->stmt());
+        }
+        if (CTOR)
+        {
+            CFuncCallBuilder builder(ctor_name);
+            builder.push(self_ptr);
+            M_STATEDATA.compute_next_state_for(builder, false, nullptr);
+            for (auto decl : CTOR->parameters())
+            {
+                auto const NAME = VariableScopeResolver::rewrite(
+                    decl->name(), false, VarContext::STRUCT
+                );
+
+                builder.push(make_shared<CIdentifier>(NAME, false));
+            }
+            stmts.push_back(builder.merge_and_pop_stmt());
+        }
+
+        body = make_shared<CBlock>(move(stmts));
+    }
+
+    auto id = make_shared<CVarDecl>("void", "Init_" + CTRX_NAME);
+    CFuncDef init(id, move(params), move(body));
+    (*m_ostream) << init;
+}
+
+// -------------------------------------------------------------------------- //
+
+void FunctionConverter::handle_function(
+    FunctionDefinition const& _func, ASTNode const* _scope, string _fname
+)
+{
+    string ftype = "void";
+    if (!_func.isConstructor())
+    {
+        ftype = M_CONVERTER.get_type(_func);
+    }
+
+    vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
+    {
+        FunctionConverter::ParamTmpl tmpl;
+        tmpl.context = VarContext::FUNCTION;
+
+        for (auto arg : _func.parameters())
+        {
+            tmpl.decl = arg;
+
+            tmpl.instrumentation = false;
+            base_tmpl.push_back(tmpl);
+
+            tmpl.instrumentation = true;
+            mod_tmpl.push_back(tmpl);
+        }
+    }
+
+    vector<CFuncDef> defs;
+    {
+        CParams params = generate_params(base_tmpl, _scope);
+
+        shared_ptr<CBlock> body;
+        if (!M_FWD_DCL)
+        {
+            body = FunctionBlockConverter(
+                _func, M_STATEDATA, M_CONVERTER
+            ).convert();
+        }
+
+        string base_fname = _fname;
+        if (!_func.modifiers().empty())
+        {
+            base_fname = FunctionUtilities::base_name(move(base_fname));
+        }
+        auto id = make_shared<CVarDecl>(ftype, move(base_fname));
+        defs.emplace_back(id, move(params), move(body));
+    }
+
+    CParams const mod_params = generate_params(mod_tmpl, _scope);
+    for (size_t i = _func.modifiers().size(); i > 0; --i)
+    {
+        size_t const IDX = i - 1;
+        string mod_fname = _fname;
+        if (IDX != 0)
+        {
+            mod_fname = FunctionUtilities::modifier_name(move(mod_fname), IDX);
+        }
+    
+        shared_ptr<CBlock> body;
+        if (!M_FWD_DCL)
+        {
+            body = ModifierBlockConverter(
+                _func, _fname, IDX, M_STATEDATA, M_CONVERTER
+            ).convert();
+        }
+
+        auto id = make_shared<CVarDecl>(ftype, move(mod_fname));
+        defs.emplace_back(id, mod_params, move(body));
+    }
+
+    for (auto const& def : defs)
+    {
+        (*m_ostream) << def;
+    }
+}
+
+// --------------------------------------------------------------------------
 
 }
 }
