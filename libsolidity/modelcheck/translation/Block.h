@@ -12,6 +12,7 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <ostream>
 #include <type_traits>
+#include <utility>
 
 namespace dev
 {
@@ -162,16 +163,39 @@ private:
 class ModifierBlockConverter : public GeneralBlockConverter
 {
 public:
-	// Creates a block converter for the (_i)-th modifier of function _func. It
-	// is assumed that _types is able to resolve all types in the AST of the
-	// source unit(s) associated with _func.
-	ModifierBlockConverter(
-		FunctionDefinition const& _func,
-		std::string name,
-		size_t _i,
-		CallState const& _statedata,
-		TypeConverter const& _types
-	);
+	// Modifiers introduce two complications. First, modifier invocations are
+	// disjoint from their declarations. Second, modifiers are conflated with
+	// parent constructors when _func is a constructor. The modifier factory
+	// will resolve invocations with definitions, while also filtering away
+	// constructor calls.
+	class Factory
+	{
+	public:
+		// Preprocesses _func to generate all of its modifiers. _name is the
+		// name to associate with _func.
+		Factory(FunctionDefinition const& _func, std::string _name);
+
+		// Generates the _i-th modifier for _func, where _i is zero-indexed.
+		ModifierBlockConverter generate(
+			size_t _i, CallState const& _statedata, TypeConverter const& _types
+		);
+
+		// Returns the number of modifiers which were not filtered away.
+		size_t len() const;
+
+		// Returns true if the function had some modifier, which was not
+		// filtered away.
+		bool empty() const;
+	
+	private:
+		FunctionDefinition const& m_func;
+
+		std::string const m_name;
+
+		std::vector<
+			std::pair<ModifierDefinition const*, ModifierInvocation const*>
+		> m_filtered_mods;
+	};
 
 	~ModifierBlockConverter() override = default;
 
@@ -194,27 +218,15 @@ private:
 	VariableScopeResolver m_shadow_decls;
 	std::shared_ptr<CVarDecl> m_rv = nullptr;
 
-	// Internal constructor parameters.
-	struct Context
-	{
-		Context(
-			FunctionDefinition const& _func,
-			size_t _i,
-			std::string name
-		);
-		FunctionDefinition const& func;
-		ModifierInvocation const* curr = nullptr;
-		std::string next;
-		ModifierDefinition const* def = nullptr;
-		bool manage_pay = false;
-		bool is_payable = false;
-	};
-
 	// Internal constructor implementation. Expects _i be expanded to modifier.
 	ModifierBlockConverter(
-		Context const& _ctx,
+		FunctionDefinition const& _func,
+		ModifierDefinition const* _def,
+		ModifierInvocation const* _curr,
 		CallState const& _statedata,
-		TypeConverter const& _types
+		TypeConverter const& _types,
+		std::string _next,
+		bool _entry
 	);
 };
 

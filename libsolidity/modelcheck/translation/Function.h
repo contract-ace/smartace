@@ -93,8 +93,8 @@ private:
 	);
 
 	// Recursively expands an initializer for a contract.
-	void handle_contract_initializer(
-    	ContractDefinition const& _contract, ContractDefinition const& _base
+	std::string handle_contract_initializer(
+    	ContractDefinition const& _initialized, ContractDefinition const& _for
 	);
 };
 

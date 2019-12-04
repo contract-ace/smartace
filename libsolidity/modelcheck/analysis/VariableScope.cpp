@@ -22,8 +22,8 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 VariableScopeResolver::VariableScopeResolver(
-    bool _instrument
-): M_SHADOW(_instrument)
+    CodeType _code_type
+): M_CODE_TYPE(_code_type)
 {
 }
 
@@ -79,13 +79,20 @@ string VariableScopeResolver::rewrite(string _sym, bool _gen, VarContext _ctx)
 
 string VariableScopeResolver::resolve_sym(string const& _sym) const
 {
+    if (M_CODE_TYPE == CodeType::INITBLOCK)
+    {
+        return rewrite(_sym, false, VarContext::STRUCT);
+    }
+
     if (_sym.empty()) return _sym;
+
+    bool shadow = (M_CODE_TYPE == CodeType::SHADOWBLOCK);
 
     for (auto scope = m_scopes.crbegin(); scope != m_scopes.crend(); scope++)
     {
         if (scope->find(_sym) != scope->cend())
         {
-            return rewrite(_sym, M_SHADOW, VarContext::FUNCTION);
+            return rewrite(_sym, shadow, VarContext::FUNCTION);
         }
     }
 
@@ -103,7 +110,7 @@ string VariableScopeResolver::resolve_sym(string const& _sym) const
     }
     else
     {
-        return "self->" + rewrite(_sym, M_SHADOW, VarContext::STRUCT);
+        return "self->" + rewrite(_sym, shadow, VarContext::STRUCT);
     }
 }
 

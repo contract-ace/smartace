@@ -210,41 +210,91 @@ CParams FunctionConverter::generate_params(
 
 // -------------------------------------------------------------------------- //
 
-void FunctionConverter::handle_contract_initializer(
-    ContractDefinition const& _contract, ContractDefinition const& _base
+string FunctionConverter::handle_contract_initializer(
+    ContractDefinition const& _initialized, ContractDefinition const& _for
 )
 {
-    string const CTRX_NAME = M_CONVERTER.get_name(_contract);
-    auto const* CTOR = _contract.constructor();
+    bool const IS_TOP_INIT_CALL = (_initialized.name() == _for.name());
+    string const INIT_NAME = M_CONVERTER.get_name(_initialized);
+    string const FOR_NAME = M_CONVERTER.get_name(_for);
+    auto const* LOCAL_CTOR = _initialized.constructor();
 
     CParams params;
     string ctor_name;
     {
-        vector<FunctionConverter::ParamTmpl> param_tmpls;
-        if (CTOR)
+        vector<FunctionConverter::ParamTmpl> local_param_tmpl;
+        if (LOCAL_CTOR)
         {
             FunctionConverter::ParamTmpl tmpl;
             tmpl.context = VarContext::STRUCT;
             tmpl.instrumentation = false;
 
-            for (auto arg : CTOR->parameters())
+            for (auto arg : LOCAL_CTOR->parameters())
             {
                 tmpl.decl = arg;
-                param_tmpls.push_back(tmpl);
+                local_param_tmpl.push_back(tmpl);
             }
 
-            ctor_name = FunctionUtilities::ctor_name(_contract, _base);
-            handle_function(*CTOR, &_contract, ctor_name);
+            ctor_name = FunctionUtilities::ctor_name(_initialized, _for);
+            handle_function(*LOCAL_CTOR, &_for, ctor_name);
         }
-        params = generate_params(param_tmpls, &_contract);
+        params = generate_params(local_param_tmpl, &_for);
+    }
 
+    auto self_ptr = params[0]->id();
+    vector<CFuncCallBuilder> parent_initializers;
+    for (auto spec : _initialized.baseContracts())
+    {
+        auto const* raw = spec->name().annotation().referencedDeclaration;
+        auto const& parent = dynamic_cast<ContractDefinition const&>(*raw);
+        auto parent_call = handle_contract_initializer(parent, _for);
+
+        parent_initializers.emplace_back(parent_call);
+        auto & builder = parent_initializers.back();
+
+        builder.push(self_ptr);
+        M_STATEDATA.compute_next_state_for(builder, false, nullptr);
+        if (LOCAL_CTOR)
+        {
+            for (auto const CTOR_MOD : LOCAL_CTOR->modifiers())
+            {
+                auto const MOD_REF = CTOR_MOD->name()->annotation().referencedDeclaration;
+                if (MOD_REF->name() == parent.name())
+                {
+                    if (auto const* CARGS = CTOR_MOD->arguments())
+                    {
+                        auto const& PARGS = parent.constructor()->parameters();
+                        VariableScopeResolver resolver(CodeType::INITBLOCK);
+                        for (size_t i = 0; i < PARGS.size(); ++i)
+                        {
+                            auto const& V = *CARGS->at(i);
+                            auto const* T = PARGS[i]->annotation().type;
+                            builder.push(
+                                V, M_STATEDATA, M_CONVERTER, resolver, false, T
+                            );
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        if (spec->arguments())
+        {
+            for (size_t i = 0; i < spec->arguments()->size(); ++i)
+            {
+                auto const& arg = (*(*spec->arguments())[i]);
+                auto const& param = (*parent.constructor()->parameters()[i]);
+                auto const* type = param.annotation().type;
+                builder.push(arg, M_STATEDATA, M_CONVERTER, {}, type);
+            }
+        }
     }
 
     shared_ptr<CBlock> body;
     if (!M_FWD_DCL)
     {
         CBlockList stmts;
-        auto self_ptr = params[0]->id();
+        if (IS_TOP_INIT_CALL)
         {
             auto const NAME = ContractUtilities::balance_member();
             auto const* TYPE = ContractUtilities::balance_type();
@@ -252,7 +302,11 @@ void FunctionConverter::handle_contract_initializer(
                 TypeConverter::init_val_by_simple_type(*TYPE)
             )->stmt());
         }
-        for (auto decl : _contract.stateVariables())
+        for (auto initializer : parent_initializers)
+        {
+            stmts.push_back(initializer.merge_and_pop_stmt());
+        }
+        for (auto const* decl : _initialized.stateVariables())
         {
             auto const DECLKIND = decl->annotation().type->category();
             if (DECLKIND == Type::Category::Contract) continue;
@@ -276,12 +330,12 @@ void FunctionConverter::handle_contract_initializer(
             auto member = self_ptr->access(NAME);
             stmts.push_back(member->assign(move(v0))->stmt());
         }
-        if (CTOR)
+        if (LOCAL_CTOR)
         {
             CFuncCallBuilder builder(ctor_name);
             builder.push(self_ptr);
             M_STATEDATA.compute_next_state_for(builder, false, nullptr);
-            for (auto decl : CTOR->parameters())
+            for (auto decl : LOCAL_CTOR->parameters())
             {
                 auto const NAME = VariableScopeResolver::rewrite(
                     decl->name(), false, VarContext::STRUCT
@@ -295,9 +349,17 @@ void FunctionConverter::handle_contract_initializer(
         body = make_shared<CBlock>(move(stmts));
     }
 
-    auto id = make_shared<CVarDecl>("void", "Init_" + CTRX_NAME);
+    string fname = "Init_" + INIT_NAME;
+    if (!IS_TOP_INIT_CALL)
+    {
+        fname += "_For_" + FOR_NAME;
+    }
+
+    auto id = make_shared<CVarDecl>("void", fname);
     CFuncDef init(id, move(params), move(body));
     (*m_ostream) << init;
+
+    return fname;
 }
 
 // -------------------------------------------------------------------------- //
@@ -306,12 +368,14 @@ void FunctionConverter::handle_function(
     FunctionDefinition const& _func, ASTNode const* _scope, string _fname
 )
 {
+    // Determines return type.
     string ftype = "void";
     if (!_func.isConstructor())
     {
         ftype = M_CONVERTER.get_type(_func);
     }
 
+    // Generates parameter list for all levels.
     vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
     {
         FunctionConverter::ParamTmpl tmpl;
@@ -329,6 +393,10 @@ void FunctionConverter::handle_function(
         }
     }
 
+    // Filters modifiers from constructors.
+    ModifierBlockConverter::Factory mods(_func, _fname);
+
+    // Generates a declaration for the base call.
     vector<CFuncDef> defs;
     {
         CParams params = generate_params(base_tmpl, _scope);
@@ -342,7 +410,7 @@ void FunctionConverter::handle_function(
         }
 
         string base_fname = _fname;
-        if (!_func.modifiers().empty())
+        if (!mods.empty())
         {
             base_fname = FunctionUtilities::base_name(move(base_fname));
         }
@@ -350,28 +418,32 @@ void FunctionConverter::handle_function(
         defs.emplace_back(id, move(params), move(body));
     }
 
+    // Generates a declaration for each modifier.
     CParams const mod_params = generate_params(mod_tmpl, _scope);
-    for (size_t i = _func.modifiers().size(); i > 0; --i)
+    for (size_t i = mods.len(); i > 0; --i)
     {
         size_t const IDX = i - 1;
-        string mod_fname = _fname;
+        string mod_name;
         if (IDX != 0)
         {
-            mod_fname = FunctionUtilities::modifier_name(move(mod_fname), IDX);
+            mod_name = FunctionUtilities::modifier_name(_fname, IDX);
         }
-    
+        else
+        {
+            mod_name = _fname;
+        }
+        
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            body = ModifierBlockConverter(
-                _func, _fname, IDX, M_STATEDATA, M_CONVERTER
-            ).convert();
+            body = mods.generate(IDX, M_STATEDATA, M_CONVERTER).convert();
         }
 
-        auto id = make_shared<CVarDecl>(ftype, move(mod_fname));
+        auto id = make_shared<CVarDecl>(ftype, move(mod_name));
         defs.emplace_back(id, mod_params, move(body));
     }
 
+    // Prints each declaration.
     for (auto const& def : defs)
     {
         (*m_ostream) << def;

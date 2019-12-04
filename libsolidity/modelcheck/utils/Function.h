@@ -42,7 +42,7 @@ public:
     // not be globally accessible (ie. resolvable in the TypeConverter by
     // ASTNode address).
     static std::string ctor_name(
-        ContractDefinition const& _derived, ContractDefinition const& _base
+        ContractDefinition const& _src, ContractDefinition const& _for
     );
 };
 

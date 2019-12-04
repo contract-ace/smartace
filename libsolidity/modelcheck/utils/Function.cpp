@@ -41,14 +41,14 @@ string FunctionUtilities::base_name(std::string _base)
 }
 
 string FunctionUtilities::ctor_name(
-    ContractDefinition const& _derived, ContractDefinition const& _base
+    ContractDefinition const& _src, ContractDefinition const& _for
 )
 {
     ostringstream oss;
-    oss << "Ctor_" << _derived.name();
-    if (_derived.name() != _base.name())
+    oss << "Ctor_" << escape_decl_name(_src);
+    if (_src.name() != _for.name())
     {
-        oss << "_" << _base.name();
+        oss << "_For_" << escape_decl_name(_for);
     }
     return oss.str();
 }

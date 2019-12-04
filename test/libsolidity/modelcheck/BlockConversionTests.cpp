@@ -1024,10 +1024,11 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     CallState statedata;
     statedata.record(unit);
 
+    ModifierBlockConverter::Factory f_factory(func_f, converter.get_name(func_f));
+    ModifierBlockConverter::Factory g_factory(func_g, converter.get_name(func_g));
+
     ostringstream f0_actual, f0_expect;
-    f0_actual << *ModifierBlockConverter(
-        func_f, converter.get_name(func_f), 0, statedata, converter
-    ).convert();
+    f0_actual << *f_factory.generate(0, statedata, converter).convert();
     f0_expect << "{";
     f0_expect << "Method_A_Funcf_mod1(self,sender,value,blocknum,Init_sol_bool_t(0));";
     f0_expect << "Method_A_Funcf_mod1(self,sender,value,blocknum,Init_sol_bool_t(0));";
@@ -1036,9 +1037,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     BOOST_CHECK_EQUAL(f0_actual.str(), f0_expect.str());
 
     ostringstream g0_actual, g0_expect;
-    g0_actual << *ModifierBlockConverter(
-        func_g, converter.get_name(func_g), 0, statedata, converter
-    ).convert();
+    g0_actual << *g_factory.generate(0, statedata, converter).convert();
     g0_expect << "{";
     g0_expect << "Method_A_Funcg_mod1(self,sender,value,blocknum,Init_sol_bool_t(0));";
     g0_expect << "Method_A_Funcg_mod1(self,sender,value,blocknum,Init_sol_bool_t(0));";
@@ -1047,9 +1046,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     BOOST_CHECK_EQUAL(g0_actual.str(), g0_expect.str());
 
     ostringstream f1_actual, f1_expect;
-    f1_actual << *ModifierBlockConverter(
-        func_f, converter.get_name(func_f), 1, statedata, converter
-    ).convert();
+    f1_actual << *f_factory.generate(1, statedata, converter).convert();
     f1_expect << "{";
     f1_expect << "Method_A_Funcf_base(self,sender,value,blocknum,Init_sol_bool_t(0));";
     f1_expect << "return;";
@@ -1057,9 +1054,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     BOOST_CHECK_EQUAL(f1_actual.str(), f1_expect.str());
 
     ostringstream g1_actual, g1_expect;
-    g1_actual << *ModifierBlockConverter(
-        func_g, converter.get_name(func_g), 1, statedata, converter)
-    .convert();
+    g1_actual << *g_factory.generate(1, statedata, converter).convert();
     g1_expect << "{";
     g1_expect << "Method_A_Funcg_base(self,sender,value,blocknum,Init_sol_bool_t(0));";
     g1_expect << "return;";
@@ -1091,9 +1086,8 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
     statedata.record(unit);
 
     ostringstream expected, actual;
-    actual << *ModifierBlockConverter(
-        func, converter.get_name(func), 0, statedata, converter
-    ).convert();
+    ModifierBlockConverter::Factory factory(func, converter.get_name(func));
+    actual << *factory.generate(0, statedata, converter).convert();
     expected << "{";
     expected << "sol_int256_t func_model_rv;";
     expected << "(func_model_rv)=(Method_A_Funcf_base(self,sender,value,blocknum,Init_sol_bool_t(0)));";
@@ -1128,9 +1122,8 @@ BOOST_AUTO_TEST_CASE(modifier_args)
     statedata.record(unit);
 
     ostringstream expected, actual;
-    actual << *ModifierBlockConverter(
-        func, converter.get_name(func), 0, statedata, converter
-    ).convert();
+    ModifierBlockConverter::Factory factory(func, converter.get_name(func));
+    actual << *factory.generate(0, statedata, converter).convert();
     expected << "{";
     expected << "sol_int256_t func_user_a=Init_sol_int256_t("
              << "((func_model_b).v)+(5));";

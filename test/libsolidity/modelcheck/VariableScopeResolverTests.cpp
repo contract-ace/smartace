@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(shadow_scope)
     auto const &ctrt = *retrieveContractByName(unit, "A");
     auto const &decl = *ctrt.stateVariables()[0];
 
-    VariableScopeResolver resolver(true);
+    VariableScopeResolver resolver(CodeType::SHADOWBLOCK);
     resolver.enter();
     resolver.record_declaration(decl);
 
