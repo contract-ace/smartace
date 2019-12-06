@@ -86,10 +86,8 @@ private:
 	);
 
 	// Generates a layer of the contract constructor.
-	void handle_function(
-		FunctionDefinition const& _func,
-		ASTNode const* _scope,
-		std::string _fname
+	std::string handle_function(
+		FunctionDefinition const& _func, ASTNode const& _scope
 	);
 
 	// Recursively expands an initializer for a contract.

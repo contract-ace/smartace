@@ -29,6 +29,20 @@ VariableScopeResolver::VariableScopeResolver(
 
 // -------------------------------------------------------------------------- //
 
+void VariableScopeResolver::assign_scope(ContractDefinition const* _cscope)
+{
+    m_cscope = _cscope;
+}
+
+// -------------------------------------------------------------------------- //
+
+ContractDefinition const* VariableScopeResolver::scope() const
+{
+    return m_cscope;
+}
+
+// -------------------------------------------------------------------------- //
+
 void VariableScopeResolver::enter() { m_scopes.emplace_back(); }
 
 void VariableScopeResolver::exit() { m_scopes.pop_back(); }
@@ -99,10 +113,6 @@ string VariableScopeResolver::resolve_sym(string const& _sym) const
     if (_sym == "this")
     {
         return "self";
-    }
-    else if (_sym == "super")
-    {
-        throw runtime_error("Keyword super not supported.");
     }
     else if (_sym == "now")
     {

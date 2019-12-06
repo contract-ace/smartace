@@ -33,6 +33,14 @@ public:
     // a shadow scope for instrumentation variables.
     VariableScopeResolver(CodeType _code_type = CodeType::SOLBLOCK);
 
+    // Associates the scope with some contract scope.
+    void assign_scope(ContractDefinition const* _cscope);
+
+    // Returns the contract scope associated with all scopes of this function.
+    // This may differ from the scope provided by Solidity, due to inheritance
+    // through specialization.
+    ContractDefinition const* scope() const;
+
     // Creates or destroys a variable scope.
     void enter();
     void exit();
@@ -54,6 +62,8 @@ public:
 
 private:
     CodeType const M_CODE_TYPE;
+
+    ContractDefinition const* m_cscope;
 
     std::list<std::set<std::string>> m_scopes;
 

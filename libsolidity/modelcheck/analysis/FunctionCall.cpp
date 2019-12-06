@@ -49,6 +49,11 @@ Identifier const* FunctionCallAnalyzer::id() const
     return m_id;
 }
 
+bool FunctionCallAnalyzer::is_super() const
+{
+    return (id() && (id()->name() == "super"));
+}
+
 // -------------------------------------------------------------------------- //
 
 bool FunctionCallAnalyzer::visit(MemberAccess const& _node)

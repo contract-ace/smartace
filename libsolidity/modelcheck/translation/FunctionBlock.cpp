@@ -26,8 +26,8 @@ namespace modelcheck
 
 FunctionBlockConverter::FunctionBlockConverter(
     FunctionDefinition const& _func,
-		CallState const& _statedata,
-		TypeConverter const& _types
+	CallState const& _statedata,
+	TypeConverter const& _types
 ): GeneralBlockConverter(
 	_func.parameters(),
 	_func.body(),
@@ -50,6 +50,13 @@ FunctionBlockConverter::FunctionBlockConverter(
 
 // -------------------------------------------------------------------------- //
 
+void FunctionBlockConverter::set_for(ContractDefinition const& _for)
+{
+	m_scope = &_for;
+}
+
+// -------------------------------------------------------------------------- //
+
 void FunctionBlockConverter::enter(
     CBlockList & _stmts, VariableScopeResolver & _decls
 )
@@ -57,6 +64,7 @@ void FunctionBlockConverter::enter(
     if (m_rv && !m_rv->name().empty())
     {
 		_decls.record_declaration(*m_rv);
+		_decls.assign_scope(m_scope);
 		_stmts.push_back(make_shared<CVarDecl>(
 			M_TYPES.get_type(*m_rv), _decls.resolve_declaration(*m_rv)
         ));

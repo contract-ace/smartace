@@ -30,6 +30,22 @@ CExprPtr FunctionUtilities::try_to_wrap(Type const& _type, CExprPtr _expr)
     return _expr;
 }
 
+string FunctionUtilities::name(
+    FunctionDefinition const& _def,
+    ContractDefinition const& _src,
+    ContractDefinition const& _for
+)
+{
+    ostringstream oss;
+    oss << "Method_" << escape_decl_name(_src)
+        << "_Func" << escape_decl_name(_def);
+    if (_src.name() != _for.name())
+    {
+        oss << "_For_" << escape_decl_name(_for);
+    }
+    return oss.str();
+}
+
 string FunctionUtilities::modifier_name(string _base, size_t _i)
 {
     return _base + "_mod" + to_string(_i);

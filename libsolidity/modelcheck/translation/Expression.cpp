@@ -646,13 +646,25 @@ void ExpressionConverter::print_method(
 )
 {
 	// Starts generating the function call.
-	auto &decl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
-	CFuncCallBuilder builder(M_TYPES.get_name(decl));
+	FunctionCallAnalyzer calldata(_call);
+	auto &fdecl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
+
+	string callname;
+	bool is_ext_call = false;
+	if (calldata.is_super())
+	{
+		auto &cdecl = dynamic_cast<ContractDefinition const&>(*fdecl.scope());
+		callname = FunctionUtilities::name(fdecl, cdecl, *m_decls.scope());
+	}
+	else
+	{
+		callname = M_TYPES.get_name(fdecl);
+		is_ext_call = (calldata.context() != nullptr);
+	}
+	CFuncCallBuilder builder(callname);	
 
 	// Sets state for the next call.
-	FunctionCallAnalyzer calldata(_call);
-	const bool IS_EXT = (calldata.context() != nullptr);
-	if (IS_EXT)
+	if (is_ext_call)
 	{
 		calldata.context()->accept(*this);
 		if (!(calldata.id() && M_TYPES.is_pointer(*calldata.id())))
@@ -665,12 +677,12 @@ void ExpressionConverter::print_method(
 	{
 		builder.push(make_shared<CIdentifier>("self", true));
 	}
-	pass_next_call_state(_call, builder, IS_EXT);
+	pass_next_call_state(_call, builder, is_ext_call);
 
 	// Pushes all user provided arguments.
 	for (unsigned int i = 0; i < calldata.args().size(); ++i)
 	{
-		auto const* ARG_TYPE = decl.parameters()[i]->type();
+		auto const* ARG_TYPE = fdecl.parameters()[i]->type();
 		builder.push(
 			*calldata.args()[i], m_statedata, M_TYPES, m_decls, false, ARG_TYPE
 		);

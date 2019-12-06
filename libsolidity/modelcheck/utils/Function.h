@@ -31,6 +31,15 @@ public:
     // such logic.
     static CExprPtr try_to_wrap(Type const& _type, CExprPtr _expr);
 
+    // Computers the name of a function from its name, implementing class, and
+    // the class it will be used by. The class it will be used by differs from
+    // the base class when the function is overloaded.
+    static std::string name(
+        FunctionDefinition const& _def,
+        ContractDefinition const& _src,
+        ContractDefinition const& _for
+    );
+
     // Produces the name for the i-th modifier, from a base name. This interface
     // is internal to the function calling it, so it need not be globally
     // accessible (ie. resolvable in TypeConverter by ASTNode address).

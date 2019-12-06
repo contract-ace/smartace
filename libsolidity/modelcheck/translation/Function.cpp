@@ -154,12 +154,17 @@ bool FunctionConverter::visit(FunctionDefinition const& _node)
 {
     if (_node.isConstructor()) return false;
 
-    const bool IS_PUB = _node.visibility() == Declaration::Visibility::Public;
-    const bool IS_EXT = _node.visibility() == Declaration::Visibility::External;
+    bool const IS_PUB = _node.visibility() == Declaration::Visibility::Public;
+    bool const IS_EXT = _node.visibility() == Declaration::Visibility::External;
     if (!(IS_PUB || IS_EXT) && M_VIEW == View::EXT) return false;
     if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return false;
 
-    handle_function(_node, _node.scope(), M_CONVERTER.get_name(_node));
+    if (!_node.scope())
+    {
+        throw runtime_error("Detected FunctionDefinition without scope.");
+    }
+
+    handle_function(_node, *_node.scope());
 
     return false;
 }
@@ -235,8 +240,7 @@ string FunctionConverter::handle_contract_initializer(
                 local_param_tmpl.push_back(tmpl);
             }
 
-            ctor_name = FunctionUtilities::ctor_name(_initialized, _for);
-            handle_function(*LOCAL_CTOR, &_for, ctor_name);
+            ctor_name = handle_function(*LOCAL_CTOR, _for);
         }
         params = generate_params(local_param_tmpl, &_for);
     }
@@ -364,16 +368,30 @@ string FunctionConverter::handle_contract_initializer(
 
 // -------------------------------------------------------------------------- //
 
-void FunctionConverter::handle_function(
-    FunctionDefinition const& _func, ASTNode const* _scope, string _fname
+string FunctionConverter::handle_function(
+    FunctionDefinition const& _func, ASTNode const& _scope
 )
 {
-    // Determines return type.
+    // Finds base and deriving contracts for the function definition.
+    auto const& FDECL = dynamic_cast<FunctionDefinition const&>(
+        dynamic_cast<FunctionType const*>(_func.type())->declaration()
+    );
+    auto const& SRC = dynamic_cast<ContractDefinition const&>(*FDECL.scope());
+    auto const& FOR = dynamic_cast<ContractDefinition const&>(_scope);
+
+    // Determines return signature.
     string ftype = "void";
-    if (!_func.isConstructor())
+    string fname;
+    if (_func.isConstructor())
+    {
+        fname = FunctionUtilities::ctor_name(SRC, FOR);
+    }
+    else
     {
         ftype = M_CONVERTER.get_type(_func);
+        fname = FunctionUtilities::name(_func, SRC, FOR);
     }
+    
 
     // Generates parameter list for all levels.
     vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
@@ -393,23 +411,29 @@ void FunctionConverter::handle_function(
         }
     }
 
+    // Generates super function calls.
+    if (auto superfunc = _func.annotation().superFunction)
+    {
+        handle_function(*superfunc, _scope);
+    }
+
     // Filters modifiers from constructors.
-    ModifierBlockConverter::Factory mods(_func, _fname);
+    ModifierBlockConverter::Factory mods(_func, fname);
 
     // Generates a declaration for the base call.
     vector<CFuncDef> defs;
     {
-        CParams params = generate_params(base_tmpl, _scope);
+        CParams params = generate_params(base_tmpl, &_scope);
 
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            body = FunctionBlockConverter(
-                _func, M_STATEDATA, M_CONVERTER
-            ).convert();
+            auto cov = FunctionBlockConverter(_func, M_STATEDATA, M_CONVERTER);
+            cov.set_for(FOR);
+            body = cov.convert();
         }
 
-        string base_fname = _fname;
+        string base_fname = fname;
         if (!mods.empty())
         {
             base_fname = FunctionUtilities::base_name(move(base_fname));
@@ -419,18 +443,18 @@ void FunctionConverter::handle_function(
     }
 
     // Generates a declaration for each modifier.
-    CParams const mod_params = generate_params(mod_tmpl, _scope);
+    CParams const mod_params = generate_params(mod_tmpl, &_scope);
     for (size_t i = mods.len(); i > 0; --i)
     {
         size_t const IDX = i - 1;
         string mod_name;
         if (IDX != 0)
         {
-            mod_name = FunctionUtilities::modifier_name(_fname, IDX);
+            mod_name = FunctionUtilities::modifier_name(fname, IDX);
         }
         else
         {
-            mod_name = _fname;
+            mod_name = fname;
         }
         
         shared_ptr<CBlock> body;
@@ -448,6 +472,8 @@ void FunctionConverter::handle_function(
     {
         (*m_ostream) << def;
     }
+
+    return fname;
 }
 
 // --------------------------------------------------------------------------

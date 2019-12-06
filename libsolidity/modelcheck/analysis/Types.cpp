@@ -143,11 +143,11 @@ void TypeConverter::record(SourceUnit const& _unit)
 
     // Pass 2: assign types to all member fields and methods, such that their
     // types may be referenced within function bodies.
-    for (auto contract : contracts)
+    for (auto con : contracts)
     {
-        ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
+        ScopedSwap<ContractDefinition const*> swap(m_curr_contract, con);
 
-        for (auto structure : contract->definedStructs())
+        for (auto structure : con->definedStructs())
         {
             for (auto decl : structure->members())
             {
@@ -155,12 +155,12 @@ void TypeConverter::record(SourceUnit const& _unit)
             }
         }
 
-        for (auto decl : contract->stateVariables())
+        for (auto decl : con->stateVariables())
         {
             decl->accept(*this);
         }
 
-        for (auto fun : contract->definedFunctions())
+        for (auto fun : con->definedFunctions())
         {
             fun->parameterList().accept(*this);
             if (fun->isConstructor()) continue;
@@ -171,18 +171,13 @@ void TypeConverter::record(SourceUnit const& _unit)
                 returnParams->accept(*this);
             }
 
-            ostringstream fun_oss;
-            fun_oss << "Method_" << escape_decl_name(*contract)
-                    << "_Func" << escape_decl_name(*fun);
-
-
             auto const FUNC_RETURN_TYPE = get_type(*returnParams);
-            auto const FUNC_NAME = fun_oss.str();
+            auto const FUNC_NAME = FunctionUtilities::name(*fun, *con, *con);
             m_name_lookup.insert({fun, FUNC_NAME});
             m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
         }
 
-        for (auto modifier : contract->functionModifiers())
+        for (auto modifier : con->functionModifiers())
         {
             modifier->parameterList().accept(*this);
         }
@@ -508,6 +503,8 @@ void TypeConverter::endVisit(IndexAccess const& _node)
 void TypeConverter::endVisit(Identifier const& _node)
 {
     auto const& NODE_NAME = _node.name();
+    if (NODE_NAME == "super") return;
+
     auto const MAGIC_RES = m_global_context_types.find(NODE_NAME);
     if (MAGIC_RES != m_global_context_types.end())
     {
@@ -529,12 +526,6 @@ void TypeConverter::endVisit(Identifier const& _node)
         {
             ref = m_curr_contract;
             loc = VariableDeclaration::Storage;
-        }
-        else if (NODE_NAME == "super")
-        {
-            // Note: ContractDefinitionAnnotation::linearizedBaseContracts.
-            // TODO(scottwe): resolve super; not needed for MVP prototype.
-            throw runtime_error("super is currently unsupported.");
         }
         else
         {

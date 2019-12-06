@@ -76,7 +76,10 @@
         "typeindex": "cpp",
         "*.cmake": "cpp",
         "*.make": "cpp",
-        "*.internal": "cpp"
+        "*.internal": "cpp",
+        "*.o": "cpp",
+        "*.txt": "cpp",
+        "*.a": "cpp"
     },
     "C_Cpp.default.cppStandard": "c++14",
     "C_Cpp.default.defines": ["MC_USE_STDINT"]

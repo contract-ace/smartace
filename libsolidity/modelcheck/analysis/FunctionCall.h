@@ -31,6 +31,7 @@ public:
     ASTPointer<Expression const> gas() const;
     Expression const* context() const;
     Identifier const* id() const;
+    bool is_super() const;
 
 protected:
     bool visit(MemberAccess const& _node) override;
