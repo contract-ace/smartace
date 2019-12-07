@@ -256,6 +256,8 @@ list<MainFunctionGenerator::Actor> MainFunctionGenerator::analyze_decls(
 
     for (auto const contract : _contracts)
     {
+        if (contract->isLibrary()) continue;
+
         actors.emplace_back(m_converter, contract, nullptr, cids, fids);
 
         auto const& DECL = actors.back().decl;

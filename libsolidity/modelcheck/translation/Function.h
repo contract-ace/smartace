@@ -83,7 +83,7 @@ private:
 	// are assumed to be of a stateful Solidity method, bound to structures of
 	// the given type.
 	CParams generate_params(
-		std::vector<ParamTmpl> const& _args, ASTNode const* _scope
+		std::vector<ParamTmpl> const& _args, ContractDefinition const* _scope
 	);
 
 	// Determines whether or not to generate a function.

@@ -57,7 +57,10 @@ void FunctionConverter::print(ostream& _stream)
 
 bool FunctionConverter::visit(ContractDefinition const& _node)
 {
-    handle_contract_initializer(_node, _node);
+    if (!_node.isLibrary())
+    {
+        handle_contract_initializer(_node, _node);
+    }
 
     set<string> methods;
     for (auto contract : _node.annotation().linearizedBaseContracts)
@@ -183,13 +186,14 @@ bool FunctionConverter::visit(Mapping const& _node)
 // -------------------------------------------------------------------------- //
 
 CParams FunctionConverter::generate_params(
-    vector<FunctionConverter::ParamTmpl> const& _args, ASTNode const* _scope
+    vector<FunctionConverter::ParamTmpl> const& _args,
+    ContractDefinition const* _scope
 )
 {
     CParams params;
-    if (auto contract_scope = dynamic_cast<ContractDefinition const*>(_scope))
+    if (_scope && !_scope->isLibrary())
     {
-        string const SELF_TYPE = M_CONVERTER.get_type(*contract_scope);
+        string const SELF_TYPE = M_CONVERTER.get_type(*_scope);
         params.push_back(make_shared<CVarDecl>(SELF_TYPE, "self", true));
         for (auto const& fld : M_STATEDATA.order())
         {

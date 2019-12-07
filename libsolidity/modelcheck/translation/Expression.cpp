@@ -645,9 +645,10 @@ void ExpressionConverter::print_method(
 	FunctionType const& _type, FunctionCall const& _call
 )
 {
-	// Starts generating the function call.
-	FunctionCallAnalyzer calldata(_call);
+	// Analyzes the function call.
 	auto &fdecl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
+	FunctionSpecialization callspec(fdecl);
+	FunctionCallAnalyzer calldata(_call);
 
 	string callname;
 	bool is_ext_call = false;
@@ -657,31 +658,43 @@ void ExpressionConverter::print_method(
 	}
 	else
 	{
-		callname = FunctionSpecialization(fdecl).name();
+		callname = callspec.name();
 		is_ext_call = (calldata.context() != nullptr);
 	}
 	CFuncCallBuilder builder(callname);	
 
 	// Sets state for the next call.
-	if (is_ext_call)
+	size_t param_idx = 0;
+	if (callspec.source().isLibrary())
 	{
-		calldata.context()->accept(*this);
-		if (!(calldata.id() && M_TYPES.is_pointer(*calldata.id())))
-		{
-			m_subexpr = make_shared<CReference>(m_subexpr);
-		}
-		builder.push(m_subexpr);
+		auto const* ARG_TYPE = fdecl.parameters()[param_idx]->type();
+		builder.push(
+			*calldata.context(), m_statedata, M_TYPES, m_decls, false, ARG_TYPE
+		);
+		++param_idx;
 	}
 	else
 	{
-		builder.push(make_shared<CIdentifier>("self", true));
+		if (is_ext_call)
+		{
+			calldata.context()->accept(*this);
+			if (!(calldata.id() && M_TYPES.is_pointer(*calldata.id())))
+			{
+				m_subexpr = make_shared<CReference>(m_subexpr);
+			}
+			builder.push(m_subexpr);
+		}
+		else
+		{
+			builder.push(make_shared<CIdentifier>("self", true));
+		}
+		pass_next_call_state(_call, builder, is_ext_call);
 	}
-	pass_next_call_state(_call, builder, is_ext_call);
 
 	// Pushes all user provided arguments.
-	for (unsigned int i = 0; i < calldata.args().size(); ++i)
+	for (size_t i = 0; i < calldata.args().size(); ++i)
 	{
-		auto const* ARG_TYPE = fdecl.parameters()[i]->type();
+		auto const* ARG_TYPE = fdecl.parameters()[param_idx + i]->type();
 		builder.push(
 			*calldata.args()[i], m_statedata, M_TYPES, m_decls, false, ARG_TYPE
 		);

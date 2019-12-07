@@ -119,6 +119,8 @@ void NewCallGraph::record(SourceUnit const& _src)
     auto contracts = ASTNode::filteredNodes<ContractDefinition>(_src.nodes());
     for (auto contract : contracts)
     {
+        if (contract->isLibrary()) continue;
+    
         NewCallSummary summary(*contract);
         
         auto violations = summary.violations();

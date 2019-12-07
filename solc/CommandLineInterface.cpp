@@ -1290,6 +1290,12 @@ void CommandLineInterface::handleCModel()
 		for (auto actor_name : m_args[g_argModelActor].as<vector<string>>())
 		{
 			auto const* actor = newcall_graph.reverse_name(actor_name);
+			if (!actor)
+			{
+				m_error = true;
+				serr() << "Contract " << actor_name << " not in source units." << endl;
+				return;
+			}
 			major_actors.push_back(actor);
 			actor_count += newcall_graph.cost_of(actor);
 		}
