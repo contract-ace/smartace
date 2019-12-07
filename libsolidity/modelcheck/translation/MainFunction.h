@@ -12,10 +12,10 @@
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <list>
 #include <ostream>
-#include <utility>
 
 namespace dev
 {
@@ -60,6 +60,7 @@ private:
         );
 
         ContractDefinition const* contract;
+        std::list<FunctionSpecialization> specs;
         std::shared_ptr<CVarDecl> decl;
         std::map<FunctionDefinition const*, size_t> fnums;
         std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> fparams;
@@ -114,7 +115,7 @@ private:
     // switch block. Note that _args have been initialized first by
     // analyze_decls.
     CBlockList build_case(
-        FunctionDefinition const& _def,
+        FunctionSpecialization const& _spec,
         std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> & _args,
         std::shared_ptr<const CVarDecl> _id
     );

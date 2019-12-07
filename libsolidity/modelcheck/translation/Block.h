@@ -138,7 +138,7 @@ public:
 
 	~FunctionBlockConverter() override = default;
 
-	void set_for(ContractDefinition const& _for);
+	void set_for(FunctionSpecialization const& _for);
 
 protected:
 	void enter(CBlockList & _stmts, VariableScopeResolver & _decls) override;
@@ -149,7 +149,7 @@ protected:
 private:
 	TypeConverter const& M_TYPES;
 
-	ContractDefinition const* m_scope;
+	FunctionSpecialization const* m_spec;
 
 	ASTPointer<VariableDeclaration> m_rv = nullptr;
 };

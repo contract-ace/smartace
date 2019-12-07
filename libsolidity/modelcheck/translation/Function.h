@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 #include <list>
 #include <ostream>
@@ -85,10 +86,11 @@ private:
 		std::vector<ParamTmpl> const& _args, ASTNode const* _scope
 	);
 
+	// Determines whether or not to generate a function.
+	void generate_function(FunctionSpecialization const& _spec);
+
 	// Generates a layer of the contract constructor.
-	std::string handle_function(
-		FunctionDefinition const& _func, ASTNode const& _scope
-	);
+	std::string handle_function(FunctionSpecialization const& _spec);
 
 	// Recursively expands an initializer for a contract.
 	std::string handle_contract_initializer(

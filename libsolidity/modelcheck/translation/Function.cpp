@@ -12,6 +12,7 @@
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
+#include <set>
 #include <sstream>
 
 using namespace std;
@@ -56,9 +57,20 @@ void FunctionConverter::print(ostream& _stream)
 
 bool FunctionConverter::visit(ContractDefinition const& _node)
 {
-    if (M_VIEW == View::INT) return true;
-
     handle_contract_initializer(_node, _node);
+
+    set<string> methods;
+    for (auto contract : _node.annotation().linearizedBaseContracts)
+    {
+        for (auto func : contract->definedFunctions())
+        {
+            auto res = methods.insert(func->name());
+            if (res.second)
+            {
+                generate_function(FunctionSpecialization(*func, _node));
+            }
+        }
+    }
 
     return true;
 }
@@ -150,24 +162,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
     return true;
 }
 
-bool FunctionConverter::visit(FunctionDefinition const& _node)
-{
-    if (_node.isConstructor()) return false;
-
-    bool const IS_PUB = _node.visibility() == Declaration::Visibility::Public;
-    bool const IS_EXT = _node.visibility() == Declaration::Visibility::External;
-    if (!(IS_PUB || IS_EXT) && M_VIEW == View::EXT) return false;
-    if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return false;
-
-    if (!_node.scope())
-    {
-        throw runtime_error("Detected FunctionDefinition without scope.");
-    }
-
-    handle_function(_node, *_node.scope());
-
-    return false;
-}
+bool FunctionConverter::visit(FunctionDefinition const&) { return false; }
 
 bool FunctionConverter::visit(ModifierDefinition const&) { return false; }
 
@@ -213,6 +208,20 @@ CParams FunctionConverter::generate_params(
     return params;
 }
 
+void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
+{
+    auto const& FUNC = _spec.func();
+
+    if (FUNC.isConstructor()) return;
+
+    bool const IS_PUB = FUNC.visibility() == Declaration::Visibility::Public;
+    bool const IS_EXT = FUNC.visibility() == Declaration::Visibility::External;
+    if (!(IS_PUB || IS_EXT) && M_VIEW == View::EXT) return;
+    if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return;
+
+    handle_function(_spec);
+}
+
 // -------------------------------------------------------------------------- //
 
 string FunctionConverter::handle_contract_initializer(
@@ -240,7 +249,7 @@ string FunctionConverter::handle_contract_initializer(
                 local_param_tmpl.push_back(tmpl);
             }
 
-            ctor_name = handle_function(*LOCAL_CTOR, _for);
+            ctor_name = handle_function(FunctionSpecialization(*LOCAL_CTOR, _for));
         }
         params = generate_params(local_param_tmpl, &_for);
     }
@@ -368,30 +377,16 @@ string FunctionConverter::handle_contract_initializer(
 
 // -------------------------------------------------------------------------- //
 
-string FunctionConverter::handle_function(
-    FunctionDefinition const& _func, ASTNode const& _scope
-)
+string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
 {
-    // Finds base and deriving contracts for the function definition.
-    auto const& FDECL = dynamic_cast<FunctionDefinition const&>(
-        dynamic_cast<FunctionType const*>(_func.type())->declaration()
-    );
-    auto const& SRC = dynamic_cast<ContractDefinition const&>(*FDECL.scope());
-    auto const& FOR = dynamic_cast<ContractDefinition const&>(_scope);
-
     // Determines return signature.
+    auto const& FUNC = _spec.func();
     string ftype = "void";
-    string fname;
-    if (_func.isConstructor())
+    string fname = _spec.name();
+    if (!FUNC.isConstructor())
     {
-        fname = FunctionUtilities::ctor_name(SRC, FOR);
+        ftype = M_CONVERTER.get_type(FUNC);
     }
-    else
-    {
-        ftype = M_CONVERTER.get_type(_func);
-        fname = FunctionUtilities::name(_func, SRC, FOR);
-    }
-    
 
     // Generates parameter list for all levels.
     vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
@@ -399,7 +394,7 @@ string FunctionConverter::handle_function(
         FunctionConverter::ParamTmpl tmpl;
         tmpl.context = VarContext::FUNCTION;
 
-        for (auto arg : _func.parameters())
+        for (auto arg : FUNC.parameters())
         {
             tmpl.decl = arg;
 
@@ -412,24 +407,24 @@ string FunctionConverter::handle_function(
     }
 
     // Generates super function calls.
-    if (auto superfunc = _func.annotation().superFunction)
+    if (auto superfunc = _spec.super())
     {
-        handle_function(*superfunc, _scope);
+        handle_function(*superfunc);
     }
 
     // Filters modifiers from constructors.
-    ModifierBlockConverter::Factory mods(_func, fname);
+    ModifierBlockConverter::Factory mods(FUNC, fname);
 
     // Generates a declaration for the base call.
     vector<CFuncDef> defs;
     {
-        CParams params = generate_params(base_tmpl, &_scope);
+        CParams params = generate_params(base_tmpl, &_spec.useby());
 
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            auto cov = FunctionBlockConverter(_func, M_STATEDATA, M_CONVERTER);
-            cov.set_for(FOR);
+            auto cov = FunctionBlockConverter(FUNC, M_STATEDATA, M_CONVERTER);
+            cov.set_for(_spec);
             body = cov.convert();
         }
 
@@ -443,7 +438,7 @@ string FunctionConverter::handle_function(
     }
 
     // Generates a declaration for each modifier.
-    CParams const mod_params = generate_params(mod_tmpl, &_scope);
+    CParams const mod_params = generate_params(mod_tmpl, &_spec.useby());
     for (size_t i = mods.len(); i > 0; --i)
     {
         size_t const IDX = i - 1;

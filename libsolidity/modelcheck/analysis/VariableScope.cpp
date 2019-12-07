@@ -29,16 +29,16 @@ VariableScopeResolver::VariableScopeResolver(
 
 // -------------------------------------------------------------------------- //
 
-void VariableScopeResolver::assign_scope(ContractDefinition const* _cscope)
+void VariableScopeResolver::assign_spec(FunctionSpecialization const* _spec)
 {
-    m_cscope = _cscope;
+    m_spec = _spec;
 }
 
 // -------------------------------------------------------------------------- //
 
-ContractDefinition const* VariableScopeResolver::scope() const
+FunctionSpecialization const* VariableScopeResolver::spec() const
 {
-    return m_cscope;
+    return m_spec;
 }
 
 // -------------------------------------------------------------------------- //

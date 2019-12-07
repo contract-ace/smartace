@@ -7,6 +7,7 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <list>
 #include <set>
 #include <string>
@@ -34,12 +35,10 @@ public:
     VariableScopeResolver(CodeType _code_type = CodeType::SOLBLOCK);
 
     // Associates the scope with some contract scope.
-    void assign_scope(ContractDefinition const* _cscope);
+    void assign_spec(FunctionSpecialization const* _spec);
 
-    // Returns the contract scope associated with all scopes of this function.
-    // This may differ from the scope provided by Solidity, due to inheritance
-    // through specialization.
-    ContractDefinition const* scope() const;
+    // Returns all specialization data for the current function scope.
+    FunctionSpecialization const* spec() const;
 
     // Creates or destroys a variable scope.
     void enter();
@@ -63,7 +62,7 @@ public:
 private:
     CodeType const M_CODE_TYPE;
 
-    ContractDefinition const* m_cscope;
+    FunctionSpecialization const* m_spec;
 
     std::list<std::set<std::string>> m_scopes;
 

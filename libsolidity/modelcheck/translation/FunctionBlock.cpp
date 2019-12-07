@@ -50,9 +50,9 @@ FunctionBlockConverter::FunctionBlockConverter(
 
 // -------------------------------------------------------------------------- //
 
-void FunctionBlockConverter::set_for(ContractDefinition const& _for)
+void FunctionBlockConverter::set_for(FunctionSpecialization const& _for)
 {
-	m_scope = &_for;
+	m_spec = &_for;
 }
 
 // -------------------------------------------------------------------------- //
@@ -64,7 +64,7 @@ void FunctionBlockConverter::enter(
     if (m_rv && !m_rv->name().empty())
     {
 		_decls.record_declaration(*m_rv);
-		_decls.assign_scope(m_scope);
+		_decls.assign_spec(m_spec);
 		_stmts.push_back(make_shared<CVarDecl>(
 			M_TYPES.get_type(*m_rv), _decls.resolve_declaration(*m_rv)
         ));

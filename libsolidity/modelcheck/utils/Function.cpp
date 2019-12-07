@@ -30,22 +30,6 @@ CExprPtr FunctionUtilities::try_to_wrap(Type const& _type, CExprPtr _expr)
     return _expr;
 }
 
-string FunctionUtilities::name(
-    FunctionDefinition const& _def,
-    ContractDefinition const& _src,
-    ContractDefinition const& _for
-)
-{
-    ostringstream oss;
-    oss << "Method_" << escape_decl_name(_src)
-        << "_Func" << escape_decl_name(_def);
-    if (_src.name() != _for.name())
-    {
-        oss << "_For_" << escape_decl_name(_for);
-    }
-    return oss.str();
-}
-
 string FunctionUtilities::modifier_name(string _base, size_t _i)
 {
     return _base + "_mod" + to_string(_i);
@@ -56,17 +40,84 @@ string FunctionUtilities::base_name(std::string _base)
     return _base + "_base";
 }
 
-string FunctionUtilities::ctor_name(
-    ContractDefinition const& _src, ContractDefinition const& _for
-)
+FunctionSpecialization::FunctionSpecialization(
+    FunctionDefinition const& _def
+): FunctionSpecialization(_def, get_scope(_def))
+{
+}
+
+FunctionSpecialization::FunctionSpecialization(
+    FunctionDefinition const& _def, ContractDefinition const& _for
+): FunctionSpecialization(_def, get_scope(_def), _for)
+{
+}
+
+FunctionSpecialization::FunctionSpecialization(
+    FunctionDefinition const& _def,
+    ContractDefinition const& _src,
+    ContractDefinition const& _for
+): M_CALL(_def), M_SRC(_src), M_USER(_for)
+{
+}
+
+std::unique_ptr<FunctionSpecialization> FunctionSpecialization::super() const
+{
+    if (auto superfunc = M_CALL.annotation().superFunction)
+    {
+        return make_unique<FunctionSpecialization>(
+            *superfunc, get_scope(*superfunc), M_USER
+        );
+    }
+    return nullptr;
+}
+
+string FunctionSpecialization::name() const
 {
     ostringstream oss;
-    oss << "Ctor_" << escape_decl_name(_src);
-    if (_src.name() != _for.name())
+
+    if (M_CALL.isConstructor())
     {
-        oss << "_For_" << escape_decl_name(_for);
+        oss << "Ctor_" << escape_decl_name(M_SRC);
     }
+    else
+    {
+        oss << "Method_" << escape_decl_name(M_SRC)
+            << "_Func" << escape_decl_name(M_CALL);
+    }
+
+    if (M_SRC.name() != M_USER.name())
+    {
+        oss << "_For_" << escape_decl_name(M_USER);
+    }
+
     return oss.str();
+}
+
+ContractDefinition const& FunctionSpecialization::source() const
+{
+    return M_SRC;
+}
+
+ContractDefinition const& FunctionSpecialization::useby() const
+{
+    return M_USER;
+}
+
+FunctionDefinition const& FunctionSpecialization::func() const
+{
+    return M_CALL;
+}
+
+ContractDefinition const& FunctionSpecialization::get_scope(
+    FunctionDefinition const& _func
+)
+{
+    auto scope = dynamic_cast<ContractDefinition const*>(_func.scope());
+    if (!scope)
+    {
+        throw runtime_error("Detected FunctionDefinition without scope.");
+    }
+    return *scope;
 }
 
 }

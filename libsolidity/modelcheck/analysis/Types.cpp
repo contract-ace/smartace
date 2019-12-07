@@ -172,7 +172,7 @@ void TypeConverter::record(SourceUnit const& _unit)
             }
 
             auto const FUNC_RETURN_TYPE = get_type(*returnParams);
-            auto const FUNC_NAME = FunctionUtilities::name(*fun, *con, *con);
+            auto const FUNC_NAME = FunctionSpecialization(*fun).name();
             m_name_lookup.insert({fun, FUNC_NAME});
             m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
         }

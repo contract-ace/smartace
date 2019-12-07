@@ -13,7 +13,6 @@
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/translation/Mapping.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
-#include <libsolidity/modelcheck/utils/Function.h>
 
 using namespace std;
 
@@ -75,11 +74,11 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     );
     for (auto & actor : actors)
     {
-        for (auto const* FUNC : actor.contract->definedFunctions())
+        for (auto const& spec : actor.specs)
         {
-            if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
-            auto call_body = build_case(*FUNC, actor.fparams, actor.decl);
-            call_cases->add_case(actor.fnums[FUNC], move(call_body));
+            if (spec.func().isConstructor() || !spec.func().isPublic()) continue;
+            auto call_body = build_case(spec, actor.fparams, actor.decl);
+            call_cases->add_case(actor.fnums[&spec.func()], move(call_body));
         }
     }
 
@@ -215,25 +214,33 @@ MainFunctionGenerator::Actor::Actor(
         _path != nullptr
     );
 
-    for (size_t fidx = 0; fidx < contract->definedFunctions().size(); ++fidx)
+    for (auto rel : contract->annotation().linearizedBaseContracts)
     {
-        auto const* FUNC = contract->definedFunctions()[fidx];
-        if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
-
-        for (size_t pidx = 0; pidx < FUNC->parameters().size(); ++pidx)
+        set<string> generated;
+        for (auto const* FUNC : rel->definedFunctions())
         {
-            auto PARAM = FUNC->parameters()[pidx];
+            if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
+            
+            auto res = generated.insert(FUNC->name());
+            if (!res.second) continue;
 
-            ostringstream pname;
-            pname << "c" << cid << "_f" << fidx << "_a" << pidx;
-            if (!PARAM->name().empty()) pname << "_" << PARAM->name();
+            auto fnum = _fids.next();
+            fnums[FUNC] = fnum;
+            specs.emplace_back(*FUNC, *contract);
 
-            fparams[PARAM.get()] = make_shared<CVarDecl>(
-                _converter.get_type(*PARAM), pname.str()
-            );
+            for (size_t pidx = 0; pidx < FUNC->parameters().size(); ++pidx)
+            {
+                auto PARAM = FUNC->parameters()[pidx];
+
+                ostringstream pname;
+                pname << "c" << cid << "_f" << fnum << "_a" << pidx;
+                if (!PARAM->name().empty()) pname << "_" << PARAM->name();
+
+                fparams[PARAM.get()] = make_shared<CVarDecl>(
+                    _converter.get_type(*PARAM), pname.str()
+                );
+            }
         }
-
-        fnums[FUNC] = _fids.next();
     }
 }
 
@@ -312,7 +319,7 @@ void MainFunctionGenerator::init_contract(
 // -------------------------------------------------------------------------- //
 
 CBlockList MainFunctionGenerator::build_case(
-    FunctionDefinition const& _def,
+    FunctionSpecialization const& _spec,
     map<VariableDeclaration const*, shared_ptr<CVarDecl>> & _args,
     shared_ptr<const CVarDecl> _id
 )
@@ -323,18 +330,18 @@ CBlockList MainFunctionGenerator::build_case(
         id = make_shared<CReference>(id);
     }
 
-    CFuncCallBuilder call_builder(m_converter.get_name(_def));
+    CFuncCallBuilder call_builder(_spec.name());
     call_builder.push(id);
     m_statedata.push_state_to(call_builder);
 
     CBlockList call_body;
-    if (_def.isPayable())
+    if (_spec.func().isPayable())
     {
         set_payment_value(call_body);
     }
-    for (auto const arg : _def.parameters())
+    for (auto const arg : _spec.func().parameters())
     {
-        string const MSG = _def.name() + ":" + arg->name();
+        string const MSG = _spec.func().name() + ":" + arg->name();
         auto const& PDECL = _args[arg.get()];
         auto const ND_VAL = m_converter.get_nd_val(*arg, MSG);
         call_body.push_back(PDECL->assign(ND_VAL)->stmt());

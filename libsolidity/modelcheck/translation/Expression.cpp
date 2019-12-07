@@ -653,12 +653,11 @@ void ExpressionConverter::print_method(
 	bool is_ext_call = false;
 	if (calldata.is_super())
 	{
-		auto &cdecl = dynamic_cast<ContractDefinition const&>(*fdecl.scope());
-		callname = FunctionUtilities::name(fdecl, cdecl, *m_decls.scope());
+		callname = m_decls.spec()->super()->name();
 	}
 	else
 	{
-		callname = M_TYPES.get_name(fdecl);
+		callname = FunctionSpecialization(fdecl).name();
 		is_ext_call = (calldata.context() != nullptr);
 	}
 	CFuncCallBuilder builder(callname);	
