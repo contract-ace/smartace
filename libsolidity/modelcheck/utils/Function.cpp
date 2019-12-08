@@ -64,9 +64,12 @@ std::unique_ptr<FunctionSpecialization> FunctionSpecialization::super() const
 {
     if (auto superfunc = M_CALL.annotation().superFunction)
     {
-        return make_unique<FunctionSpecialization>(
-            *superfunc, get_scope(*superfunc), M_USER
-        );
+        if (superfunc->isImplemented())
+        {
+            return make_unique<FunctionSpecialization>(
+                *superfunc, get_scope(*superfunc), M_USER
+            );
+        }
     }
     return nullptr;
 }

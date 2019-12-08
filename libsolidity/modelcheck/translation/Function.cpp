@@ -57,20 +57,23 @@ void FunctionConverter::print(ostream& _stream)
 
 bool FunctionConverter::visit(ContractDefinition const& _node)
 {
-    if (!_node.isLibrary())
+    if (!_node.isInterface())
     {
-        handle_contract_initializer(_node, _node);
-    }
-
-    set<string> methods;
-    for (auto contract : _node.annotation().linearizedBaseContracts)
-    {
-        for (auto func : contract->definedFunctions())
+        if (!_node.isLibrary())
         {
-            auto res = methods.insert(func->name());
-            if (res.second)
+            handle_contract_initializer(_node, _node);
+        }
+
+        set<string> methods;
+        for (auto contract : _node.annotation().linearizedBaseContracts)
+        {
+            for (auto func : contract->definedFunctions())
             {
-                generate_function(FunctionSpecialization(*func, _node));
+                auto res = methods.insert(func->name());
+                if (res.second)
+                {
+                    generate_function(FunctionSpecialization(*func, _node));
+                }
             }
         }
     }
@@ -264,6 +267,9 @@ string FunctionConverter::handle_contract_initializer(
     {
         auto const* raw = spec->name().annotation().referencedDeclaration;
         auto const& parent = dynamic_cast<ContractDefinition const&>(*raw);
+
+        if (parent.isInterface()) continue;
+
         auto parent_call = handle_contract_initializer(parent, _for);
 
         parent_initializers.emplace_back(parent_call);

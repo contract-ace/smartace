@@ -106,6 +106,8 @@ protected:
 	bool visit(FunctionTypeName const& _node) override;
     bool visit(Mapping const&) override;
 	bool visit(ArrayTypeName const& _node) override;
+    bool visit(EmitStatement const&) override;
+    bool visit(EventDefinition const&) override;
 
     void endVisit(ParameterList const& _node) override;
 	void endVisit(Mapping const& _node) override;

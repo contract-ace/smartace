@@ -52,7 +52,7 @@ bool ADTConverter::visit(ContractDefinition const& _node)
 
 void ADTConverter::endVisit(ContractDefinition const& _node)
 {
-    if (_node.isLibrary()) return;
+    if (_node.isLibrary() || _node.isInterface()) return;
     shared_ptr<CParams> fields;
     if (!M_FWD_DCL)
     {

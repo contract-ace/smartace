@@ -160,32 +160,37 @@ void TypeConverter::record(SourceUnit const& _unit)
             decl->accept(*this);
         }
 
-        for (auto fun : con->definedFunctions())
+        if (!con->isInterface())
         {
-            fun->parameterList().accept(*this);
-            if (fun->isConstructor()) continue;
-
-            auto const* returnParams = fun->returnParameterList().get();
+            for (auto fun : con->definedFunctions())
             {
-                ScopedSwap<bool> swap(m_is_retval, true);
-                returnParams->accept(*this);
+                fun->parameterList().accept(*this);
+                if (fun->isConstructor()) continue;
+
+                auto const* returnParams = fun->returnParameterList().get();
+                {
+                    ScopedSwap<bool> swap(m_is_retval, true);
+                    returnParams->accept(*this);
+                }
+
+                auto const FUNC_RETURN_TYPE = get_type(*returnParams);
+                auto const FUNC_NAME = FunctionSpecialization(*fun).name();
+                m_name_lookup.insert({fun, FUNC_NAME});
+                m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
             }
 
-            auto const FUNC_RETURN_TYPE = get_type(*returnParams);
-            auto const FUNC_NAME = FunctionSpecialization(*fun).name();
-            m_name_lookup.insert({fun, FUNC_NAME});
-            m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
-        }
-
-        for (auto modifier : con->functionModifiers())
-        {
-            modifier->parameterList().accept(*this);
+            for (auto modifier : con->functionModifiers())
+            {
+                modifier->parameterList().accept(*this);
+            }
         }
     }
 
     // Pass 3: assign types to Solidity expressions, where applicable.
     for (auto contract : contracts)
     {
+        if (contract->isInterface()) continue;
+
         ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
 
         for (auto fun : contract->definedFunctions())
@@ -410,6 +415,16 @@ bool TypeConverter::visit(ArrayTypeName const& _node)
 {
     (void) _node;
     throw runtime_error("Array type unsupported.");
+}
+
+bool TypeConverter::visit(EmitStatement const&)
+{
+    return false;
+}
+
+bool TypeConverter::visit(EventDefinition const&)
+{
+    return false;
 }
 
 // -------------------------------------------------------------------------- //

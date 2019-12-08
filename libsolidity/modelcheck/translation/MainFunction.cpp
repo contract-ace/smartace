@@ -76,7 +76,6 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     {
         for (auto const& spec : actor.specs)
         {
-            if (spec.func().isConstructor() || !spec.func().isPublic()) continue;
             auto call_body = build_case(spec, actor.fparams, actor.decl);
             call_cases->add_case(actor.fnums[&spec.func()], move(call_body));
         }
@@ -219,7 +218,9 @@ MainFunctionGenerator::Actor::Actor(
         set<string> generated;
         for (auto const* FUNC : rel->definedFunctions())
         {
-            if (FUNC->isConstructor() || !FUNC->isPublic()) continue;
+            if (FUNC->isConstructor()) continue;
+            if (!FUNC->isPublic()) continue;
+            if (!FUNC->isImplemented()) continue;
             
             auto res = generated.insert(FUNC->name());
             if (!res.second) continue;
@@ -256,7 +257,7 @@ list<MainFunctionGenerator::Actor> MainFunctionGenerator::analyze_decls(
 
     for (auto const contract : _contracts)
     {
-        if (contract->isLibrary()) continue;
+        if (contract->isLibrary() || contract->isInterface()) continue;
 
         actors.emplace_back(m_converter, contract, nullptr, cids, fids);
 
