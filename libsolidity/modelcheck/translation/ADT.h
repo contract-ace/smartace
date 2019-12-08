@@ -32,7 +32,7 @@ public:
         ASTNode const& _ast,
 		TypeConverter const& _converter,
 		size_t _map_k,
-		bool _fwd_dcl
+		bool _forward_declare
     );
 
     // Prints each ADT declaration once, in some order.
@@ -41,7 +41,7 @@ public:
 protected:
 	bool visit(ContractDefinition const& _node) override;
 
-	void endVisit(ContractDefinition const& _node) override;
+	void endVisit(VariableDeclaration const& _node) override;
 	void endVisit(Mapping const& _node) override;
 	void endVisit(StructDefinition const& _node) override;
 
@@ -50,8 +50,7 @@ private:
 	TypeConverter const& M_CONVERTER;
 
 	size_t const M_MAP_K;
-
-	const bool M_FWD_DCL;
+	bool const M_FORWARD_DECLARE;
 
 	std::ostream* m_ostream = nullptr;
 
