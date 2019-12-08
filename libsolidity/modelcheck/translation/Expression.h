@@ -7,6 +7,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
@@ -91,12 +92,14 @@ private:
 	void print_struct_ctor(FunctionCall const& _call);
 	void print_cast(FunctionCall const& _call);
 	void print_function(FunctionCall const& _call);
-	void print_method(FunctionType const& _type, FunctionCall const& _call);
+	void print_method(FunctionCallAnalyzer const& _calldata);
 	void print_contract_ctor(FunctionCall const& _call);
 	void print_payment(FunctionCall const& _call);
 	void print_assertion(std::string _type, SolArgList const& _args);
 	void pass_next_call_state(
-		FunctionCall const& _call, CFuncCallBuilder & _builder, bool _is_ext
+		FunctionCallAnalyzer const& _call,
+		CFuncCallBuilder & _builder,
+		bool _is_ext
 	);
 
 	// Helpe functions to handle certain member access cases.

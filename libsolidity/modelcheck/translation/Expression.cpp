@@ -5,7 +5,6 @@
 
 #include <libsolidity/modelcheck/translation/Expression.h>
 
-#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/AST.h>
@@ -530,21 +529,15 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 
 void ExpressionConverter::print_function(FunctionCall const& _call)
 {
-	auto ftype = dynamic_cast<FunctionType const*>(
-		_call.expression().annotation().type
-	);
-	if (!ftype)
-	{
-		throw runtime_error("Function encountered without type annotations.");
-	}
+	FunctionCallAnalyzer calldata(_call);
 
-	switch (ftype->kind())
+	switch (calldata.type().kind())
 	{
 	case FunctionType::Kind::Internal:
 	case FunctionType::Kind::External:
 	case FunctionType::Kind::BareCall:
 	case FunctionType::Kind::BareStaticCall:
-		print_method(*ftype, _call);
+		print_method(calldata);
 		break;
 	case FunctionType::Kind::DelegateCall:
 	case FunctionType::Kind::BareDelegateCall:
@@ -641,25 +634,22 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 	}
 }
 
-void ExpressionConverter::print_method(
-	FunctionType const& _type, FunctionCall const& _call
-)
+void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 {
 	// Analyzes the function call.
-	auto &fdecl = dynamic_cast<FunctionDefinition const&>(_type.declaration());
+	auto &fdecl = _calldata.decl();
 	FunctionSpecialization callspec(fdecl);
-	FunctionCallAnalyzer calldata(_call);
 
 	string callname;
 	bool is_ext_call = false;
-	if (calldata.is_super())
+	if (_calldata.is_super())
 	{
 		callname = m_decls.spec()->super()->name();
 	}
 	else
 	{
 		callname = callspec.name();
-		is_ext_call = (calldata.context() != nullptr);
+		is_ext_call = (_calldata.context() != nullptr);
 	}
 	CFuncCallBuilder builder(callname);	
 
@@ -669,7 +659,7 @@ void ExpressionConverter::print_method(
 	{
 		auto const* ARG_TYPE = fdecl.parameters()[param_idx]->type();
 		builder.push(
-			*calldata.context(), m_statedata, M_TYPES, m_decls, false, ARG_TYPE
+			*_calldata.context(), m_statedata, M_TYPES, m_decls, false, ARG_TYPE
 		);
 		++param_idx;
 	}
@@ -677,8 +667,8 @@ void ExpressionConverter::print_method(
 	{
 		if (is_ext_call)
 		{
-			calldata.context()->accept(*this);
-			if (!(calldata.id() && M_TYPES.is_pointer(*calldata.id())))
+			_calldata.context()->accept(*this);
+			if (!(_calldata.id() && M_TYPES.is_pointer(*_calldata.id())))
 			{
 				m_subexpr = make_shared<CReference>(m_subexpr);
 			}
@@ -688,15 +678,15 @@ void ExpressionConverter::print_method(
 		{
 			builder.push(make_shared<CIdentifier>("self", true));
 		}
-		pass_next_call_state(_call, builder, is_ext_call);
+		pass_next_call_state(_calldata, builder, is_ext_call);
 	}
 
 	// Pushes all user provided arguments.
-	for (size_t i = 0; i < calldata.args().size(); ++i)
+	for (size_t i = 0; i < _calldata.args().size(); ++i)
 	{
 		auto const* ARG_TYPE = fdecl.parameters()[param_idx + i]->type();
 		builder.push(
-			*calldata.args()[i], m_statedata, M_TYPES, m_decls, false, ARG_TYPE
+			*_calldata.args()[i], m_statedata, M_TYPES, m_decls, false, ARG_TYPE
 		);
 	}
 
@@ -704,9 +694,9 @@ void ExpressionConverter::print_method(
 	m_subexpr = builder.merge_and_pop();
 
 	// Unwraps the return value, if it is a wraped type.
-	if (_type.returnParameterTypes().size() == 1)
+	if (_calldata.type().returnParameterTypes().size() == 1)
 	{
-		if (is_wrapped_type(*_type.returnParameterTypes()[0]))
+		if (is_wrapped_type(*_calldata.type().returnParameterTypes()[0]))
 		{
 			m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
 		}
@@ -725,7 +715,7 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 			builder.push(make_shared<CReference>(
 				make_shared<CIdentifier>(DECL, false)
 			));
-			pass_next_call_state(_call, builder, true);
+			pass_next_call_state(FunctionCallAnalyzer(_call), builder, true);
 
 			if (auto const& ctor = contract->constructor())
 			{
@@ -803,15 +793,14 @@ void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 }
 
 void ExpressionConverter::pass_next_call_state(
-	FunctionCall const& _call, CFuncCallBuilder & _builder, bool _is_ext
+	FunctionCallAnalyzer const& _call, CFuncCallBuilder & _builder, bool _is_ext
 )
 {
-	FunctionCallAnalyzer calldata(_call);
 	CExprPtr value;
-	if (calldata.value())
+	if (_call.value())
 	{
 		value = ExpressionConverter(
-			*calldata.value(), m_statedata, M_TYPES, m_decls, false
+			*_call.value(), m_statedata, M_TYPES, m_decls, false
 		).convert();
 		value = FunctionUtilities::try_to_wrap(
 			*ContractUtilities::balance_type(), move(value)

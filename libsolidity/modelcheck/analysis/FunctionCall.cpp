@@ -20,6 +20,15 @@ namespace modelcheck
 FunctionCallAnalyzer::FunctionCallAnalyzer(FunctionCall const& _call)
 {
     m_args = _call.arguments();
+
+    m_type = dynamic_cast<FunctionType const*>(
+        _call.expression().annotation().type
+    );
+	if (!m_type)
+	{
+		throw runtime_error("Function encountered without type annotations.");
+	}
+
     _call.expression().accept(*this);
 }
 
@@ -54,6 +63,21 @@ bool FunctionCallAnalyzer::is_super() const
     return (id() && (id()->name() == "super"));
 }
 
+FunctionType const& FunctionCallAnalyzer::type() const
+{
+    return (*m_type);
+}
+
+FunctionDefinition const& FunctionCallAnalyzer::decl() const
+{
+    auto decl = dynamic_cast<FunctionDefinition const*>(&m_type->declaration());
+    if (!decl)
+    {
+		throw runtime_error("Function encountered without declaration.");
+    }
+    return (*decl);
+}
+
 // -------------------------------------------------------------------------- //
 
 bool FunctionCallAnalyzer::visit(MemberAccess const& _node)
@@ -66,7 +90,7 @@ bool FunctionCallAnalyzer::visit(MemberAccess const& _node)
     {
         m_value = move(m_last);
     }
-    else
+    else if (!m_context)
     {
         m_context = (&_node.expression());
     }

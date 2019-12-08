@@ -9,6 +9,7 @@
 #include "libsolidity/ast/ASTVisitor.h"
 #include "libsolidity/modelcheck/utils/General.h"
 #include <list>
+#include <string>
 #include <vector>
 
 namespace dev
@@ -32,6 +33,8 @@ public:
     Expression const* context() const;
     Identifier const* id() const;
     bool is_super() const;
+    FunctionType const& type() const;
+    FunctionDefinition const& decl() const;
 
 protected:
     bool visit(MemberAccess const& _node) override;
@@ -42,6 +45,8 @@ private:
     ASTPointer<Expression const> m_last;
 
     std::vector<ASTPointer<Expression const>> m_args;
+    FunctionTypePointer m_type;
+
     ASTPointer<Expression const> m_value = nullptr;
     ASTPointer<Expression const> m_gas = nullptr;
     Expression const* m_context = nullptr;
