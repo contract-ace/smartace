@@ -197,12 +197,10 @@ BOOST_AUTO_TEST_CASE(function)
 
     auto const& f1 = (funs[0]->name() == "f") ? *funs[0] : *funs[1];
     BOOST_CHECK(converter.has_record(f1));
-    BOOST_CHECK_EQUAL(converter.get_name(f1), "Method_A_Funcf");
     BOOST_CHECK_EQUAL(converter.get_type(f1), "sol_int256_t");
 
     auto const& f2 = (funs[0]->name() != "f") ? *funs[0] : *funs[1];
     BOOST_CHECK(converter.has_record(f2));
-    BOOST_CHECK_EQUAL(converter.get_name(f2), "Method_A_Funcg");
     BOOST_CHECK_EQUAL(converter.get_type(f2), "void");
 }
 
@@ -257,6 +255,7 @@ BOOST_AUTO_TEST_CASE(global_context_ids)
         parents,
         vector<ASTPointer<ASTNode>>{func}
     );
+    func->setScope(contract.get());
     BOOST_CHECK_EQUAL(contract->definedFunctions().size(), 1);
 
     SourceUnit unit(SourceLocation(), {contract});
@@ -461,37 +460,6 @@ BOOST_AUTO_TEST_CASE(identifiers_as_pointers)
     BOOST_CHECK_EQUAL(converter.is_pointer(idx2), false);
 }
 
-// In Solidity, a function identifier may be encountered before said function is
-// declared. This regression test ensures that the TypeConverter handles this
-// case by resolving all (relevant) functions before resolving identifiers.
-BOOST_AUTO_TEST_CASE(function_and_identifier_oreder_regression)
-{
-    using ExprStmtPtr = ExpressionStatement const*;
-    using FuncExprPtr = FunctionCall const*;
-    using IndnExprPtr = Identifier const*;
-
-    char const* text = R"(
-        contract A {
-            function f() public { g(); }
-            function g() public { }
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-    auto const& func = *ctrt.definedFunctions()[0];
-
-    auto const& stmt = *func.body().statements()[0];
-    auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
-    auto const& call = *dynamic_cast<FuncExprPtr>(&expr);
-    auto const& indx = *dynamic_cast<IndnExprPtr>(&call.expression());
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    BOOST_CHECK_EQUAL(converter.get_name(indx), "Method_A_Funcg");
-}
-
 // Ensures names are escaped, as per the translation specifications.
 BOOST_AUTO_TEST_CASE(name_escape)
 {
@@ -506,7 +474,6 @@ BOOST_AUTO_TEST_CASE(name_escape)
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A_B");
     auto const& strt = *ctrt.definedStructs()[0];
-    auto const& func = *ctrt.definedFunctions()[0];
     auto const& mapv = *ctrt.stateVariables()[0];
 
     TypeConverter converter;
@@ -514,7 +481,6 @@ BOOST_AUTO_TEST_CASE(name_escape)
 
     BOOST_CHECK_EQUAL(converter.get_name(ctrt), "A__B");
     BOOST_CHECK_EQUAL(converter.get_name(strt), "A__B_StructC__D");
-    BOOST_CHECK_EQUAL(converter.get_name(func), "Method_A__B_Funcf__func");
     BOOST_CHECK_EQUAL(converter.get_name(mapv), "A__B_Mapm__map_submap1");
 }
 

@@ -348,6 +348,9 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::INT, true
     ).print(int_actual);
+    int_expect << "void Method_A_Funcg(struct A*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum"
+               << ",sol_bool_t paid);";
     int_expect << "struct A_StructB Init_0_A_StructB(void);";
     int_expect << "struct A_StructB Init_A_StructB(sol_int256_t user_i);";
     int_expect << "struct A_StructB ND_A_StructB(void);";
@@ -359,9 +362,6 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
                << ",sol_int256_t key,sol_int256_t dat);";
     int_expect << "sol_int256_t*Ref_A_Mapm_submap1(struct A_Mapm_submap1*arr"
                << ",sol_int256_t key);";
-    int_expect << "void Method_A_Funcg(struct A*self,sol_address_t sender"
-               << ",sol_uint256_t value,sol_uint256_t blocknum"
-               << ",sol_bool_t paid);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
     BOOST_CHECK_EQUAL(int_actual.str(), int_expect.str());

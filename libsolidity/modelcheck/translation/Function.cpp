@@ -59,7 +59,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 {
     if (!_node.isInterface())
     {
-        if (!_node.isLibrary())
+        if (!_node.isLibrary() && M_VIEW != View::INT)
         {
             handle_contract_initializer(_node, _node);
         }

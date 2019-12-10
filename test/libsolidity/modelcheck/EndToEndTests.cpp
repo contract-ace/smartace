@@ -452,13 +452,13 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_bool_t paid);";
-    func_expect << "struct A_StructB Init_0_A_StructB(void);";
-    func_expect << "struct A_StructB Init_A_StructB(sol_uint256_t user_a);";
-    func_expect << "struct A_StructB ND_A_StructB(void);";
     func_expect << "struct A_StructB Method_A_FuncadvFunc"
                 << "(struct A*self,sol_address_t sender,sol_uint256_t value"
                 << ",sol_uint256_t blocknum,sol_bool_t paid"
                 << ",sol_uint256_t func_user___in);";
+    func_expect << "struct A_StructB Init_0_A_StructB(void);";
+    func_expect << "struct A_StructB Init_A_StructB(sol_uint256_t user_a);";
+    func_expect << "struct A_StructB ND_A_StructB(void);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
