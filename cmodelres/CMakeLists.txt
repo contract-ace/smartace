@@ -90,16 +90,27 @@ include_directories(${PROJECT_BINARY_DIR})
 add_executable(icmodel ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
 target_link_libraries(icmodel verify_interactive)
 
-# MVC: Locates all dependencies of seahorn's libverify, along with all compiler flags.
+# Locates all dependencies of seahorn's libverify, along with all compiler flags.
 set(CMODEL_COMPILE_DEFS "")
 get_directory_property(CMODEL_COMPILE_DEFS_RAW DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS)
 foreach(d ${CMODEL_COMPILE_DEFS_RAW})
     list(APPEND CMODEL_COMPILE_DEFS "-D${d}")
 endforeach(d)
 
-set(CMODEL_SEA_ARGS "${SEA_ARGS};--inline;--sea-dsa=cs;--dsa=sea-cs")
+set(SEA_ARGS "" CACHE STRING "Additional arguments to pass to Seahorn.")
+set(CMODEL_SEA_ARGS "${SEA_ARGS};--inline;--sea-dsa=cs;--dsa=sea-cs;--enable-indvar;--horn-global-constraints=true;--horn-singleton-aliases=true;--horn-use-write=true")
+
+set(SEA_DEBUG OFF CACHE BOOL "Compiles Seahorn executables for debugging.")
+if(SEA_DEBUG)
+	set(CMODEL_SEA_ARGS "${CMODEL_SEA_ARGS};-g")
+endif()
+
+set(SEA_EXELOG OFF CACHE BOOL "Allows Seahorn executables to log input traces.")
+if(SEA_EXELOG)
+	list(APPEND CMODEL_COMPILE_DEFS "-DMC_LOG_ALL")
+endif()
+
 if(SEA_EXE)
-    # MVC: Generates call to seahorn.
     add_custom_target(
         verify
 	COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --show-invars
