@@ -11,13 +11,9 @@
 #include <stdint.h>
 #include <assert.h>
 
-void sol_setup(int _argc, const char **_argv)
-{
-}
+void sol_setup(int _argc, const char **_argv) {}
 
-void sol_on_transaction(void){
-
-}
+void sol_on_transaction(void) {}
 
 void ll_assume(sol_raw_uint8_t _cond){
 	klee_assume(_cond);
@@ -32,6 +28,8 @@ void sol_require(sol_raw_uint8_t _cond, const char* _msg)
 {
     klee_assume(_cond);
 }
+
+void sol_emit(const char *) {}
 
 uint8_t rt_nd_byte(const char* _msg){
     uint8_t res;

@@ -87,7 +87,7 @@ protected:
 		);
 		m_substmt = std::make_shared<Stmt>(std::forward<Args>(_args)...);
 	}
-	CStmtPtr & last_substmt();
+	CStmtPtr last_substmt();
 
 	bool visit(Block const& _node) override;
 	bool visit(IfStatement const& _node) override;
@@ -95,7 +95,7 @@ protected:
 	bool visit(ForStatement const& _node) override;
 	bool visit(InlineAssembly const&) override;
 	bool visit(Throw const& _node) override;
-	bool visit(EmitStatement const&) override;
+	bool visit(EmitStatement const& _node) override;
 	bool visit(VariableDeclarationStatement const& _node) override;
 	bool visit(ExpressionStatement const& _node) override;
 

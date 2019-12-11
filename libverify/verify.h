@@ -173,6 +173,9 @@ void ll_assume(sol_raw_uint8_t _cond);
 void sol_require(sol_raw_uint8_t _cond, const char* _msg);
 void sol_assert(sol_raw_uint8_t cond, const char* _msg);
 
+// Allows special behaviour on emit events.
+void sol_emit(const char * _event);
+
 // Returns a raw byte without any wrapping. This is meant to be used by the
 // model's execution environment.
 uint8_t rt_nd_byte(const char* _msg);

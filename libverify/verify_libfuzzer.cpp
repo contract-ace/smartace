@@ -111,6 +111,10 @@ void ll_assume(sol_raw_uint8_t _cond)
 
 // -------------------------------------------------------------------------- //
 
+void sol_emit(const char *) {}
+
+// -------------------------------------------------------------------------- //
+
 int SetupExploration(void)
 {
 	return setjmp(Env);

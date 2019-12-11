@@ -12,6 +12,7 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/Types.h>
+#include <algorithm>
 #include <stdexcept>
 
 using namespace std;
@@ -87,7 +88,7 @@ CExprPtr GeneralBlockConverter::expand(Expression const& _expr, bool _ref)
 
 // -------------------------------------------------------------------------- //
 
-CStmtPtr & GeneralBlockConverter::last_substmt()
+CStmtPtr GeneralBlockConverter::last_substmt()
 {
 	return m_substmt;
 }
@@ -215,9 +216,17 @@ bool GeneralBlockConverter::visit(Throw const& _node)
 	throw runtime_error("Throw statement not yet supported.");
 }
 
-bool GeneralBlockConverter::visit(EmitStatement const&)
+bool GeneralBlockConverter::visit(EmitStatement const& _node)
 {
-	// TODO(scottwe): warn unchecked; emit statements may be used to audit.
+	auto const& LOC = _node.eventCall().location();
+	auto const& SRC = LOC.source->source();
+	string event = SRC.substr(LOC.start, LOC.end - LOC.start);
+	event.erase(std::remove(event.begin(), event.end(), '\n'), event.end());
+
+	CFuncCallBuilder sol_emit_call("sol_emit");
+	sol_emit_call.push(make_shared<CStringLiteral>(event));
+	new_substmt<CExprStmt>(sol_emit_call.merge_and_pop());
+
 	return false;
 }
 

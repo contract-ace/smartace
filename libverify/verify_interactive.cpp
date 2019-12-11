@@ -120,6 +120,13 @@ void sol_require(sol_raw_uint8_t _cond, const char* _msg)
 
 // -------------------------------------------------------------------------- //
 
+void sol_emit(const char* _msg)
+{
+    cout << "Emit: " << _msg << endl;
+}
+
+// -------------------------------------------------------------------------- //
+
 void on_entry(const char* _type, const char* _msg)
 {
     cout << _msg << " [" << _type << "]: ";
