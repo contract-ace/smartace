@@ -180,10 +180,9 @@ bool FunctionConverter::visit(Mapping const& _node)
     (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
                  << gen.declare_nd_initializer(M_FWD_DCL)
                  << gen.declare_read(M_FWD_DCL)
-                 << gen.declare_write(M_FWD_DCL)
-                 << gen.declare_ref(M_FWD_DCL);
+                 << gen.declare_write(M_FWD_DCL);
 
-    return true;
+    return false;
 }
 
 // -------------------------------------------------------------------------- //

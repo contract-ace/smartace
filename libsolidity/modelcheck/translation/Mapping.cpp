@@ -20,23 +20,26 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-const std::string MapGenerator::CURR_FIELD = "curr";
-const std::string MapGenerator::DATA_FIELD = "data";
-const std::string MapGenerator::ND_FIELD = "nd_data";
-
-// -------------------------------------------------------------------------- //
-
 MapGenerator::MapGenerator(
     Mapping const& _src, size_t _ct, TypeConverter const& _converter
 ): M_LEN(_ct)
- , M_NAME(_converter.get_name(_src))
  , M_TYPE(_converter.get_type(_src))
- , M_KEY_T(_converter.get_type(_src.keyType()))
- , M_VAL_T(_converter.get_type(_src.valueType()))
- , M_INIT_KEY(_converter.get_init_val(_src.keyType()))
- , M_INIT_VAL(_converter.get_init_val(_src.valueType()))
- , M_ND_VAL(_converter.get_nd_val(_src.valueType(), M_NAME + "_val"))
+ , M_TYPES(_converter)
+ , M_MAP_RECORD(_converter.mapdb().resolve(_src))
+ , M_VAL_T(M_TYPES.get_type(*M_MAP_RECORD.value_type))
+ , M_TMP(make_shared<CVarDecl>(M_TYPE, "tmp", false))
+ , M_ARR(make_shared<CVarDecl>(M_TYPE, "arr", true))
+ , M_DAT(make_shared<CVarDecl>(M_VAL_T, "dat"))
 {
+    m_keys_t.reserve(M_MAP_RECORD.key_types.size());
+    m_keys.reserve(M_MAP_RECORD.key_types.size());
+    for (auto const* KEY : M_MAP_RECORD.key_types)
+    {
+        m_keys_t.push_back(M_TYPES.get_type(*KEY));
+        m_keys.push_back(make_shared<CVarDecl>(
+            m_keys_t.back(), "key_" + to_string(m_keys_t.size()))
+        );
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -46,26 +49,35 @@ CStructDef MapGenerator::declare(bool _forward_declare) const
     shared_ptr<CParams> t;
     if (!_forward_declare)
     {
-        t = make_shared<CParams>();
-        t->reserve(1 + 3 * M_LEN);
-        t->push_back(make_shared<CVarDecl>(M_VAL_T, ND_FIELD));
-        for (unsigned int i = 0; i < M_LEN; ++i)
+        t = make_shared<CParams>();  
+
+        KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
+        do
         {
-            t->push_back(make_shared<CVarDecl>(M_KEY_T, field(CURR_FIELD, i)));
-            t->push_back(make_shared<CVarDecl>(M_VAL_T, field(DATA_FIELD, i)));
-        }
+            string suffix = indices.suffix();
+
+            t->push_back(make_shared<CVarDecl>(
+                m_keys_t[indices.size() - 1], "curr" + suffix)
+            );
+
+            if (indices.is_full())
+            {
+                t->push_back(make_shared<CVarDecl>(M_VAL_T, "data" + suffix));
+            }
+        } while (indices.next());      
     }
-    return CStructDef(M_NAME, move(t));
+    return CStructDef(M_MAP_RECORD.name, move(t));
 }
 
 // -------------------------------------------------------------------------- //
 
 CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
 {
-    auto fid = make_shared<CVarDecl>(M_TYPE, "Init_0_" + M_NAME);
+    const auto INIT_VAL = M_TYPES.get_init_val(*M_MAP_RECORD.value_type);
+    auto fid = make_shared<CVarDecl>(M_TYPE, "Init_0_" + M_MAP_RECORD.name);
 
     shared_ptr<CBlock> body;
-    if (!_forward_declare) body = expand_init(M_INIT_VAL);
+    if (!_forward_declare) body = expand_init(INIT_VAL);
 
     return CFuncDef(move(fid), {}, move(body));
 }
@@ -74,10 +86,12 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
 
 CFuncDef MapGenerator::declare_nd_initializer(bool _forward_declare) const
 {
-    auto fid = make_shared<CVarDecl>(M_TYPE, "ND_" + M_NAME);
+    const auto NAME = "ND_" + M_MAP_RECORD.name;
+    const auto ND_VAL = M_TYPES.get_nd_val(*M_MAP_RECORD.value_type, NAME);
+    auto fid = make_shared<CVarDecl>(M_TYPE, NAME);
 
     shared_ptr<CBlock> body;
-    if (!_forward_declare) body = expand_init(M_ND_VAL);
+    if (!_forward_declare) body = expand_init(ND_VAL);
 
     return CFuncDef(move(fid), {}, move(body));
 }
@@ -86,100 +100,108 @@ CFuncDef MapGenerator::declare_nd_initializer(bool _forward_declare) const
 
 CFuncDef MapGenerator::declare_write(bool _forward_declare) const
 {
-    auto fid = make_shared<CVarDecl>("void", "Write_" + M_NAME);
+    auto fid = make_shared<CVarDecl>("void", "Write_" + M_MAP_RECORD.name);
 
-    auto arr = make_shared<CVarDecl>(M_TYPE, "arr", true);
-    auto key = make_shared<CVarDecl>(M_KEY_T, "key");
-    auto data = make_shared<CVarDecl>(M_VAL_T, "dat");
+    CParams params;
+    params.push_back(M_ARR);
+    params.insert(params.end(), m_keys.begin(), m_keys.end());
+    params.push_back(M_DAT);
 
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        CStmtPtr chain = nullptr;
-        for (size_t i = 0; i < M_LEN; ++i)
-        {
-            auto store = write_field_stmt(*arr, DATA_FIELD, i, data->id());
-            chain = expand_iteration(i, *arr, *key, move(store), chain);
-        }
-        body = make_shared<CBlock>(CBlockList{ move(chain) });
+        body = make_shared<CBlock>(CBlockList{expand_access(0, "", true)});
     }
 
-    return CFuncDef(move(fid), CParams{ arr, key, data }, move(body));
+    return CFuncDef(move(fid), move(params), move(body));
 }
 
 // -------------------------------------------------------------------------- //
 
 CFuncDef MapGenerator::declare_read(bool _forward_declare) const
 {
-    auto fid = make_shared<CVarDecl>(M_VAL_T, "Read_" + M_NAME);
+    auto const NAME = "Read_" + M_MAP_RECORD.name;
+    auto fid = make_shared<CVarDecl>(M_VAL_T, NAME);
 
-    auto arr = make_shared<CVarDecl>(M_TYPE, "arr", true);
-    auto key = make_shared<CVarDecl>(M_KEY_T, "key");
-
-    shared_ptr<CBlock> body;
-    if (!_forward_declare)
-    {
-        CStmtPtr chain = nullptr;
-        for (size_t i = 0; i < M_LEN; ++i)
-        {
-            auto rv = make_shared<CReturn>(arr->access(field(DATA_FIELD, i)));
-            chain = expand_iteration(i, *arr, *key, move(rv), chain);
-        }
-        body = make_shared<CBlock>(CBlockList{
-            move(chain), make_shared<CReturn>(M_ND_VAL)
-        });
-    }
-
-    return CFuncDef(move(fid), CParams{ arr, key }, move(body));
-}
-
-// -------------------------------------------------------------------------- //
-
-CFuncDef MapGenerator::declare_ref(bool _forward_declare) const
-{
-    auto fid = make_shared<CVarDecl>(M_VAL_T, "Ref_" + M_NAME, true);
-
-    auto arr = make_shared<CVarDecl>(M_TYPE, "arr", true);
-    auto key = make_shared<CVarDecl>(M_KEY_T, "key");
+    CParams params;
+    params.push_back(M_ARR);
+    params.insert(params.end(), m_keys.begin(), m_keys.end());
 
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        CStmtPtr chain = nullptr;
-        for (size_t i = 0; i < M_LEN; ++i)
-        {
-            auto v = make_shared<CReference>(arr->access(field(DATA_FIELD, i)));
-            auto rv = make_shared<CReturn>(move(v));
-            chain = expand_iteration(i, *arr, *key, move(rv), chain);
-        }
+        auto const ND_VAL = M_TYPES.get_nd_val(*M_MAP_RECORD.value_type, NAME);
         body = make_shared<CBlock>(CBlockList{
-            move(chain),
-            arr->access(ND_FIELD)->assign(M_ND_VAL)->stmt(),
-            make_shared<CReturn>(make_shared<CReference>(arr->access(ND_FIELD)))
+            expand_access(0, "", false), make_shared<CReturn>(ND_VAL)
         });
     }
 
-    return CFuncDef(move(fid), CParams{ arr, key }, move(body));
+    return CFuncDef(move(fid), move(params), move(body));
 }
 
 // -------------------------------------------------------------------------- //
 
 shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
 {
-    auto const TMP = make_shared<CVarDecl>(M_TYPE, "tmp", false, nullptr);
     CBlockList block;
-    block.reserve(2 + 3 * M_LEN + 1);
-    block.push_back(TMP);
-    block.push_back(TMP->access(ND_FIELD)->assign(M_INIT_VAL)->stmt());
-    for (size_t i = 0; i < M_LEN; ++i)
+    block.push_back(M_TMP);
+    
+    KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
+    do
     {
-        block.push_back(TMP->access(field(CURR_FIELD, i))->access("v")->assign(
-            make_shared<CIdentifier>(name_global_key(i), false)
+        string suffix = indices.suffix();
+
+        block.push_back(M_TMP->access("curr" + suffix)->access("v")->assign(
+            make_shared<CIdentifier>(name_global_key(indices.top()), false)
         )->stmt());
-        block.push_back(write_field_stmt(*TMP, DATA_FIELD, i, _init_data));
-    }
-    block.push_back(make_shared<CReturn>(TMP->id()));
+
+        if (indices.is_full())
+        {
+            block.push_back(
+                M_TMP->access("data" + suffix)->assign(_init_data)->stmt()
+            );
+        }
+    } while (indices.next());
+    
+    block.push_back(make_shared<CReturn>(M_TMP->id()));
     return make_shared<CBlock>(move(block));
+}
+
+// -------------------------------------------------------------------------- //
+
+CStmtPtr MapGenerator::expand_access(
+    size_t _depth, string const& _suffix, bool _is_writer
+) const
+{
+    if (_depth == M_MAP_RECORD.key_types.size())
+    {
+        auto const DATA = M_ARR->access("data" + _suffix);
+        if (_is_writer)
+        {
+            return DATA->assign(M_DAT->id())->stmt();
+        }
+        else
+        {
+            return make_shared<CReturn>(DATA);
+        }
+    }
+    else
+    {
+        shared_ptr<CIf> stmt;
+        for (size_t i = 0; i < M_LEN; ++i)
+        {
+            auto const SUFFIX = _suffix + "_" + to_string(i);
+            auto const CURR_KEY = M_ARR->access("curr" + SUFFIX)->access("v");
+            auto const REQ_KEY = m_keys[_depth]->access("v");
+
+            auto const NEXT = expand_access(_depth + 1, SUFFIX, _is_writer);
+
+            stmt = make_shared<CIf>(
+                make_shared<CBinaryOp>(CURR_KEY, "==", REQ_KEY), NEXT, stmt
+            );
+        }
+        return make_shared<CBlock>(CBlockList{stmt});
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -193,35 +215,62 @@ string MapGenerator::name_global_key(size_t _id)
 
 // -------------------------------------------------------------------------- //
 
-CStmtPtr MapGenerator::expand_iteration(
-    size_t _i,
-    CVarDecl const& _arr,
-    CVarDecl const& _key,
-    CStmtPtr _exec,
-    CStmtPtr _chain
-)
+MapGenerator::KeyIterator::KeyIterator(
+    size_t _width, size_t _depth
+): M_WIDTH(_width), M_DEPTH(_depth), m_indices({0})
 {
-    auto is_match = make_shared<CBinaryOp>(
-        _arr.access(field(CURR_FIELD, _i))->access("v"), "==", _key.access("v")
-    );
-
-    return make_shared<CIf>(move(is_match), _exec, move(_chain));
 }
 
 // -------------------------------------------------------------------------- //
 
-string MapGenerator::field(string const& _base, size_t _i)
+string MapGenerator::KeyIterator::suffix() const
 {
-    return _base + to_string(_i);
+    string suffix;
+    for (auto idx : m_indices) suffix += "_" + to_string(idx);
+    return suffix;
 }
 
 // -------------------------------------------------------------------------- //
 
-CStmtPtr MapGenerator::write_field_stmt(
-    CData const& _base, string const& _field, size_t _i, CExprPtr _data
-)
+bool MapGenerator::KeyIterator::is_full() const
 {
-    return _base.access(field(_field, _i))->assign(move(_data))->stmt();
+    return (m_indices.size() == M_DEPTH);
+}
+
+// -------------------------------------------------------------------------- //
+
+size_t MapGenerator::KeyIterator::top() const
+{
+    return m_indices.back();
+}
+
+// -------------------------------------------------------------------------- //
+
+size_t MapGenerator::KeyIterator::size() const
+{
+    return m_indices.size();
+}
+
+// -------------------------------------------------------------------------- //
+
+bool MapGenerator::KeyIterator::next()
+{
+    if (!is_full())
+    {
+        m_indices.push_back(0);
+    }
+    else
+    {
+        ++m_indices.back();
+        while (m_indices.back() == M_WIDTH)
+        {
+            m_indices.pop_back();
+            if (m_indices.empty()) break;
+            ++m_indices.back();
+        }
+    }
+
+    return !m_indices.empty();
 }
 
 // -------------------------------------------------------------------------- //

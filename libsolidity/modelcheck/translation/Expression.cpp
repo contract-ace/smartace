@@ -97,7 +97,9 @@ bool ExpressionConverter::visit(Assignment const& _node)
 		ScopedSwap<bool> swap(m_lval, true);
 		if (auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find())
 		{
-			generate_mapping_call("Write", M_TYPES.get_name(*map), *map, rhs);
+			FlatIndex idx(*map);
+			auto record = M_TYPES.mapdb().resolve(idx.decl());
+			generate_mapping_call("Write", record, idx, rhs);
 		}
 		else
 		{
@@ -226,20 +228,20 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 	{
 	case Type::Category::Mapping:
 		{
-			string const MAP_NAME = M_TYPES.get_name(_node);
-			if (m_find_ref)
+			FlatIndex idx(_node);
+			auto record = M_TYPES.mapdb().resolve(idx.decl());
+
+			if (idx.indices().size() != record.key_types.size())
 			{
-				generate_mapping_call("Ref", MAP_NAME, _node, nullptr);
+				throw runtime_error("Partial map lookup unsupported.");
 			}
-			else if (m_lval)
+			else if (m_find_ref)
 			{
-				generate_mapping_call("Ref", MAP_NAME, _node, nullptr);
-				m_subexpr = make_shared<CDereference>(m_subexpr);
+				throw runtime_error("Map references unsupported.");
 			}
-			else
-			{
-				generate_mapping_call("Read", MAP_NAME, _node, nullptr);
-			}
+
+			generate_mapping_call("Read", record, idx, nullptr);
+
 			if (is_wrapped_type(*_node.annotation().type))
 			{
 				m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
@@ -347,21 +349,30 @@ void ExpressionConverter::generate_binary_op(
 }
 
 void ExpressionConverter::generate_mapping_call(
-	string const& _op, string const& _id, IndexAccess const& _map, CExprPtr _v
+	string const& _op,
+	MapDeflate::FlatMap const& _map,
+	FlatIndex const& _idx,
+	CExprPtr _v
 )
 {
-	auto const* const MAP_T = dynamic_cast<MappingType const*>(
-		_map.baseExpression().annotation().type
-	);
-	auto const& KEY_T = MAP_T->keyType();
-
 	// The type of baseExpression is an array, so it is not a wrapped type.
-	CFuncCallBuilder builder(_op + "_" + _id);
-	builder.push(_map.baseExpression(), m_statedata, M_TYPES, m_decls, true);
-	builder.push(
-		*_map.indexExpression(), m_statedata, M_TYPES, m_decls, false, KEY_T
-	);
-	if (_v) builder.push(move(_v), MAP_T->valueType());
+	CFuncCallBuilder builder(_op + "_" + _map.name);
+	builder.push(_idx.base(), m_statedata, M_TYPES, m_decls, true);
+
+	{
+		auto iitr = _idx.indices().begin();
+		auto mitr = _map.key_types.begin();
+		while (iitr != _idx.indices().end() && mitr != _map.key_types.end())
+		{
+			auto const& idx = (**iitr);
+			auto const* type = (*mitr)->annotation().type;
+			builder.push(idx, m_statedata, M_TYPES, m_decls, false, type);
+			++iitr;
+			++mitr;
+		}
+	}
+
+	if (_v) builder.push(move(_v), _map.value_type->annotation().type);
 	m_subexpr = builder.merge_and_pop();
 }
 

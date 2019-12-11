@@ -75,12 +75,7 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
 {
     char const* text = R"(
         contract A {
-            mapping(int => mapping(int => mapping(int => int))) map3;
-            struct B { mapping(int => mapping(int => int)) map1; }
-            mapping(int => A) map4;
-            struct C { mapping(int => int) map2; }
-            B b;
-            C c;
+            mapping(int => mapping(int => int)) map;
         }
     )";
 
@@ -89,25 +84,26 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
     TypeConverter converter;
     converter.record(ast);
 
-    for (int i = 1; i <= 16; ++i)
-    {
-        ostringstream actual;
-        ADTConverter(ast, converter, i, false).print(actual);
+    ostringstream actual_k_1;
+    ostringstream actual_k_2;
 
-        for (int j = 0; j <= 16; ++j)
-        {
-            ostringstream target;
-            target << "curr" << j;
-            if (j < i)
-            {
-                BOOST_CHECK(actual.str().find(target.str()) != string::npos);
-            }
-            else
-            {
-                BOOST_CHECK(actual.str().find(target.str()) == string::npos);
-            }
-        }
-    }
+    ADTConverter(ast, converter, 1, false).print(actual_k_1);
+    ADTConverter(ast, converter, 2, false).print(actual_k_2);
+
+    BOOST_CHECK(actual_k_1.str().find("curr_0") != string::npos);
+    BOOST_CHECK(actual_k_1.str().find("curr_0_0") != string::npos);
+    BOOST_CHECK(actual_k_1.str().find("data_0_0") != string::npos);
+
+    BOOST_CHECK(actual_k_2.str().find("curr_0") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("curr_0_0") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("data_0_0") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("curr_0_1") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("data_0_1") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("curr_1") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("curr_1_0") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("data_1_0") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("curr_1_1") != string::npos);
+    BOOST_CHECK(actual_k_2.str().find("data_1_1") != string::npos);
 }
 
 BOOST_AUTO_TEST_CASE(member_inheritance)

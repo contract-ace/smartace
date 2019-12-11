@@ -166,15 +166,11 @@ BOOST_AUTO_TEST_CASE(map_variable)
     auto const& ctrt = *retrieveContractByName(ast, "A");
 
     const auto& map_var = *ctrt.stateVariables()[0];
-    const auto& submap1 = *dynamic_cast<Mapping const*>(map_var.typeName());
-    const auto& submap2 = *dynamic_cast<Mapping const*>(&submap1.valueType());
 
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.get_name(map_var), "A_Maparr_submap1");
-    BOOST_CHECK_EQUAL(converter.get_name(submap1), "A_Maparr_submap1");
-    BOOST_CHECK_EQUAL(converter.get_name(submap2), "A_Maparr_submap2");
+    BOOST_CHECK_EQUAL(converter.get_name(map_var), "Map_1");
 }
 
 // Tests that function names and return values are annotated properly. This
@@ -381,44 +377,7 @@ BOOST_AUTO_TEST_CASE(struct_access)
     TypeConverter converter;
     converter.record(ast);
 
-    BOOST_CHECK_EQUAL(converter.get_name(mmbr), "A_StructB_Maparr_submap1");
-}
-
-// Tests that map index access calls are treated as function calls, with their
-// name being the base to the function call name, and their kind being the
-// return value type of said method.
-BOOST_AUTO_TEST_CASE(map_access)
-{
-    using ExprStmtPtr = ExpressionStatement const*;
-    using IndxExprPtr = IndexAccess const*;
-
-    char const* text = R"(
-        contract A {
-            mapping(int => mapping(int => int)) arr;
-            function f() public {
-                arr[1][1];
-            }
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-    auto const& func = *ctrt.definedFunctions()[0];
-
-    auto const& stmt = *func.body().statements()[0];
-    auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
-    auto const& idx1 = *dynamic_cast<IndxExprPtr>(&expr);
-    auto const& idx2 = *dynamic_cast<IndxExprPtr>(&idx1.baseExpression());
-
-    TypeConverter converter;
-    converter.record(ast);
-
-    BOOST_CHECK(converter.has_record(idx1));
-    BOOST_CHECK_EQUAL(converter.get_name(idx1), "A_Maparr_submap2");
-    BOOST_CHECK_EQUAL(converter.get_type(idx1), "sol_int256_t");
-    BOOST_CHECK(converter.has_record(idx2));
-    BOOST_CHECK_EQUAL(converter.get_name(idx2), "A_Maparr_submap1");
-    BOOST_CHECK_EQUAL(converter.get_type(idx2), "struct A_Maparr_submap2");
+    BOOST_CHECK_EQUAL(converter.get_name(mmbr), "Map_1");
 }
 
 // Ensures that storage variable identifiers are mapped to pointers, while
@@ -481,7 +440,7 @@ BOOST_AUTO_TEST_CASE(name_escape)
 
     BOOST_CHECK_EQUAL(converter.get_name(ctrt), "A__B");
     BOOST_CHECK_EQUAL(converter.get_name(strt), "A__B_StructC__D");
-    BOOST_CHECK_EQUAL(converter.get_name(mapv), "A__B_Mapm__map_submap1");
+    BOOST_CHECK_EQUAL(converter.get_name(mapv), "Map_1");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

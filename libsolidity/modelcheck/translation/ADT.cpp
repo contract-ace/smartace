@@ -104,6 +104,15 @@ bool ADTConverter::visit(ContractDefinition const& _node)
 
 // -------------------------------------------------------------------------- //
 
+bool ADTConverter::visit(Mapping const& _node)
+{
+    MapGenerator mapgen(_node, M_MAP_K, M_CONVERTER);
+    (*m_ostream) << mapgen.declare(M_FORWARD_DECLARE);
+    return false;
+}
+
+// -------------------------------------------------------------------------- //
+
 void ADTConverter::endVisit(VariableDeclaration const& _node)
 {
     auto const* pt = dynamic_cast<ContractType const*>(_node.annotation().type);
@@ -111,12 +120,6 @@ void ADTConverter::endVisit(VariableDeclaration const& _node)
     {
         pt->contractDefinition().accept(*this);
     }
-}
-
-void ADTConverter::endVisit(Mapping const& _node)
-{
-    MapGenerator mapgen(_node, M_MAP_K, M_CONVERTER);
-    (*m_ostream) << mapgen.declare(M_FORWARD_DECLARE);
 }
 
 void ADTConverter::endVisit(StructDefinition const& _node)

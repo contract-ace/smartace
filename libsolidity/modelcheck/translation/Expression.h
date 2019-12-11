@@ -8,6 +8,7 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
+#include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
@@ -83,8 +84,8 @@ private:
 	);
 	void generate_mapping_call(
 		std::string const& _op,
-		std::string const& _id,
-		IndexAccess const& _map,
+		MapDeflate::FlatMap const& _map,
+		FlatIndex const& _idx,
 		CExprPtr _v
 	);
 

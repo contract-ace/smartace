@@ -694,9 +694,8 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
             B b;
             C c;
             function f() public {
-                arr1[1 + 2];
-                b.arr2[3 + 4];
-                c.b.arr2[5 + 6];
+                b.arr2[3 + 4][3 + 4];
+                c.b.arr2[5 + 6][5 + 6];
                 arr1[10][10];
             }
         }

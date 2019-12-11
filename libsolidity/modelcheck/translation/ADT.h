@@ -40,9 +40,9 @@ public:
 
 protected:
 	bool visit(ContractDefinition const& _node) override;
+	bool visit(Mapping const& _node) override;
 
 	void endVisit(VariableDeclaration const& _node) override;
-	void endVisit(Mapping const& _node) override;
 	void endVisit(StructDefinition const& _node) override;
 
 private:

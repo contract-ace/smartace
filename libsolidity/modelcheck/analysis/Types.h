@@ -8,6 +8,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
 #include <map>
 #include <set>
@@ -19,32 +20,6 @@ namespace solidity
 {
 namespace modelcheck
 {
-
-/*
- * Helper method to calculate the depth of an array index access.
- */
-class AccessDepthResolver : public ASTConstVisitor
-{
-public:
-    // Sets up a resolver for a mapping index access at AST node _base.
-    AccessDepthResolver(IndexAccess const& _base);
-
-    // Returns the Mapping TypeName used in the declaration of _base's mapping
-    // expression. If this cannot be resolved, null is returned.
-    Mapping const* resolve();
-
-protected:
-	bool visit(Conditional const&) override;
-	bool visit(MemberAccess const& _node) override;
-	bool visit(IndexAccess const& _node) override;
-	bool visit(Identifier const& _node) override;
-
-private:
-	Expression const& m_base;
-
-	unsigned int m_submap_count;
-    VariableDeclaration const* m_decl;
-};
 
 /*
  * Maintains a dictionary from AST Node addresses to type annotations. The
@@ -99,20 +74,22 @@ public:
         Declaration const& _decl, std::string const& _msg
     ) const;
 
+    // Provides a view of the map database.
+    MapDeflate mapdb() const;
+
 protected:
     bool visit(VariableDeclaration const& _node) override;
 	bool visit(ElementaryTypeName const& _node) override;
 	bool visit(UserDefinedTypeName const& _node) override;
 	bool visit(FunctionTypeName const& _node) override;
-    bool visit(Mapping const&) override;
+    bool visit(Mapping const& _node) override;
 	bool visit(ArrayTypeName const& _node) override;
+    bool visit(IndexAccess const& _node) override;
     bool visit(EmitStatement const&) override;
     bool visit(EventDefinition const&) override;
 
     void endVisit(ParameterList const& _node) override;
-	void endVisit(Mapping const& _node) override;
     void endVisit(MemberAccess const& _node) override;
-    void endVisit(IndexAccess const& _node) override;
 	void endVisit(Identifier const& _node) override;
 
 private:
@@ -120,6 +97,8 @@ private:
     // value is simple (has no "name"), it is in m_global_context_simple_values.
     static std::map<std::string, std::string> const m_global_context_types;
     static std::set<std::string> const m_global_context_simple_values;
+
+    MapDeflate m_mapdb;
 
     std::map<ASTNode const*, std::string> m_name_lookup;
     std::map<ASTNode const*, std::string> m_type_lookup;
