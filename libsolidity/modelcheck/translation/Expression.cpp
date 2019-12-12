@@ -569,8 +569,8 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 		// TODO(scottwe): when should this be acceptable?
 		throw runtime_error("Selfdestruct unsupported.");
 	case FunctionType::Kind::Revert:
-		// TODO(scottwe): decide on rollback versus assert branch pruning.
-		throw runtime_error("Revert not yet supported.");
+		print_revert(_call.arguments());
+		break;
 	case FunctionType::Kind::ECRecover:
 		// TODO(scottwe): implement.
 		throw runtime_error("ECRecover not yet supported.");
@@ -799,6 +799,15 @@ void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 	CFuncCallBuilder builder(_type);
 	const InaccessibleDynamicType RAW_TYPE;
 	builder.push(*_args[0], m_statedata, M_TYPES, m_decls, false, &RAW_TYPE);
+	builder.push(Literals::ZERO);
+	m_subexpr = builder.merge_and_pop();
+}
+
+void ExpressionConverter::print_revert(SolArgList const&)
+{
+	// TODO(scottwe): support for messages.
+	CFuncCallBuilder builder("sol_require");
+	builder.push(Literals::ZERO);
 	builder.push(Literals::ZERO);
 	m_subexpr = builder.merge_and_pop();
 }
