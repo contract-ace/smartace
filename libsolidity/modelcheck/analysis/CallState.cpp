@@ -62,7 +62,7 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
     auto const amt_var = make_shared<CVarDecl>(VALUE_T, "amt");
     auto const bal_var = make_shared<CVarDecl>(VALUE_T, "bal", true);
 
-    if (_forward_declare)
+    if (!_forward_declare)
     {
         auto bal_cond = make_shared<CBinaryOp>(
             bal_var->access("v"), ">=", amt_var->access("v")

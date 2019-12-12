@@ -755,8 +755,8 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 
 void ExpressionConverter::print_payment(FunctionCall const& _call)
 {
-	const AddressType ARG1_TYPE(StateMutability::Payable);
-	const IntegerType ARG2_TYPE(256, IntegerType::Modifier::Unsigned);
+	const AddressType ADR_TYPE(StateMutability::Payable);
+	const IntegerType AMT_TYPE(256, IntegerType::Modifier::Unsigned);
 
 	auto const& args = _call.arguments();
 	if (args.size() != 1)
@@ -765,22 +765,60 @@ void ExpressionConverter::print_payment(FunctionCall const& _call)
 	}
 	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
 	{
+		// Computes source balance.
 		auto const BAL_MEMBER = ContractUtilities::balance_member();
 		auto src = make_shared<CIdentifier>("self", true);
-		auto bal = make_shared<CMemberAccess>(src, BAL_MEMBER);
+		auto srcbal = make_shared<CMemberAccess>(src, BAL_MEMBER);
 
-		auto balref = make_shared<CReference>(bal);
-		auto const& DST = call->expression();
+		// Generates source balance and amount arguments.
+		auto srcbalref = make_shared<CReference>(srcbal);
 		auto const& AMT = *args[0];
 
-		CFuncCallBuilder builder("_pay");
-		builder.push(balref);
-		builder.push(DST, m_statedata, M_TYPES, m_decls, false, &ARG1_TYPE);
-		builder.push(AMT, m_statedata, M_TYPES, m_decls, false, &ARG2_TYPE);
+		// Searches for a base contract.
+		auto const& dst = call->expression();
+		FunctionCall const* cast = NodeSniffer<FunctionCall>(dst).find();
+		if (cast)
+		{
+			auto const BASE = cast->expression().annotation().type->category();
+			if (BASE == Type::Category::Contract) 
+			{
+				if (cast->annotation().kind != FunctionCallKind::TypeConversion)
+				{
+					cast = nullptr;
+				}
+			}
+			else
+			{
+				cast = nullptr;
+			}
+		}
+
+		// Determines if recipient is known.
+		string paymode;
+		CExprPtr recipient;
+		TypePointer recipient_type;
+		if (cast)
+		{
+			throw runtime_error("Send to contract not yet supported.");
+		}
+		else
+		{
+			paymode = "_pay";
+			dst.accept(*this);
+			recipient = m_subexpr;
+			recipient_type =  (&ADR_TYPE);
+			// TODO: warn about approximation.
+			// TODO: map target to address space.
+		}
+
+		// Generates the call.
+		CFuncCallBuilder builder(paymode);
+		builder.push(srcbalref);
+		builder.push(recipient, recipient_type);
+		builder.push(AMT, m_statedata, M_TYPES, m_decls, false, &AMT_TYPE);
 		m_subexpr = builder.merge_and_pop();
 
 		// TODO: handle fallbacks.
-		// TODO: map target to address space.
 	}
 	else
 	{
