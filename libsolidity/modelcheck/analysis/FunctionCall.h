@@ -47,6 +47,8 @@ private:
     std::vector<ASTPointer<Expression const>> m_args;
     FunctionTypePointer m_type;
 
+    FunctionDefinition const* m_decl;
+
     ASTPointer<Expression const> m_value = nullptr;
     ASTPointer<Expression const> m_gas = nullptr;
     Expression const* m_context = nullptr;
