@@ -214,6 +214,20 @@ CParams FunctionConverter::generate_params(
     return params;
 }
 
+// -------------------------------------------------------------------------- //
+
+bool FunctionConverter::record_pair(ASTNode const& inst, ASTNode const& user)
+{
+    if (!m_handled[make_pair(inst.id(), user.id())])
+    {
+        m_handled[make_pair(inst.id(), user.id())] = true;
+        return true;
+    }
+    return false;
+}
+
+// -------------------------------------------------------------------------- //
+
 void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
 {
     auto const& FUNC = _spec.func();
@@ -234,6 +248,9 @@ string FunctionConverter::handle_contract_initializer(
     ContractDefinition const& _initialized, ContractDefinition const& _for
 )
 {
+    // Ensures this specialization is new.
+    if (!record_pair(_initialized, _for)) return "";
+
     bool const IS_TOP_INIT_CALL = (_initialized.name() == _for.name());
     string const INIT_NAME = M_CONVERTER.get_name(_initialized);
     string const FOR_NAME = M_CONVERTER.get_name(_for);
@@ -388,6 +405,9 @@ string FunctionConverter::handle_contract_initializer(
 
 string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
 {
+    // Ensures this specialization is new.
+    if (!record_pair(_spec.func(), _spec.useby())) return "";
+
     // Bypasses pure virtual and uinterpreted functions.
     if (!_spec.func().isImplemented()) return "";
 

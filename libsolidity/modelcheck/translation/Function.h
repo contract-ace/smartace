@@ -13,7 +13,9 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 #include <list>
+#include <map>
 #include <ostream>
+#include <utility>
 #include <string>
 
 namespace dev
@@ -56,8 +58,10 @@ protected:
 	bool visit(Mapping const& _node) override;
 
 private:
-	static const FunctionDefinition PLACEHOLDER_FUNC;
-	static const std::shared_ptr<CIdentifier> TMP;
+	static FunctionDefinition const PLACEHOLDER_FUNC;
+	static std::shared_ptr<CIdentifier> const TMP;
+
+	std::map<std::pair<size_t, size_t>, bool> m_handled;
 
 	std::ostream* m_ostream = nullptr;
 
@@ -85,6 +89,10 @@ private:
 	CParams generate_params(
 		std::vector<ParamTmpl> const& _args, ContractDefinition const* _scope
 	);
+
+	// Helper function to avoid duplicate visits to a single specialization. If
+	// the pair already exists, false is returned.
+	bool record_pair(ASTNode const& inst, ASTNode const& user);
 
 	// Determines whether or not to generate a function.
 	void generate_function(FunctionSpecialization const& _spec);
