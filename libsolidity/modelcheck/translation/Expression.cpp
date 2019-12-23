@@ -655,7 +655,14 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	bool is_ext_call = false;
 	if (_calldata.is_super())
 	{
-		callname = m_decls.spec()->super()->name();
+		if (auto super = m_decls.spec()->super())
+		{
+			callname = super->name();
+		}
+		else
+		{
+			throw runtime_error("Usage of `super` keyword without super data.");
+		}
 	}
 	else
 	{

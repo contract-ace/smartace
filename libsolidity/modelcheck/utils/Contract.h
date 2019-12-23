@@ -35,6 +35,10 @@ public:
     // Returns the type of the balance field of each contract.
     static TypePointer balance_type();
 
+    // Extracts the fallback function. This requires that the contract be known
+    // to have a fallback function.
+    static FunctionDefinition const& fallback(ContractDefinition const& _c);
+
 private:
     static AddressType ADDRESS_MEMBER_TYPE;
     static IntegerType BALANCE_MEMBER_TYPE;

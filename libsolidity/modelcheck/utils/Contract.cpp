@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/utils/Contract.h>
 
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
+#include <stdexcept>
 
 using namespace std;
 
@@ -39,6 +40,20 @@ TypePointer ContractUtilities::address_type()
 TypePointer ContractUtilities::balance_type()
 {
     return &ContractUtilities::BALANCE_MEMBER_TYPE;
+}
+
+FunctionDefinition const& ContractUtilities::fallback(
+    ContractDefinition const& _c
+)
+{
+    for (auto contract : _c.annotation().linearizedBaseContracts)
+    {
+        if (contract->fallbackFunction())
+        {
+            return (*contract->fallbackFunction());
+        }
+    }
+    throw runtime_error("Fallback extracted from contract without fallback.");
 }
 
 }

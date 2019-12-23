@@ -388,6 +388,9 @@ string FunctionConverter::handle_contract_initializer(
 
 string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
 {
+    // Bypasses pure virtual and uinterpreted functions.
+    if (!_spec.func().isImplemented()) return "";
+
     // Determines return signature.
     auto const& FUNC = _spec.func();
     string ftype = "void";
@@ -432,7 +435,7 @@ string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            auto cov = FunctionBlockConverter(FUNC, M_STATEDATA, M_CONVERTER);
+            FunctionBlockConverter cov(FUNC, M_STATEDATA, M_CONVERTER);
             cov.set_for(_spec);
             body = cov.convert();
         }

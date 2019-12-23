@@ -61,14 +61,14 @@ void FunctionBlockConverter::enter(
     CBlockList & _stmts, VariableScopeResolver & _decls
 )
 {
-    if (m_rv && !m_rv->name().empty())
-    {
+	_decls.assign_spec(m_spec);
+	if (m_rv && !m_rv->name().empty())
+	{
 		_decls.record_declaration(*m_rv);
-		_decls.assign_spec(m_spec);
 		_stmts.push_back(make_shared<CVarDecl>(
 			M_TYPES.get_type(*m_rv), _decls.resolve_declaration(*m_rv)
-        ));
-    }
+		));
+	}
 }
 
 void FunctionBlockConverter::exit(

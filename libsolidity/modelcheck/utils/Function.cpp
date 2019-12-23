@@ -60,7 +60,7 @@ FunctionSpecialization::FunctionSpecialization(
 {
 }
 
-std::unique_ptr<FunctionSpecialization> FunctionSpecialization::super() const
+unique_ptr<FunctionSpecialization> FunctionSpecialization::super() const
 {
     if (auto superfunc = M_CALL.annotation().superFunction)
     {
