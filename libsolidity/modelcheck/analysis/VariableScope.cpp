@@ -43,9 +43,15 @@ FunctionSpecialization const* VariableScopeResolver::spec() const
 
 // -------------------------------------------------------------------------- //
 
-void VariableScopeResolver::enter() { m_scopes.emplace_back(); }
+void VariableScopeResolver::enter()
+{
+    m_scopes.emplace_back();
+}
 
-void VariableScopeResolver::exit() { m_scopes.pop_back(); }
+void VariableScopeResolver::exit()
+{
+    m_scopes.pop_back();
+}
 
 // -------------------------------------------------------------------------- //
 

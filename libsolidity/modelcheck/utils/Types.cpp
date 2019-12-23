@@ -60,6 +60,14 @@ int simple_bit_count(Type const& _type)
 {
     Type const& t = unwrap(_type);
 
+    if (auto array_type = dynamic_cast<ArrayType const*>(&t))
+    {
+        if (array_type->isString())
+        {
+            return 256;
+        }
+    }
+
     unsigned int raw_bits;
     switch(t.category())
     {
@@ -86,6 +94,11 @@ bool simple_is_signed(Type const& _type)
 {
     Type const& t = unwrap(_type);
 
+    if (auto array_type = dynamic_cast<ArrayType const*>(&t))
+    {
+        return array_type->isString();
+    }
+
     switch(t.category())
     {
     case Type::Category::FixedPoint:
@@ -101,9 +114,14 @@ bool simple_is_signed(Type const& _type)
 
 bool is_wrapped_type(Type const& _type)
 {
-    Type const& t = unwrap(_type);
+    Type const& type = unwrap(_type);
 
-    switch(t.category())
+    if (auto array_type = dynamic_cast<ArrayType const*>(&type))
+    {
+        return array_type->isString();
+    }
+
+    switch(type.category())
     {
     case Type::Category::Address:
     case Type::Category::Bool:
@@ -120,6 +138,12 @@ bool is_wrapped_type(Type const& _type)
 bool is_simple_type(Type const& _type)
 {
     Type const& type = unwrap(_type);
+
+    if (auto array_type = dynamic_cast<ArrayType const*>(&type))
+    {
+        return array_type->isString();
+    }
+
     switch (type.category())
     {
     case Type::Category::Address:

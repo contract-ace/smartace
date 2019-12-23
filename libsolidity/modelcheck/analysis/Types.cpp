@@ -124,6 +124,7 @@ void TypeConverter::record(SourceUnit const& _unit)
 
         for (auto fun : contract->definedFunctions())
         {
+            if (!fun->isImplemented()) continue;
             fun->body().accept(*this);
         }
 
@@ -171,6 +172,14 @@ string TypeConverter::get_name(ASTNode const& _node) const
         {
             name = DECL->name();
         }
+        else if (auto EXPR = dynamic_cast<Expression const*>(&_node))
+        {
+            name += "(" + EXPR->annotation().type->canonicalName() + ")";
+        }
+        else if (auto TYPE = dynamic_cast<TypeName const*>(&_node))
+        {
+            name += "(" + TYPE->annotation().type->canonicalName() + ")";
+        }
         throw runtime_error("get_name called on unknown ASTNode: " + name);
     }
     return RES->second;
@@ -184,7 +193,7 @@ string TypeConverter::get_simple_ctype(Type const& _type)
 
     if (type.category() == Type::Category::Address) return "sol_address_t";
     if (type.category() == Type::Category::Bool) return "sol_bool_t";
-
+    
     if (auto int_ptr = dynamic_cast<IntegerType const*>(&type))
     {
         ostringstream numeric_oss;
@@ -193,7 +202,7 @@ string TypeConverter::get_simple_ctype(Type const& _type)
         numeric_oss << "int" << int_ptr->numBits() << "_t";
         return numeric_oss.str();
     }
-    if (auto fixed_ptr = dynamic_cast<FixedPointType const*>(&type))
+    else if (auto fixed_ptr = dynamic_cast<FixedPointType const*>(&type))
     {
         ostringstream numeric_oss;
         numeric_oss << "sol_";
@@ -202,8 +211,13 @@ string TypeConverter::get_simple_ctype(Type const& _type)
                     << "X" << fixed_ptr->fractionalDigits() << "_t";
         return numeric_oss.str();
     }
+    else if (auto array_ptr = dynamic_cast<ArrayType const*>(&type))
+    {
+        if (array_ptr->isString()) return "sol_uint256_t";
+    }
 
-    throw runtime_error("Unable to resolve simple type from _type.");
+    string const TYPE_NAME = type.canonicalName();
+    throw runtime_error("Unable to resolve simple type from: " + TYPE_NAME);
 }
 
 // -------------------------------------------------------------------------- //
