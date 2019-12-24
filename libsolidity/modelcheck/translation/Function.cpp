@@ -207,14 +207,26 @@ CParams FunctionConverter::generate_params(
             params.push_back(make_shared<CVarDecl>(fld.tname, fld.name, false));
         }
     }
-    for (auto arg : _args)
+    for (size_t i = 0; i < _args.size(); ++i)
     {
-        string const ARG_TYPE = M_CONVERTER.get_type(*arg.decl);
-        string const ARG_NAME = VariableScopeResolver::rewrite(
-            arg.decl->name(), arg.instrumentation, arg.context
-        );
+        auto const& ARGS = _args[i];
 
-        params.push_back(make_shared<CVarDecl>(ARG_TYPE, ARG_NAME));
+        string const ARG_TYPE = M_CONVERTER.get_type(*ARGS.decl);
+        string argname = ARGS.decl->name();
+        if (argname.empty())
+        {
+            argname = VariableScopeResolver::rewrite(
+                "var" + to_string(i), ARGS.instrumentation, ARGS.context
+            );
+        }
+        else
+        {
+            argname = VariableScopeResolver::rewrite(
+                argname, ARGS.instrumentation, ARGS.context
+            );
+        }
+
+        params.push_back(make_shared<CVarDecl>(ARG_TYPE, argname));
     }
     return params;
 }
