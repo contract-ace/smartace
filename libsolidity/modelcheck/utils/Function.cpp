@@ -56,18 +56,18 @@ FunctionSpecialization::FunctionSpecialization(
     FunctionDefinition const& _def,
     ContractDefinition const& _src,
     ContractDefinition const& _for
-): M_CALL(_def), M_SRC(_src), M_USER(_for)
+): M_CALL(&_def), M_SRC(&_src), M_USER(&_for)
 {
 }
 
 unique_ptr<FunctionSpecialization> FunctionSpecialization::super() const
 {
-    if (auto superfunc = M_CALL.annotation().superFunction)
+    if (auto superfunc = func().annotation().superFunction)
     {
         if (superfunc->isImplemented())
         {
             return make_unique<FunctionSpecialization>(
-                *superfunc, get_scope(*superfunc), M_USER
+                *superfunc, get_scope(*superfunc), useby()
             );
         }
     }
@@ -78,19 +78,19 @@ string FunctionSpecialization::name() const
 {
     ostringstream oss;
 
-    if (M_CALL.isConstructor())
+    if (func().isConstructor())
     {
-        oss << "Ctor_" << escape_decl_name(M_SRC);
+        oss << "Ctor_" << escape_decl_name(source());
     }
     else
     {
-        oss << "Method_" << escape_decl_name(M_SRC)
-            << "_Func" << escape_decl_name(M_CALL);
+        oss << "Method_" << escape_decl_name(source())
+            << "_Func" << escape_decl_name(func());
     }
 
-    if (M_SRC.name() != M_USER.name())
+    if (source().name() != useby().name())
     {
-        oss << "_For_" << escape_decl_name(M_USER);
+        oss << "_For_" << escape_decl_name(useby());
     }
 
     return oss.str();
@@ -98,17 +98,17 @@ string FunctionSpecialization::name() const
 
 ContractDefinition const& FunctionSpecialization::source() const
 {
-    return M_SRC;
+    return (*M_SRC);
 }
 
 ContractDefinition const& FunctionSpecialization::useby() const
 {
-    return M_USER;
+    return (*M_USER);
 }
 
 FunctionDefinition const& FunctionSpecialization::func() const
 {
-    return M_CALL;
+    return (*M_CALL);
 }
 
 ContractDefinition const& FunctionSpecialization::get_scope(

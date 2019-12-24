@@ -77,9 +77,9 @@ public:
 private:
     static ContractDefinition const& get_scope(FunctionDefinition const& _func);
 
-    FunctionDefinition const& M_CALL;
-    ContractDefinition const& M_SRC;
-    ContractDefinition const& M_USER;
+    FunctionDefinition const* M_CALL;
+    ContractDefinition const* M_SRC;
+    ContractDefinition const* M_USER;
 };
 
 }

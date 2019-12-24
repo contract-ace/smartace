@@ -651,7 +651,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 {
 	// Analyzes the function call.
 	auto &fdecl = _calldata.decl();
-	FunctionSpecialization callspec(fdecl);
+	FunctionSpecialization call(fdecl);
 
 	string callname;
 	bool is_ext_call = false;
@@ -668,14 +668,18 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	}
 	else
 	{
-		callname = callspec.name();
 		is_ext_call = (_calldata.context() != nullptr);
+		if (!is_ext_call)
+		{
+			call = FunctionSpecialization(call.func(), m_decls.spec()->useby());
+		}
+		callname = call.name();
 	}
 	CFuncCallBuilder builder(callname);	
 
 	// Sets state for the next call.
 	size_t param_idx = 0;
-	if (callspec.source().isLibrary())
+	if (call.source().isLibrary())
 	{
 		auto const* ARG_TYPE = fdecl.parameters()[param_idx]->type();
 		builder.push(
