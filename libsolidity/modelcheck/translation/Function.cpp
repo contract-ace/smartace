@@ -64,6 +64,11 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
             handle_contract_initializer(_node, _node);
         }
 
+        if (auto fallback = _node.fallbackFunction())
+        {
+            handle_function(FunctionSpecialization(*fallback));
+        }
+
         set<string> methods;
         for (auto contract : _node.annotation().linearizedBaseContracts)
         {
@@ -233,6 +238,7 @@ void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
     auto const& FUNC = _spec.func();
 
     if (FUNC.isConstructor()) return;
+    if (FUNC.isFallback()) return;
 
     bool const IS_PUB = FUNC.visibility() == Declaration::Visibility::Public;
     bool const IS_EXT = FUNC.visibility() == Declaration::Visibility::External;
