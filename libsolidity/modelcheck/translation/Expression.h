@@ -95,7 +95,7 @@ private:
 	void print_function(FunctionCall const& _call);
 	void print_method(FunctionCallAnalyzer const& _calldata);
 	void print_contract_ctor(FunctionCall const& _call);
-	void print_payment(FunctionCall const& _call);
+	void print_payment(FunctionCall const& _call, bool _nothrow);
 	void print_assertion(std::string _type, SolArgList const& _args);
 	void print_revert(SolArgList const&);
 	void pass_next_call_state(

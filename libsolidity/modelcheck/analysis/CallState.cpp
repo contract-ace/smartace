@@ -55,7 +55,8 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
         *CallStateUtilities::get_type(CallStateUtilities::Field::Paid)
     );
 
-    shared_ptr<CBlock> pay_body;
+    shared_ptr<CBlock> throw_pay_body;
+    shared_ptr<CBlock> nothrow_pay_body;
     shared_ptr<CBlock> pay_by_val_body;
 
     auto const dst_var = make_shared<CVarDecl>(SENDER_T, "dst");
@@ -64,6 +65,10 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
 
     if (!_forward_declare)
     {
+        string ndmsg("Return value for send.");
+        auto nd_result = make_shared<CFuncCall>(
+            "rt_nd_byte", CArgList{ make_shared<CStringLiteral>(ndmsg) }
+        );
         auto bal_cond = make_shared<CBinaryOp>(
             bal_var->access("v"), ">=", amt_var->access("v")
         );
@@ -74,9 +79,22 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
             bal_var->access("v"), "-=", amt_var->access("v")
         );
 
-        pay_body = make_shared<CBlock>(CBlockList{
+        throw_pay_body = make_shared<CBlock>(CBlockList{
+            // Note: if throw were to fail the transaction is unobserved
             bal_check->stmt(),
             bal_change->stmt()
+            // TODO: when address is in range
+        });
+
+        nothrow_pay_body = make_shared<CBlock>(CBlockList{
+            make_shared<CIf>(
+                bal_cond,
+                make_shared<CBlock>(CBlockList{
+                    bal_change->stmt(),
+                    make_shared<CReturn>(nd_result)
+                }),
+                make_shared<CReturn>(Literals::ZERO)
+            )
             // TODO: when address is in range
         });
 
@@ -90,7 +108,13 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
     CFuncDef pay(
         make_shared<CVarDecl>("void", "_pay"), CParams{
             bal_var, dst_var, amt_var
-        }, move(pay_body)
+        }, move(throw_pay_body)
+    );
+
+    CFuncDef pay_use_rv(
+        make_shared<CVarDecl>("uint8_t", "_pay_use_rv"), CParams{
+            bal_var, dst_var, amt_var
+        }, move(nothrow_pay_body)
     );
 
     CFuncDef pay_by_value(
@@ -99,7 +123,7 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
         }, move(pay_by_val_body)
     );
 
-    _stream << pay << pay_by_value;
+    _stream << pay << pay_use_rv << pay_by_value;
 }
 
 // -------------------------------------------------------------------------- //

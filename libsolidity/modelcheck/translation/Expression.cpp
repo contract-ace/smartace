@@ -559,8 +559,10 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 		print_contract_ctor(_call);
 		break;
 	case FunctionType::Kind::Send:
+		print_payment(_call, true);
+		break;
 	case FunctionType::Kind::Transfer:
-		print_payment(_call);
+		print_payment(_call, false);
 		break;
 	case FunctionType::Kind::KECCAK256:
 		// TODO(scottwe): implement.
@@ -760,7 +762,7 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 	}
 }
 
-void ExpressionConverter::print_payment(FunctionCall const& _call)
+void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow)
 {
 	const AddressType ADR_TYPE(StateMutability::Payable);
 	const IntegerType AMT_TYPE(256, IntegerType::Modifier::Unsigned);
@@ -816,6 +818,12 @@ void ExpressionConverter::print_payment(FunctionCall const& _call)
 			recipient_type =  (&ADR_TYPE);
 			// TODO: warn about approximation.
 			// TODO: map target to address space.
+		}
+
+		// Determines if the call throws.
+		if (_nothrow)
+		{
+			paymode += "_use_rv";
 		}
 
 		// Generates the call.
