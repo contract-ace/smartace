@@ -266,13 +266,20 @@ string FunctionConverter::handle_contract_initializer(
     ContractDefinition const& _initialized, ContractDefinition const& _for
 )
 {
-    // Ensures this specialization is new.
-    if (!record_pair(_initialized, _for)) return "";
 
     bool const IS_TOP_INIT_CALL = (_initialized.name() == _for.name());
     string const INIT_NAME = M_CONVERTER.get_name(_initialized);
     string const FOR_NAME = M_CONVERTER.get_name(_for);
     auto const* LOCAL_CTOR = _initialized.constructor();
+
+    string fname = "Init_" + INIT_NAME;
+    if (!IS_TOP_INIT_CALL)
+    {
+        fname += "_For_" + FOR_NAME;
+    }
+
+    // Ensures this specialization is new.
+    if (!record_pair(_initialized, _for)) return fname;
 
     CParams params;
     string ctor_name;
@@ -406,12 +413,6 @@ string FunctionConverter::handle_contract_initializer(
         body = make_shared<CBlock>(move(stmts));
     }
 
-    string fname = "Init_" + INIT_NAME;
-    if (!IS_TOP_INIT_CALL)
-    {
-        fname += "_For_" + FOR_NAME;
-    }
-
     auto id = make_shared<CVarDecl>("void", fname);
     CFuncDef init(id, move(params), move(body));
     (*m_ostream) << init;
@@ -423,9 +424,6 @@ string FunctionConverter::handle_contract_initializer(
 
 string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
 {
-    // Ensures this specialization is new.
-    if (!record_pair(_spec.func(), _spec.useby())) return "";
-
     // Bypasses pure virtual and uinterpreted functions.
     if (!_spec.func().isImplemented()) return "";
 
@@ -437,6 +435,9 @@ string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
     {
         ftype = M_CONVERTER.get_type(FUNC);
     }
+
+    // Ensures this specialization is new.
+    if (!record_pair(_spec.func(), _spec.useby())) return fname;
 
     // Generates parameter list for all levels.
     vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
