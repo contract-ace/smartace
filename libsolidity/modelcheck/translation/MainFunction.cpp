@@ -213,9 +213,9 @@ MainFunctionGenerator::Actor::Actor(
         _path != nullptr
     );
 
+    set<string> generated;
     for (auto rel : contract->annotation().linearizedBaseContracts)
     {
-        set<string> generated;
         for (auto const* FUNC : rel->definedFunctions())
         {
             if (FUNC->isConstructor()) continue;
