@@ -32,16 +32,28 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
         throw runtime_error("FunctionDefinition of unknown scope.");
     }
 
-    auto const& reference_modifiers = scope->functionModifiers();
     for (auto mod : _func.modifiers())
     {
-        for (auto const* ref : reference_modifiers)
+        ModifierDefinition const* match = nullptr;
+        string const& target_name = mod->name()->name();
+
+        for (auto const* contract : scope->annotation().linearizedBaseContracts)
         {
-            if (mod->name()->name() == ref->name())
+            for (auto const* candidate : contract->functionModifiers())
             {
-                m_filtered_mods.push_back(make_pair(ref, mod.get()));
-                break;
+                if (target_name == candidate->name())
+                {
+                    match = candidate;
+                    break;
+                }
             }
+
+            if (match) break;
+        }
+
+        if (match)
+        {
+            m_filtered_mods.push_back(make_pair(match, mod.get()));
         }
     }
 }
