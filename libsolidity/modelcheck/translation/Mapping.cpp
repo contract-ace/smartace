@@ -51,20 +51,25 @@ CStructDef MapGenerator::declare(bool _forward_declare) const
     {
         t = make_shared<CParams>();  
 
-        KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
-        do
+        if (M_LEN > 0)
         {
-            string suffix = indices.suffix();
-
-            t->push_back(make_shared<CVarDecl>(
-                m_keys_t[indices.size() - 1], "curr" + suffix)
-            );
-
-            if (indices.is_full())
+            KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
+            do
             {
-                t->push_back(make_shared<CVarDecl>(M_VAL_T, "data" + suffix));
-            }
-        } while (indices.next());      
+                string suffix = indices.suffix();
+
+                t->push_back(make_shared<CVarDecl>(
+                    m_keys_t[indices.size() - 1], "curr" + suffix)
+                );
+
+                if (indices.is_full())
+                {
+                    t->push_back(make_shared<CVarDecl>(
+                        M_VAL_T, "data" + suffix)
+                    );
+                }
+            } while (indices.next());
+        }
     }
     return CStructDef(M_MAP_RECORD.name, move(t));
 }
@@ -110,7 +115,15 @@ CFuncDef MapGenerator::declare_write(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        body = make_shared<CBlock>(CBlockList{expand_access(0, "", true)});
+        if (M_LEN > 0)
+        {
+            body = make_shared<CBlock>(CBlockList{expand_access(0, "", true)});
+        }
+        else
+        {
+            body = make_shared<CBlock>(CBlockList{});
+        }
+        
     }
 
     return CFuncDef(move(fid), move(params), move(body));
@@ -131,9 +144,18 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
     if (!_forward_declare)
     {
         auto const ND_VAL = M_TYPES.get_nd_val(*M_MAP_RECORD.value_type, NAME);
-        body = make_shared<CBlock>(CBlockList{
-            expand_access(0, "", false), make_shared<CReturn>(ND_VAL)
-        });
+        auto default_rv = make_shared<CReturn>(ND_VAL);
+
+        if (M_LEN > 0)
+        {
+            body = make_shared<CBlock>(CBlockList{
+                expand_access(0, "", false), move(default_rv)
+            });
+        }
+        else
+        {
+            body = make_shared<CBlock>(CBlockList{move(default_rv)});
+        }
     }
 
     return CFuncDef(move(fid), move(params), move(body));
@@ -146,22 +168,25 @@ shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
     CBlockList block;
     block.push_back(M_TMP);
     
-    KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
-    do
+    if (M_LEN > 0)
     {
-        string suffix = indices.suffix();
-
-        block.push_back(M_TMP->access("curr" + suffix)->access("v")->assign(
-            make_shared<CIdentifier>(name_global_key(indices.top()), false)
-        )->stmt());
-
-        if (indices.is_full())
+        KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
+        do
         {
-            block.push_back(
-                M_TMP->access("data" + suffix)->assign(_init_data)->stmt()
-            );
-        }
-    } while (indices.next());
+            string suffix = indices.suffix();
+
+            block.push_back(M_TMP->access("curr" + suffix)->access("v")->assign(
+                make_shared<CIdentifier>(name_global_key(indices.top()), false)
+            )->stmt());
+
+            if (indices.is_full())
+            {
+                block.push_back(
+                    M_TMP->access("data" + suffix)->assign(_init_data)->stmt()
+                );
+            }
+        } while (indices.next());
+    }
     
     block.push_back(make_shared<CReturn>(M_TMP->id()));
     return make_shared<CBlock>(move(block));
