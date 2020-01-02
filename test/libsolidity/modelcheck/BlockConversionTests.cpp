@@ -450,7 +450,9 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            actual << *FunctionBlockConverter(*func_ptr, statedata, converter).convert();
+            FunctionBlockConverter fbc(*func_ptr, statedata, converter);
+            fbc.set_for(FunctionSpecialization(*func_ptr));
+            actual << *fbc.convert();
             expected << "{";
             expected << "Method_A_Funcf(self,sender,value,blocknum"
                      << ",Init_sol_bool_t(0));";
@@ -512,7 +514,9 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            actual << *FunctionBlockConverter(*func_ptr, statedata, converter).convert();
+            FunctionBlockConverter fbc(*func_ptr, statedata, converter);
+            fbc.set_for(FunctionSpecialization(*func_ptr));
+            actual << *fbc.convert();
             expected << "{";
             expected << "Method_A_Funcf(&(self->user_a),(self)->model_address"
                      << ",Init_sol_uint256_t(0),blocknum,Init_sol_bool_t(1));";
@@ -560,9 +564,9 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
     expected << "{";
     expected << "_pay(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(5));";
-    expected << "_pay(&((self)->model_balance),Init_sol_address_t("
+    expected << "_pay_use_rv(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(10));";
-    expected << "_pay(&((self)->model_balance),Init_sol_address_t("
+    expected << "_pay_use_rv(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(15));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
@@ -714,15 +718,12 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, statedata, converter).convert();
     expected << "{";
-    expected << "Read_A_Maparr1_submap1(&(self->user_arr1),Init_sol_int256_t((1"
-             << ")+(2)));";
-    expected << "Read_A_StructB_Maparr2_submap1(&((self->user_b).user_arr2)"
-             << ",Init_sol_int256_t((3)+(4)));";
-    expected << "Read_A_StructB_Maparr2_submap1(&(((self->user_c).user_b)"
-             << ".user_arr2),Init_sol_int256_t((5)+(6)));";
-    expected << "(Read_A_Maparr1_submap2(Ref_A_Maparr1_submap1(&(self"
-             << "->user_arr1),Init_sol_int256_t(10))"
-             << ",Init_sol_int256_t(10))).v;";
+    expected << "(Read_Map_1(&((self->user_b).user_arr2),"
+             << "Init_sol_int256_t((3)+(4)),Init_sol_int256_t((3)+(4)))).v;";
+    expected << "(Read_Map_1(&(((self->user_c).user_b).user_arr2),"
+             << "Init_sol_int256_t((5)+(6)),Init_sol_int256_t((5)+(6)))).v;";
+    expected << "(Read_Map_2(&(self->user_arr1),Init_sol_int256_t(10),"
+             << "Init_sol_int256_t(10))).v;";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -762,19 +763,18 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, statedata, converter).convert();
     expected << "{";
-    expected << "Write_A_Mapa_submap1(&(self->user_a),Init_sol_int256_t(1),"
+    expected << "Write_Map_2(&(self->user_a),Init_sol_int256_t(1),"
              << "Init_sol_int256_t(2));";
-    expected << "Write_A_Mapa_submap1(&(self->user_a),Init_sol_int256_t(1)"
-             << ",Init_sol_int256_t(((Read_A_Mapa_submap1(&(self->user_a)"
-             << ",Init_sol_int256_t(1))).v)+(2)));";
-    expected << "(((*(Ref_A_Mapb_submap1(&(self->user_b),Init_sol_int256_t(1)))"
-             << ").user_m).v)=((((Read_A_Mapb_submap1(&(self->user_b)"
-             << ",Init_sol_int256_t(1))).user_m).v)+(2));";
-    expected << "Write_A_StructC_Mapm_submap1(&((self->user_c).user_m)"
-             << ",Init_sol_int256_t(1),Init_sol_int256_t(2));";
-    expected << "Write_A_Mapd_submap2(Ref_A_Mapd_submap1(&(self->user_d)"
-             << ",Init_sol_int256_t(1)),Init_sol_int256_t(2),"
-             << "Init_sol_int256_t(3));";
+    expected << "Write_Map_2(&(self->user_a),Init_sol_int256_t(1),"
+             << "Init_sol_int256_t(((Read_Map_2(&(self->user_a),"
+             << "Init_sol_int256_t(1))).v)+(2)));";
+    expected << "(((Read_Map_3(&(self->user_b),Init_sol_int256_t(1))).user_m).v"
+             << ")=((((Read_Map_3(&(self->user_b),Init_sol_int256_t(1))).user_m"
+             << ").v)+(2));";
+    expected << "Write_Map_1(&((self->user_c).user_m),Init_sol_int256_t(1),"
+             << "Init_sol_int256_t(2));";
+    expected << "Write_Map_4(&(self->user_d),Init_sol_int256_t(1),"
+             << "Init_sol_int256_t(2),Init_sol_int256_t(3));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -896,42 +896,6 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
-// Tests that storage variables may be assigned to from a mapping. A reference
-// to said map must be acquired.
-BOOST_AUTO_TEST_CASE(storage_variable_to_map)
-{
-    char const* text = R"(
-        contract A {
-            struct B { int i; }
-            mapping(int => B) a;
-            function f() public view {
-                B storage b_ref = a[0];
-                b_ref = a[0];
-            }
-        }
-	)";
-
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
-
-    TypeConverter converter;
-    converter.record(unit);
-
-    CallState statedata;
-    statedata.record(unit);
-
-    ostringstream actual, expected;
-    actual << *FunctionBlockConverter(func, statedata, converter).convert();
-    expected << "{";
-    expected << "struct A_StructB*func_user_b__ref=Ref_A_Mapa_submap1("
-             << "&(self->user_a),Init_sol_int256_t(0));";
-    expected << "(func_user_b__ref)=(Ref_A_Mapa_submap1(&(self->user_a)"
-             << ",Init_sol_int256_t(0)));";
-    expected << "}";
-    BOOST_CHECK_EQUAL(actual.str(), expected.str());
-}
-
 // Regression test to ensure "else if" is not contracted into "elseif".
 BOOST_AUTO_TEST_CASE(else_if_formatting_regression)
 {
@@ -985,7 +949,9 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
     statedata.record(unit);
 
     ostringstream actual, expect;
-    actual << *FunctionBlockConverter(*func, statedata, converter).convert();
+    FunctionBlockConverter fbc(*func, statedata, converter);
+    fbc.set_for(FunctionSpecialization(*func));
+    actual << *fbc.convert();
     expect << "{";
     expect << "(Method_A_Funcf(self,sender,value,blocknum,Init_sol_bool_t(0))).v;";
     expect << "}";

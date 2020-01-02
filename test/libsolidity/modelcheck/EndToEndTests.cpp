@@ -80,17 +80,12 @@ BOOST_AUTO_TEST_CASE(simple_map)
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A_Mapa_submap1;" << "struct A;";
+    adt_expect << "struct Map_1;" << "struct A;";
     func_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);";
-    func_expect << "struct A_Mapa_submap1 Init_0_A_Mapa_submap1(void);";
-    func_expect << "struct A_Mapa_submap1 ND_A_Mapa_submap1(void);";
-    func_expect << "sol_uint256_t Read_A_Mapa_submap1"
-                << "(struct A_Mapa_submap1*arr,sol_uint256_t key);";
-    func_expect << "void Write_A_Mapa_submap1"
-                << "(struct A_Mapa_submap1*arr,sol_uint256_t key"
-                << ",sol_uint256_t dat);";
-    func_expect << "sol_uint256_t*Ref_A_Mapa_submap1"
-                << "(struct A_Mapa_submap1*arr,sol_uint256_t key);";
+    func_expect << "struct Map_1 Init_0_Map_1(void);";
+    func_expect << "struct Map_1 ND_Map_1(void);";
+    func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr,sol_uint256_t key_1);";
+    func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_1,sol_uint256_t dat);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -246,36 +241,17 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A_StructB_Mapa_submap2;";
-    adt_expect << "struct A_StructB_Mapa_submap1;";
+    adt_expect << "struct Map_1;";
     adt_expect << "struct A_StructB;";
     adt_expect << "struct A;";
     func_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t value,sol_uint256_t blocknum,sol_bool_t paid);";
     func_expect << "struct A_StructB Init_0_A_StructB(void);";
     func_expect << "struct A_StructB Init_A_StructB(void);";
     func_expect << "struct A_StructB ND_A_StructB(void);";
-    func_expect << "struct A_StructB_Mapa_submap1 "
-                << "Init_0_A_StructB_Mapa_submap1(void);";
-    func_expect << "struct A_StructB_Mapa_submap1 "
-                << "ND_A_StructB_Mapa_submap1(void);";
-    func_expect << "struct A_StructB_Mapa_submap2 Read_A_StructB_Mapa_submap1"
-                << "(struct A_StructB_Mapa_submap1*arr,sol_uint256_t key);";
-    func_expect << "void Write_A_StructB_Mapa_submap1"
-                << "(struct A_StructB_Mapa_submap1*arr,sol_uint256_t key"
-                << ",struct A_StructB_Mapa_submap2 dat);";
-    func_expect << "struct A_StructB_Mapa_submap2*Ref_A_StructB_Mapa_submap1"
-                << "(struct A_StructB_Mapa_submap1*arr,sol_uint256_t key);";
-    func_expect << "struct A_StructB_Mapa_submap2 Init_0_A_StructB_Mapa_submap2"
-                << "(void);";
-    func_expect << "struct A_StructB_Mapa_submap2 ND_A_StructB_Mapa_submap2"
-                << "(void);";
-    func_expect << "sol_uint256_t Read_A_StructB_Mapa_submap2"
-                << "(struct A_StructB_Mapa_submap2*arr,sol_uint256_t key);";
-    func_expect << "void Write_A_StructB_Mapa_submap2"
-                << "(struct A_StructB_Mapa_submap2*arr,sol_uint256_t key"
-                << ",sol_uint256_t dat);";
-    func_expect << "sol_uint256_t*Ref_A_StructB_Mapa_submap2"
-                << "(struct A_StructB_Mapa_submap2*arr,sol_uint256_t key);";
+    func_expect << "struct Map_1 Init_0_Map_1(void);";
+    func_expect << "struct Map_1 ND_Map_1(void);";
+    func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr,sol_uint256_t key_1,sol_uint256_t key_2);";
+    func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_1,sol_uint256_t key_2,sol_uint256_t dat);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -314,10 +290,10 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A_StructB_Mapa_submap1;";
+    adt_expect << "struct Map_1;";
     adt_expect << "struct A_StructB;";
     adt_expect << "struct A;";
-    adt_expect << "struct C_Mapb_submap1;";
+    adt_expect << "struct Map_2;";
     adt_expect << "struct C;";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -325,29 +301,17 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     func_expect << "struct A_StructB Init_0_A_StructB(void);";
     func_expect << "struct A_StructB Init_A_StructB(void);";
     func_expect << "struct A_StructB ND_A_StructB(void);";
-    func_expect << "struct A_StructB_Mapa_submap1 Init_0_A_StructB_Mapa_submap1"
-                << "(void);";
-    func_expect << "struct A_StructB_Mapa_submap1 ND_A_StructB_Mapa_submap1"
-                << "(void);";
-    func_expect << "sol_uint256_t Read_A_StructB_Mapa_submap1"
-                << "(struct A_StructB_Mapa_submap1*arr,sol_uint256_t key);";
-    func_expect << "void Write_A_StructB_Mapa_submap1"
-                << "(struct A_StructB_Mapa_submap1*arr,sol_uint256_t key"
-                << ",sol_uint256_t dat);";
-    func_expect << "sol_uint256_t*Ref_A_StructB_Mapa_submap1"
-                << "(struct A_StructB_Mapa_submap1*arr,sol_uint256_t key);";
+    func_expect << "struct Map_1 Init_0_Map_1(void);";
+    func_expect << "struct Map_1 ND_Map_1(void);";
+    func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr,sol_uint256_t key_1);";
+    func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_1,sol_uint256_t dat);";
     func_expect << "void Init_C(struct C*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_bool_t paid);";
-    func_expect << "struct C_Mapb_submap1 Init_0_C_Mapb_submap1(void);";
-    func_expect << "struct C_Mapb_submap1 ND_C_Mapb_submap1(void);";
-    func_expect << "sol_uint256_t Read_C_Mapb_submap1"
-                << "(struct C_Mapb_submap1*arr,sol_uint256_t key);";
-    func_expect << "void Write_C_Mapb_submap1"
-                << "(struct C_Mapb_submap1*arr,sol_uint256_t key"
-                << ",sol_uint256_t dat);";
-    func_expect << "sol_uint256_t*Ref_C_Mapb_submap1"
-                << "(struct C_Mapb_submap1*arr,sol_uint256_t key);";
+    func_expect << "struct Map_2 Init_0_Map_2(void);";
+    func_expect << "struct Map_2 ND_Map_2(void);";
+    func_expect << "sol_uint256_t Read_Map_2(struct Map_2*arr,sol_uint256_t key_1);";
+    func_expect << "void Write_Map_2(struct Map_2*arr,sol_uint256_t key_1,sol_uint256_t dat);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -379,38 +343,18 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A_Mapa_submap3;";
-    adt_expect << "struct A_Mapa_submap2;";
-    adt_expect << "struct A_Mapa_submap1;";
+    adt_expect << "struct Map_1;";
     adt_expect << "struct A;";
     func_expect << "void Init_A(struct A*self,sol_address_t sender,"
                 << "sol_uint256_t value,sol_uint256_t blocknum,"
                 << "sol_bool_t paid);";
-    func_expect << "struct A_Mapa_submap1 Init_0_A_Mapa_submap1(void);";
-    func_expect << "struct A_Mapa_submap1 ND_A_Mapa_submap1(void);";
-    func_expect << "struct A_Mapa_submap2 Read_A_Mapa_submap1"
-                << "(struct A_Mapa_submap1*arr,sol_uint256_t key);";
-    func_expect << "void Write_A_Mapa_submap1(struct A_Mapa_submap1*arr"
-                << ",sol_uint256_t key,struct A_Mapa_submap2 dat);";
-    func_expect << "struct A_Mapa_submap2*Ref_A_Mapa_submap1"
-                << "(struct A_Mapa_submap1*arr,sol_uint256_t key);";
-    func_expect << "struct A_Mapa_submap2 Init_0_A_Mapa_submap2(void);";
-    func_expect << "struct A_Mapa_submap2 ND_A_Mapa_submap2(void);";
-    func_expect << "struct A_Mapa_submap3 Read_A_Mapa_submap2"
-                << "(struct A_Mapa_submap2*arr,sol_uint256_t key);";
-    func_expect << "void Write_A_Mapa_submap2(struct A_Mapa_submap2*arr"
-                << ",sol_uint256_t key,struct A_Mapa_submap3 dat);";
-    func_expect << "struct A_Mapa_submap3*Ref_A_Mapa_submap2"
-                << "(struct A_Mapa_submap2*arr,sol_uint256_t key);";
-    func_expect << "struct A_Mapa_submap3 Init_0_A_Mapa_submap3(void);";
-    func_expect << "struct A_Mapa_submap3 ND_A_Mapa_submap3(void);";
-    func_expect << "sol_uint256_t Read_A_Mapa_submap3"
-                << "(struct A_Mapa_submap3*arr,sol_uint256_t key);";
-    func_expect << "void Write_A_Mapa_submap3"
-                << "(struct A_Mapa_submap3*arr,sol_uint256_t key"
-                << ",sol_uint256_t dat);";
-    func_expect << "sol_uint256_t*Ref_A_Mapa_submap3"
-                << "(struct A_Mapa_submap3*arr,sol_uint256_t key);";
+    func_expect << "struct Map_1 Init_0_Map_1(void);";
+    func_expect << "struct Map_1 ND_Map_1(void);";
+    func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr,"
+                << "sol_uint256_t key_1,sol_uint256_t key_2,"
+                << "sol_uint256_t key_3);";
+    func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_1,"
+                << "sol_uint256_t key_2,sol_uint256_t key_3,sol_uint256_t dat);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -481,9 +425,8 @@ BOOST_AUTO_TEST_CASE(reproducible)
             }
             function Deposit(uint idx) public payable {
                 require(msg.value > min_amt);
-                S storage entry = accs[idx];
-                if (entry.owner != msg.sender) { Open(idx); }
-                entry.val += msg.value;
+                if (accs[idx].owner != msg.sender) { Open(idx); }
+                accs[idx].val += msg.value;
             }
             function Withdraw(uint idx) public payable {
                 require(accs[idx].owner == msg.sender);
