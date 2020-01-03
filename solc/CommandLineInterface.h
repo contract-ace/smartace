@@ -74,6 +74,7 @@ private:
 	);
 	void handleCModelHeaders(
 		std::vector<SourceUnit const*> const& _asts,
+		modelcheck::NewCallGraph const& _graph,
 		modelcheck::TypeConverter const& _con,
 		modelcheck::CallState const& _cs,
 		std::ostream& _os

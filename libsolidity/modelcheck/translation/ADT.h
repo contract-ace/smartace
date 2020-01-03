@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <list>
 #include <ostream>
@@ -30,6 +31,7 @@ public:
 	// declare is set, then the structure bodies are not generated.
     ADTConverter(
         ASTNode const& _ast,
+		NewCallGraph const& _newcalls,
 		TypeConverter const& _converter,
 		size_t _map_k,
 		bool _forward_declare
@@ -47,6 +49,7 @@ protected:
 
 private:
 	ASTNode const& M_AST;
+	NewCallGraph const& M_CALLGRAPH;
 	TypeConverter const& M_CONVERTER;
 
 	size_t const M_MAP_K;

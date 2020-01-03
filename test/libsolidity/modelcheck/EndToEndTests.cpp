@@ -45,8 +45,12 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -73,8 +77,12 @@ BOOST_AUTO_TEST_CASE(simple_map)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -114,8 +122,12 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -152,8 +164,12 @@ BOOST_AUTO_TEST_CASE(simple_func)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -193,8 +209,12 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -234,8 +254,12 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -283,8 +307,12 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -336,8 +364,12 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -385,8 +417,12 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
@@ -449,9 +485,13 @@ BOOST_AUTO_TEST_CASE(reproducible)
     CallState statedata;
     statedata.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream adt_1, adt_2, func_1, func_2;
-    ADTConverter(ast, converter, 1, false).print(adt_1);
-    ADTConverter(ast, converter, 1, false).print(adt_2);
+    ADTConverter(ast, callgraph, converter, 1, false).print(adt_1);
+    ADTConverter(ast, callgraph, converter, 1, false).print(adt_2);
     FunctionConverter(
         ast, statedata, converter, 1, FunctionConverter::View::FULL, false
     ).print(func_1);

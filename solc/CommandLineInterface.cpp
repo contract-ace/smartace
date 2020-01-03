@@ -1311,7 +1311,7 @@ void CommandLineInterface::handleCModel()
 		copyDirectory((m_install_dir / "include/solc/libverify").string(), "libverify", true);
 		
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data;
-		handleCModelHeaders(asts, converter, callstate, cmodel_h_data);
+		handleCModelHeaders(asts, newcall_graph, converter, callstate, cmodel_h_data);
 		handleCModelBody(asts, major_actors, newcall_graph, converter, callstate, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, primitive_data);
 		createFile("primitive.h", primitive_data.str());
@@ -1324,7 +1324,7 @@ void CommandLineInterface::handleCModel()
 		sout() << "====== primitive.h =====" << endl;
 		handleCModelPrimitives(primitive_set, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
-		handleCModelHeaders(asts, converter, callstate, sout());
+		handleCModelHeaders(asts, newcall_graph, converter, callstate, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
 		handleCModelBody(asts, major_actors, newcall_graph, converter, callstate, sout());
 		sout() << endl;
@@ -1343,6 +1343,7 @@ void CommandLineInterface::handleCModelPrimitives(
 
 void CommandLineInterface::handleCModelHeaders(
 	vector<SourceUnit const*> const& _asts,
+	modelcheck::NewCallGraph const& _graph,
 	modelcheck::TypeConverter const& _con,
 	modelcheck::CallState const& _cs,
 	ostream& _os
@@ -1356,7 +1357,7 @@ void CommandLineInterface::handleCModelHeaders(
 	_cs.print(_os, true);
 	for (auto const* ast : _asts)
 	{
-		ADTConverter cov(*ast, _con, map_k, true);
+		ADTConverter cov(*ast, _graph, _con, map_k, true);
 		cov.print(_os);
 	}
 	for (auto const* ast : _asts)
@@ -1390,7 +1391,7 @@ void CommandLineInterface::handleCModelBody(
 	_cs.print(_os, false);
 	for (auto const* ast : _asts)
 	{
-		ADTConverter cov(*ast, _con, map_k, false);
+		ADTConverter cov(*ast, _graph, _con, map_k, false);
 		cov.print(_os);
 	}
 	for (auto const* ast : _asts)

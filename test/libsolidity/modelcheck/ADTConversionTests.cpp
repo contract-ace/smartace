@@ -55,17 +55,21 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
     TypeConverter converter;
     converter.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream actual, expect;
-    ADTConverter(ast, converter, 1, true).print(actual);
-    expect << "struct A_B_map1_submap2;";
-    expect << "struct A_B_map1_submap1;";
-    expect << "struct A_B;";
-    expect << "struct A_C_map2_submap1;";
-    expect << "struct A_C;";
-    expect << "struct A_map3_submap3;";
-    expect << "struct A_map3_submap2;";
-    expect << "struct A_map3_submap1;";
-    expect << "struct A_map4_submap1;";
+    ADTConverter(ast, callgraph, converter, 1, true).print(actual);
+    expect << "struct Map_1;";
+    expect << "struct A_StructB;";
+    expect << "struct Map_2;";
+    expect << "struct A_StructC;";
+    expect << "struct Map_3;";
+    expect << "struct Map_4;";
+    expect << "struct A;";
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
 
 // Tests that maps use the correct array lengths. This test is fairly naive and
@@ -84,11 +88,15 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
     TypeConverter converter;
     converter.record(ast);
 
+    NewCallGraph callgraph;
+    callgraph.record(ast);
+    callgraph.finalize();
+
     ostringstream actual_k_1;
     ostringstream actual_k_2;
 
-    ADTConverter(ast, converter, 1, false).print(actual_k_1);
-    ADTConverter(ast, converter, 2, false).print(actual_k_2);
+    ADTConverter(ast, callgraph, converter, 1, false).print(actual_k_1);
+    ADTConverter(ast, callgraph, converter, 2, false).print(actual_k_2);
 
     BOOST_CHECK(actual_k_1.str().find("curr_0") != string::npos);
     BOOST_CHECK(actual_k_1.str().find("curr_0_0") != string::npos);
@@ -126,21 +134,90 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     TypeConverter converter;
     converter.record(unit);
 
+    NewCallGraph callgraph;
+    callgraph.record(unit);
+    callgraph.finalize();
+
     ostringstream actual, expect;
-    ADTConverter(ctrt, converter, 1, false).print(actual);
-    expect << "struct Escrow"
+    ADTConverter(ctrt, callgraph, converter, 1, false).print(actual);
+    expect << "struct A"
            << "{"
            << "sol_address_t model_address;"
            << "sol_uint256_t model_balance;"
-           << "sol_uint256_t user_a;"
-           << "sol_uint256_t user_b;"
-           << "sol_uint256_t user_c;"
-           << "sol_uint256_t user_d;"
-           << "sol_uint256_t user_e;"
-           << "sol_uint256_t user_f;"
-           << "sol_uint256_t user_g;"
-           << "}";
+           << "sol_int256_t user_a;"
+           << "sol_int256_t user_b;"
+           << "sol_int256_t user_c;"
+           << "};";
+    expect << "struct B"
+           << "{"
+           << "sol_address_t model_address;"
+           << "sol_uint256_t model_balance;"
+           << "sol_int256_t user_c;"
+           << "sol_int256_t user_d;"
+           << "sol_int256_t user_e;"
+           << "sol_int256_t user_a;"
+           << "sol_int256_t user_b;"
+           << "};";
+    expect << "struct C"
+           << "{"
+           << "sol_address_t model_address;"
+           << "sol_uint256_t model_balance;"
+           << "sol_int256_t user_e;"
+           << "sol_int256_t user_f;"
+           << "sol_int256_t user_g;"
+           << "sol_int256_t user_c;"
+           << "sol_int256_t user_d;"
+           << "sol_int256_t user_a;"
+           << "sol_int256_t user_b;"
+           << "};";
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
+
+ BOOST_AUTO_TEST_CASE(specialize_contracts)
+ {
+    char const* text = R"(
+        contract X {}
+
+        contract Y is X {}
+
+        contract Test {
+            X x;
+            constructor() public { x = new Y(); }
+        }
+    )";
+
+    auto const &unit = *parseAndAnalyse(text);
+    auto const &ctrt = *retrieveContractByName(unit, "Test");
+
+    TypeConverter converter;
+    converter.record(unit);
+
+    NewCallGraph callgraph;
+    callgraph.record(unit);
+    callgraph.finalize();
+
+    ostringstream actual, expect;
+    ADTConverter(ctrt, callgraph, converter, 1, false).print(actual);
+    expect << "struct X"
+           << "{"
+           << "sol_address_t model_address;"
+           << "sol_uint256_t model_balance;"
+           << "};";
+    expect << "struct Y"
+           << "{"
+           << "sol_address_t model_address;"
+           << "sol_uint256_t model_balance;"
+           << "};";
+    expect << "struct Test"
+           << "{"
+           << "sol_address_t model_address;"
+           << "sol_uint256_t model_balance;"
+           << "struct Y user_x;"
+           << "};";
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
+ }
 
 BOOST_AUTO_TEST_SUITE_END();
 

@@ -26,10 +26,12 @@ namespace modelcheck
 
 ADTConverter::ADTConverter(
     ASTNode const& _ast,
+    NewCallGraph const& _newcalls,
     TypeConverter const& _converter,
     size_t _map_k,
     bool _forward_declare
 ): M_AST(_ast)
+ , M_CALLGRAPH(_newcalls)
  , M_CONVERTER(_converter)
  , M_MAP_K(_map_k)
  , M_FORWARD_DECLARE(_forward_declare)
@@ -85,12 +87,21 @@ bool ADTConverter::visit(ContractDefinition const& _node)
                     auto res = vars.insert(decl->name());
                     if (!res.second) break;
 
-                    string const TYPE = M_CONVERTER.get_type(*decl);
+                    string type;
+                    if (decl->annotation().type->category() == Type::Category::Contract)
+                    {
+                        type = M_CONVERTER.get_type(M_CALLGRAPH.specialize(*decl));
+                    }
+                    else
+                    {
+                        type = M_CONVERTER.get_type(*decl);
+                    }
+
                     string const NAME = VariableScopeResolver::rewrite(
                         decl->name(), false, VarContext::STRUCT
                     );
 
-                    fields->push_back(make_shared<CVarDecl>(TYPE, NAME));
+                    fields->push_back(make_shared<CVarDecl>(type, NAME));
                 }
             }
         }

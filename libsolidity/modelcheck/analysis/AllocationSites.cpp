@@ -126,7 +126,24 @@ void NewCallGraph::record(SourceUnit const& _src)
         auto violations = summary.violations();
         m_violations.splice(m_violations.end(), violations);
 
-        m_vertices[contract] = summary.children();
+        m_vertices[contract] = {};
+        for (auto child : summary.children())
+        {
+            auto typedata = m_truetypes.find(child.dest);
+            if (typedata == m_truetypes.end())
+            {
+                m_truetypes[child.dest] = child.type;
+                m_vertices[contract].push_back(child);
+            }
+            else if (typedata->second == child.type)
+            {
+                m_vertices[contract].push_back(child);
+            }
+            else
+            {
+                m_violations.push_back(child);
+            }
+        }
 
         m_names[contract->name()] = contract;
     }
@@ -195,6 +212,18 @@ void NewCallGraph::analyze(NewCallGraph::Graph::iterator _neighbourhood)
     }
 
     m_reach[root] = cost;
+}
+
+ContractDefinition const& NewCallGraph::specialize(
+    VariableDeclaration const& _decl
+) const
+{
+    auto itr = m_truetypes.find(&_decl);
+    if ((itr == m_truetypes.end()) || (itr->second == nullptr))
+    {
+        throw runtime_error("Unable to find declaration: " + _decl.name());
+    }
+    return (*itr->second);
 }
 
 // -------------------------------------------------------------------------- //

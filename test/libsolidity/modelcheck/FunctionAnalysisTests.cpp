@@ -465,6 +465,49 @@ BOOST_AUTO_TEST_CASE(annotation_tests)
     BOOST_CHECK_NE(test6.context(), nullptr);
 }
 
+BOOST_AUTO_TEST_CASE(upcast_at_callsite_test)
+{
+    char const* text = R"(
+        contract X {}
+        contract Y is X {}
+        contract Test {
+            X x1;
+            X x2;
+            Y y;
+            constructor() public {
+                x1 = new X();
+                x2 = new Y();
+                y = new Y();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto const* ctrt = retrieveContractByName(unit, "Test");
+
+    NewCallGraph callgraph;
+    callgraph.record(unit);
+
+    for (auto var : ctrt->stateVariables())
+    {
+        if (var->name() == "x1")
+        {
+            auto const& derv = callgraph.specialize(*var);
+            BOOST_CHECK_EQUAL(derv.name(), "X");
+        }
+        else if (var->name() == "x2")
+        {
+            auto const& derv = callgraph.specialize(*var);
+            BOOST_CHECK_EQUAL(derv.name(), "Y");
+        }
+        else if (var->name() == "y")
+        {
+            auto const& derv = callgraph.specialize(*var);
+            BOOST_CHECK_EQUAL(derv.name(), "Y");
+        }
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //
