@@ -38,6 +38,7 @@ public:
         FunctionDefinition const* context;
         FunctionCall const* callsite;
         VariableDeclaration const* dest;
+        bool is_retval;
         ViolationType status;
     };
     using CallGroup = std::list<NewCall>;
@@ -72,10 +73,12 @@ private:
     protected:
         bool visit(FunctionCall const& _node) override;
         bool visit(Assignment const& _node) override;
+        bool visit(Return const& _node) override;
 
     private:
         FunctionDefinition const* m_context;
         VariableDeclaration const* m_dest = nullptr;
+        bool m_return = false;
     };
 };
 

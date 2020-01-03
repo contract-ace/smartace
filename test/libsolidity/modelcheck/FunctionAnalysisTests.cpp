@@ -508,6 +508,61 @@ BOOST_AUTO_TEST_CASE(upcast_at_callsite_test)
     }
 }
 
+BOOST_AUTO_TEST_CASE(indirect_internal_assignment)
+{
+    char const* text = R"(
+        contract X {}
+        contract Test1 {
+            function good_internal() internal returns (X) {
+                return new X();
+            }
+        }
+        contract Test2 {
+            X x;
+            function bad_internal() internal returns (X) {
+                x = new X();
+                return new X();
+            }
+        }
+        contract Test3 {
+            X x;
+            function good_internal() internal returns (X) {
+                return new X();
+            }
+            constructor() public {
+                x = good_internal();
+            }
+        }
+        contract Test4 {
+            X x;
+            function good_internal() internal returns (X) {
+                return new X();
+            }
+            function bad_func() public {
+                x = good_internal();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+
+    auto const* test1 = retrieveContractByName(unit, "Test1");
+    NewCallSummary summary1(*test1);
+    BOOST_CHECK(summary1.violations().empty());
+
+    auto const* test2 = retrieveContractByName(unit, "Test2");
+    NewCallSummary summary2(*test2);
+    BOOST_CHECK(!summary2.violations().empty());
+
+    auto const* test3 = retrieveContractByName(unit, "Test3");
+    NewCallSummary summary3(*test3);
+    BOOST_CHECK(summary3.violations().empty());
+
+    auto const* test4 = retrieveContractByName(unit, "Test4");
+    NewCallSummary summary4(*test4);
+    BOOST_CHECK(!summary4.violations().empty());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

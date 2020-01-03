@@ -40,6 +40,21 @@ NewCallSummary::NewCallSummary(ContractDefinition const& _src)
                 }
             }
         }
+        else if (func->functionType(false) == nullptr)
+        {
+            for (auto const& call :visitor.calls)
+            {
+                if (call.is_retval)
+                {
+
+                    m_children.push_back(call);
+                }
+                else
+                {
+                    m_violations.push_back(call);
+                }
+            }
+        }
         else
         {
             m_violations.splice(m_violations.end(), visitor.calls);
@@ -76,6 +91,7 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
         calls.back().callsite = &_node;
         calls.back().dest = m_dest;
         calls.back().context = m_context;
+        calls.back().is_retval = m_return;
         calls.back().type = (&NEWTYPE->contractDefinition());
     }
 
@@ -102,6 +118,16 @@ bool NewCallSummary::Visitor::visit(Assignment const& _node)
     ScopedSwap<VariableDeclaration const*> scope(m_dest, dest);
     _node.rightHandSide().accept(*this);
 
+    return false;
+}
+
+bool NewCallSummary::Visitor::visit(Return const& _node)
+{
+    ScopedSwap<bool> scope(m_return, true);
+    if (auto const* expr = _node.expression())
+    {
+        expr->accept(*this);
+    }
     return false;
 }
 
