@@ -123,6 +123,7 @@ ModifierBlockConverter::ModifierBlockConverter(
     bool _entry
 ): GeneralBlockConverter(
     _def->parameters(),
+    _func.returnParameters(),
     _def->body(),
     _statedata,
     _types,
@@ -136,13 +137,9 @@ ModifierBlockConverter::ModifierBlockConverter(
  , M_NEXT_CALL(move(_next))
  , m_shadow_decls(CodeType::SHADOWBLOCK)
 {
-	// TODO(scottwe): support multiple return types.
-	if (_func.returnParameters().size() > 1)
+	if (block_type() == BlockType::Operation)
 	{
-		throw runtime_error("Multiple return values not yet supported.");
-	}
-	else if (!_func.returnParameters().empty())
-	{
+	    // TODO(scottwe): support multiple return types.
         auto const& ARG = *_func.returnParameters()[0];
 		m_rv = make_shared<CVarDecl>(
             M_TYPES.get_type(ARG),
@@ -163,7 +160,7 @@ void ModifierBlockConverter::enter(
     CBlockList & _stmts, VariableScopeResolver &_decls
 )
 {
-    if (m_rv)
+    if (block_type() == BlockType::Operation)
     {
 		_stmts.push_back(m_rv);
     }
@@ -191,7 +188,7 @@ void ModifierBlockConverter::enter(
 
 void ModifierBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 {
-    if (m_rv)
+    if (block_type() == BlockType::Operation)
     {
         _stmts.push_back(make_shared<CReturn>(m_rv->id()));
     }
@@ -202,7 +199,7 @@ void ModifierBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 bool ModifierBlockConverter::visit(Return const&)
 {
     CExprPtr rv_id = nullptr;
-    if (m_rv)
+    if (block_type() == BlockType::Operation)
     {
         rv_id = m_rv->id();
     }
@@ -223,6 +220,12 @@ void ModifierBlockConverter::endVisit(PlaceholderStatement const&)
         auto const SYM = m_shadow_decls.resolve_declaration(*ARG);
 		builder.push(make_shared<CIdentifier>(SYM, false));
 	}
+
+    if (block_type() == BlockType::Initializer)
+    {
+        // TODO: avoid hardcoding this...
+        builder.push(make_shared<CIdentifier>("dest", true));
+    }
 
     CExprPtr call = builder.merge_and_pop();
     if (m_rv)

@@ -34,12 +34,14 @@ const shared_ptr<CIdentifier> FunctionConverter::TMP =
 FunctionConverter::FunctionConverter(
     ASTNode const& _ast,
     CallState const& _statedata,
+    NewCallGraph const& _newcalls,
 	TypeConverter const& _converter,
     size_t _map_k,
     View _view,
     bool _fwd_dcl
 ): M_AST(_ast)
  , M_STATEDATA(_statedata)
+ , M_NEWCALLS(_newcalls)
  , M_CONVERTER(_converter)
  , M_MAP_K(_map_k)
  , M_VIEW(_view)
@@ -66,7 +68,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 
         if (auto fallback = _node.fallbackFunction())
         {
-            handle_function(FunctionSpecialization(*fallback));
+            handle_function(FunctionSpecialization(*fallback), "void");
         }
 
         set<string> methods;
@@ -113,7 +115,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
     auto init_id = make_shared<CVarDecl>(STRCT_TYPE, "Init_" + STRCT_NAME);
     auto nd_id = make_shared<CVarDecl>(STRCT_TYPE, "ND_" + STRCT_NAME);
 
-    auto init_params = generate_params(initializable_members, nullptr);
+    auto init_params = generate_params(initializable_members, nullptr, nullptr);
 
     shared_ptr<CBlock> zero_body, init_body, nd_body;
     if (!M_FWD_DCL)
@@ -194,7 +196,8 @@ bool FunctionConverter::visit(Mapping const& _node)
 
 CParams FunctionConverter::generate_params(
     vector<FunctionConverter::ParamTmpl> const& _args,
-    ContractDefinition const* _scope
+    ContractDefinition const* _scope,
+    ASTPointer<VariableDeclaration> _dest
 )
 {
     CParams params;
@@ -228,6 +231,13 @@ CParams FunctionConverter::generate_params(
 
         params.push_back(make_shared<CVarDecl>(ARG_TYPE, argname));
     }
+    if (_dest)
+    {
+        // TODO: hard coded.
+        params.push_back(make_shared<CVarDecl>(
+            M_CONVERTER.get_type(M_NEWCALLS.specialize(*_dest)), "dest", true)
+        );
+    }
     return params;
 }
 
@@ -257,7 +267,15 @@ void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
     if (!(IS_PUB || IS_EXT) && M_VIEW == View::EXT) return;
     if ((IS_PUB || IS_EXT) && M_VIEW == View::INT) return;
 
-    handle_function(_spec);
+    auto rvs = FUNC.returnParameters();
+    if (!rvs.empty() && rvs[0]->type()->category() == Type::Category::Contract)
+    {
+        handle_function(_spec, "void");
+    }
+    else
+    {
+        handle_function(_spec, M_CONVERTER.get_type(FUNC));
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -266,7 +284,6 @@ string FunctionConverter::handle_contract_initializer(
     ContractDefinition const& _initialized, ContractDefinition const& _for
 )
 {
-
     bool const IS_TOP_INIT_CALL = (_initialized.name() == _for.name());
     string const INIT_NAME = M_CONVERTER.get_name(_initialized);
     string const FOR_NAME = M_CONVERTER.get_name(_for);
@@ -297,9 +314,11 @@ string FunctionConverter::handle_contract_initializer(
                 local_param_tmpl.push_back(tmpl);
             }
 
-            ctor_name = handle_function(FunctionSpecialization(*LOCAL_CTOR, _for));
+            ctor_name = handle_function(
+                FunctionSpecialization(*LOCAL_CTOR, _for), "void"
+            );
         }
-        params = generate_params(local_param_tmpl, &_for);
+        params = generate_params(local_param_tmpl, &_for, nullptr);
     }
 
     auto self_ptr = params[0]->id();
@@ -422,22 +441,17 @@ string FunctionConverter::handle_contract_initializer(
 
 // -------------------------------------------------------------------------- //
 
-string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
+string FunctionConverter::handle_function(
+    FunctionSpecialization const& _spec, string _rvtype
+)
 {
     // Bypasses pure virtual and uinterpreted functions.
     if (!_spec.func().isImplemented()) return "";
 
-    // Determines return signature.
-    auto const& FUNC = _spec.func();
-    string ftype = "void";
-    string fname = _spec.name();
-    if (!FUNC.isConstructor())
-    {
-        ftype = M_CONVERTER.get_type(FUNC);
-    }
-
     // Ensures this specialization is new.
-    if (!record_pair(_spec.func(), _spec.useby())) return fname;
+    auto const& FUNC = _spec.func();
+    string fname = _spec.name();
+    if (!record_pair(FUNC, _spec.useby())) return fname;
 
     // Generates parameter list for all levels.
     vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
@@ -457,10 +471,18 @@ string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
         }
     }
 
+    // Determines if a contract initialization destination is required.
+    ASTPointer<VariableDeclaration> dest;
+    auto rvs = FUNC.returnParameters();
+    if (!rvs.empty() && rvs[0]->type()->category() == Type::Category::Contract)
+    {
+        dest = rvs[0];
+    }
+
     // Generates super function calls.
     if (auto superfunc = _spec.super())
     {
-        handle_function(*superfunc);
+        handle_function(*superfunc, _rvtype);
     }
 
     // Filters modifiers from constructors.
@@ -469,7 +491,7 @@ string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
     // Generates a declaration for the base call.
     vector<CFuncDef> defs;
     {
-        CParams params = generate_params(base_tmpl, &_spec.useby());
+        CParams params = generate_params(base_tmpl, &_spec.useby(), dest);
 
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
@@ -484,12 +506,12 @@ string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
         {
             base_fname = FunctionUtilities::base_name(move(base_fname));
         }
-        auto id = make_shared<CVarDecl>(ftype, move(base_fname));
+        auto id = make_shared<CVarDecl>(_rvtype, move(base_fname));
         defs.emplace_back(id, move(params), move(body));
     }
 
     // Generates a declaration for each modifier.
-    CParams const mod_params = generate_params(mod_tmpl, &_spec.useby());
+    CParams const mod_params = generate_params(mod_tmpl, &_spec.useby(), dest);
     for (size_t i = mods.len(); i > 0; --i)
     {
         size_t const IDX = i - 1;
@@ -509,7 +531,7 @@ string FunctionConverter::handle_function(FunctionSpecialization const& _spec)
             body = mods.generate(IDX, M_STATEDATA, M_CONVERTER).convert();
         }
 
-        auto id = make_shared<CVarDecl>(ftype, move(mod_name));
+        auto id = make_shared<CVarDecl>(_rvtype, move(mod_name));
         defs.emplace_back(id, mod_params, move(body));
     }
 

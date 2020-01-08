@@ -280,6 +280,8 @@ void MainFunctionGenerator::analyze_nested_decls(
 
     for (auto const& child : children)
     {
+        if (child.is_retval) continue;
+
         auto const NAME = VariableScopeResolver::rewrite(
             child.dest->name(), false, VarContext::STRUCT
         );

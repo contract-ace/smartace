@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
@@ -40,6 +41,7 @@ public:
     FunctionConverter(
         ASTNode const& _ast,
 		CallState const& _statedata,
+		NewCallGraph const& _newcalls,
 		TypeConverter const& _converter,
 		size_t _map_k,
 		View _view,
@@ -67,6 +69,7 @@ private:
 
 	ASTNode const& M_AST;
 	CallState const& M_STATEDATA;
+	NewCallGraph const& M_NEWCALLS;
 	TypeConverter const& M_CONVERTER;
 
 	size_t const M_MAP_K;
@@ -87,7 +90,9 @@ private:
 	// are assumed to be of a stateful Solidity method, bound to structures of
 	// the given type.
 	CParams generate_params(
-		std::vector<ParamTmpl> const& _args, ContractDefinition const* _scope
+		std::vector<ParamTmpl> const& _args,
+		ContractDefinition const* _scope,
+		ASTPointer<VariableDeclaration> _dest
 	);
 
 	// Helper function to avoid duplicate visits to a single specialization. If
@@ -98,7 +103,10 @@ private:
 	void generate_function(FunctionSpecialization const& _spec);
 
 	// Generates a layer of the contract constructor.
-	std::string handle_function(FunctionSpecialization const& _spec);
+	std::string handle_function(
+		FunctionSpecialization const& _spec,
+		std::string _rvtype
+	);
 
 	// Recursively expands an initializer for a contract.
 	std::string handle_contract_initializer(

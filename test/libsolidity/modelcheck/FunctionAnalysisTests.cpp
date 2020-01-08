@@ -563,6 +563,37 @@ BOOST_AUTO_TEST_CASE(indirect_internal_assignment)
     BOOST_CHECK(!summary4.violations().empty());
 }
 
+BOOST_AUTO_TEST_CASE(specialization_by_inderection)
+{
+    char const* text = R"(
+        contract X {}
+        contract Y is X {}
+        contract Test {
+            X c1;
+            constructor() public {
+                c1 = f();
+                c2 = g();
+            }
+            function f() internal returns (X) {
+                return new Y();
+            }
+            function g() internal returns (X) {
+                return new X();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+
+    NewCallGraph g;
+    g.record(unit);
+    g.finalize();
+
+    auto const* ctrt = retrieveContractByName(unit, "Test");
+    BOOST_CHECK_EQUAL(g.specialize(*ctrt->stateVariables()[0]).name(), "Y");
+    BOOST_CHECK_EQUAL(g.specialize(*ctrt->stateVariables()[1]).name(), "X");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

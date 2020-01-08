@@ -68,7 +68,7 @@ private:
     public:
         CallGroup calls;
 
-        Visitor(FunctionDefinition const* _context);
+        Visitor(FunctionDefinition const* _context, size_t _depth_limit);
 
     protected:
         bool visit(FunctionCall const& _node) override;
@@ -76,6 +76,8 @@ private:
         bool visit(Return const& _node) override;
 
     private:
+        size_t const M_DEPTH_LIMIT;
+
         FunctionDefinition const* m_context;
         VariableDeclaration const* m_dest = nullptr;
         bool m_return = false;

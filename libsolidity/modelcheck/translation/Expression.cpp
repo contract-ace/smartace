@@ -705,6 +705,26 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		pass_next_call_state(_calldata, builder, is_ext_call);
 	}
 
+	// Passes dest if contract construction is in use.
+	auto rvs = _calldata.type().returnParameterTypes();
+	if (rvs.size() == 1 && rvs[0]->category() == Type::Category::Contract)
+	{
+		// TODO: duplication
+		CExprPtr dest;
+		if (m_last_assignment)
+		{
+			dest = make_shared<CReference>(make_shared<CIdentifier>(
+				m_decls.resolve_identifier(*m_last_assignment), false
+			));
+		}
+		else
+		{
+			// TODO: hard coding
+			dest = make_shared<CIdentifier>("dest", true);
+		}
+		builder.push(dest);
+	}
+
 	// Pushes all user provided arguments.
 	for (size_t i = 0; i < _calldata.args().size(); ++i)
 	{
@@ -718,9 +738,9 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	m_subexpr = builder.merge_and_pop();
 
 	// Unwraps the return value, if it is a wraped type.
-	if (_calldata.type().returnParameterTypes().size() == 1)
+	if (rvs.size() == 1)
 	{
-		if (is_wrapped_type(*_calldata.type().returnParameterTypes()[0]))
+		if (is_wrapped_type(*rvs[0]))
 		{
 			m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
 		}
@@ -735,10 +755,21 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 		auto const DECL = contract_type->annotation().referencedDeclaration;
 		if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
 		{
-			auto const DECL = m_decls.resolve_identifier(*m_last_assignment);
-			builder.push(make_shared<CReference>(
-				make_shared<CIdentifier>(DECL, false)
-			));
+			// TODO: duplication
+			CExprPtr dest;
+			if (m_last_assignment)
+			{
+				dest = make_shared<CReference>(make_shared<CIdentifier>(
+					m_decls.resolve_identifier(*m_last_assignment), false
+				));
+			}
+			else
+			{
+				// TODO: hard coding.
+				dest = make_shared<CIdentifier>("dest", false);
+			}
+			
+			builder.push(dest);
 			pass_next_call_state(FunctionCallAnalyzer(_call), builder, true);
 
 			if (auto const& ctor = contract->constructor())

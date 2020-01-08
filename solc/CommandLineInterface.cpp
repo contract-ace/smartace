@@ -1363,7 +1363,7 @@ void CommandLineInterface::handleCModelHeaders(
 	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
-			*ast, _cs, _con, map_k, FunctionConverter::View::EXT, true
+			*ast, _cs, _graph, _con, map_k, FunctionConverter::View::EXT, true
 		);
 		cov.print(_os);
 	}
@@ -1397,14 +1397,14 @@ void CommandLineInterface::handleCModelBody(
 	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
-			*ast, _cs, _con, map_k, FunctionConverter::View::INT, true
+			*ast, _cs, _graph, _con, map_k, FunctionConverter::View::INT, true
 		);
 		cov.print(_os);
 	}
 	for (auto const* ast : _asts)
 	{
 		FunctionConverter cov(
-			*ast, _cs, _con, map_k, FunctionConverter::View::FULL, false
+			*ast, _cs, _graph, _con, map_k, FunctionConverter::View::FULL, false
 		);
 		cov.print(_os);
 	}

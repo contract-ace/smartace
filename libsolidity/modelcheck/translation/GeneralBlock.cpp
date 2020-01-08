@@ -47,7 +47,8 @@ void BlockUtilities::add_value_handler(CBlockList & _block)
 // -------------------------------------------------------------------------- //
 
 GeneralBlockConverter::GeneralBlockConverter(
-	std::vector<ASTPointer<VariableDeclaration>> const& _args,
+	vector<ASTPointer<VariableDeclaration>> const& _args,
+	vector<ASTPointer<VariableDeclaration>> const& _rvs,
 	Block const& _body,
 	CallState const& _statedata,
 	TypeConverter const& _types,
@@ -58,6 +59,7 @@ GeneralBlockConverter::GeneralBlockConverter(
  , M_TYPES(_types)
  , M_MANAGE_PAY(_manage_pay)
  , M_IS_PAYABLE(_is_payable)
+ , M_BLOCKTYPE(determine_block_type(_rvs))
 {
 	m_decls.enter();
 	for (auto const& arg : _args)
@@ -91,6 +93,13 @@ CExprPtr GeneralBlockConverter::expand(Expression const& _expr, bool _ref)
 CStmtPtr GeneralBlockConverter::last_substmt()
 {
 	return m_substmt;
+}
+
+// -------------------------------------------------------------------------- //
+
+GeneralBlockConverter::BlockType GeneralBlockConverter::block_type() const
+{
+	return M_BLOCKTYPE;
 }
 
 // -------------------------------------------------------------------------- //
@@ -277,6 +286,30 @@ void GeneralBlockConverter::endVisit(Continue const&)
 void GeneralBlockConverter::endVisit(Break const&)
 {
 	new_substmt<CBreak>();
+}
+
+// -------------------------------------------------------------------------- //
+
+GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
+	vector<ASTPointer<VariableDeclaration>> const& _rvs
+)
+{
+	if (_rvs.empty())
+	{
+		return BlockType::Action;
+	}
+	else if (_rvs.size() > 1)
+	{
+		throw runtime_error("Multiple return values not yet supported.");
+	}
+	else if (_rvs[0]->type()->category() == Type::Category::Contract)
+	{
+		return BlockType::Initializer;
+	}
+	else
+	{
+		return BlockType::Operation;
+	}
 }
 
 // -------------------------------------------------------------------------- //

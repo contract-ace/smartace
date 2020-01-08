@@ -24,7 +24,7 @@ NewCallSummary::NewCallSummary(ContractDefinition const& _src)
 {
     for (auto func : _src.definedFunctions())
     {
-        Visitor visitor(func);
+        Visitor visitor(func, 2);
 
         if (func->isConstructor())
         {
@@ -73,9 +73,16 @@ NewCallSummary::CallGroup const& NewCallSummary::violations() const
     return m_violations;
 }
 
-NewCallSummary::Visitor::Visitor(FunctionDefinition const* _context)
-: m_context(_context)
+NewCallSummary::Visitor::Visitor(
+    FunctionDefinition const* _context, size_t _depth_limit
+)
+    : M_DEPTH_LIMIT(_depth_limit)
+    , m_context(_context)
 {
+    if (M_DEPTH_LIMIT == 0)
+    {
+        throw runtime_error("AllocationSite analysis exceeded depth limit.");
+    }
     _context->accept(*this);
 }
 
@@ -84,15 +91,57 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
     auto const* NEWTYPE = dynamic_cast<ContractType const*>(
         _node.annotation().type
     );
+    auto const* CALLTYPE = dynamic_cast<FunctionType const*>(
+        _node.expression().annotation().type
+    );
 
     if (NEWTYPE)
     {
         calls.emplace_back();
         calls.back().callsite = &_node;
-        calls.back().dest = m_dest;
         calls.back().context = m_context;
         calls.back().is_retval = m_return;
-        calls.back().type = (&NEWTYPE->contractDefinition());
+
+        // Splits returns from assignments. Returns have implicit destinations.
+        if (m_return)
+        {
+            calls.back().dest = m_context->returnParameters()[0].get();
+        }
+        else
+        {
+            calls.back().dest = m_dest;
+        }
+
+        // Recursive type analysis for internal calls.
+        if (CALLTYPE->kind() == FunctionType::Kind::Creation)
+        {
+            calls.back().type = (&NEWTYPE->contractDefinition());
+        }
+        else
+        {
+            auto const* internalcall = dynamic_cast<FunctionDefinition const*>(
+                &CALLTYPE->declaration()
+            );
+            if (internalcall)
+            {
+                // TODO: reuse results?
+                Visitor nested(internalcall, M_DEPTH_LIMIT - 1);
+                for (auto child : nested.calls)
+                {
+                    if (child.is_retval)
+                    {
+                        calls.back().type = child.type;
+                    }
+                }
+
+            }
+        }
+
+        // Checks that new type analysis succeeded.
+        if (!calls.back().type)
+        {
+            throw runtime_error("AllocationSite failed to resolve new type.");
+        }
     }
 
     for (auto arg : _node.arguments())
@@ -167,6 +216,7 @@ void NewCallGraph::record(SourceUnit const& _src)
             }
             else
             {
+                // TODO: new violation type
                 m_violations.push_back(child);
             }
         }

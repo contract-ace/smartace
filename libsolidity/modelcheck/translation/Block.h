@@ -53,6 +53,7 @@ public:
 	// The _body will be expanded, using these parameters, along with _type.
 	GeneralBlockConverter(
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
+		std::vector<ASTPointer<VariableDeclaration>> const& _rvs,
 		Block const& _body,
 		CallState const& _statedata,
 		TypeConverter const& _types,
@@ -66,6 +67,12 @@ public:
 	std::shared_ptr<CBlock> convert();
 
 protected:
+	// A taxonomy of block translations.
+	// - Initializer: wraps and returns a constructor call
+	// - Action: function without a return parameter.
+	// - Operation: produces one or more return values.
+	enum class BlockType { Initializer, Action, Operation };
+
 	// Allows top-level setup and teardown.
 	virtual void enter(CBlockList & _stmts, VariableScopeResolver & _decls) = 0;
 	virtual void exit(CBlockList & _stmts, VariableScopeResolver & _decls) = 0;
@@ -89,6 +96,9 @@ protected:
 	}
 	CStmtPtr last_substmt();
 
+	// Returns the block type.
+	BlockType block_type() const;
+
 	bool visit(Block const& _node) override;
 	bool visit(IfStatement const& _node) override;
 	bool visit(WhileStatement const& _node) override;
@@ -103,12 +113,18 @@ protected:
 	void endVisit(Continue const&) override;
 
 private:
+	// Analyzes the return values to classify the block type of this block.
+	static BlockType determine_block_type(
+		std::vector<ASTPointer<VariableDeclaration>> const& _rvs
+	);
+
 	Block const& M_BODY;
 	CallState const& M_STATEDATA;
 	TypeConverter const& M_TYPES;
 
 	bool const M_MANAGE_PAY;
 	bool const M_IS_PAYABLE;
+	BlockType const M_BLOCKTYPE;
 
 	VariableScopeResolver m_decls;
 
