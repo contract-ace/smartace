@@ -671,7 +671,25 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		is_ext_call = (_calldata.context() != nullptr);
 		if (!is_ext_call)
 		{
-			call = FunctionSpecialization(call.func(), m_decls.spec()->useby());
+			auto const& hierarchy
+				= m_decls.spec()->useby().annotation().linearizedBaseContracts;
+
+			// TODO: could this be cached?
+			FunctionDefinition const* override = nullptr;
+			for (auto derived : hierarchy)
+			{
+				for (auto const* member_func : derived->definedFunctions())
+				{
+					if (member_func->name() == call.func().name())
+					{
+						override = member_func;
+						break;
+					}
+				}
+				if (override) break;
+			}
+
+			call = FunctionSpecialization(*override, m_decls.spec()->useby());
 		}
 		callname = call.name();
 	}
