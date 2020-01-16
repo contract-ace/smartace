@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.1.0)
 project(cmodel VERSION "1.0.0" LANGUAGES CXX C)
 set(CMAKE_C_STANDARD 99)
 
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+
 find_package(Boost 1.65.0 QUIET REQUIRED COMPONENTS program_options)
 
 # Loads in configurations.
@@ -62,6 +65,8 @@ add_subdirectory(libverify)
 set(EXE_SRCS_COMMON cmodel.h primitive.h)
 set(EXE_SRCS_C cmodel.c)
 set(EXE_SRCS_CPP cmodel.cpp)
+set(EXE_HARNESSED_C ${EXE_SRCS_C} harness.c)
+SET(EXE_HARNESSED_CPP ${EXE_SRCS_CPP} harness.cpp)
 
 # Locates exactly all model files for seahorn and clang format.
 # Locates seahorn deps.
@@ -71,7 +76,7 @@ list(APPEND SEAHORN_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/libverify/verify_seahorn.c
 foreach(fn ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
     list(APPEND EXE_SRCS_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
 endforeach(fn)
-foreach(fn ${EXE_SRCS_C})
+foreach(fn ${EXE_HARNESSED_C})
     list(APPEND SEAHORN_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
     list(APPEND EXE_SRCS_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
 endforeach(fn)
@@ -87,8 +92,13 @@ endif()
 # Adds targets for each execution model.
 include_directories(.)
 include_directories(${PROJECT_BINARY_DIR})
-add_executable(icmodel ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
+
+add_executable(icmodel ${EXE_SRCS_COMMON} ${EXE_HARNESSED_CPP})
 target_link_libraries(icmodel verify_interactive)
+
+add_executable(fcmodel ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP} libverify/verify_libfuzzer.cpp)
+target_link_libraries(fcmodel -fsanitize=fuzzer,address)
+set_target_properties(fcmodel PROPERTIES COMPILE_FLAGS "-g -fsanitize=fuzzer,address")
 
 # Locates all dependencies of seahorn's libverify, along with all compiler flags.
 set(CMODEL_COMPILE_DEFS "")

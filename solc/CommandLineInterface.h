@@ -69,6 +69,7 @@ private:
 	void handleCombinedJSON();
 	void handleAst(std::string const& _argStr);
 	void handleCModel();
+	void handleCModelHarness(std::ostream& _os);
 	void handleCModelPrimitives(
 		modelcheck::PrimitiveTypeGenerator _gen, std::ostream& _os
 	);
