@@ -66,6 +66,14 @@ uint8_t rt_nd_byte(const char* _msg)
     return v;
 }
 
+uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
+{
+	uint8_t v = rt_nd_byte(_msg);
+	ll_assume(v >= l);
+	ll_assume(v < u);
+	return v;
+}
+
 // -------------------------------------------------------------------------- //
 
 extern sol_raw_uint8_t sea_nd_u8(void);

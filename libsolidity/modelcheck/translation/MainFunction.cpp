@@ -68,9 +68,10 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     list<Actor> actors = analyze_decls(model);
 
     // Generates function switch.
+    size_t case_count = 0;
+    auto next_case = make_shared<CVarDecl>("uint8_t", "next_call");
     auto call_cases = make_shared<CSwitch>(
-        get_nd_byte("Select next call"),
-        CBlockList{make_require(Literals::ZERO)}
+        next_case->id(), CBlockList{make_require(Literals::ZERO)}
     );
     for (auto & actor : actors)
     {
@@ -78,6 +79,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         {
             auto call_body = build_case(spec, actor.fparams, actor.decl);
             call_cases->add_case(actor.fnums[&spec.func()], move(call_body));
+            ++case_count;
         }
     }
 
@@ -165,17 +167,21 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         }
     }
 
-    // Generates fixed-point iteration.
-    CBlockList fixpoint;
-    fixpoint.push_back(
+    // Generates transactionals loop.
+    CBlockList transactionals;
+    transactionals.push_back(
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
-    update_call_state(fixpoint, contract_addrs);
-    fixpoint.push_back(call_cases);
+    update_call_state(transactionals, contract_addrs);
+    transactionals.push_back(next_case);
+    transactionals.push_back(
+        next_case->assign(get_nd_range(0, case_count, "next_call"))->stmt()
+    );
+    transactionals.push_back(call_cases);
 
-    // Adds fixpoint look to end of body.
+    // Adds transactional loop to end of body.
     main.push_back(make_shared<CWhileLoop>(
-        make_shared<CBlock>(move(fixpoint)),
+        make_shared<CBlock>(move(transactionals)),
         get_nd_byte("Select 0 to terminate"),
         false
     ));
@@ -421,6 +427,21 @@ CExprPtr MainFunctionGenerator::get_nd_byte(string const& _msg)
 {
     return make_shared<CFuncCall>(
         "rt_nd_byte", CArgList{make_shared<CStringLiteral>(_msg)}
+    );
+}
+
+// -------------------------------------------------------------------------- //
+
+CExprPtr MainFunctionGenerator::get_nd_range(
+    uint8_t _l, uint8_t _u, std::string const& _msg
+)
+{
+    return make_shared<CFuncCall>(
+        "rt_nd_range", CArgList{
+            make_shared<CIntLiteral>(_l),
+            make_shared<CIntLiteral>(_u),
+            make_shared<CStringLiteral>(_msg)
+        }
     );
 }
 

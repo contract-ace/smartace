@@ -31,9 +31,19 @@ void sol_require(sol_raw_uint8_t _cond, const char* _msg)
 
 void sol_emit(const char *) {}
 
-uint8_t rt_nd_byte(const char* _msg){
+uint8_t rt_nd_byte(const char* _msg)
+{
     uint8_t res;
     klee_make_symbolic(&res, sizeof(res), _msg);
+    return res;
+}
+
+uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
+{
+    uint8_t res;
+    klee_make_symbolic(&res, sizeof(res), _msg);
+	klee_assume(res >= l);
+	klee_assume(res < u);
     return res;
 }
 

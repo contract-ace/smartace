@@ -140,6 +140,14 @@ uint8_t rt_nd_byte(const char* _msg)
     return retval;
 }
 
+uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
+{
+	uint8_t v = rt_nd_byte(_msg);
+	ll_assume(v >= l);
+	ll_assume(v < u);
+	return v;
+}
+
 sol_raw_int8_t nd_int8_t(const char* _msg)
 {
     on_entry("int8", _msg);

@@ -184,6 +184,12 @@ uint8_t rt_nd_byte(const char* _msg)
 	return tryGetNextRandByte();
 }
 
+uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
+{
+	uint8_t v = rt_nd_byte(_msg);
+	return v % (u - l) + l;
+}
+
 sol_raw_int8_t nd_int8_t(const char* _msg)
 {
 	on_entry("int8", _msg);

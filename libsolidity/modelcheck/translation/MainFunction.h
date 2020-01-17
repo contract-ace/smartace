@@ -130,6 +130,7 @@ private:
     void set_payment_value(CBlockList & _stmts);
 
     static CExprPtr get_nd_byte(std::string const& _msg);
+    static CExprPtr get_nd_range(uint8_t _l, uint8_t _u, std::string const& _msg);
 };
 
 }
