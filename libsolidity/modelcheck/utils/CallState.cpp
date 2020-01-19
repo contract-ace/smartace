@@ -23,7 +23,8 @@ map<pair<MagicType::Kind, string>, CallStateUtilities::Field> const
 	{{MagicType::Kind::Block, "number"}, CallStateUtilities::Field::Block},
 	{{MagicType::Kind::Block, "timestamp"}, CallStateUtilities::Field::Block},
 	{{MagicType::Kind::Message, "sender"}, CallStateUtilities::Field::Sender},
-	{{MagicType::Kind::Message, "value"}, CallStateUtilities::Field::Value}
+	{{MagicType::Kind::Message, "value"}, CallStateUtilities::Field::Value},
+    {{MagicType::Kind::Transaction, "origin"}, CallStateUtilities::Field::Origin}
 }};
 
 AddressType const CallStateUtilities::SENDER_TYPE(StateMutability::Payable);
@@ -77,6 +78,10 @@ string CallStateUtilities::get_name(CallStateUtilities::Field _field)
     {
         retval = "paid";
     }
+    else if (_field == CallStateUtilities::Field::Origin)
+    {
+        retval = "origin";
+    }
     return retval;
 }
 
@@ -88,6 +93,7 @@ Type const* CallStateUtilities::get_type(CallStateUtilities::Field _field)
     {
     case CallStateUtilities::Field::Block: return &COUNTABLE_TYPE;
     case CallStateUtilities::Field::Sender: return &SENDER_TYPE;
+    case CallStateUtilities::Field::Origin: return &SENDER_TYPE;
     case CallStateUtilities::Field::Value: return &COUNTABLE_TYPE;
     case CallStateUtilities::Field::Paid: return &BOOLEAN_TYPE;
     default: return nullptr;

@@ -376,6 +376,7 @@ void MainFunctionGenerator::update_call_state(
         auto nd = TypeConverter::raw_simple_nd(*fld.type, fld.name);
 
         if (fld.field == CallStateUtilities::Field::Paid) continue;
+        if (fld.field == CallStateUtilities::Field::Origin) continue;
 
         if (fld.field == CallStateUtilities::Field::Block)
         {
