@@ -29,7 +29,7 @@ void sol_require(sol_raw_uint8_t _cond, const char* _msg)
     klee_assume(_cond);
 }
 
-void sol_emit(const char *) {}
+void sol_emit(const char * _msg) {}
 
 uint8_t rt_nd_byte(const char* _msg)
 {
