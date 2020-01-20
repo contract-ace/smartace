@@ -34,6 +34,7 @@ public:
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
         size_t _keyspace,
+        bool _lockstep_time,
         std::list<ContractDefinition const *> const& _model,
         NewCallGraph const& _new_graph,
         CallState const& _statedata,
@@ -69,6 +70,9 @@ private:
 
     // Stores the size of the keyspace.
     size_t const M_KEYSPACE;
+
+    // If true, block and timpstamp move together.
+    bool const M_LOCKSTEP_TIME;
 
     // The list of contracts requested for the model. If empty, then it one of
     // each contract is instantiated.

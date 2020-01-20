@@ -124,6 +124,7 @@ static string const g_strBinary = "bin";
 static string const g_strBinaryRuntime = "bin-runtime";
 static string const g_strCModel = "c-model";
 static string const g_strModelMapLen = "map-k";
+static string const g_strModelLockstepTime = "lockstep-time";
 static string const g_strModelActor = "contract-list";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
@@ -179,6 +180,7 @@ static string const g_argBinary = g_strBinary;
 static string const g_argBinaryRuntime = g_strBinaryRuntime;
 static string const g_argCModel = g_strCModel;
 static string const g_argModelMapLen = g_strModelMapLen;
+static string const g_argModelLockstepTime = g_strModelLockstepTime;
 static string const g_argModelActor = g_strModelActor;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
@@ -777,6 +779,11 @@ Allowed options)",
 			g_argModelMapLen.c_str(),
 			po::value<size_t>()->value_name("k")->default_value(1),
 			"When modeling maps for the intent of model-checking, k entries will be represented."
+		)
+		(
+			g_argModelLockstepTime.c_str(),
+			po::value<bool>()->value_name("on")->default_value(false),
+			"When modeling maps for the intend of model-checking, locksteps blocknum and timestamp."
 		)
 		(
 			g_argModelActor.c_str(),
@@ -1398,6 +1405,7 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 	size_t map_k = m_args[g_argModelMapLen].as<size_t>();
+	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 	_os << "#include \"cmodel.h\"" << endl;
 	for (size_t i = 0; i < map_k; ++i)
 	{
@@ -1425,7 +1433,7 @@ void CommandLineInterface::handleCModelBody(
 		cov.print(_os);
 	}
 
-	modelcheck::MainFunctionGenerator main_gen(map_k, _model, _graph, _cs, _con);
+	modelcheck::MainFunctionGenerator main_gen(map_k, lockstep_time, _model, _graph, _cs, _con);
 	for (auto const* ast : _asts)
 	{
 		main_gen.record(*ast);

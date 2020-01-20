@@ -27,11 +27,13 @@ namespace modelcheck
 
 MainFunctionGenerator::MainFunctionGenerator(
     size_t _keyspace,
+    bool _lockstep_time,
     list<ContractDefinition const *> const& _model,
     NewCallGraph const& _new_graph,
     CallState const& _statedata,
     TypeConverter const& _converter
 ): M_KEYSPACE(_keyspace)
+ , M_LOCKSTEP_TIME(_lockstep_time)
  , m_model(_model)
  , m_new_graph(_new_graph)
  , m_statedata(_statedata)
@@ -87,6 +89,8 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     CBlockList main;
 
     // Declres all state variables.
+    auto timestep_var = make_shared<CVarDecl>("uint8_t", "take_step");
+    main.push_back(timestep_var);
     for (auto const& fld : m_statedata.order())
     {
         auto const DECL = make_shared<CVarDecl>(fld.tname, fld.name);
@@ -97,7 +101,20 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         {
             auto const TMP_DECL = make_shared<CVarDecl>(fld.tname, fld.temp);
             main.push_back(TMP_DECL);
-            main.push_back(DECL->access("v")->assign(Literals::ZERO)->stmt());
+
+            if (M_LOCKSTEP_TIME)
+            {
+                auto nd = TypeConverter::raw_simple_nd(*fld.type, fld.name);
+                main.push_back(
+                    DECL->access("v")->assign(nd)->stmt()
+                );
+            }
+            else
+            {
+                main.push_back(
+                    DECL->access("v")->assign(Literals::ZERO)->stmt()
+                );
+            }
         }
         else if (fld.field == CallStateUtilities::Field::Paid)
         {
@@ -371,6 +388,16 @@ void MainFunctionGenerator::update_call_state(
     CBlockList & _stmts, list<shared_ptr<CMemberAccess>> const& _addresses
 )
 {
+    // Decides one, if lockstep will be used.
+    auto timestep_var = make_shared<CIdentifier>("take_step", false);
+    if (M_LOCKSTEP_TIME)
+    {
+        _stmts.push_back(
+            timestep_var->assign(get_nd_range(0, 2, "take_step"))->stmt()
+        );
+    }
+
+    // Updates the values.
     for (auto const& fld : m_statedata.order())
     {
         auto state = make_shared<CIdentifier>(fld.name, false);
@@ -383,10 +410,25 @@ void MainFunctionGenerator::update_call_state(
             fld.field == CallStateUtilities::Field::Timestamp)
         {
             auto tmp_state = make_shared<CIdentifier>(fld.temp, false);
-            _stmts.push_back(tmp_state->access("v")->assign(nd)->stmt());
-            _stmts.push_back(make_require(make_shared<CBinaryOp>(
-                state->access("v"), "<=", tmp_state->access("v")
-            )));
+            if (M_LOCKSTEP_TIME)
+            {
+                CBlockList step;
+                step.push_back(tmp_state->access("v")->assign(nd)->stmt());
+                step.push_back(make_require(make_shared<CBinaryOp>(
+                    state->access("v"), "<", tmp_state->access("v")
+                )));
+
+                _stmts.push_back(make_shared<CIf>(
+                    timestep_var, make_shared<CBlock>(move(step)), nullptr
+                ));
+            }
+            else
+            {
+                _stmts.push_back(tmp_state->access("v")->assign(nd)->stmt());
+                _stmts.push_back(make_require(make_shared<CBinaryOp>(
+                    state->access("v"), "<=", tmp_state->access("v")
+                )));
+            }
             _stmts.push_back(state->assign(tmp_state)->stmt());
         }
         else if (fld.field == CallStateUtilities::Field::Value)
