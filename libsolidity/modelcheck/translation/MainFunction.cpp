@@ -92,7 +92,8 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         auto const DECL = make_shared<CVarDecl>(fld.tname, fld.name);
         main.push_back(DECL);
 
-        if (fld.field == CallStateUtilities::Field::Block)
+        if (fld.field == CallStateUtilities::Field::Block ||
+            fld.field == CallStateUtilities::Field::Timestamp)
         {
             auto const TMP_DECL = make_shared<CVarDecl>(fld.tname, fld.temp);
             main.push_back(TMP_DECL);
@@ -378,7 +379,8 @@ void MainFunctionGenerator::update_call_state(
         if (fld.field == CallStateUtilities::Field::Paid) continue;
         if (fld.field == CallStateUtilities::Field::Origin) continue;
 
-        if (fld.field == CallStateUtilities::Field::Block)
+        if (fld.field == CallStateUtilities::Field::Block ||
+            fld.field == CallStateUtilities::Field::Timestamp)
         {
             auto tmp_state = make_shared<CIdentifier>(fld.temp, false);
             _stmts.push_back(tmp_state->access("v")->assign(nd)->stmt());

@@ -122,7 +122,7 @@ string VariableScopeResolver::resolve_sym(string const& _sym) const
     }
     else if (_sym == "now")
     {
-        return CallStateUtilities::get_name(CallStateUtilities::Field::Block);
+        return CallStateUtilities::get_name(CallStateUtilities::Field::Timestamp);
     }
     else
     {

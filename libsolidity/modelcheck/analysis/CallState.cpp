@@ -31,6 +31,7 @@ CallState::CallState()
     add_field(CallStateUtilities::Field::Sender);
     add_field(CallStateUtilities::Field::Value);
     add_field(CallStateUtilities::Field::Block);
+    add_field(CallStateUtilities::Field::Timestamp);
     add_field(CallStateUtilities::Field::Paid);
     add_field(CallStateUtilities::Field::Origin);
 }

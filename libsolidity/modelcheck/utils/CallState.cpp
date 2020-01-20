@@ -21,7 +21,7 @@ namespace modelcheck
 map<pair<MagicType::Kind, string>, CallStateUtilities::Field> const 
     CallStateUtilities::MAGIC_TYPE_LOOKUP{{
 	{{MagicType::Kind::Block, "number"}, CallStateUtilities::Field::Block},
-	{{MagicType::Kind::Block, "timestamp"}, CallStateUtilities::Field::Block},
+	{{MagicType::Kind::Block, "timestamp"}, CallStateUtilities::Field::Timestamp},
 	{{MagicType::Kind::Message, "sender"}, CallStateUtilities::Field::Sender},
 	{{MagicType::Kind::Message, "value"}, CallStateUtilities::Field::Value},
     {{MagicType::Kind::Transaction, "origin"}, CallStateUtilities::Field::Origin}
@@ -66,6 +66,10 @@ string CallStateUtilities::get_name(CallStateUtilities::Field _field)
     {
         retval = "blocknum";
     }
+    else if (_field == CallStateUtilities::Field::Timestamp)
+    {
+        retval = "timestamp";
+    }
     else if (_field == CallStateUtilities::Field::Sender)
     {
         retval = "sender";
@@ -92,6 +96,7 @@ Type const* CallStateUtilities::get_type(CallStateUtilities::Field _field)
     switch (_field)
     {
     case CallStateUtilities::Field::Block: return &COUNTABLE_TYPE;
+    case CallStateUtilities::Field::Timestamp: return &COUNTABLE_TYPE;
     case CallStateUtilities::Field::Sender: return &SENDER_TYPE;
     case CallStateUtilities::Field::Origin: return &SENDER_TYPE;
     case CallStateUtilities::Field::Value: return &COUNTABLE_TYPE;
