@@ -165,7 +165,6 @@ if(SEA_EXE)
     )
 endif()
 
-set(CMAKE_C_COMPILER clang)
 set(LLVM_LINK llvm-link)
 set(KLEE_DRIVER_BC "klee_driver.bc")
 set(KLEE_SRC "/home/klee/klee_src/include")
