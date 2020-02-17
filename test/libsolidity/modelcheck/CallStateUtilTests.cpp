@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(handling_magic_types)
     BOOST_CHECK(
         CallStateUtilities::parse_magic_type(BLOCK_TYPE, "timestamp")
         ==
-        CallStateUtilities::Field::Block
+        CallStateUtilities::Field::Timestamp
     );
     BOOST_CHECK(
         CallStateUtilities::parse_magic_type(MESSAGE_TYPE, "sender")

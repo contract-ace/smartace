@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(state_resolution)
     Identifier ths(langutil::SourceLocation(), make_shared<string>("this"));
     Identifier now(langutil::SourceLocation(), make_shared<string>("now"));
     BOOST_CHECK_EQUAL(resolver.resolve_identifier(ths), "self");
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(now), "blocknum");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(now), "timestamp");
 }
 
 BOOST_AUTO_TEST_CASE(variable_name_rewriting)

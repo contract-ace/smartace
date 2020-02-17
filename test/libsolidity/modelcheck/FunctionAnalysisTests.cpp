@@ -570,6 +570,7 @@ BOOST_AUTO_TEST_CASE(specialization_by_inderection)
         contract Y is X {}
         contract Test {
             X c1;
+            X c2;
             constructor() public {
                 c1 = f();
                 c2 = g();
