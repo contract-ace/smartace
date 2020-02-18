@@ -144,6 +144,33 @@ BOOST_AUTO_TEST_CASE(comparisons)
     }
 }
 
+BOOST_AUTO_TEST_CASE(literals)
+{
+    char const* text = R"(
+        contract X {
+            function f() public pure {
+                address(4);
+                address(10);
+                address i;
+            }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(unit, "X");
+
+    MapIndexSummary summary(ctrt);
+
+    auto literals = summary.literals();
+    BOOST_CHECK_EQUAL(literals.size(), 3);
+    if (literals.size() == 3)
+    {
+        BOOST_CHECK(literals.find(dev::u256(0)) != literals.end());
+        BOOST_CHECK(literals.find(dev::u256(4)) != literals.end());
+        BOOST_CHECK(literals.find(dev::u256(10)) != literals.end());
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

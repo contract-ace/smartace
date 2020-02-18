@@ -7,6 +7,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <list>
+#include <set>
 
 namespace dev
 {
@@ -43,7 +44,11 @@ public:
     // Returns all violates in the provided contract.
     ViolationGroup const& violations() const;
 
+    // Returns all unique index literals encountered through the program.
+    std::set<dev::u256> const& literals() const;
+
 protected:
+    bool visit(VariableDeclaration const& _node) override;
     bool visit(UnaryOperation const& _node) override;
     bool visit(BinaryOperation const& _node) override;
     bool visit(FunctionCall const& _node) override;
@@ -57,6 +62,7 @@ private:
     FunctionDefinition const* m_context;
 
     ViolationGroup m_violations;
+    std::set<dev::u256> m_literals;
 };
 
 }

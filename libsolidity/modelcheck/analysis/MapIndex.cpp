@@ -25,6 +25,7 @@ MapIndexSummary::MapIndexSummary(ContractDefinition const& _src)
         if (var->type()->category() == Type::Category::Address)
         {
             // TODO(scottwe): implement.
+            // TODO(scottwe): catch literals.
             throw std::runtime_error("Address variables unsupported.");
         }
     }
@@ -40,6 +41,25 @@ MapIndexSummary::MapIndexSummary(ContractDefinition const& _src)
 MapIndexSummary::ViolationGroup const& MapIndexSummary::violations() const
 {
     return m_violations;
+}
+
+std::set<dev::u256> const& MapIndexSummary::literals() const
+{
+    return m_literals;
+}
+
+// -------------------------------------------------------------------------- //
+
+bool MapIndexSummary::visit(VariableDeclaration const& _node)
+{
+    if (_node.value() == nullptr)
+    {
+        if (_node.type()->category() == Type::Category::Address)
+        {
+            m_literals.insert(dev::u256(0));
+        }
+    }
+    return true;
 }
 
 bool MapIndexSummary::visit(UnaryOperation const& _node)
@@ -149,9 +169,9 @@ bool MapIndexSummary::visit(Identifier const& _node)
 
 bool MapIndexSummary::visit(Literal const& _node)
 {
-    if (_node.annotation().type->category() == Type::Category::Address)
+    if (m_is_address_cast)
     {
-        // TODO(scottwe): implement.
+        m_literals.insert(_node.annotation().type->literalValue(&_node));
     }
     return true;
 }
