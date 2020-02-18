@@ -112,6 +112,8 @@ set(sources
 	modelcheck/analysis/CallState.h
 	modelcheck/analysis/FunctionCall.cpp
 	modelcheck/analysis/FunctionCall.h
+	modelcheck/analysis/MapIndex.cpp
+	modelcheck/analysis/MapIndex.h
 	modelcheck/analysis/Mapping.cpp
 	modelcheck/analysis/Mapping.h
 	modelcheck/analysis/Primitives.cpp

@@ -71,8 +71,7 @@ protected:
 // -------------------------------------------------------------------------- //
 
 BOOST_FIXTURE_TEST_SUITE(
-    AllocationSiteAnalysis,
-    ::dev::solidity::test::AnalysisFramework
+    AllocationSiteAnalysis, ::dev::solidity::test::AnalysisFramework
 )
 
 BOOST_AUTO_TEST_CASE(valid_alloc_tests)
