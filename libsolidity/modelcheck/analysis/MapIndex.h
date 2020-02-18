@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <cstdint>
 #include <list>
 #include <set>
 
@@ -38,14 +39,20 @@ public:
     };
     using ViolationGroup = std::list<Violation>;
 
-    // Analyzes _src.
-    MapIndexSummary(ContractDefinition const& _src);
+    MapIndexSummary();
+
+    // Appends an analysis of _src. This will potentially add to
+    // violations() and also literals().
+    void record(ContractDefinition const& _src);
 
     // Returns all violates in the provided contract.
     ViolationGroup const& violations() const;
 
     // Returns all unique index literals encountered through the program.
     std::set<dev::u256> const& literals() const;
+
+    // Returns the maximum interference variables used by any function.'
+    uint64_t max_interference() const;
 
 protected:
     bool visit(VariableDeclaration const& _node) override;
@@ -57,6 +64,8 @@ protected:
     bool visit(Literal const& _node) override;
 
 private:
+    uint64_t m_max_inteference;
+
     bool m_is_address_cast;
     
     FunctionDefinition const* m_context;

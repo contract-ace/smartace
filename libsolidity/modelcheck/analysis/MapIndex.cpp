@@ -16,16 +16,24 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-MapIndexSummary::MapIndexSummary(ContractDefinition const& _src)
-    : m_is_address_cast(false)
+MapIndexSummary::MapIndexSummary()
+    : m_max_inteference(0)
+    , m_is_address_cast(false)
+    , m_context(nullptr)
+{
+}
+
+void MapIndexSummary::record(ContractDefinition const& _src)
 {
     // Summarizes state address variables.
+    uint64_t address_var_count = 0;
     for (auto const* var : _src.stateVariables())
     {
         if (var->type()->category() == Type::Category::Address)
         {
             // TODO(scottwe): implement.
             // TODO(scottwe): catch literals.
+            address_var_count += 1;
             throw std::runtime_error("Address variables unsupported.");
         }
     }
@@ -33,8 +41,26 @@ MapIndexSummary::MapIndexSummary(ContractDefinition const& _src)
     // Summarizes functions.
     for (auto const* func : _src.definedFunctions())
     {
-        ScopedSwap<FunctionDefinition const*> scope(m_context, func);
-        func->accept(*this);
+        // Analyzes the function body.
+        {
+            ScopedSwap<FunctionDefinition const*> scope(m_context, func);
+            func->body().accept(*this);
+        }
+
+        // All state addresses, along with the sender may be interference.
+        uint64_t potential_interference = address_var_count + 1;
+        for (auto var : func->parameters())
+        {
+            if (var->type()->category() == Type::Category::Address)
+            {
+                ++potential_interference;
+            }
+        }
+
+        if (potential_interference > m_max_inteference)
+        {
+            m_max_inteference = potential_interference;
+        }
     }
 }
 
@@ -46,6 +72,11 @@ MapIndexSummary::ViolationGroup const& MapIndexSummary::violations() const
 std::set<dev::u256> const& MapIndexSummary::literals() const
 {
     return m_literals;
+}
+
+uint64_t MapIndexSummary::max_interference() const
+{
+    return m_max_inteference;
 }
 
 // -------------------------------------------------------------------------- //
@@ -64,6 +95,9 @@ bool MapIndexSummary::visit(VariableDeclaration const& _node)
 
 bool MapIndexSummary::visit(UnaryOperation const& _node)
 {
+    // TODO(scottwe): evaluate constant expression at analysis time. I think
+    //                the compiler already does this so we could copy that. This
+    //                is worth adding to expression evaluations as well...
     if (m_is_address_cast)
     {
         m_violations.emplace_front();
@@ -78,6 +112,8 @@ bool MapIndexSummary::visit(UnaryOperation const& _node)
 
 bool MapIndexSummary::visit(BinaryOperation const& _node)
 {
+    // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
+
     if (m_is_address_cast)
     {
         m_violations.emplace_front();
@@ -106,6 +142,8 @@ bool MapIndexSummary::visit(BinaryOperation const& _node)
 
 bool MapIndexSummary::visit(FunctionCall const& _node)
 {
+    // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
+
     if (m_is_address_cast)
     {
         m_violations.emplace_front();
@@ -143,6 +181,8 @@ bool MapIndexSummary::visit(FunctionCall const& _node)
 
 bool MapIndexSummary::visit(MemberAccess const& _node)
 {
+    // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
+
     if (m_is_address_cast)
     {
         m_violations.emplace_front();
@@ -156,6 +196,8 @@ bool MapIndexSummary::visit(MemberAccess const& _node)
 
 bool MapIndexSummary::visit(Identifier const& _node)
 {
+    // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
+
     if (m_is_address_cast)
     {
         m_violations.emplace_front();

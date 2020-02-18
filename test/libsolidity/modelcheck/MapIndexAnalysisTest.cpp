@@ -46,7 +46,8 @@ BOOST_AUTO_TEST_CASE(address_to_int)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(ctrt);
+    MapIndexSummary summary;
+    summary.record(ctrt);
 
     auto violations = summary.violations();
     BOOST_CHECK_EQUAL(violations.size(), 1);
@@ -72,7 +73,8 @@ BOOST_AUTO_TEST_CASE(int_to_address_valid)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(ctrt);
+    MapIndexSummary summary;
+    summary.record(ctrt);
     BOOST_CHECK(summary.violations().empty());
 }
 
@@ -103,7 +105,8 @@ BOOST_AUTO_TEST_CASE(int_to_address_invalid)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(ctrt);
+    MapIndexSummary summary;
+    summary.record(ctrt);
 
     auto violations = summary.violations();
     BOOST_CHECK_EQUAL(violations.size(), 4);
@@ -133,7 +136,8 @@ BOOST_AUTO_TEST_CASE(comparisons)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(ctrt);
+    MapIndexSummary summary;
+    summary.record(ctrt);
 
     auto violations = summary.violations();
     BOOST_CHECK_EQUAL(violations.size(), 4);
@@ -159,7 +163,8 @@ BOOST_AUTO_TEST_CASE(literals)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(ctrt);
+    MapIndexSummary summary;
+    summary.record(ctrt);
 
     auto literals = summary.literals();
     BOOST_CHECK_EQUAL(literals.size(), 3);
@@ -169,6 +174,73 @@ BOOST_AUTO_TEST_CASE(literals)
         BOOST_CHECK(literals.find(dev::u256(4)) != literals.end());
         BOOST_CHECK(literals.find(dev::u256(10)) != literals.end());
     }
+}
+
+BOOST_AUTO_TEST_CASE(mixed_summary)
+{
+    char const* text = R"(
+        contract X {
+            function f() public pure {
+                address i;
+            }
+            function g(uint160 i) public pure {
+                address(i);
+            }
+        }
+        contract Y {
+            function f() public pure {
+                address i = address(56);
+            }
+            function g(uint160 i) public pure {
+                address(i);
+            }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt1 = *retrieveContractByName(unit, "X");
+    auto const& ctrt2 = *retrieveContractByName(unit, "Y");
+
+    MapIndexSummary summary;
+
+    summary.record(ctrt1);
+    BOOST_CHECK_EQUAL(summary.violations().size(), 1);
+    BOOST_CHECK_EQUAL(summary.literals().size(), 1);
+
+    summary.record(ctrt2);
+    BOOST_CHECK_EQUAL(summary.violations().size(), 2);
+    BOOST_CHECK_EQUAL(summary.literals().size(), 2);
+}
+
+BOOST_AUTO_TEST_CASE(interference_count)
+{
+    char const* text = R"(
+        contract X {
+            function f() public pure { }
+            function f(address i, address j) public pure { }
+            function f(address j) public pure { }
+        }
+        contract Y {
+            address k;
+            address l;
+            function f() public pure { }
+            function f(address i, address j) public pure { }
+            function f(address j) public pure { }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt1 = *retrieveContractByName(unit, "X");
+    // auto const& ctrt2 = *retrieveContractByName(unit, "Y");
+
+    MapIndexSummary summary;
+
+    summary.record(ctrt1);
+    BOOST_CHECK_EQUAL(summary.max_interference(), 3);
+
+    // TODO(scottwe): enable with variable addresses.
+    // summary.record(ctrt2);
+    // BOOST_CHECK_EQUAL(summary.max_interference(), 5);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
