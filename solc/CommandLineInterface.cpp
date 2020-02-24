@@ -41,6 +41,7 @@
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/translation/ADT.h>
 #include <libsolidity/modelcheck/translation/Function.h>
@@ -1270,12 +1271,19 @@ void CommandLineInterface::handleCModel()
 	modelcheck::TypeConverter converter;
 	modelcheck::PrimitiveTypeGenerator primitive_set;
 	modelcheck::NewCallGraph newcall_graph;
+	modelcheck::MapIndexSummary index_summary;
 	for (auto const* ast: asts)
 	{
 		callstate.record(*ast);
 		converter.record(*ast);
 		primitive_set.record(*ast);
 		newcall_graph.record(*ast);
+	
+		auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
+		for (auto ctrt : ctrts)
+		{
+			index_summary.record(*ctrt);
+		}
 	}
 	callstate.register_primitives(primitive_set);
 	newcall_graph.finalize();
@@ -1286,6 +1294,15 @@ void CommandLineInterface::handleCModel()
 		// TODO: report violations.
 		m_error = true;
 		serr() << "Disallowed allocation detected in AST." << endl;
+		return;
+	}
+
+	// Checks for violations in the index summary
+	if (!index_summary.violations().empty())
+	{
+		// TODO: report violations.
+		m_error = true;
+		serr() << "Unsupported map index manipulation." << endl;
 		return;
 	}
 
