@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(address_to_int)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary;
+    MapIndexSummary summary(5, 5);
     summary.record(ctrt);
 
     auto violations = summary.violations();
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(int_to_address_valid)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary;
+    MapIndexSummary summary(5, 5);
     summary.record(ctrt);
     BOOST_CHECK(summary.violations().empty());
 }
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(int_to_address_invalid)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary;
+    MapIndexSummary summary(5, 5);
     summary.record(ctrt);
 
     auto violations = summary.violations();
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(comparisons)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary;
+    MapIndexSummary summary(5, 5);
     summary.record(ctrt);
 
     auto violations = summary.violations();
@@ -163,11 +163,14 @@ BOOST_AUTO_TEST_CASE(literals)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary;
+    MapIndexSummary summary(5, 5);
+    BOOST_CHECK_EQUAL(summary.size(), 10);
+
     summary.record(ctrt);
 
     auto literals = summary.literals();
     BOOST_CHECK_EQUAL(literals.size(), 3);
+    BOOST_CHECK_EQUAL(summary.size(), 14);
     if (literals.size() == 3)
     {
         BOOST_CHECK(literals.find(dev::u256(0)) != literals.end());
@@ -201,7 +204,7 @@ BOOST_AUTO_TEST_CASE(mixed_summary)
     auto const& ctrt1 = *retrieveContractByName(unit, "X");
     auto const& ctrt2 = *retrieveContractByName(unit, "Y");
 
-    MapIndexSummary summary;
+    MapIndexSummary summary(5, 5);
 
     summary.record(ctrt1);
     BOOST_CHECK_EQUAL(summary.violations().size(), 1);
@@ -233,7 +236,7 @@ BOOST_AUTO_TEST_CASE(interference_count)
     auto const& ctrt1 = *retrieveContractByName(unit, "X");
     // auto const& ctrt2 = *retrieveContractByName(unit, "Y");
 
-    MapIndexSummary summary;
+    MapIndexSummary summary(5, 5);
 
     summary.record(ctrt1);
     BOOST_CHECK_EQUAL(summary.max_interference(), 3);

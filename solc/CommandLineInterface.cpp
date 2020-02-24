@@ -1271,19 +1271,12 @@ void CommandLineInterface::handleCModel()
 	modelcheck::TypeConverter converter;
 	modelcheck::PrimitiveTypeGenerator primitive_set;
 	modelcheck::NewCallGraph newcall_graph;
-	modelcheck::MapIndexSummary index_summary;
 	for (auto const* ast: asts)
 	{
 		callstate.record(*ast);
 		converter.record(*ast);
 		primitive_set.record(*ast);
 		newcall_graph.record(*ast);
-	
-		auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-		for (auto ctrt : ctrts)
-		{
-			index_summary.record(*ctrt);
-		}
 	}
 	callstate.register_primitives(primitive_set);
 	newcall_graph.finalize();
@@ -1294,15 +1287,6 @@ void CommandLineInterface::handleCModel()
 		// TODO: report violations.
 		m_error = true;
 		serr() << "Disallowed allocation detected in AST." << endl;
-		return;
-	}
-
-	// Checks for violations in the index summary
-	if (!index_summary.violations().empty())
-	{
-		// TODO: report violations.
-		m_error = true;
-		serr() << "Unsupported map index manipulation." << endl;
 		return;
 	}
 
@@ -1323,6 +1307,38 @@ void CommandLineInterface::handleCModel()
 			major_actors.push_back(actor);
 			actor_count += newcall_graph.cost_of(actor);
 		}
+	}
+	else
+	{
+		for (auto const* ast: asts)
+		{
+			auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
+			for (auto actor : ctrts)
+			{
+				actor_count += newcall_graph.cost_of(actor);
+			}
+		}
+	}
+
+	// Extracts identifiers from contracts.
+	size_t client_count = m_args[g_argModelMapLen].as<size_t>();
+	modelcheck::MapIndexSummary index_summary(client_count, actor_count);
+	for (auto const* ast: asts)
+	{
+		auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
+		for (auto ctrt : ctrts)
+		{
+			index_summary.record(*ctrt);
+		}
+	}
+
+	// Checks for violations in the index summary
+	if (!index_summary.violations().empty())
+	{
+		// TODO: report violations.
+		m_error = true;
+		serr() << "Unsupported map index manipulation." << endl;
+		return;
 	}
 
 	// TODO(scottwe): This was quick to set up, but it leads to the same AST

@@ -16,8 +16,10 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-MapIndexSummary::MapIndexSummary()
-    : m_max_inteference(0)
+MapIndexSummary::MapIndexSummary(uint64_t clients, uint64_t contracts)
+    : m_client_reps(clients)
+    , m_contract_reps(contracts)
+    , m_max_inteference(0)
     , m_is_address_cast(false)
     , m_context(nullptr)
 {
@@ -48,18 +50,21 @@ void MapIndexSummary::record(ContractDefinition const& _src)
         }
 
         // All state addresses, along with the sender may be interference.
-        uint64_t potential_interference = address_var_count + 1;
-        for (auto var : func->parameters())
+        if (func->isPublic())
         {
-            if (var->type()->category() == Type::Category::Address)
+            uint64_t potential_interference = address_var_count + 1;
+            for (auto var : func->parameters())
             {
-                ++potential_interference;
+                if (var->type()->category() == Type::Category::Address)
+                {
+                    ++potential_interference;
+                }
             }
-        }
 
-        if (potential_interference > m_max_inteference)
-        {
-            m_max_inteference = potential_interference;
+            if (potential_interference > m_max_inteference)
+            {
+                m_max_inteference = potential_interference;
+            }
         }
     }
 }
@@ -74,9 +79,19 @@ std::set<dev::u256> const& MapIndexSummary::literals() const
     return m_literals;
 }
 
+uint64_t MapIndexSummary::representative_count() const
+{
+    return m_client_reps + m_contract_reps + m_literals.size();
+}
+
 uint64_t MapIndexSummary::max_interference() const
 {
     return m_max_inteference;
+}
+
+uint64_t MapIndexSummary::size() const
+{
+    return representative_count() + max_interference();
 }
 
 // -------------------------------------------------------------------------- //
