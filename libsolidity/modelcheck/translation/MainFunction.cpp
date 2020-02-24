@@ -130,19 +130,21 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     }
 
     // Declares all addresses.
-    auto const* ADDR_T = ContractUtilities::address_type();
+    // TODO: it should be possible to minimize address size.
+    size_t curr_addr_idx = 0;
+    //auto const* ADDR_T = ContractUtilities::address_type();
     list<shared_ptr<CMemberAccess>> contract_addrs;
     vector<CExprPtr> addrs;
-    addrs.reserve(M_KEYSPACE + actors.size());
-    for (size_t i = 0; i < M_KEYSPACE; ++i)
+    //addrs.reserve(M_KEYSPACE + actors.size());
+    for (; curr_addr_idx < M_KEYSPACE; ++curr_addr_idx)
     {
-        auto const NAME = MapGenerator::name_global_key(i);
-        auto const ADDRMSG = "Init address of " + NAME;
+        auto const NAME = MapGenerator::name_global_key(curr_addr_idx);
         auto decl = make_shared<CIdentifier>(NAME, false);
+
         main.push_back(decl->assign(
-            TypeConverter::raw_simple_nd(*ADDR_T, ADDRMSG)
+            make_shared<CIntLiteral>(curr_addr_idx)
         )->stmt());
-        addrs.push_back(decl);
+        //addrs.push_back(decl);
     }
     for (auto const& actor : actors)
     {
@@ -155,14 +157,20 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         }
 
         auto const& ADDR = DECL->access(ContractUtilities::address_member());
-        string const ADDRMSG = "Init address of " + actor.contract->name();
-        main.push_back(ADDR->access("v")->assign(TypeConverter::raw_simple_nd(
-            *ADDR_T, ADDRMSG
-        ))->stmt());
+
+        main.push_back(ADDR->access("v")->assign(
+            make_shared<CIntLiteral>(curr_addr_idx)
+        )->stmt());
         contract_addrs.push_back(ADDR);
-        addrs.push_back(ADDR->access("v"));
+        //addrs.push_back(ADDR->access("v"));
+
+        ++curr_addr_idx;
     }
-    for (unsigned int i = 0; i < addrs.size(); ++i)
+    // TODO: This may be needed again if we handle ordered addresses
+    //       To handle ordered addresses we fix select n addresses.
+    //       We assert (0 < addr_i < n) && (forall i,j: addr_i != addr_j).
+    // TODO: Constants being reordered... overapproximate?
+    /*for (unsigned int i = 0; i < addrs.size(); ++i)
     {
         main.push_back(make_require(make_shared<CBinaryOp>(
             addrs[i], "!=", Literals::ZERO
@@ -173,7 +181,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
                 addrs[i], "!=", addrs[j]
             )));
         }
-    }
+    }*/
 
     // Initializes all actors.
     for (auto const& actor : actors)
