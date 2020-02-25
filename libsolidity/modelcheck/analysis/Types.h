@@ -57,10 +57,10 @@ public:
     static CExprPtr init_val_by_simple_type(Type const& _type);
 
     // Produces a non-deterministic value for a simple type.
-    static CExprPtr raw_simple_nd(Type const& _type, std::string const& _msg);
-    static CExprPtr nd_val_by_simple_type(
+    CExprPtr raw_simple_nd(Type const& _type, std::string const& _msg) const;
+    CExprPtr nd_val_by_simple_type(
         Type const& _type, std::string const& _msg
-    );
+    ) const;
 
     // Generates the initial value for an AST node.
 	CExprPtr get_init_val(TypeName const& _typename) const;

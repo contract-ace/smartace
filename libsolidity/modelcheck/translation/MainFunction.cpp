@@ -104,7 +104,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
             if (M_LOCKSTEP_TIME)
             {
-                auto nd = TypeConverter::raw_simple_nd(*fld.type, fld.name);
+                auto nd = m_converter.raw_simple_nd(*fld.type, fld.name);
                 main.push_back(
                     DECL->access("v")->assign(nd)->stmt()
                 );
@@ -409,7 +409,7 @@ void MainFunctionGenerator::update_call_state(
     for (auto const& fld : m_statedata.order())
     {
         auto state = make_shared<CIdentifier>(fld.name, false);
-        auto nd = TypeConverter::raw_simple_nd(*fld.type, fld.name);
+        auto nd = m_converter.raw_simple_nd(*fld.type, fld.name);
 
         if (fld.field == CallStateUtilities::Field::Paid) continue;
         if (fld.field == CallStateUtilities::Field::Origin) continue;
@@ -469,7 +469,7 @@ void MainFunctionGenerator::set_payment_value(CBlockList & _stmts)
     auto const VAL_FIELD = CallStateUtilities::Field::Value;
     auto const VAL_NAME = CallStateUtilities::get_name(VAL_FIELD);
     auto const VAL_TYPE = CallStateUtilities::get_type(VAL_FIELD);
-    auto nd = TypeConverter::raw_simple_nd(*VAL_TYPE, VAL_NAME);
+    auto nd = m_converter.raw_simple_nd(*VAL_TYPE, VAL_NAME);
     auto state = make_shared<CIdentifier>(VAL_NAME, false);
     _stmts.push_back(state->access("v")->assign(nd)->stmt());
 }

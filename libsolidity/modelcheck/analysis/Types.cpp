@@ -232,7 +232,9 @@ CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
     return FunctionUtilities::try_to_wrap(_type, Literals::ZERO);
 }
 
-CExprPtr TypeConverter::raw_simple_nd(Type const& _type, string const& _msg)
+CExprPtr TypeConverter::raw_simple_nd(
+    Type const& _type, string const& _msg
+) const
 {
     if (!is_simple_type(_type))
     {
@@ -250,7 +252,7 @@ CExprPtr TypeConverter::raw_simple_nd(Type const& _type, string const& _msg)
 
 CExprPtr TypeConverter::nd_val_by_simple_type(
     Type const& _type, string const& _msg
-)
+) const
 {
     auto nd_val = raw_simple_nd(_type, _msg);
     return FunctionUtilities::try_to_wrap(_type, move(nd_val));
@@ -279,9 +281,7 @@ CExprPtr TypeConverter::get_nd_val(
 {
     if (has_simple_type(_typename))
     {
-        return TypeConverter::nd_val_by_simple_type(
-            *_typename.annotation().type, _msg
-        );
+        return nd_val_by_simple_type(*_typename.annotation().type, _msg);
     }
     return make_shared<CFuncCall>("ND_" + get_name(_typename), CArgList{});
 }
