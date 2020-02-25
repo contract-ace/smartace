@@ -241,13 +241,27 @@ CExprPtr TypeConverter::raw_simple_nd(
         throw ("nd_val_by_simple_type expects a simple type.");
     }
 
-    ostringstream call;
-    call << "nd_";
-    if (!simple_is_signed(_type)) call << "u";
-    call << "int" << simple_bit_count(_type) << "_t";
+    auto const CATEGORY = unwrap(_type).category();
+    if (m_address_count == 0 || CATEGORY != Type::Category::Address)
+    {
+        ostringstream call;
+        call << "nd_";
+        if (!simple_is_signed(_type)) call << "u";
+        call << "int" << simple_bit_count(_type) << "_t";
 
-    auto msg_lit = make_shared<CStringLiteral>(_msg);
-    return make_shared<CFuncCall>(call.str(), CArgList{msg_lit});
+        auto msg_lit = make_shared<CStringLiteral>(_msg);
+        return make_shared<CFuncCall>(call.str(), CArgList{msg_lit});
+    }
+    else
+    {
+        // TODO: this is limited t0 256 addresses.
+        auto min_addr = make_shared<CIntLiteral>(0);
+        auto max_addr = make_shared<CIntLiteral>(m_address_count);
+        auto msg_lit = make_shared<CStringLiteral>(_msg);
+        return make_shared<CFuncCall>("rt_nd_range", CArgList{
+            min_addr, max_addr, msg_lit
+        });
+    }
 }
 
 CExprPtr TypeConverter::nd_val_by_simple_type(
@@ -295,6 +309,13 @@ CExprPtr TypeConverter::get_nd_val(
         return nd_val_by_simple_type(*_decl.type(), _msg);
     }
     return make_shared<CFuncCall>("ND_" + get_name(_decl), CArgList{});
+}
+
+// -------------------------------------------------------------------------- //
+
+void TypeConverter::limit_addresses(uint64_t _count)
+{
+    m_address_count = _count;
 }
 
 // -------------------------------------------------------------------------- //

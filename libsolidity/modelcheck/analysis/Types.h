@@ -77,6 +77,9 @@ public:
     // Provides a view of the map database.
     MapDeflate mapdb() const;
 
+    // Restricts the address range. By default addresses are unbounded.
+    void limit_addresses(uint64_t _count);
+
 protected:
     bool visit(VariableDeclaration const& _node) override;
 	bool visit(ElementaryTypeName const& _node) override;
@@ -97,6 +100,8 @@ private:
     // value is simple (has no "name"), it is in m_global_context_simple_values.
     static std::map<std::string, std::string> const m_global_context_types;
     static std::set<std::string> const m_global_context_simple_values;
+
+    uint64_t m_address_count = 0;
 
     MapDeflate m_mapdb;
 
