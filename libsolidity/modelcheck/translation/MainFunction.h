@@ -16,6 +16,7 @@
 #include <libsolidity/modelcheck/utils/General.h>
 #include <list>
 #include <ostream>
+#include <set>
 
 namespace dev
 {
@@ -35,6 +36,7 @@ public:
     MainFunctionGenerator(
         size_t _keyspace,
         bool _lockstep_time,
+        std::set<dev::u256> _addr_lits,
         std::list<ContractDefinition const *> const& _model,
         NewCallGraph const& _new_graph,
         CallState const& _statedata,
@@ -77,6 +79,8 @@ private:
     // The list of contracts requested for the model. If empty, then it one of
     // each contract is instantiated.
     std::list<ContractDefinition const*> const& m_model;
+
+    std::set<dev::u256> m_addr_lits;
 
     NewCallGraph const& m_new_graph;
     CallState const& m_statedata;

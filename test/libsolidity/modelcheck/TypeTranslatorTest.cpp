@@ -443,6 +443,19 @@ BOOST_AUTO_TEST_CASE(name_escape)
     BOOST_CHECK_EQUAL(converter.get_name(mapv), "Map_1");
 }
 
+BOOST_AUTO_TEST_CASE(bounded_addr)
+{
+    TypeConverter converter;
+    converter.limit_addresses(10);
+
+    AddressType type(StateMutability::Payable);
+    auto raw_nd = converter.raw_simple_nd(type, "Blah");
+
+    std::ostringstream expr;
+    expr << *raw_nd;
+    BOOST_CHECK_EQUAL(expr.str(), "rt_nd_range(0,10,\"Blah\")");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

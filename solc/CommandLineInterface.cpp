@@ -1331,6 +1331,7 @@ void CommandLineInterface::handleCModel()
 			index_summary.record(*ctrt);
 		}
 	}
+	converter.limit_addresses(index_summary.size());
 
 	// Checks for violations in the index summary
 	if (!index_summary.violations().empty())
@@ -1352,8 +1353,22 @@ void CommandLineInterface::handleCModel()
 
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data, harness_data;
 		handleCModelHarness(harness_data);
-		handleCModelHeaders(asts, newcall_graph, converter, callstate, cmodel_h_data);
-		handleCModelBody(asts, major_actors, newcall_graph, converter, callstate, cmodel_cpp_data);
+		handleCModelHeaders(
+			asts,
+			newcall_graph,
+			converter,
+			callstate,
+			cmodel_h_data
+		);
+		handleCModelBody(
+			asts,
+			index_summary.literals(),
+			major_actors,
+			newcall_graph,
+			converter,
+			callstate,
+			cmodel_cpp_data
+		);
 		handleCModelPrimitives(primitive_set, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1371,7 +1386,15 @@ void CommandLineInterface::handleCModel()
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(asts, newcall_graph, converter, callstate, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(asts, major_actors, newcall_graph, converter, callstate, sout());
+		handleCModelBody(
+			asts,
+			index_summary.literals(),
+			major_actors,
+			newcall_graph,
+			converter,
+			callstate,
+			sout()
+		);
 		sout() << endl;
 	}
 }
@@ -1427,7 +1450,8 @@ void CommandLineInterface::handleCModelHeaders(
 
 void CommandLineInterface::handleCModelBody(
 	vector<SourceUnit const*> const& _asts,
-	std::list<ContractDefinition const*> const& _model,
+	set<dev::u256> _addr_lits,
+	list<ContractDefinition const*> const& _model,
 	modelcheck::NewCallGraph const& _graph,
 	modelcheck::TypeConverter const& _con,
 	modelcheck::CallState const& _cs,
@@ -1466,7 +1490,7 @@ void CommandLineInterface::handleCModelBody(
 		cov.print(_os);
 	}
 
-	modelcheck::MainFunctionGenerator main_gen(map_k, lockstep_time, _model, _graph, _cs, _con);
+	modelcheck::MainFunctionGenerator main_gen(map_k, lockstep_time, _addr_lits, _model, _graph, _cs, _con);
 	for (auto const* ast : _asts)
 	{
 		main_gen.record(*ast);

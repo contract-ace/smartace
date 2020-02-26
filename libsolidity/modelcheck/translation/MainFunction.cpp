@@ -28,6 +28,7 @@ namespace modelcheck
 MainFunctionGenerator::MainFunctionGenerator(
     size_t _keyspace,
     bool _lockstep_time,
+    set<dev::u256> _addr_lits,
     list<ContractDefinition const *> const& _model,
     NewCallGraph const& _new_graph,
     CallState const& _statedata,
@@ -35,6 +36,7 @@ MainFunctionGenerator::MainFunctionGenerator(
 ): M_KEYSPACE(_keyspace)
  , M_LOCKSTEP_TIME(_lockstep_time)
  , m_model(_model)
+ , m_addr_lits(_addr_lits)
  , m_new_graph(_new_graph)
  , m_statedata(_statedata)
  , m_converter(_converter)
@@ -131,6 +133,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     // Declares all addresses.
     // TODO: it should be possible to minimize address size.
+    // TODO: how do constants fit in?
     size_t curr_addr_idx = 0;
     //auto const* ADDR_T = ContractUtilities::address_type();
     list<shared_ptr<CMemberAccess>> contract_addrs;
@@ -448,11 +451,17 @@ void MainFunctionGenerator::update_call_state(
             _stmts.push_back(state->access("v")->assign(nd)->stmt());
             if (fld.field == CallStateUtilities::Field::Sender)
             {
-                _stmts.push_back(make_require(make_shared<CBinaryOp>(
-                    state->access("v"), "!=", Literals::ZERO
-                )));
+                // TODO: precompute this.
+                // TODO: this should be restricted in address generation.
+                if (m_addr_lits.find(0) != m_addr_lits.end())
+                {
+                    _stmts.push_back(make_require(make_shared<CBinaryOp>(
+                        state->access("v"), "!=", Literals::ZERO
+                    )));
+                }
                 for (auto const addr : _addresses)
                 {
+                    // TODO: this should be restricted in address generation.
                     _stmts.push_back(make_require(make_shared<CBinaryOp>(
                         state->access("v"), "!=", addr->access("v")
                     )));

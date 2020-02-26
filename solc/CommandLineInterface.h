@@ -82,6 +82,7 @@ private:
 	);
 	void handleCModelBody(
 		std::vector<SourceUnit const*> const& _asts,
+		std::set<dev::u256> _addr_lits,
 		std::list<ContractDefinition const*> const& _model,
 		modelcheck::NewCallGraph const& _graph,
 		modelcheck::TypeConverter const& _con,
