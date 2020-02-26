@@ -12,6 +12,7 @@
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
+#include <libsolidity/modelcheck/utils/Indices.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 #include <stdexcept>
 
@@ -284,7 +285,16 @@ bool ExpressionConverter::visit(Literal const& _node)
 		m_subexpr = Literals::ZERO;
 		break;
 	case Token::Number:
-		m_subexpr = make_shared<CIntLiteral>(literal_to_number(_node));
+		if (m_is_address_cast)
+		{
+			m_subexpr = make_shared<CIdentifier>(Indices::const_global_name(
+				_node.annotation().type->literalValue(&_node)
+			), false);
+		}
+		else
+		{
+			m_subexpr = make_shared<CIntLiteral>(literal_to_number(_node));
+		}
 		break;
 	case Token::StringLiteral:
 		m_subexpr = make_shared<CIntLiteral>(hash<string>()(_node.value()));
@@ -427,7 +437,12 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		throw runtime_error("FixedPoint conversion is unsupported in solc.");
 	}
 
-	BASE_EXPR.accept(*this);
+	{
+		bool const IS_ADDR = (cast_type->category() == Type::Category::Address);
+		ScopedSwap<bool> scope(m_is_address_cast, IS_ADDR);
+		BASE_EXPR.accept(*this);
+	}
+
 	if (base_type->category() == Type::Category::Address)
 	{
 		if (auto cast_int = dynamic_cast<IntegerType const*>(cast_type))

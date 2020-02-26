@@ -21,6 +21,7 @@ MapIndexSummary::MapIndexSummary(uint64_t clients, uint64_t contracts)
     , m_contract_reps(contracts)
     , m_max_inteference(0)
     , m_is_address_cast(false)
+    , m_uses_contract_address(false)
     , m_context(nullptr)
 {
 }
@@ -45,7 +46,7 @@ void MapIndexSummary::record(ContractDefinition const& _src)
     {
         // Analyzes the function body.
         {
-            ScopedSwap<FunctionDefinition const*> scope(m_context, func);
+            ScopedSwap<CallableDeclaration const*> scope(m_context, func);
             func->body().accept(*this);
         }
 
@@ -66,6 +67,11 @@ void MapIndexSummary::record(ContractDefinition const& _src)
                 m_max_inteference = potential_interference;
             }
         }
+    }
+    for (auto const* mod : _src.functionModifiers())
+    {
+        ScopedSwap<CallableDeclaration const*> scope(m_context, mod);
+        mod->body().accept(*this);
     }
 }
 
@@ -213,13 +219,20 @@ bool MapIndexSummary::visit(Identifier const& _node)
 {
     // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
 
-    if (m_is_address_cast && _node.name() != "this")
+    if (m_is_address_cast)
     {
-        m_violations.emplace_front();
-        m_violations.front().type = ViolationType::Mutate;
-        m_violations.front().context = m_context;
-        m_violations.front().site = (&_node);
-        return false;
+        if (_node.name() == "this")
+        {
+            m_uses_contract_address = true;
+        }
+        else if (_node.annotation().type->category() != Type::Category::Contract)
+        {
+            m_violations.emplace_front();
+            m_violations.front().type = ViolationType::Mutate;
+            m_violations.front().context = m_context;
+            m_violations.front().site = (&_node);
+            return false;
+        }
     }
     return true;
 }

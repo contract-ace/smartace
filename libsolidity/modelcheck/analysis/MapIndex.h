@@ -34,7 +34,7 @@ public:
     struct Violation
     {
         ViolationType type;
-        FunctionDefinition const* context;
+        CallableDeclaration const* context;
         ASTNode const* site;
     };
     using ViolationGroup = std::list<Violation>;
@@ -75,8 +75,9 @@ private:
     uint64_t m_max_inteference;
 
     bool m_is_address_cast;
+    bool m_uses_contract_address;
     
-    FunctionDefinition const* m_context;
+    CallableDeclaration const* m_context;
 
     ViolationGroup m_violations;
     std::set<dev::u256> m_literals;

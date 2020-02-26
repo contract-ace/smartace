@@ -149,6 +149,8 @@ set(sources
 	modelcheck/utils/Contract.h
 	modelcheck/utils/Function.cpp
 	modelcheck/utils/Function.h
+	modelcheck/utils/Indices.cpp
+	modelcheck/utils/Indices.h
 	modelcheck/utils/Types.cpp
 	modelcheck/utils/Types.h
 	parsing/DocStringParser.cpp

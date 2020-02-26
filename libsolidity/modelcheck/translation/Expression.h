@@ -69,6 +69,8 @@ private:
 	CExprPtr m_subexpr;
 	Identifier const* m_last_assignment;
 
+	bool m_is_address_cast = false;
+
 	bool m_lval = false;
 	bool m_find_ref;
 

@@ -76,6 +76,9 @@ private:
     // If true, block and timpstamp move together.
     bool const M_LOCKSTEP_TIME;
 
+    // If true, the zero special constant is in use.
+    bool const M_USES_ZERO;
+
     // The list of contracts requested for the model. If empty, then it one of
     // each contract is instantiated.
     std::list<ContractDefinition const*> const& m_model;

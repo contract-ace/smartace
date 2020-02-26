@@ -819,7 +819,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, statedata, converter).convert();
     expected << "{";
-    expected << "((int)(5));";
+    expected << "((int)(global_index_const_5));";
     expected << "(self->user_a).v;";
     expected << "(self->user_a).v;";
     expected << "((unsigned int)((self->user_a).v));";

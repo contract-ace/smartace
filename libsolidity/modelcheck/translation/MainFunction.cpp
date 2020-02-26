@@ -13,6 +13,7 @@
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/translation/Mapping.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
+#include <libsolidity/modelcheck/utils/Indices.h>
 
 using namespace std;
 
@@ -35,6 +36,7 @@ MainFunctionGenerator::MainFunctionGenerator(
     TypeConverter const& _converter
 ): M_KEYSPACE(_keyspace)
  , M_LOCKSTEP_TIME(_lockstep_time)
+ , M_USES_ZERO(m_addr_lits.find(0) != m_addr_lits.end())
  , m_model(_model)
  , m_addr_lits(_addr_lits)
  , m_new_graph(_new_graph)
@@ -134,23 +136,27 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     // Declares all addresses.
     // TODO: it should be possible to minimize address size.
     // TODO: how do constants fit in?
-    size_t curr_addr_idx = 0;
+    size_t curr_addr_idx = (M_USES_ZERO ? 1 : 0);
     //auto const* ADDR_T = ContractUtilities::address_type();
     list<shared_ptr<CMemberAccess>> contract_addrs;
     vector<CExprPtr> addrs;
     //addrs.reserve(M_KEYSPACE + actors.size());
-    for (; curr_addr_idx < M_KEYSPACE; ++curr_addr_idx)
+    for (size_t i = 0; i < M_KEYSPACE; ++i)
     {
-        auto const NAME = MapGenerator::name_global_key(curr_addr_idx);
+        auto const NAME = MapGenerator::name_global_key(i);
         auto decl = make_shared<CIdentifier>(NAME, false);
 
         main.push_back(decl->assign(
             make_shared<CIntLiteral>(curr_addr_idx)
         )->stmt());
         //addrs.push_back(decl);
+
+        ++curr_addr_idx;
     }
     for (auto const& actor : actors)
     {
+        // TODO: in practice, we only need to model used contract addrs.
+
         auto const& DECL = actor.decl;
         if (actor.path)
         {
@@ -168,6 +174,39 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         //addrs.push_back(ADDR->access("v"));
 
         ++curr_addr_idx;
+    }
+    {
+        // TODO: simplify this block.
+        list<shared_ptr<CIdentifier>> used_so_far;
+        uint64_t min = (M_USES_ZERO ? 1 : 0);
+        for (auto lit : m_addr_lits)
+        {
+            auto const NAME = modelcheck::Indices::const_global_name(lit);
+            auto decl = make_shared<CIdentifier>(NAME, false);
+
+            if (lit == 0)
+            {
+                main.push_back(decl->assign(
+                    make_shared<CIntLiteral>(0)
+                )->stmt());
+            }
+            else
+            {
+                main.push_back(decl->assign(
+                    get_nd_range(min, curr_addr_idx + m_addr_lits.size(), NAME)
+                )->stmt());
+
+                for (auto otr : used_so_far)
+                {
+                    // TODO: not ideal for fuzzing.
+                    main.push_back(make_shared<CBinaryOp>(
+                        decl, "!=", otr
+                    )->stmt());
+                }
+
+                used_so_far.push_back(decl);
+            }
+        }
     }
     // TODO: This may be needed again if we handle ordered addresses
     //       To handle ordered addresses we fix select n addresses.
@@ -453,7 +492,7 @@ void MainFunctionGenerator::update_call_state(
             {
                 // TODO: precompute this.
                 // TODO: this should be restricted in address generation.
-                if (m_addr_lits.find(0) != m_addr_lits.end())
+                if (M_USES_ZERO)
                 {
                     _stmts.push_back(make_require(make_shared<CBinaryOp>(
                         state->access("v"), "!=", Literals::ZERO

@@ -47,6 +47,7 @@
 #include <libsolidity/modelcheck/translation/Function.h>
 #include <libsolidity/modelcheck/translation/MainFunction.h>
 #include <libsolidity/modelcheck/translation/Mapping.h>
+#include <libsolidity/modelcheck/utils/Indices.h>
 
 #include <libyul/AssemblyStack.h>
 
@@ -1468,6 +1469,11 @@ void CommandLineInterface::handleCModelBody(
 	{
 		auto const NAME = modelcheck::MapGenerator::name_global_key(i);
         _os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
+	}
+	for (auto lit : _addr_lits)
+	{
+		auto const NAME = modelcheck::Indices::const_global_name(lit);
+		_os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
 	}
 	_cs.print(_os, false);
 	for (auto const* ast : _asts)
