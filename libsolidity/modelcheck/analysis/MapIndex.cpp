@@ -213,7 +213,7 @@ bool MapIndexSummary::visit(Identifier const& _node)
 {
     // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
 
-    if (m_is_address_cast)
+    if (m_is_address_cast && _node.name() != "this")
     {
         m_violations.emplace_front();
         m_violations.front().type = ViolationType::Mutate;
