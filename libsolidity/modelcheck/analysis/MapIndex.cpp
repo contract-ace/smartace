@@ -34,9 +34,8 @@ void MapIndexSummary::record(ContractDefinition const& _src)
     {
         if (var->type()->category() == Type::Category::Address)
         {
-            // TODO(scottwe): implement.
-            // TODO(scottwe): catch literals.
             address_var_count += 1;
+            // var->accept(*this);
             throw std::runtime_error("Address variables unsupported.");
         }
     }
@@ -87,7 +86,12 @@ std::set<dev::u256> const& MapIndexSummary::literals() const
 
 uint64_t MapIndexSummary::representative_count() const
 {
-    return m_client_reps + m_contract_reps + m_literals.size();
+    return client_count() + m_contract_reps + m_literals.size();
+}
+
+uint64_t MapIndexSummary::client_count() const
+{
+    return m_client_reps;
 }
 
 uint64_t MapIndexSummary::max_interference() const

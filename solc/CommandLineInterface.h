@@ -22,8 +22,9 @@
 #pragma once
 
 #include <libsolidity/interface/CompilerStack.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 
@@ -74,19 +75,20 @@ private:
 		modelcheck::PrimitiveTypeGenerator _gen, std::ostream& _os
 	);
 	void handleCModelHeaders(
-		std::vector<SourceUnit const*> const& _asts,
-		modelcheck::NewCallGraph const& _graph,
-		modelcheck::TypeConverter const& _con,
-		modelcheck::CallState const& _cs,
+		std::vector<SourceUnit const*> const& _parsed_contracts,
+	modelcheck::MapIndexSummary const& _addrdata,
+		modelcheck::NewCallGraph const& _newcalls,
+		modelcheck::TypeConverter const& _types,
+		modelcheck::CallState const& _callstate,
 		std::ostream& _os
 	);
 	void handleCModelBody(
-		std::vector<SourceUnit const*> const& _asts,
-		std::set<dev::u256> _addr_lits,
+		std::vector<SourceUnit const*> const& _parsed_contracts,
 		std::list<ContractDefinition const*> const& _model,
-		modelcheck::NewCallGraph const& _graph,
-		modelcheck::TypeConverter const& _con,
-		modelcheck::CallState const& _cs,
+		modelcheck::MapIndexSummary const& _addrdata,
+		modelcheck::NewCallGraph const& _newcalls,
+		modelcheck::TypeConverter const& _types,
+		modelcheck::CallState const& _callstate,
 		std::ostream & _os
 	);
 	void handleBinary(std::string const& _contract);

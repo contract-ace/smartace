@@ -31,13 +31,11 @@ MapGenerator::MapGenerator(
  , M_ARR(make_shared<CVarDecl>(M_TYPE, "arr", true))
  , M_DAT(make_shared<CVarDecl>(M_VAL_T, "dat"))
 {
-    m_keys_t.reserve(M_MAP_RECORD.key_types.size());
     m_keys.reserve(M_MAP_RECORD.key_types.size());
     for (auto const* KEY : M_MAP_RECORD.key_types)
     {
-        m_keys_t.push_back(M_TYPES.get_type(*KEY));
         m_keys.push_back(make_shared<CVarDecl>(
-            m_keys_t.back(), "key_" + to_string(m_keys_t.size()))
+            M_TYPES.get_type(*KEY), "key_" + to_string(m_keys.size()))
         );
     }
 }
@@ -57,10 +55,6 @@ CStructDef MapGenerator::declare(bool _forward_declare) const
             do
             {
                 string suffix = indices.suffix();
-
-                t->push_back(make_shared<CVarDecl>(
-                    m_keys_t[indices.size() - 1], "curr" + suffix)
-                );
 
                 if (indices.is_full())
                 {
@@ -175,10 +169,6 @@ shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
         {
             string suffix = indices.suffix();
 
-            block.push_back(M_TMP->access("curr" + suffix)->access("v")->assign(
-                make_shared<CIdentifier>(name_global_key(indices.top()), false)
-            )->stmt());
-
             if (indices.is_full())
             {
                 block.push_back(
@@ -221,9 +211,9 @@ CStmtPtr MapGenerator::expand_access(
 
             auto const NEXT = expand_access(_depth + 1, SUFFIX, _is_writer);
 
-            stmt = make_shared<CIf>(
-                make_shared<CBinaryOp>(CURR_KEY, "==", REQ_KEY), NEXT, stmt
-            );
+            stmt = make_shared<CIf>(make_shared<CBinaryOp>(
+                make_shared<CIntLiteral>(i), "==", REQ_KEY
+            ), NEXT, stmt);
         }
         return make_shared<CBlock>(CBlockList{stmt});
     }

@@ -100,7 +100,6 @@ private:
     std::shared_ptr<CVarDecl> const M_DAT;
 
     // Key fields.
-    std::vector<std::string> m_keys_t;
     std::vector<std::shared_ptr<CVarDecl>> m_keys;
 
     // Helper utilities to generate in-place loop "iteration". The {name}{i}

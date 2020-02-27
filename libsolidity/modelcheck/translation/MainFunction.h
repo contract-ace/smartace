@@ -10,6 +10,7 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/Function.h>
@@ -34,9 +35,8 @@ class MainFunctionGenerator: public ASTConstVisitor
 public:
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
-        size_t _keyspace,
         bool _lockstep_time,
-        std::set<dev::u256> _addr_lits,
+	    MapIndexSummary const& _addrdata,
         std::list<ContractDefinition const *> const& _model,
         NewCallGraph const& _new_graph,
         CallState const& _statedata,
@@ -70,20 +70,18 @@ private:
         CExprPtr path;
     };
 
-    // Stores the size of the keyspace.
-    size_t const M_KEYSPACE;
-
     // If true, block and timpstamp move together.
     bool const M_LOCKSTEP_TIME;
 
     // If true, the zero special constant is in use.
     bool const M_USES_ZERO;
 
+    // Stores all parameters over the address space.
+    MapIndexSummary const& m_addrdata;
+
     // The list of contracts requested for the model. If empty, then it one of
     // each contract is instantiated.
     std::list<ContractDefinition const*> const& m_model;
-
-    std::set<dev::u256> m_addr_lits;
 
     NewCallGraph const& m_new_graph;
     CallState const& m_statedata;

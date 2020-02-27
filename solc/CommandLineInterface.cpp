@@ -1356,6 +1356,7 @@ void CommandLineInterface::handleCModel()
 		handleCModelHarness(harness_data);
 		handleCModelHeaders(
 			asts,
+			index_summary,
 			newcall_graph,
 			converter,
 			callstate,
@@ -1363,8 +1364,8 @@ void CommandLineInterface::handleCModel()
 		);
 		handleCModelBody(
 			asts,
-			index_summary.literals(),
 			major_actors,
+			index_summary,
 			newcall_graph,
 			converter,
 			callstate,
@@ -1385,12 +1386,19 @@ void CommandLineInterface::handleCModel()
 		sout() << "====== primitive.h =====" << endl;
 		handleCModelPrimitives(primitive_set, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
-		handleCModelHeaders(asts, newcall_graph, converter, callstate, sout());
+		handleCModelHeaders(
+			asts,
+			index_summary,
+			newcall_graph,
+			converter,
+			callstate,
+			sout()
+		);
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
 		handleCModelBody(
 			asts,
-			index_summary.literals(),
 			major_actors,
+			index_summary,
 			newcall_graph,
 			converter,
 			callstate,
@@ -1419,85 +1427,120 @@ void CommandLineInterface::handleCModelPrimitives(
 	_gen.print(_os);
 }
 
-
 void CommandLineInterface::handleCModelHeaders(
-	vector<SourceUnit const*> const& _asts,
-	modelcheck::NewCallGraph const& _graph,
-	modelcheck::TypeConverter const& _con,
-	modelcheck::CallState const& _cs,
+	vector<SourceUnit const*> const& _parsed_contracts,
+	modelcheck::MapIndexSummary const& _addrdata,
+	modelcheck::NewCallGraph const& _newcalls,
+	modelcheck::TypeConverter const& _types,
+	modelcheck::CallState const& _callstate,
 	ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
-	size_t map_k = m_args[g_argModelMapLen].as<size_t>();
+
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
 	_os << "void run_model(void);";
-	_cs.print(_os, true);
-	for (auto const* ast : _asts)
+
+	_callstate.print(_os, true);
+	for (auto const* ast : _parsed_contracts)
 	{
-		ADTConverter cov(*ast, _graph, _con, map_k, true);
+		ADTConverter cov(
+			*ast,
+			_newcalls,
+			_types,
+			_addrdata.representative_count(),
+			true
+		);
 		cov.print(_os);
 	}
-	for (auto const* ast : _asts)
+	for (auto const* ast : _parsed_contracts)
 	{
 		FunctionConverter cov(
-			*ast, _cs, _graph, _con, map_k, FunctionConverter::View::EXT, true
+			*ast,
+			_callstate,
+			_newcalls,
+			_types,
+			_addrdata.representative_count(),
+			FunctionConverter::View::EXT,
+			true
 		);
 		cov.print(_os);
 	}
 }
 
 void CommandLineInterface::handleCModelBody(
-	vector<SourceUnit const*> const& _asts,
-	set<dev::u256> _addr_lits,
+	vector<SourceUnit const*> const& _parsed_contracts,
 	list<ContractDefinition const*> const& _model,
-	modelcheck::NewCallGraph const& _graph,
-	modelcheck::TypeConverter const& _con,
-	modelcheck::CallState const& _cs,
+	modelcheck::MapIndexSummary const& _addrdata,
+	modelcheck::NewCallGraph const& _newcalls,
+	modelcheck::TypeConverter const& _types,
+	modelcheck::CallState const& _callstate,
 	ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
-	size_t map_k = m_args[g_argModelMapLen].as<size_t>();
+
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
+
 	_os << "#include \"cmodel.h\"" << endl;
-	for (size_t i = 0; i < map_k; ++i)
-	{
-		auto const NAME = modelcheck::MapGenerator::name_global_key(i);
-        _os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
-	}
-	for (auto lit : _addr_lits)
+	for (auto lit : _addrdata.literals())
 	{
 		auto const NAME = modelcheck::Indices::const_global_name(lit);
 		_os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
 	}
-	_cs.print(_os, false);
-	for (auto const* ast : _asts)
+
+	_callstate.print(_os, false);
+	for (auto const* ast : _parsed_contracts)
 	{
-		ADTConverter cov(*ast, _graph, _con, map_k, false);
-		cov.print(_os);
-	}
-	for (auto const* ast : _asts)
-	{
-		FunctionConverter cov(
-			*ast, _cs, _graph, _con, map_k, FunctionConverter::View::INT, true
+		ADTConverter cov(
+			*ast,
+			_newcalls,
+			_types,
+			_addrdata.representative_count(),
+			false
 		);
 		cov.print(_os);
 	}
-	for (auto const* ast : _asts)
+	for (auto const* ast : _parsed_contracts)
 	{
 		FunctionConverter cov(
-			*ast, _cs, _graph, _con, map_k, FunctionConverter::View::FULL, false
+			*ast,
+			_callstate,
+			_newcalls,
+			_types,
+			_addrdata.representative_count(),
+			FunctionConverter::View::INT,
+			true
+		);
+		cov.print(_os);
+	}
+	for (auto const* ast : _parsed_contracts)
+	{
+		FunctionConverter cov(
+			*ast,
+			_callstate,
+			_newcalls,
+			_types,
+			_addrdata.representative_count(),
+			FunctionConverter::View::FULL,
+			false
 		);
 		cov.print(_os);
 	}
 
-	modelcheck::MainFunctionGenerator main_gen(map_k, lockstep_time, _addr_lits, _model, _graph, _cs, _con);
-	for (auto const* ast : _asts)
+	modelcheck::MainFunctionGenerator main_gen(
+		lockstep_time,
+		_addrdata,
+		_model,
+		_newcalls,
+		_callstate,
+		_types
+	);
+	for (auto const* ast : _parsed_contracts)
 	{
 		main_gen.record(*ast);
 	}

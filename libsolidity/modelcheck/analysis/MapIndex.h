@@ -54,6 +54,9 @@ public:
     // Returns the current number of representatives.
     uint64_t representative_count() const;
 
+    // Returns the number of clients.
+    uint64_t client_count() const;
+
     // Returns the maximum interference variables used by any function.'
     uint64_t max_interference() const;
 

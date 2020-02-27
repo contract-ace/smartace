@@ -27,18 +27,16 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 MainFunctionGenerator::MainFunctionGenerator(
-    size_t _keyspace,
     bool _lockstep_time,
-    set<dev::u256> _addr_lits,
+    MapIndexSummary const& _addrdata,
     list<ContractDefinition const *> const& _model,
     NewCallGraph const& _new_graph,
     CallState const& _statedata,
     TypeConverter const& _converter
-): M_KEYSPACE(_keyspace)
- , M_LOCKSTEP_TIME(_lockstep_time)
- , M_USES_ZERO(m_addr_lits.find(0) != m_addr_lits.end())
+): M_LOCKSTEP_TIME(_lockstep_time)
+ , M_USES_ZERO(_addrdata.literals().find(0) != _addrdata.literals().end())
+ , m_addrdata(_addrdata)
  , m_model(_model)
- , m_addr_lits(_addr_lits)
  , m_new_graph(_new_graph)
  , m_statedata(_statedata)
  , m_converter(_converter)
@@ -135,51 +133,34 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     // Declares all addresses.
     // TODO: it should be possible to minimize address size.
-    // TODO: how do constants fit in?
-    size_t curr_addr_idx = (M_USES_ZERO ? 1 : 0);
-    //auto const* ADDR_T = ContractUtilities::address_type();
     list<shared_ptr<CMemberAccess>> contract_addrs;
-    vector<CExprPtr> addrs;
-    //addrs.reserve(M_KEYSPACE + actors.size());
-    for (size_t i = 0; i < M_KEYSPACE; ++i)
     {
-        auto const NAME = MapGenerator::name_global_key(i);
-        auto decl = make_shared<CIdentifier>(NAME, false);
-
-        main.push_back(decl->assign(
-            make_shared<CIntLiteral>(curr_addr_idx)
-        )->stmt());
-        //addrs.push_back(decl);
-
-        ++curr_addr_idx;
-    }
-    for (auto const& actor : actors)
-    {
-        // TODO: in practice, we only need to model used contract addrs.
-
-        auto const& DECL = actor.decl;
-        if (actor.path)
+        uint64_t min = (M_USES_ZERO ? 1 : 0);
+        for (auto const& actor : actors)
         {
-            main.push_back(
-                DECL->assign(make_shared<CReference>(actor.path))->stmt()
-            );
+            // TODO: in practice, we only need to model used contract addrs.
+
+            auto const& DECL = actor.decl;
+            if (actor.path)
+            {
+                main.push_back(
+                    DECL->assign(make_shared<CReference>(actor.path))->stmt()
+                );
+            }
+
+            auto const& ADDR = DECL->access(ContractUtilities::address_member());
+
+            main.push_back(ADDR->access("v")->assign(
+                make_shared<CIntLiteral>(min + contract_addrs.size())
+            )->stmt());
+            contract_addrs.push_back(ADDR);
         }
-
-        auto const& ADDR = DECL->access(ContractUtilities::address_member());
-
-        main.push_back(ADDR->access("v")->assign(
-            make_shared<CIntLiteral>(curr_addr_idx)
-        )->stmt());
-        contract_addrs.push_back(ADDR);
-        //addrs.push_back(ADDR->access("v"));
-
-        ++curr_addr_idx;
     }
     {
         // TODO: simplify this block.
         list<shared_ptr<CIdentifier>> used_so_far;
         uint64_t min = (M_USES_ZERO ? 1 : 0);
-        for (auto lit : m_addr_lits)
+        for (auto lit : m_addrdata.literals())
         {
             auto const NAME = modelcheck::Indices::const_global_name(lit);
             auto decl = make_shared<CIdentifier>(NAME, false);
@@ -193,7 +174,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
             else
             {
                 main.push_back(decl->assign(
-                    get_nd_range(min, curr_addr_idx + m_addr_lits.size(), NAME)
+                    get_nd_range(min, m_addrdata.representative_count(), NAME)
                 )->stmt());
 
                 for (auto otr : used_so_far)
@@ -208,22 +189,6 @@ void MainFunctionGenerator::print(std::ostream& _stream)
             }
         }
     }
-    // TODO: This may be needed again if we handle ordered addresses
-    //       To handle ordered addresses we fix select n addresses.
-    //       We assert (0 < addr_i < n) && (forall i,j: addr_i != addr_j).
-    // TODO: Constants being reordered... overapproximate?
-    /*for (unsigned int i = 0; i < addrs.size(); ++i)
-    {
-        main.push_back(make_require(make_shared<CBinaryOp>(
-            addrs[i], "!=", Literals::ZERO
-        )));
-        for (unsigned int j = 0; j < i; ++j)
-        {
-            main.push_back(make_require(make_shared<CBinaryOp>(
-                addrs[i], "!=", addrs[j]
-            )));
-        }
-    }*/
 
     // Initializes all actors.
     for (auto const& actor : actors)
@@ -490,7 +455,6 @@ void MainFunctionGenerator::update_call_state(
             _stmts.push_back(state->access("v")->assign(nd)->stmt());
             if (fld.field == CallStateUtilities::Field::Sender)
             {
-                // TODO: precompute this.
                 // TODO: this should be restricted in address generation.
                 if (M_USES_ZERO)
                 {
