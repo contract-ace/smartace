@@ -1329,7 +1329,15 @@ void CommandLineInterface::handleCModel()
 		auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
 		for (auto ctrt : ctrts)
 		{
-			index_summary.record(*ctrt);
+			index_summary.extract_literals(*ctrt);
+		}
+	}
+	for (auto const* ast: asts)
+	{
+		auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
+		for (auto ctrt : ctrts)
+		{
+			index_summary.compute_interference(*ctrt);
 		}
 	}
 	converter.limit_addresses(index_summary.size());

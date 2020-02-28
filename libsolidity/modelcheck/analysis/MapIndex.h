@@ -43,7 +43,12 @@ public:
 
     // Appends an analysis of _src. This will potentially add to
     // violations() and also literals().
-    void record(ContractDefinition const& _src);
+
+    // A first-pass analysis which inspects contract code and extracts literals.
+    void extract_literals(ContractDefinition const& _src);
+
+    // A second-pass which computes the minimal interference needed.
+    void compute_interference(ContractDefinition const& _src);
 
     // Returns all violates in the provided contract.
     ViolationGroup const& violations() const;
@@ -76,6 +81,8 @@ private:
     uint64_t m_client_reps;
     uint64_t m_contract_reps;
     uint64_t m_max_inteference;
+
+    bool m_in_first_pass;
 
     bool m_is_address_cast;
     bool m_uses_contract_address;

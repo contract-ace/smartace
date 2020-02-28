@@ -70,6 +70,64 @@ void MainFunctionGenerator::print(std::ostream& _stream)
 
     // Pre-analyzes contracts for fields, etc.
     list<Actor> actors = analyze_decls(model);
+    list<CExprPtr> addr_vars;
+    for (auto actor : actors)
+    {
+        for (auto var : actor.contract->stateVariables())
+        {
+            // TODO: This is a duplicate of MapIndices.
+            // TODO: The MainFunction shouldn't perform this reconstruction...
+            if (var->type()->category() == Type::Category::Address)
+            {
+                auto varcat = var->type()->category();
+                if (varcat == Type::Category::Address)
+                {
+                    // TODO: extract address.
+                }
+                else if (varcat == Type::Category::Mapping)
+                {
+                    auto const* mapping = dynamic_cast<MappingType const*>(var->type());
+                    while (mapping->valueType()->category() == Type::Category::Mapping)
+                    {
+                        mapping = dynamic_cast<MappingType const*>(mapping->valueType());
+                    }
+                    
+                    if (mapping->valueType()->category() == Type::Category::Address)
+                    {
+                        // TODO: work out representation.
+                        throw std::runtime_error("Map to address unsupoorted.");
+                    }
+                }
+                else if (varcat == Type::Category::Struct)
+                {
+                    auto const* type = dynamic_cast<StructType const*>(var->type());
+
+                    std::stack<StructDefinition const*> frontier;
+                    frontier.push(&type->structDefinition());
+
+                    while (!frontier.empty())
+                    {
+                        StructDefinition const* level = frontier.top();
+                        frontier.pop();
+
+                        for (auto subvar : level->members())
+                        {
+                            auto subvarcat = subvar->type()->category();
+                            if (subvarcat == Type::Category::Address)
+                            {
+                                // TODO: extract address.
+                            }
+                            else if (subvarcat == Type::Category::Struct)
+                            {
+                                type = dynamic_cast<StructType const*>(subvar->type());
+                                frontier.push(&type->structDefinition());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // Generates function switch.
     size_t case_count = 0;

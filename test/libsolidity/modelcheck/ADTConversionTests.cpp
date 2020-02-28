@@ -98,19 +98,11 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
     ADTConverter(ast, callgraph, converter, 1, false).print(actual_k_1);
     ADTConverter(ast, callgraph, converter, 2, false).print(actual_k_2);
 
-    BOOST_CHECK(actual_k_1.str().find("curr_0") != string::npos);
-    BOOST_CHECK(actual_k_1.str().find("curr_0_0") != string::npos);
     BOOST_CHECK(actual_k_1.str().find("data_0_0") != string::npos);
 
-    BOOST_CHECK(actual_k_2.str().find("curr_0") != string::npos);
-    BOOST_CHECK(actual_k_2.str().find("curr_0_0") != string::npos);
     BOOST_CHECK(actual_k_2.str().find("data_0_0") != string::npos);
-    BOOST_CHECK(actual_k_2.str().find("curr_0_1") != string::npos);
     BOOST_CHECK(actual_k_2.str().find("data_0_1") != string::npos);
-    BOOST_CHECK(actual_k_2.str().find("curr_1") != string::npos);
-    BOOST_CHECK(actual_k_2.str().find("curr_1_0") != string::npos);
     BOOST_CHECK(actual_k_2.str().find("data_1_0") != string::npos);
-    BOOST_CHECK(actual_k_2.str().find("curr_1_1") != string::npos);
     BOOST_CHECK(actual_k_2.str().find("data_1_1") != string::npos);
 }
 
