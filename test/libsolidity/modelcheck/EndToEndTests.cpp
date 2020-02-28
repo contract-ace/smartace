@@ -296,9 +296,9 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     func_expect << "struct Map_1 Init_0_Map_1(void);";
     func_expect << "struct Map_1 ND_Map_1(void);";
     func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
-                << ",sol_uint256_t key_0,sol_uint256_t key_1);";
+                << ",sol_uint256_t key_0,sol_uint256_t key_0);";
     func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_0"
-                << ",sol_uint256_t key_1,sol_uint256_t dat);";
+                << ",sol_uint256_t key_0,sol_uint256_t dat);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());

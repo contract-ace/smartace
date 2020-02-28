@@ -9,6 +9,8 @@
 
 #include <stack>
 
+using namespace std;
+
 namespace dev
 {
 namespace solidity
@@ -46,7 +48,7 @@ void MapIndexSummary::extract_literals(ContractDefinition const& _src)
                 if (map->keyType()->category() != Type::Category::Address)
                 {
                     // TODO: new error types.
-                    throw std::runtime_error("Mappings must be address-based.");
+                    throw runtime_error("Mappings must be address-based.");
                 }
                 map = dynamic_cast<MappingType const*>(map->valueType());
             }
@@ -97,7 +99,7 @@ void MapIndexSummary::compute_interference(ContractDefinition const& _src)
         {
             auto const* type = dynamic_cast<StructType const*>(var->type());
 
-            std::stack<StructDefinition const*> frontier;
+            stack<StructDefinition const*> frontier;
             frontier.push(&type->structDefinition());
 
             while (!frontier.empty())
@@ -150,7 +152,7 @@ MapIndexSummary::ViolationGroup const& MapIndexSummary::violations() const
     return m_violations;
 }
 
-std::set<dev::u256> const& MapIndexSummary::literals() const
+set<dev::u256> const& MapIndexSummary::literals() const
 {
     return m_literals;
 }

@@ -132,7 +132,8 @@ private:
     // Generate the instructions required to update the call state.
     void update_call_state(
         CBlockList & _stmts,
-        std::list<std::shared_ptr<CMemberAccess>> const& _addresses
+        std::list<std::shared_ptr<CMemberAccess>> const& _addresses,
+        std::list<CExprPtr> const& _addrvars
     );
 
     // Generates a value for a payable method.

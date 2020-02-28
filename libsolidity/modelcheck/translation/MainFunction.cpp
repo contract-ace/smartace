@@ -53,7 +53,7 @@ void MainFunctionGenerator::record(SourceUnit const& _ast)
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::print(std::ostream& _stream)
+void MainFunctionGenerator::print(ostream& _stream)
 {
     // Determines the contracts to use by the harness.
     vector<ContractDefinition const*> model;
@@ -77,12 +77,16 @@ void MainFunctionGenerator::print(std::ostream& _stream)
         {
             // TODO: This is a duplicate of MapIndices.
             // TODO: The MainFunction shouldn't perform this reconstruction...
+            // TODO: clean up.
             if (var->type()->category() == Type::Category::Address)
             {
                 auto varcat = var->type()->category();
                 if (varcat == Type::Category::Address)
                 {
-                    // TODO: extract address.
+                    auto const NAME = VariableScopeResolver::rewrite(
+                        var->name(), false, VarContext::STRUCT
+                    );
+                    addr_vars.push_back(actor.decl->id()->access(NAME)->access("v"));
                 }
                 else if (varcat == Type::Category::Mapping)
                 {
@@ -95,32 +99,44 @@ void MainFunctionGenerator::print(std::ostream& _stream)
                     if (mapping->valueType()->category() == Type::Category::Address)
                     {
                         // TODO: work out representation.
-                        throw std::runtime_error("Map to address unsupoorted.");
+                        throw runtime_error("Map to address unsupoorted.");
                     }
                 }
                 else if (varcat == Type::Category::Struct)
                 {
                     auto const* type = dynamic_cast<StructType const*>(var->type());
 
-                    std::stack<StructDefinition const*> frontier;
+                    stack<StructDefinition const*> frontier;
+                    stack<CExprPtr> paths;
                     frontier.push(&type->structDefinition());
+                    paths.push(actor.decl->id());
 
                     while (!frontier.empty())
                     {
                         StructDefinition const* level = frontier.top();
                         frontier.pop();
 
+                        auto localpath = paths.top();
+                        paths.pop();
+
                         for (auto subvar : level->members())
                         {
+                            auto const NAME = VariableScopeResolver::rewrite(
+                                frontier.top()->name(), false, VarContext::STRUCT
+                            );
+                            auto next_layer = make_shared<CMemberAccess>(localpath, NAME);
+
                             auto subvarcat = subvar->type()->category();
                             if (subvarcat == Type::Category::Address)
                             {
-                                // TODO: extract address.
+                                addr_vars.push_back(next_layer);
                             }
                             else if (subvarcat == Type::Category::Struct)
                             {
                                 type = dynamic_cast<StructType const*>(subvar->type());
                                 frontier.push(&type->structDefinition());
+
+                                paths.push(next_layer);
                             }
                         }
                     }
@@ -253,7 +269,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     {
         if (!actor.path)
         {
-            update_call_state(main, contract_addrs);
+            update_call_state(main, contract_addrs, addr_vars);
             init_contract(main, *actor.contract, actor.decl);
         }
     }
@@ -263,7 +279,7 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     transactionals.push_back(
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
-    update_call_state(transactionals, contract_addrs);
+    update_call_state(transactionals, contract_addrs, addr_vars);
     transactionals.push_back(next_case);
     transactionals.push_back(
         next_case->assign(get_nd_range(0, case_count, "next_call"))->stmt()
@@ -271,6 +287,8 @@ void MainFunctionGenerator::print(std::ostream& _stream)
     transactionals.push_back(call_cases);
 
     // Adds transactional loop to end of body.
+    // TODO: why is it possible to terminate...? This only makes sense in an
+    //       interactive execution... It is terrible for fuzzing.
     main.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(move(transactionals)),
         get_nd_byte("Select 0 to terminate"),
@@ -458,16 +476,36 @@ CBlockList MainFunctionGenerator::build_case(
 // -------------------------------------------------------------------------- //
 
 void MainFunctionGenerator::update_call_state(
-    CBlockList & _stmts, list<shared_ptr<CMemberAccess>> const& _addresses
+    CBlockList & _stmts,
+    list<shared_ptr<CMemberAccess>> const& _addresses,
+    list<CExprPtr> const& _addrvars
 )
 {
-    // Decides one, if lockstep will be used.
+    // Decides once, if lockstep will be used.
     auto timestep_var = make_shared<CIdentifier>("take_step", false);
     if (M_LOCKSTEP_TIME)
     {
         _stmts.push_back(
             timestep_var->assign(get_nd_range(0, 2, "take_step"))->stmt()
         );
+    }
+
+    // Shuffles address variables which point to interference. The shuffle is
+    // performed with respect to the first address, so it is skipped.
+    {
+        uint64_t minaddr = m_addrdata.representative_count();
+        uint64_t maxaddr = m_addrdata.size();
+        auto boundary = make_shared<CIntLiteral>(minaddr);
+        for (auto itr = (++_addrvars.begin()); itr != _addrvars.end(); ++itr)
+        {
+            // TODO: better message.
+            auto value_range = get_nd_range(minaddr, maxaddr, "addrvar");
+
+            auto var = (*itr);
+            auto update = make_shared<CBinaryOp>(var, "=", value_range)->stmt();
+            auto cond = make_shared<CBinaryOp>(var, ">=", boundary);
+            _stmts.push_back(make_shared<CIf>(cond, update, nullptr));
+        }
     }
 
     // Updates the values.
@@ -556,7 +594,7 @@ CExprPtr MainFunctionGenerator::get_nd_byte(string const& _msg)
 // -------------------------------------------------------------------------- //
 
 CExprPtr MainFunctionGenerator::get_nd_range(
-    uint8_t _l, uint8_t _u, std::string const& _msg
+    uint8_t _l, uint8_t _u, string const& _msg
 )
 {
     return make_shared<CFuncCall>(
