@@ -142,6 +142,7 @@ set(sources
 	modelcheck/translation/MainFunction.cpp
 	modelcheck/translation/MainFunction.h
 	modelcheck/translation/ModifierBlock.cpp
+	modelcheck/utils/AST.cpp
 	modelcheck/utils/AST.h
 	modelcheck/utils/CallState.cpp
 	modelcheck/utils/CallState.h

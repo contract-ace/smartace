@@ -76,6 +76,28 @@ private:
     T m_counter = 0;
 };
 
+/**
+ * Computes an integer power (_base)^(_exp).
+ */
+inline uint64_t fast_pow(uint64_t _base, uint64_t _exp)
+{
+    uint64_t res = 1;
+    while (_exp > 0)
+    {
+        if (_exp % 2 == 0)
+        {
+            _exp /= 2;
+            _base *= _base;
+        }
+        else
+        {
+            res *= _base;
+            _exp -= 1;
+        }
+    }
+    return res;
+}
+
 }
 }
 }

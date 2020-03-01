@@ -223,8 +223,9 @@ void ModifierBlockConverter::endVisit(PlaceholderStatement const&)
 
     if (block_type() == BlockType::Initializer)
     {
-        // TODO: avoid hardcoding this...
-        builder.push(make_shared<CIdentifier>("dest", true));
+        builder.push(
+            make_shared<CIdentifier>(FunctionUtilities::init_var(), true)
+        );
     }
 
     CExprPtr call = builder.merge_and_pop();

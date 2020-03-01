@@ -163,6 +163,10 @@ extern "C" {
 // _argc and _argv are forwarded from main.
 void sol_setup(int _argc, const char **_argv);
 
+// This method is called on each iteration of the while loop. It returns zero if
+// the loop should terminate.
+uint8_t sol_continue(void);
+
 // This method is called once before each transaction.
 void sol_on_transaction(void);
 

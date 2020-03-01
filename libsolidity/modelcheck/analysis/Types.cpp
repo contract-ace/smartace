@@ -10,8 +10,10 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+#include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/Types.h>
+
 #include <sstream>
 #include <stdexcept>
 
@@ -242,22 +244,29 @@ CExprPtr TypeConverter::raw_simple_nd(
     }
 
     auto const CATEGORY = unwrap(_type).category();
-    if (m_address_count == 0 || CATEGORY != Type::Category::Address)
+    auto msg_lit = make_shared<CStringLiteral>(_msg);
+    if (CATEGORY == Type::Category::Bool)
+    {
+        auto min_bool = make_shared<CIntLiteral>(0);
+        auto max_bool = make_shared<CIntLiteral>(2);
+        return make_shared<CFuncCall>("rt_nd_range", CArgList{
+            min_bool, max_bool, msg_lit
+        });
+    }
+    else if (m_address_count == 0 || CATEGORY != Type::Category::Address)
     {
         ostringstream call;
         call << "nd_";
         if (!simple_is_signed(_type)) call << "u";
         call << "int" << simple_bit_count(_type) << "_t";
 
-        auto msg_lit = make_shared<CStringLiteral>(_msg);
         return make_shared<CFuncCall>(call.str(), CArgList{msg_lit});
     }
     else
     {
-        // TODO: this is limited t0 256 addresses.
+        // TODO: this is limited to 256 addresses.
         auto min_addr = make_shared<CIntLiteral>(0);
         auto max_addr = make_shared<CIntLiteral>(m_address_count);
-        auto msg_lit = make_shared<CStringLiteral>(_msg);
         return make_shared<CFuncCall>("rt_nd_range", CArgList{
             min_addr, max_addr, msg_lit
         });
@@ -448,38 +457,14 @@ void TypeConverter::endVisit(ParameterList const& _node)
 
 void TypeConverter::endVisit(MemberAccess const& _node)
 {
-    // TODO: this is roughly duplicated by analysis/Mapping.cpp
-	auto const EXPR_TYPE = _node.expression().annotation().type;
-    if (auto contract_type = dynamic_cast<ContractType const*>(EXPR_TYPE))
+    if (auto decl = member_access_to_decl(_node))
     {
-        for (auto member : contract_type->contractDefinition().stateVariables())
+        m_type_lookup.insert({&_node, get_type(*decl)});
+        if (!has_simple_type(*decl))
         {
-            if (member->name() == _node.memberName())
-            {
-                m_type_lookup.insert({&_node, get_type(*member)});
-                if (!has_simple_type(*member))
-                {
-                    m_name_lookup.insert({&_node, get_name(*member)});
-                }
-                return;
-            }
+            m_name_lookup.insert({&_node, get_name(*decl)});
         }
     }
-    else if (auto struct_type = dynamic_cast<StructType const*>(EXPR_TYPE))
-	{
-        for (auto member : struct_type->structDefinition().members())
-        {
-            if (member->name() == _node.memberName())
-            {
-                m_type_lookup.insert({&_node, get_type(*member)});
-                if (!has_simple_type(*member))
-                {
-                    m_name_lookup.insert({&_node, get_name(*member)});
-                }
-                return;
-            }
-        }
-	}
 }
 
 void TypeConverter::endVisit(Identifier const& _node)

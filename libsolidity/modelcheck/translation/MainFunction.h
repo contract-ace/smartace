@@ -112,6 +112,12 @@ private:
         TicketSystem<uint16_t> & _fids
     ) const;
 
+    // Maps each literal and each actor to an address in the address space. As a
+    // by product, a list of all contract addresses is returned.
+    std::list<std::shared_ptr<CMemberAccess>> init_address_space(
+        CBlockList & _stmts, std::list<Actor> const& _actors
+    );
+
     // Consumes a contract declaration, and initializes it through
     // non-deterministic construction.
     void init_contract(
@@ -131,16 +137,19 @@ private:
 
     // Generate the instructions required to update the call state.
     void update_call_state(
-        CBlockList & _stmts,
-        std::list<std::shared_ptr<CMemberAccess>> const& _addresses,
-        std::list<CExprPtr> const& _addrvars
+        CBlockList & _stmts, std::list<CExprPtr> const& _addrvars
     );
 
     // Generates a value for a payable method.
     void set_payment_value(CBlockList & _stmts);
 
+    // Wrapper to `rt_nd_byte(_msg)`.
     static CExprPtr get_nd_byte(std::string const& _msg);
-    static CExprPtr get_nd_range(uint8_t _l, uint8_t _u, std::string const& _msg);
+
+    // Wrapper to `rt_nd_range(_l, _u, _msg)`.
+    static CExprPtr get_nd_range(
+        uint8_t _l, uint8_t _u, std::string const& _msg
+    );
 };
 
 }

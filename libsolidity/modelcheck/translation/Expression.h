@@ -78,18 +78,27 @@ private:
 	// produces such integers from Solidity literals.
 	static long long int literal_to_number(Literal const& _node);
 
-	// Helper functions to format mapping operations.
+	// Helper to format binary calls. Unlike unary calls, binary calls appear in
+	// multiple cases.
 	void generate_binary_op(
 		Expression const& _lhs,
 		Token _op,
 		Expression const& _rhs
 	);
+
+	// Helper to format mapping operations.
 	void generate_mapping_call(
 		std::string const& _op,
 		MapDeflate::FlatMap const& _map,
 		FlatIndex const& _idx,
 		CExprPtr _v
 	);
+
+	// Returns the correct context for initializer applications. In a
+	// assignment subexpression, the correct location is the LHS. When
+	// used recursively in another initializer, the correct location
+	// is the `dest` parameter.
+	CExprPtr get_initializer_context() const;
 
 	// Helper functions to produce specialized function calls.
 	void print_struct_ctor(FunctionCall const& _call);

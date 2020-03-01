@@ -44,7 +44,6 @@ public:
     CallState();
 
     // Aggregates data from an AST node.
-    // TODO(scottwe: this is just a placeholder for now.
     void record(ASTNode const& _ast);
 
     // Prints an appropiate call state, along with the appropriate helpers, to

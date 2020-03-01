@@ -7,6 +7,8 @@
 
 #include <libsolidity/modelcheck/analysis/Mapping.h>
 
+#include <libsolidity/modelcheck/utils/AST.h>
+
 #include <stdexcept>
 
 using namespace std;
@@ -101,28 +103,9 @@ bool FlatIndex::visit(Conditional const&)
 
 bool FlatIndex::visit(MemberAccess const& _node)
 {
-    auto const EXPR_TYPE = _node.expression().annotation().type;
-    if (auto contract_type = dynamic_cast<ContractType const*>(EXPR_TYPE))
+    if (auto decl = member_access_to_decl(_node))
     {
-        for (auto member : contract_type->contractDefinition().stateVariables())
-        {
-            if (member->name() == _node.memberName())
-            {
-                m_decl = member;
-                break;
-            }
-        }
-    }
-    else if (auto struct_type = dynamic_cast<StructType const*>(EXPR_TYPE))
-    {
-        for (auto member : struct_type->structDefinition().members())
-        {
-            if (member->name() == _node.memberName())
-            {
-                m_decl = member.get();
-                break;
-            }
-        }
+        m_decl = decl;
     }
     return false;
 }

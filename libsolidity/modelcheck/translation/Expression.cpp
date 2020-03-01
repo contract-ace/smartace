@@ -386,6 +386,20 @@ void ExpressionConverter::generate_mapping_call(
 	m_subexpr = builder.merge_and_pop();
 }
 
+CExprPtr ExpressionConverter::get_initializer_context() const
+{
+	if (m_last_assignment)
+	{
+		return make_shared<CReference>(make_shared<CIdentifier>(
+			m_decls.resolve_identifier(*m_last_assignment), false
+		));
+	}
+	else
+	{
+		return make_shared<CIdentifier>(FunctionUtilities::init_var(), true);
+	}
+}
+
 // -------------------------------------------------------------------------- //
 
 void ExpressionConverter::print_struct_ctor(FunctionCall const& _call)
@@ -605,12 +619,6 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 	case FunctionType::Kind::Event:
 		// TODO(scottwe): prune statements which operate on events...
 		throw runtime_error("Logging is not verified.");
-	case FunctionType::Kind::SetGas:
-		// TODO(scottwe): will gas be modelled at all?
-		throw runtime_error("`gas(<val>)` not yet supported.");
-	case FunctionType::Kind::SetValue:
-		// TODO(scottwe): update state.value for the given call.
-		throw runtime_error("`value(<val>)` not yet supported.");
 	case FunctionType::Kind::BlockHash:
 		// TODO(scottwe): implement.
 		throw runtime_error("`block.blockhash(<val>)` not yet supported.");
@@ -658,6 +666,7 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 		// Note: Compiler does not generate code for MetaType calls.
 		break;
 	default:
+		// Note: `.value` and `.gas` are handled in a special case.
 		throw runtime_error("Unexpected function call type.");
 	}
 }
@@ -689,7 +698,6 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 			auto const& hierarchy
 				= m_decls.spec()->useby().annotation().linearizedBaseContracts;
 
-			// TODO: could this be cached?
 			FunctionDefinition const* override = nullptr;
 			for (auto derived : hierarchy)
 			{
@@ -742,20 +750,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	auto rvs = _calldata.type().returnParameterTypes();
 	if (rvs.size() == 1 && rvs[0]->category() == Type::Category::Contract)
 	{
-		// TODO: duplication
-		CExprPtr dest;
-		if (m_last_assignment)
-		{
-			dest = make_shared<CReference>(make_shared<CIdentifier>(
-				m_decls.resolve_identifier(*m_last_assignment), false
-			));
-		}
-		else
-		{
-			// TODO: hard coding
-			dest = make_shared<CIdentifier>("dest", true);
-		}
-		builder.push(dest);
+		builder.push(get_initializer_context());
 	}
 
 	// Pushes all user provided arguments.
@@ -787,22 +782,8 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 		CFuncCallBuilder builder("Init_" + M_TYPES.get_name(*contract_type));
 		auto const DECL = contract_type->annotation().referencedDeclaration;
 		if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
-		{
-			// TODO: duplication
-			CExprPtr dest;
-			if (m_last_assignment)
-			{
-				dest = make_shared<CReference>(make_shared<CIdentifier>(
-					m_decls.resolve_identifier(*m_last_assignment), false
-				));
-			}
-			else
-			{
-				// TODO: hard coding.
-				dest = make_shared<CIdentifier>("dest", false);
-			}
-			
-			builder.push(dest);
+		{	
+			builder.push(get_initializer_context());
 			pass_next_call_state(FunctionCallAnalyzer(_call), builder, true);
 
 			if (auto const& ctor = contract->constructor())
@@ -883,7 +864,7 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 			paymode = "_pay";
 			dst.accept(*this);
 			recipient = m_subexpr;
-			recipient_type =  (&ADR_TYPE);
+			recipient_type = (&ADR_TYPE);
 			// TODO: warn about approximation.
 			// TODO: map target to address space.
 		}

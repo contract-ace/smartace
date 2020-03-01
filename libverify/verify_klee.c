@@ -1,17 +1,29 @@
 /**
  * Defines assert, require and nd implementations for symbolic execution.
- *  @date 2019
+ * @date 2019
  */
 
 #include "verify.h"
 
 #include "klee/klee.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
 
+// -------------------------------------------------------------------------- //
+
 void sol_setup(int _argc, const char **_argv) {}
+
+// -------------------------------------------------------------------------- //
+
+uint8_t sol_continue(void)
+{
+	return 1;
+}
+
+// -------------------------------------------------------------------------- //
 
 void sol_on_transaction(void) {}
 
@@ -29,7 +41,11 @@ void sol_require(sol_raw_uint8_t _cond, const char* _msg)
     klee_assume(_cond);
 }
 
+// -------------------------------------------------------------------------- //
+
 void sol_emit(const char * _msg) {}
+
+// -------------------------------------------------------------------------- //
 
 uint8_t rt_nd_byte(const char* _msg)
 {
@@ -46,6 +62,8 @@ uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
 	klee_assume(res < u);
     return res;
 }
+
+// -------------------------------------------------------------------------- //
 
 sol_raw_int8_t nd_int8_t(const char* _msg){
     sol_raw_int8_t res;
@@ -367,3 +385,5 @@ sol_raw_uint256_t nd_uint256_t(const char* _msg){
 	klee_make_symbolic(&res, sizeof(res), _msg);
 	return res;
 }
+
+// -------------------------------------------------------------------------- //

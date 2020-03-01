@@ -59,8 +59,6 @@ CallStateUtilities::Field CallStateUtilities::parse_magic_type(
 
 string CallStateUtilities::get_name(CallStateUtilities::Field _field)
 {
-    // TODO: these should be escaped...
-    // TODO: escaping names shouldn't belong to variable scope resolver...
     string retval = "unknowntype";
     if (_field == CallStateUtilities::Field::Block)
     {

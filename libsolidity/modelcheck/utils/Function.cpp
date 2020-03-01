@@ -20,6 +20,8 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 CExprPtr FunctionUtilities::try_to_wrap(Type const& _type, CExprPtr _expr)
 {
     if (is_wrapped_type(_type))
@@ -39,6 +41,13 @@ string FunctionUtilities::base_name(std::string _base)
 {
     return _base + "_base";
 }
+
+string FunctionUtilities::init_var()
+{
+    return "dest";
+}
+
+// -------------------------------------------------------------------------- //
 
 FunctionSpecialization::FunctionSpecialization(
     FunctionDefinition const& _def
@@ -122,6 +131,8 @@ ContractDefinition const& FunctionSpecialization::get_scope(
     }
     return *scope;
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }

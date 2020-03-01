@@ -128,6 +128,13 @@ private:
 
 // -------------------------------------------------------------------------- //
 
+/**
+ * Follows back a member access for a specific field declaration.
+ */
+VariableDeclaration const* member_access_to_decl(MemberAccess const& _access);
+
+// -------------------------------------------------------------------------- //
+
 }
 }
 }

@@ -20,9 +20,152 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-MapIndexSummary::MapIndexSummary(uint64_t clients, uint64_t contracts)
-    : m_client_reps(clients)
-    , m_contract_reps(contracts)
+list<list<string>> AddressVariables::analyze_struct(
+    string _name, StructType const* _struct
+)
+{
+    list<StructDefinition const*> frontier;
+    frontier.push_back(&_struct->structDefinition());
+
+    list<list<string>> partial_paths;
+    partial_paths.push_back(list<string>{_name});
+    
+    list<list<string>> paths;
+    while (!frontier.empty())
+    {
+        auto structure = frontier.back();
+        frontier.pop_back();
+
+        auto partial = partial_paths.back();
+        partial_paths.pop_back();
+
+        for (auto subvar : structure->members())
+        {
+            auto subvarcat = subvar->type()->category();
+            if (subvarcat == Type::Category::Address)
+            {
+                auto path = partial;
+                path.push_back(subvar->name());
+                paths.emplace_back(move(path));
+            }
+            else if (subvarcat == Type::Category::Struct)
+            {
+                _struct = unroll<StructType>(subvar->type());
+
+                frontier.push_back(&_struct->structDefinition());
+                partial_paths.push_back(partial);
+            }
+        }
+    }
+
+    return paths;
+}
+
+AddressVariables::AddressEntry AddressVariables::analyze_map(
+    VariableDeclaration const& _decl
+)
+{
+    size_t depth = 1;
+    bool uses_address_keys = true;
+
+    // Unrolls mapping.
+    auto mapping = unroll<MappingType>(_decl.type());
+    while (true)
+    {
+        // Checks key type.
+        if (mapping->keyType()->category() != Type::Category::Address)
+        {
+            uses_address_keys = false;
+        }
+
+        // Checks value type.
+        if (mapping->valueType()->category() == Type::Category::Mapping)
+        {
+            mapping = unroll<MappingType>(mapping->valueType());
+            ++depth;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    // Analyzes return type.
+    AddressEntry map;
+    map.decl = (&_decl);
+    map.depth = depth;
+    map.address_only = uses_address_keys;
+    if (mapping->valueType()->category() == Type::Category::Address)
+    {
+        map.paths.emplace_back(list<string>{_decl.name()});
+    }
+    else if (mapping->valueType()->category() == Type::Category::Struct)
+    {
+        auto structure = unroll<StructType>(mapping->valueType());
+        map.paths = analyze_struct(_decl.name(), structure);
+    }
+    return map;
+}
+
+void AddressVariables::record(ContractDefinition const& _src)
+{
+    m_cache[&_src] = {};
+
+    set<string> symbols;
+    for (auto const* contract : _src.annotation().linearizedBaseContracts)
+    {
+        for (auto const* var : contract->stateVariables())
+        {
+            // Ensures this is the first instance of the variable.
+            if (symbols.find(var->name()) != symbols.end()) continue;
+            symbols.insert(var->name());
+
+            // Classifies variable.
+            if (var->type()->category() == Type::Category::Address)
+            {
+                AddressEntry entry;
+                entry.address_only = true;
+                entry.decl = var;
+                entry.depth = 0;
+                entry.paths.emplace_back(list<string>{var->name()});
+                m_cache[&_src].emplace_back(move(entry));
+            }
+            else if (var->type()->category() == Type::Category::Mapping)
+            {
+                m_cache[&_src].push_back(analyze_map(*var));
+            }
+            else if (var->type()->category() == Type::Category::Struct)
+            {
+                auto structure = unroll<StructType>(var->type());
+
+                AddressEntry entry;
+                entry.address_only = true;
+                entry.decl = var;
+                entry.depth = 0;
+                entry.paths = analyze_struct(var->name(), structure);
+                m_cache[&_src].emplace_back(move(entry));
+            }
+        }
+    }
+}
+
+list<AddressVariables::AddressEntry> const& AddressVariables::access(
+    ContractDefinition const& _src
+) const
+{
+    auto res = m_cache.find(&_src);
+    if (res == m_cache.end())
+    {
+        throw runtime_error("AddressVariables queried for unknown contract");
+    }
+    return res->second;
+}
+
+// -------------------------------------------------------------------------- //
+
+MapIndexSummary::MapIndexSummary(uint64_t _clients, uint64_t _contracts)
+    : m_client_reps(_clients)
+    , m_contract_reps(_contracts)
     , m_max_inteference(0)
     , m_in_first_pass(false)
     , m_is_address_cast(false)
@@ -33,25 +176,27 @@ MapIndexSummary::MapIndexSummary(uint64_t clients, uint64_t contracts)
 
 void MapIndexSummary::extract_literals(ContractDefinition const& _src)
 {
-    // Summarizes address state variable initialization.
-    for (auto const* var : _src.stateVariables())
+    // Determines all addresses in contract.
+    m_cache.record(_src);
+
+    // Processes addresses relevant to literals.
+    for (auto entry : m_cache.access(_src))
     {
-        if (var->type()->category() == Type::Category::Address)
+        if (!entry.address_only)
         {
-            var->accept(*this);
+            m_violations.emplace_front();
+            m_violations.front().context = nullptr;
+            m_violations.front().site = entry.decl;
+            m_violations.front().type = ViolationType::KeyType;
         }
-        else if (var->type()->category() == Type::Category::Mapping)
+
+        if (entry.decl->type()->category() == Type::Category::Address)
         {
-            auto const* map = dynamic_cast<MappingType const*>(var->type());
-            while (map)
-            {
-                if (map->keyType()->category() != Type::Category::Address)
-                {
-                    // TODO: new error types.
-                    throw runtime_error("Mappings must be address-based.");
-                }
-                map = dynamic_cast<MappingType const*>(map->valueType());
-            }
+            entry.decl->accept(*this);
+        }
+        else if (entry.paths.size() > 0)
+        {
+            m_literals.insert(0);
         }
     }
 
@@ -72,79 +217,53 @@ void MapIndexSummary::compute_interference(ContractDefinition const& _src)
 {
     // Summarizes state address variables.
     uint64_t address_var_count = 0;
-    for (auto const* var : _src.stateVariables())
+    for (auto entry : m_cache.access(_src))
     {
-        auto varcat = var->type()->category();
-        if (varcat == Type::Category::Address)
+        if (entry.depth > 0)
         {
-            address_var_count += 1;
-        }
-        else if (varcat == Type::Category::Mapping)
-        {
-            uint64_t entries = representative_count();
-
-            auto const* mapping = dynamic_cast<MappingType const*>(var->type());
-            while (mapping->valueType()->category() == Type::Category::Mapping)
+            if (entry.address_only)
             {
-                entries *= representative_count();
-                mapping = dynamic_cast<MappingType const*>(mapping->valueType());
-            }
-
-            if (mapping->valueType()->category() == Type::Category::Address)
-            {
-                address_var_count += entries;
+                uint64_t combs = fast_pow(representative_count(), entry.depth);
+                address_var_count += (combs * entry.paths.size());
             }
         }
-        else if (varcat == Type::Category::Struct)
+        else
         {
-            auto const* type = dynamic_cast<StructType const*>(var->type());
-
-            stack<StructDefinition const*> frontier;
-            frontier.push(&type->structDefinition());
-
-            while (!frontier.empty())
-            {
-                StructDefinition const* level = frontier.top();
-                frontier.pop();
-
-                for (auto subvar : level->members())
-                {
-                    auto subvarcat = subvar->type()->category();
-                    if (subvarcat == Type::Category::Address)
-                    {
-                        address_var_count += 1;
-                    }
-                    else if (subvarcat == Type::Category::Struct)
-                    {
-                        type = dynamic_cast<StructType const*>(subvar->type());
-                        frontier.push(&type->structDefinition());
-                    }
-                }
-            }
+            address_var_count += entry.paths.size();
         }
     }
 
     // Summarizes functions.
-    for (auto const* func : _src.definedFunctions())
+    for (auto rel : _src.annotation().linearizedBaseContracts)
     {
-        // All state addresses, along with the sender may be interference.
-        if (func->isPublic())
+        for (auto const* func : rel->definedFunctions())
         {
-            uint64_t potential_interference = address_var_count + 1;
-            for (auto var : func->parameters())
+            // All state addresses, along with the sender may be interference.
+            if (func->isPublic())
             {
-                if (var->type()->category() == Type::Category::Address)
+                uint64_t potential_interference = address_var_count + 1;
+                for (auto var : func->parameters())
                 {
-                    ++potential_interference;
+                    if (var->type()->category() == Type::Category::Address)
+                    {
+                        ++potential_interference;
+                    }
                 }
-            }
 
-            if (potential_interference > m_max_inteference)
-            {
-                m_max_inteference = potential_interference;
+                if (potential_interference > m_max_inteference)
+                {
+                    m_max_inteference = potential_interference;
+                }
             }
         }
     }
+}
+
+list<AddressVariables::AddressEntry> const& MapIndexSummary::describe(
+    ContractDefinition const& _src
+) const
+{
+    return m_cache.access(_src);
 }
 
 MapIndexSummary::ViolationGroup const& MapIndexSummary::violations() const
@@ -165,6 +284,11 @@ uint64_t MapIndexSummary::representative_count() const
 uint64_t MapIndexSummary::client_count() const
 {
     return m_client_reps;
+}
+
+uint64_t MapIndexSummary::contract_count() const
+{
+    return m_contract_reps;
 }
 
 uint64_t MapIndexSummary::max_interference() const

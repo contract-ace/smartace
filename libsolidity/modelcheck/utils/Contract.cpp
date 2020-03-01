@@ -18,6 +18,8 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 AddressType ContractUtilities::ADDRESS_MEMBER_TYPE(StateMutability::Payable);
 
 IntegerType ContractUtilities::BALANCE_MEMBER_TYPE(256);
@@ -55,6 +57,8 @@ FunctionDefinition const& ContractUtilities::fallback(
     }
     throw runtime_error("Fallback extracted from contract without fallback.");
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }

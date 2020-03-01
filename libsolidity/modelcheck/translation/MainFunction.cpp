@@ -73,74 +73,27 @@ void MainFunctionGenerator::print(ostream& _stream)
     list<CExprPtr> addr_vars;
     for (auto actor : actors)
     {
-        for (auto var : actor.contract->stateVariables())
+        for (auto entry : m_addrdata.describe(*actor.contract))
         {
-            // TODO: This is a duplicate of MapIndices.
-            // TODO: The MainFunction shouldn't perform this reconstruction...
-            // TODO: clean up.
-            if (var->type()->category() == Type::Category::Address)
+            if (entry.paths.empty()) continue;
+
+            if (entry.depth > 0)
             {
-                auto varcat = var->type()->category();
-                if (varcat == Type::Category::Address)
+
+                throw runtime_error("Map to address unsupoorted.");
+            }
+            
+            for (auto path : entry.paths)
+            {
+                CExprPtr addr = actor.decl->id();
+                for (auto symb : path)
                 {
                     auto const NAME = VariableScopeResolver::rewrite(
-                        var->name(), false, VarContext::STRUCT
+                        symb, false, VarContext::STRUCT
                     );
-                    addr_vars.push_back(actor.decl->id()->access(NAME)->access("v"));
+                    addr = make_shared<CMemberAccess>(addr, NAME);
                 }
-                else if (varcat == Type::Category::Mapping)
-                {
-                    auto const* mapping = dynamic_cast<MappingType const*>(var->type());
-                    while (mapping->valueType()->category() == Type::Category::Mapping)
-                    {
-                        mapping = dynamic_cast<MappingType const*>(mapping->valueType());
-                    }
-                    
-                    if (mapping->valueType()->category() == Type::Category::Address)
-                    {
-                        // TODO: work out representation.
-                        throw runtime_error("Map to address unsupoorted.");
-                    }
-                }
-                else if (varcat == Type::Category::Struct)
-                {
-                    auto const* type = dynamic_cast<StructType const*>(var->type());
-
-                    stack<StructDefinition const*> frontier;
-                    stack<CExprPtr> paths;
-                    frontier.push(&type->structDefinition());
-                    paths.push(actor.decl->id());
-
-                    while (!frontier.empty())
-                    {
-                        StructDefinition const* level = frontier.top();
-                        frontier.pop();
-
-                        auto localpath = paths.top();
-                        paths.pop();
-
-                        for (auto subvar : level->members())
-                        {
-                            auto const NAME = VariableScopeResolver::rewrite(
-                                frontier.top()->name(), false, VarContext::STRUCT
-                            );
-                            auto next_layer = make_shared<CMemberAccess>(localpath, NAME);
-
-                            auto subvarcat = subvar->type()->category();
-                            if (subvarcat == Type::Category::Address)
-                            {
-                                addr_vars.push_back(next_layer);
-                            }
-                            else if (subvarcat == Type::Category::Struct)
-                            {
-                                type = dynamic_cast<StructType const*>(subvar->type());
-                                frontier.push(&type->structDefinition());
-
-                                paths.push(next_layer);
-                            }
-                        }
-                    }
-                }
+                addr_vars.push_back(make_shared<CMemberAccess>(addr, "v"));
             }
         }
     }
@@ -205,71 +158,15 @@ void MainFunctionGenerator::print(ostream& _stream)
         for (auto param_pair : actor.fparams) main.push_back(param_pair.second);
     }
 
-    // Declares all addresses.
-    // TODO: it should be possible to minimize address size.
-    list<shared_ptr<CMemberAccess>> contract_addrs;
-    {
-        uint64_t min = (M_USES_ZERO ? 1 : 0);
-        for (auto const& actor : actors)
-        {
-            // TODO: in practice, we only need to model used contract addrs.
-
-            auto const& DECL = actor.decl;
-            if (actor.path)
-            {
-                main.push_back(
-                    DECL->assign(make_shared<CReference>(actor.path))->stmt()
-                );
-            }
-
-            auto const& ADDR = DECL->access(ContractUtilities::address_member());
-
-            main.push_back(ADDR->access("v")->assign(
-                make_shared<CIntLiteral>(min + contract_addrs.size())
-            )->stmt());
-            contract_addrs.push_back(ADDR);
-        }
-    }
-    {
-        // TODO: simplify this block.
-        list<shared_ptr<CIdentifier>> used_so_far;
-        uint64_t min = (M_USES_ZERO ? 1 : 0);
-        for (auto lit : m_addrdata.literals())
-        {
-            auto const NAME = modelcheck::Indices::const_global_name(lit);
-            auto decl = make_shared<CIdentifier>(NAME, false);
-
-            if (lit == 0)
-            {
-                main.push_back(decl->assign(
-                    make_shared<CIntLiteral>(0)
-                )->stmt());
-            }
-            else
-            {
-                main.push_back(decl->assign(
-                    get_nd_range(min, m_addrdata.representative_count(), NAME)
-                )->stmt());
-
-                for (auto otr : used_so_far)
-                {
-                    // TODO: not ideal for fuzzing.
-                    main.push_back(make_shared<CBinaryOp>(
-                        decl, "!=", otr
-                    )->stmt());
-                }
-
-                used_so_far.push_back(decl);
-            }
-        }
-    }
+    // Assigns all addresses.
+    init_address_space(main, actors);
 
     // Initializes all actors.
     for (auto const& actor : actors)
     {
         if (!actor.path)
         {
-            update_call_state(main, contract_addrs, addr_vars);
+            update_call_state(main, addr_vars);
             init_contract(main, *actor.contract, actor.decl);
         }
     }
@@ -279,7 +176,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     transactionals.push_back(
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
-    update_call_state(transactionals, contract_addrs, addr_vars);
+    update_call_state(transactionals, addr_vars);
     transactionals.push_back(next_case);
     transactionals.push_back(
         next_case->assign(get_nd_range(0, case_count, "next_call"))->stmt()
@@ -287,11 +184,9 @@ void MainFunctionGenerator::print(ostream& _stream)
     transactionals.push_back(call_cases);
 
     // Adds transactional loop to end of body.
-    // TODO: why is it possible to terminate...? This only makes sense in an
-    //       interactive execution... It is terrible for fuzzing.
     main.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(move(transactionals)),
-        get_nd_byte("Select 0 to terminate"),
+        make_shared<CFuncCall>("sol_continue", CArgList{}),
         false
     ));
 
@@ -409,6 +304,68 @@ void MainFunctionGenerator::analyze_nested_decls(
 
 // -------------------------------------------------------------------------- //
 
+list<shared_ptr<CMemberAccess>> MainFunctionGenerator::init_address_space(
+    CBlockList & _stmts, std::list<Actor> const& _actors
+)
+{
+    // If the null address is in use, it is address 0.
+    uint64_t min = (M_USES_ZERO ? 1 : 0);
+
+    // Maps all contracts into the address space.
+    list<shared_ptr<CMemberAccess>> contract_addrs;
+    for (auto const& actor : _actors)
+    {
+        auto const& DECL = actor.decl;
+        if (actor.path)
+        {
+            _stmts.push_back(
+                DECL->assign(make_shared<CReference>(actor.path))->stmt()
+            );
+        }
+
+        auto const& ADDR = DECL->access(ContractUtilities::address_member());
+        _stmts.push_back(ADDR->access("v")->assign(
+            make_shared<CIntLiteral>(min + contract_addrs.size())
+        )->stmt());
+        contract_addrs.push_back(ADDR);
+    }
+
+    // Maps all literals into the address space.
+    list<shared_ptr<CIdentifier>> used_so_far;
+    for (auto lit : m_addrdata.literals())
+    {
+        auto const NAME = modelcheck::Indices::const_global_name(lit);
+        auto decl = make_shared<CIdentifier>(NAME, false);
+
+        if (lit == 0)
+        {
+            _stmts.push_back(decl->assign(
+                make_shared<CIntLiteral>(0)
+            )->stmt());
+        }
+        else
+        {
+            _stmts.push_back(decl->assign(get_nd_range(
+                min, m_addrdata.representative_count(), NAME
+            ))->stmt());
+
+            for (auto otr : used_so_far)
+            {
+                // TOD: bad for fuzzing, though used_so_far is often small.
+                _stmts.push_back(make_shared<CBinaryOp>(
+                    decl, "!=", otr
+                )->stmt());
+            }
+
+            used_so_far.push_back(decl);
+        }
+    }
+
+    return contract_addrs;
+}
+
+// -------------------------------------------------------------------------- //
+
 void MainFunctionGenerator::init_contract(
     CBlockList & _stmts,
     ContractDefinition const& _contract,
@@ -476,9 +433,7 @@ CBlockList MainFunctionGenerator::build_case(
 // -------------------------------------------------------------------------- //
 
 void MainFunctionGenerator::update_call_state(
-    CBlockList & _stmts,
-    list<shared_ptr<CMemberAccess>> const& _addresses,
-    list<CExprPtr> const& _addrvars
+    CBlockList & _stmts, list<CExprPtr> const& _addrvars
 )
 {
     // Decides once, if lockstep will be used.
@@ -535,6 +490,7 @@ void MainFunctionGenerator::update_call_state(
             }
             else
             {
+                // TOD: it would be ideal to drop the <=.
                 _stmts.push_back(tmp_state->access("v")->assign(nd)->stmt());
                 _stmts.push_back(make_require(make_shared<CBinaryOp>(
                     state->access("v"), "<=", tmp_state->access("v")
@@ -546,26 +502,22 @@ void MainFunctionGenerator::update_call_state(
         {
             _stmts.push_back(state->access("v")->assign(Literals::ZERO)->stmt());
         }
+        else if (fld.field == CallStateUtilities::Field::Sender)
+        {
+            // This restricts senders to valid addresses: non-zero clients.
+            size_t minaddr = m_addrdata.contract_count();
+            size_t maxaddr = m_addrdata.size();
+            if (M_USES_ZERO)
+            {
+                minaddr += 1;
+            }
+
+            auto ndaddr = get_nd_range(minaddr, maxaddr, fld.name);
+            _stmts.push_back(state->access("v")->assign(ndaddr)->stmt());
+        }
         else
         {
             _stmts.push_back(state->access("v")->assign(nd)->stmt());
-            if (fld.field == CallStateUtilities::Field::Sender)
-            {
-                // TODO: this should be restricted in address generation.
-                if (M_USES_ZERO)
-                {
-                    _stmts.push_back(make_require(make_shared<CBinaryOp>(
-                        state->access("v"), "!=", Literals::ZERO
-                    )));
-                }
-                for (auto const addr : _addresses)
-                {
-                    // TODO: this should be restricted in address generation.
-                    _stmts.push_back(make_require(make_shared<CBinaryOp>(
-                        state->access("v"), "!=", addr->access("v")
-                    )));
-                }
-            }
         }
     }
 }

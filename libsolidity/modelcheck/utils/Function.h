@@ -36,6 +36,9 @@ public:
     // accessible (ie. resolvable in TypeConverter by ASTNode address).
     static std::string modifier_name(std::string _base, size_t _i);
     static std::string base_name(std::string _base);
+
+    // Returns the name for the destination used in contract initialization.
+    static std::string init_var();
 };
 
 /**

@@ -26,10 +26,11 @@ class NewCallSummary
 {
 public:
     // Types of violations.
-    // - None:     the allocation is "safe"
-    // - Orphaned: the allocation is not assigned to some state variable
-    // - Unbounded: the new operation may be called more than once
-    enum class ViolationType { None, Orphaned, Unbounded };
+    // - None:          the allocation is "safe"
+    // - Orphaned:      the allocation is not assigned to some state variable
+    // - Unbounded:     the new operation may be called more than once
+    // - TypeConfusion: the allocation has at least two possible types
+    enum class ViolationType { None, Orphaned, Unbounded, TypeConfusion };
 
     // Summarizes a single `new` call.
     struct NewCall
@@ -81,6 +82,10 @@ private:
         FunctionDefinition const* m_context;
         VariableDeclaration const* m_dest = nullptr;
         bool m_return = false;
+
+        std::map<FunctionDefinition const*, ContractDefinition const*> _fcache;
+
+        ContractDefinition const* handle_call_type(FunctionType const& _ftype);
     };
 };
 

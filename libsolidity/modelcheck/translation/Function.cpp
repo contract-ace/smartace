@@ -233,10 +233,11 @@ CParams FunctionConverter::generate_params(
     }
     if (_dest)
     {
-        // TODO: hard coded.
         params.push_back(make_shared<CVarDecl>(
-            M_CONVERTER.get_type(M_NEWCALLS.specialize(*_dest)), "dest", true)
-        );
+            M_CONVERTER.get_type(M_NEWCALLS.specialize(*_dest)),
+            FunctionUtilities::init_var(),
+            true
+        ));
     }
     return params;
 }

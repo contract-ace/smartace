@@ -67,6 +67,13 @@ void sol_setup(int _argc, const char **_argv)
 
 // -------------------------------------------------------------------------- //
 
+uint8_t sol_continue(void)
+{
+	return rt_nd_byte("Select 0 to terminate");
+}
+
+// -------------------------------------------------------------------------- //
+
 void sol_on_transaction(void)
 {
     ++g_solTransactionNumber;

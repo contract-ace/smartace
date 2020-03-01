@@ -119,22 +119,7 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
         }
         else
         {
-            auto const* internalcall = dynamic_cast<FunctionDefinition const*>(
-                &CALLTYPE->declaration()
-            );
-            if (internalcall)
-            {
-                // TODO: reuse results?
-                Visitor nested(internalcall, M_DEPTH_LIMIT - 1);
-                for (auto child : nested.calls)
-                {
-                    if (child.is_retval)
-                    {
-                        calls.back().type = child.type;
-                    }
-                }
-
-            }
+            calls.back().type = handle_call_type(*CALLTYPE);
         }
 
         // Checks that new type analysis succeeded.
@@ -180,6 +165,39 @@ bool NewCallSummary::Visitor::visit(Return const& _node)
     return false;
 }
 
+ContractDefinition const* NewCallSummary::Visitor::handle_call_type(
+    FunctionType const& _ftype
+)
+{
+    auto const* CALL = dynamic_cast<FunctionDefinition const*>(
+        &_ftype.declaration()
+    );
+
+    // Checks if this method was previously analyzed.
+    auto res = _fcache.find(CALL);
+    if (res != _fcache.end())
+    {
+        return res->second;
+    }
+
+    // If not, analyzes the method.
+    if (CALL)
+    {
+        Visitor nested(CALL, M_DEPTH_LIMIT - 1);
+        for (auto child : nested.calls)
+        {
+            if (child.is_retval)
+            {
+                _fcache[CALL] = child.type;
+                return child.type;
+            }
+        }
+    }
+
+    // No match.
+    return nullptr;
+}
+
 // -------------------------------------------------------------------------- //
 
 void NewCallGraph::record(SourceUnit const& _src)
@@ -197,30 +215,36 @@ void NewCallGraph::record(SourceUnit const& _src)
         if (contract->isLibrary() || contract->isInterface()) continue;
     
         NewCallSummary summary(*contract);
-        
+
+        // Accumates violations.
         auto violations = summary.violations();
         m_violations.splice(m_violations.end(), violations);
 
+        // Checks that each contract variable has only one possible type.
         m_vertices[contract] = {};
         for (auto child : summary.children())
         {
             auto typedata = m_truetypes.find(child.dest);
             if (typedata == m_truetypes.end())
             {
+                // Caches the first "true type" for the contract.
                 m_truetypes[child.dest] = child.type;
-                m_vertices[contract].push_back(child);
+                m_vertices[contract].push_back(move(child));
             }
             else if (typedata->second == child.type)
             {
-                m_vertices[contract].push_back(child);
+                // Two statements initialize the contract as a consistent type.
+                m_vertices[contract].push_back(move(child));
             }
             else
             {
-                // TODO: new violation type
-                m_violations.push_back(child);
+                // The contract is initialized as at least two distinct types.
+                child.status = NewCallSummary::ViolationType::TypeConfusion;
+                m_violations.push_back(move(child));
             }
         }
 
+        // Updates name-to-contract lookup.
         m_names[contract->name()] = contract;
     }
 }
