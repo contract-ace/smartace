@@ -8,8 +8,7 @@
 
 #include "libsolidity/ast/ASTVisitor.h"
 #include "libsolidity/modelcheck/utils/General.h"
-#include <list>
-#include <string>
+
 #include <vector>
 
 namespace dev
@@ -18,6 +17,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 class FunctionCallAnalyzer: public ASTConstVisitor
 {
@@ -54,6 +55,8 @@ private:
     Expression const* m_context = nullptr;
     Identifier const* m_id = nullptr;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

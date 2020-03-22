@@ -9,6 +9,7 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
+
 #include <list>
 #include <ostream>
 #include <set>
@@ -23,6 +24,8 @@ namespace modelcheck
 
 class PrimitiveTypeGenerator;
 class CFuncCallBuilder;
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Provides an interface for aggregating call state data, and using it to produce
@@ -71,6 +74,8 @@ private:
     std::set<CallStateUtilities::Field> m_recorded_fields;
     std::list<FieldData> m_field_order;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

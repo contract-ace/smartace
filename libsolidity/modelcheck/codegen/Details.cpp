@@ -7,7 +7,7 @@
 
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
-#include <libsolidity/modelcheck/translation/Expression.h>
+#include <libsolidity/modelcheck/model/Expression.h>
 
 using namespace std;
 

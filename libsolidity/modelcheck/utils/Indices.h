@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
+
 #include <string>
 
 namespace dev
@@ -14,6 +15,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Tools for generating constants.
@@ -24,6 +27,8 @@ public:
     // Generates the name of a constant address global variable.
     static std::string const_global_name(dev::u256 _var);
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

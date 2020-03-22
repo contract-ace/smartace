@@ -6,9 +6,9 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+
 #include <list>
 #include <map>
-#include <set>
 #include <string>
 
 namespace dev
@@ -17,6 +17,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Analyzes a single contract to identify how many "valid" contracts it
@@ -89,6 +91,8 @@ private:
     };
 };
 
+// -------------------------------------------------------------------------- //
+
 /**
  * Analyzes the inter-contract relations between new calls. This is presented as
  * a graph, in which each contract (vertex) is annotated with the number of
@@ -148,6 +152,8 @@ private:
     VarTyping m_truetypes;
     NewCallSummary::CallGroup m_violations;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

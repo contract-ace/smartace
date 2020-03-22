@@ -14,16 +14,22 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 ostream & operator<<(ostream & _out, CElement const& _comp)
 {
     _comp.print(_out);
     return _out;
 }
 
+// -------------------------------------------------------------------------- //
+
 bool CExpr::is_pointer() const
 {
     return false;
 }
+
+// -------------------------------------------------------------------------- //
 
 void CStmt::nest()
 {
@@ -35,6 +41,8 @@ void CStmt::print(std::ostream & _out) const
     print_impl(_out);
     if (!m_is_nested) _out << ";";
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }

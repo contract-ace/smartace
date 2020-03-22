@@ -13,6 +13,7 @@
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
+
 #include <sstream>
 
 using namespace std;

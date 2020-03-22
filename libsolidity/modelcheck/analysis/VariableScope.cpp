@@ -8,6 +8,7 @@
 
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Types.h>
+
 #include <sstream>
 
 using namespace std;

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+
 #include <list>
 #include <map>
 #include <string>
@@ -18,6 +19,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Not quite MapReduce... This class consumes the AST for `mapping` typenames,
@@ -56,6 +59,8 @@ public:
 private:
     std::map<Mapping const*, FlatMap> m_flatset;
 };
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Analyzers an IndexAccess, flattens all keys into a list, and extracts the
@@ -96,6 +101,8 @@ private:
 
     std::list<Expression const*> m_indices;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

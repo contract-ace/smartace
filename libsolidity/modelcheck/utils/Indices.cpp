@@ -8,6 +8,7 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/Types.h>
+
 #include <sstream>
 
 using namespace std;
@@ -18,6 +19,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+    
+// -------------------------------------------------------------------------- //
 
 std::string Indices::const_global_name(dev::u256 _var)
 {
@@ -25,6 +28,8 @@ std::string Indices::const_global_name(dev::u256 _var)
     oss << "global_index_const_" << _var;
     return oss.str();
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }

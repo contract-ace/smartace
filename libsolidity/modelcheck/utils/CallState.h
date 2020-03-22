@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
+
 #include <string>
 
 namespace dev
@@ -14,6 +15,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Utilities to generate fields from argument types.
@@ -43,6 +46,8 @@ private:
     static IntegerType const COUNTABLE_TYPE;
     static BoolType const BOOLEAN_TYPE;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

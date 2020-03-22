@@ -8,6 +8,7 @@
 
 #include <libsolidity/ast/AST.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
+
 #include <memory>
 #include <string>
 
@@ -17,6 +18,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Utilities to move a function from the Solidity representation to the c-model
@@ -40,6 +43,8 @@ public:
     // Returns the name for the destination used in contract initialization.
     static std::string init_var();
 };
+
+// -------------------------------------------------------------------------- //
 
 /**
  * This class manages the specialization of a FunctionDefinition in Solidity.
@@ -84,6 +89,8 @@ private:
     ContractDefinition const* M_SRC;
     ContractDefinition const* M_USER;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

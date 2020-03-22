@@ -7,8 +7,6 @@
 
 #include <libsolidity/modelcheck/utils/General.h>
 
-#include <stack>
-
 using namespace std;
 
 namespace dev

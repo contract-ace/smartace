@@ -12,6 +12,7 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
+
 #include <string>
 #include <vector>
 #include <type_traits>

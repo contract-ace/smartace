@@ -10,6 +10,7 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
+
 #include <map>
 #include <set>
 #include <string>
@@ -26,6 +27,8 @@ namespace modelcheck
  * mapping is restricted to AST Nodes for which types are practical, and records
  * must be generated on a per-source-unit basis.
  */
+// -------------------------------------------------------------------------- //
+
 class TypeConverter : public ASTConstVisitor
 {
 public:
@@ -114,6 +117,8 @@ private:
     unsigned int m_rectype_depth = 0;
     bool m_is_retval = false;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

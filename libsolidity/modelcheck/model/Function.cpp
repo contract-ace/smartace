@@ -3,15 +3,16 @@
  * First-pass visitor for converting Solidity methods into functions in C.
  */
 
-#include <libsolidity/modelcheck/translation/Function.h>
+#include <libsolidity/modelcheck/model/Function.h>
 
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/translation/Block.h>
-#include <libsolidity/modelcheck/translation/Mapping.h>
-#include <libsolidity/modelcheck/translation/Expression.h>
+#include <libsolidity/modelcheck/model/Block.h>
+#include <libsolidity/modelcheck/model/Mapping.h>
+#include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
+
 #include <set>
 #include <sstream>
 

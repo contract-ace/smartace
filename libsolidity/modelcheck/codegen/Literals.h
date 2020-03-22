@@ -19,6 +19,8 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 /**
  * Stores all such literals in a single collection.
  */
@@ -28,6 +30,8 @@ public:
     static CExprPtr const ZERO;
     static CExprPtr const ONE;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

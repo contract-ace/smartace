@@ -3,13 +3,14 @@
  * First-pass visitor for converting Solidity AST's to models in C.
  */
 
-#include <libsolidity/modelcheck/translation/ADT.h>
+#include <libsolidity/modelcheck/model/ADT.h>
 
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/translation/Mapping.h>
+#include <libsolidity/modelcheck/model/Mapping.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/General.h>
+
 #include <set>
 #include <sstream>
 

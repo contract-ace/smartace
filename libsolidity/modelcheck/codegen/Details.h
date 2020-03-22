@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
+
 #include <map>
 #include <string>
 #include <type_traits>

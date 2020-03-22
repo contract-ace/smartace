@@ -5,6 +5,7 @@
  */
 
 #include "libsolidity/modelcheck/analysis/FunctionCall.h"
+
 #include <iostream>
 
 using namespace std;

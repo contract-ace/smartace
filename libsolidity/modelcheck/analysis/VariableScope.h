@@ -8,6 +8,7 @@
 
 #include <libsolidity/ast/AST.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+
 #include <list>
 #include <set>
 #include <string>
@@ -18,6 +19,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 enum class VarContext { STRUCT, FUNCTION };
 enum class CodeType { SOLBLOCK, SHADOWBLOCK, INITBLOCK };
@@ -69,6 +72,8 @@ private:
     // Resolves any string within the resolver.
     std::string resolve_sym(std::string const& _sym) const;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

@@ -8,6 +8,8 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 
+#include <type_traits>
+
 namespace dev
 {
 namespace solidity

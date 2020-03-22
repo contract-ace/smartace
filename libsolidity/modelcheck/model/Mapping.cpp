@@ -4,7 +4,7 @@
  * code duplication.
  */
 
-#include <libsolidity/modelcheck/translation/Mapping.h>
+#include <libsolidity/modelcheck/model/Mapping.h>
 
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>

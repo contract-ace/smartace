@@ -4,10 +4,10 @@
  * handles cases specific to function blocks.
  */
 
-#include <libsolidity/modelcheck/translation/Block.h>
+#include <libsolidity/modelcheck/model/Block.h>
 
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/translation/Expression.h>
+#include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 

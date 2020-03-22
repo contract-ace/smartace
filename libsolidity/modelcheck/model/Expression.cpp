@@ -3,7 +3,7 @@
  * Utility visitor to convert Solidity expressions into verifiable code.
  */
 
-#include <libsolidity/modelcheck/translation/Expression.h>
+#include <libsolidity/modelcheck/model/Expression.h>
 
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
@@ -14,6 +14,7 @@
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/Indices.h>
 #include <libsolidity/modelcheck/utils/Types.h>
+
 #include <stdexcept>
 
 using namespace std;

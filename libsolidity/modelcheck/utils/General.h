@@ -16,6 +16,8 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 /**
  * A RAII-like data structure which will consume a reference to a variable, copy
  * its value, and then overwrite it with a new value. On destruction, the old
@@ -50,6 +52,8 @@ private:
 	T &m_ref;
 };
 
+// -------------------------------------------------------------------------- //
+
 /**
  * Simple monotonic counter with overflow detection. It is assumed that tickets
  * are unsigned integers.
@@ -76,6 +80,8 @@ private:
     T m_counter = 0;
 };
 
+// -------------------------------------------------------------------------- //
+
 /**
  * Computes an integer power (_base)^(_exp).
  */
@@ -97,6 +103,8 @@ inline uint64_t fast_pow(uint64_t _base, uint64_t _exp)
     }
     return res;
 }
+
+// -------------------------------------------------------------------------- //
 
 }
 }

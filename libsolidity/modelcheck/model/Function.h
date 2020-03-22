@@ -13,7 +13,7 @@
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
-#include <list>
+
 #include <map>
 #include <ostream>
 #include <utility>
@@ -25,6 +25,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Prints a forward declaration for each explicit (member function) and implicit
@@ -113,6 +115,8 @@ private:
     	ContractDefinition const& _initialized, ContractDefinition const& _for
 	);
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

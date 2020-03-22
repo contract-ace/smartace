@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
+
 #include <memory>
 #include <string>
 
@@ -20,13 +21,7 @@ namespace solidity
 namespace modelcheck
 {
 
-/**
- * A collection of mapping-related utilities.
- */
-class MappingUtilities
-{
-public:
-};
+// -------------------------------------------------------------------------- //
 
 class MapGenerator
 {
@@ -117,6 +112,8 @@ private:
         size_t _depth, std::string const& _suffix, bool _is_writer
     ) const;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

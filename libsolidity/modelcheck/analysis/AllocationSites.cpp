@@ -7,6 +7,7 @@
 
 #include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/General.h>
+
 #include <stdexcept>
 
 using namespace std;

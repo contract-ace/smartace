@@ -8,6 +8,7 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
+
 #include <string>
 
 namespace dev
@@ -17,11 +18,15 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 /**
  * Unwraps the TypeType, and converts RationalNumberType to a storage-based
  * type.
  */
 Type const& unwrap(Type const& _type);
+
+// -------------------------------------------------------------------------- //
 
 /*
  * Determines the number of bits needed to represent _type.
@@ -43,6 +48,8 @@ bool is_wrapped_type(Type const& _expr);
  */
 bool is_simple_type(Type const& _type);
 
+// -------------------------------------------------------------------------- //
+
 /**
  * Extracts the type associated with an AST node, and returns true if it is a
  * simple type. This is equivalent to extracting the type manually, and then
@@ -53,6 +60,8 @@ bool is_simple_type(Type const& _type);
 bool has_simple_type(Declaration const& _node);
 bool has_simple_type(TypeName const& _node);
 bool has_simple_type(Expression const& _node);
+
+// -------------------------------------------------------------------------- //
 
 /**
  * See escape_decl_name: escape_decl_name(A) = escape_decl_name_string(A.name())
@@ -67,6 +76,8 @@ std::string escape_decl_name_string(std::string const& _name);
  * This operation realizes `name` from the translation specifications.
  */
 std::string escape_decl_name(Declaration const& _decl);
+
+// -------------------------------------------------------------------------- //
 
 }
 }

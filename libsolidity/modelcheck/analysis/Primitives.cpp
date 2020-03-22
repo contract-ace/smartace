@@ -8,6 +8,7 @@
 
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/General.h>
+
 #include <sstream>
 
 using namespace std;

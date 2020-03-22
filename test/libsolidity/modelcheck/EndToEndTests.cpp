@@ -6,8 +6,8 @@
  * These are tests which apply to both ADTConverter and FunctionConverter.
  */
 
-#include <libsolidity/modelcheck/translation/ADT.h>
-#include <libsolidity/modelcheck/translation/Function.h>
+#include <libsolidity/modelcheck/model/ADT.h>
+#include <libsolidity/modelcheck/model/Function.h>
 
 #include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>

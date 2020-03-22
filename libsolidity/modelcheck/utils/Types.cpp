@@ -8,7 +8,7 @@
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <libsolidity/modelcheck/utils/General.h>
-#include <map>
+
 #include <sstream>
 #include <stdexcept>
 

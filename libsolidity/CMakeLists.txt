@@ -128,20 +128,26 @@ set(sources
 	modelcheck/codegen/Details.h
 	modelcheck/codegen/Literals.cpp
 	modelcheck/codegen/Literals.h
-	modelcheck/translation/ADT.cpp
-	modelcheck/translation/ADT.h
-	modelcheck/translation/Block.h
-	modelcheck/translation/Expression.cpp
-	modelcheck/translation/Expression.h
-	modelcheck/translation/Mapping.h
-	modelcheck/translation/Mapping.cpp
-	modelcheck/translation/Function.cpp
-	modelcheck/translation/Function.h
-	modelcheck/translation/FunctionBlock.cpp
-	modelcheck/translation/GeneralBlock.cpp
-	modelcheck/translation/MainFunction.cpp
-	modelcheck/translation/MainFunction.h
-	modelcheck/translation/ModifierBlock.cpp
+	modelcheck/harness/ActorModel.cpp
+	modelcheck/harness/ActorModel.h
+	modelcheck/harness/AddressSpace.cpp
+	modelcheck/harness/AddressSpace.h
+	modelcheck/harness/MainFunction.cpp
+	modelcheck/harness/MainFunction.h
+	modelcheck/harness/StateGenerator.cpp
+	modelcheck/harness/StateGenerator.h
+	modelcheck/model/ADT.cpp
+	modelcheck/model/ADT.h
+	modelcheck/model/Block.h
+	modelcheck/model/Expression.cpp
+	modelcheck/model/Expression.h
+	modelcheck/model/Mapping.h
+	modelcheck/model/Mapping.cpp
+	modelcheck/model/Function.cpp
+	modelcheck/model/Function.h
+	modelcheck/model/FunctionBlock.cpp
+	modelcheck/model/GeneralBlock.cpp
+	modelcheck/model/ModifierBlock.cpp
 	modelcheck/utils/AST.cpp
 	modelcheck/utils/AST.h
 	modelcheck/utils/CallState.cpp
@@ -150,6 +156,8 @@ set(sources
 	modelcheck/utils/Contract.h
 	modelcheck/utils/Function.cpp
 	modelcheck/utils/Function.h
+	modelcheck/utils/Harness.cpp
+	modelcheck/utils/Harness.h
 	modelcheck/utils/Indices.cpp
 	modelcheck/utils/Indices.h
 	modelcheck/utils/Types.cpp

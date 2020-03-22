@@ -22,8 +22,12 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 CExprPtr const Literals::ZERO = make_shared<CIntLiteral>(0);
 CExprPtr const Literals::ONE = make_shared<CIntLiteral>(1);
+
+// -------------------------------------------------------------------------- //
 
 }
 }

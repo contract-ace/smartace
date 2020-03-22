@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
+
 #include <ostream>
 #include <type_traits>
 #include <utility>

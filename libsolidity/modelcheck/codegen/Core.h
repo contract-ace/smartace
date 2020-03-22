@@ -16,6 +16,8 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 /**
  * Base class for all C nodes. Streaming a CElement produces equivalent C code.
  */
@@ -30,6 +32,8 @@ public:
 
 std::ostream & operator<<(std::ostream & _out, CElement const& _comp);
 
+// -------------------------------------------------------------------------- //
+
 /**
  * Extends the CElement class to handle expression concerns.
  */
@@ -41,6 +45,8 @@ public:
     // Overriden to determine if an element is a pointer. Defaults to false.
     virtual bool is_pointer() const;
 };
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Extends the CElement class to handle statements and nested statements.
@@ -62,12 +68,16 @@ private:
     virtual void print_impl(std::ostream & _out) const = 0;
 };
 
+// -------------------------------------------------------------------------- //
+
 class CVarDecl;
 using CExprPtr = std::shared_ptr<CExpr>;
 using CStmtPtr = std::shared_ptr<CStmt>;
 using CArgList = std::vector<CExprPtr>;
 using CBlockList = std::vector<CStmtPtr>;
 using CParams = std::vector<std::shared_ptr<CVarDecl>>;
+
+// -------------------------------------------------------------------------- //
 
 }
 }

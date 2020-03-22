@@ -7,6 +7,7 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
+
 #include <string>
 
 namespace dev
@@ -15,6 +16,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Utilities to move a function from the Solidity representation to the c-model
@@ -43,6 +46,8 @@ private:
     static AddressType ADDRESS_MEMBER_TYPE;
     static IntegerType BALANCE_MEMBER_TYPE;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

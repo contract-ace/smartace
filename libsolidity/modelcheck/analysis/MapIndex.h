@@ -6,6 +6,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+
 #include <cstdint>
 #include <list>
 #include <set>

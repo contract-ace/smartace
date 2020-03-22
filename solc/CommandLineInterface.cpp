@@ -43,10 +43,10 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/translation/ADT.h>
-#include <libsolidity/modelcheck/translation/Function.h>
-#include <libsolidity/modelcheck/translation/MainFunction.h>
-#include <libsolidity/modelcheck/translation/Mapping.h>
+#include <libsolidity/modelcheck/harness/MainFunction.h>
+#include <libsolidity/modelcheck/model/ADT.h>
+#include <libsolidity/modelcheck/model/Function.h>
+#include <libsolidity/modelcheck/model/Mapping.h>
 #include <libsolidity/modelcheck/utils/Indices.h>
 
 #include <libyul/AssemblyStack.h>
@@ -1552,6 +1552,7 @@ void CommandLineInterface::handleCModelBody(
 	{
 		main_gen.record(*ast);
 	}
+	main_gen.finalize();
 	main_gen.print(_os);
 }
 

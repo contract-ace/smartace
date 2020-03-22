@@ -6,7 +6,7 @@
  * Targets libsolidity/modelcheck/ExpressionConversionVisitor.{h,cpp}.
  */
 
-#include <libsolidity/modelcheck/translation/Expression.h>
+#include <libsolidity/modelcheck/model/Expression.h>
 
 #include <boost/test/unit_test.hpp>
 

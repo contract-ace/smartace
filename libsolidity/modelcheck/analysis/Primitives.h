@@ -8,8 +8,8 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
+
 #include <array>
-#include <map>
 
 namespace dev
 {
@@ -17,6 +17,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * The class provides an analysis tool, which will determine all primitve types
@@ -87,6 +89,8 @@ private:
     std::array<std::array<bool, 81>, 32> m_uses_fixed;
     std::array<std::array<bool, 81>, 32> m_uses_ufixed;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }

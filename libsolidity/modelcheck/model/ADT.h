@@ -8,7 +8,7 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
-#include <list>
+
 #include <ostream>
 #include <set>
 
@@ -18,6 +18,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
 
 /**
  * Interprets the AST in terms of its C model, and prints forward declarations
@@ -59,6 +61,8 @@ private:
 
 	std::set<ContractDefinition const*> m_built;
 };
+
+// -------------------------------------------------------------------------- //
 
 }
 }
