@@ -161,8 +161,11 @@ list<AddressVariables::AddressEntry> const& AddressVariables::access(
 
 // -------------------------------------------------------------------------- //
 
-MapIndexSummary::MapIndexSummary(uint64_t _clients, uint64_t _contracts)
-    : m_client_reps(_clients)
+MapIndexSummary::MapIndexSummary(
+    bool _concrete, uint64_t _clients, uint64_t _contracts
+)
+    : IS_CONCRETE(_concrete)
+    , m_client_reps(_clients)
     , m_contract_reps(_contracts)
     , m_max_inteference(0)
     , m_in_first_pass(false)
@@ -291,7 +294,14 @@ uint64_t MapIndexSummary::contract_count() const
 
 uint64_t MapIndexSummary::max_interference() const
 {
-    return m_max_inteference;
+    if (IS_CONCRETE)
+    {
+        return 0;
+    }
+    else
+    {
+        return m_max_inteference;
+    }
 }
 
 uint64_t MapIndexSummary::size() const

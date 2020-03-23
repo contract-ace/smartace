@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(address_to_int)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(5, 5);
+    MapIndexSummary summary(false, 5, 5);
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
 
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(int_to_address_valid)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(5, 5);
+    MapIndexSummary summary(false, 5, 5);
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
     BOOST_CHECK(summary.violations().empty());
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(int_to_address_invalid)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(5, 5);
+    MapIndexSummary summary(false, 5, 5);
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
 
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(comparisons)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(5, 5);
+    MapIndexSummary summary(false, 5, 5);
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
 
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(literals)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(5, 5);
+    MapIndexSummary summary(false, 5, 5);
     BOOST_CHECK_EQUAL(summary.size(), 10);
 
     summary.extract_literals(ctrt);
@@ -209,7 +209,7 @@ BOOST_AUTO_TEST_CASE(mixed_summary)
     auto const& ctrt1 = *retrieveContractByName(unit, "X");
     auto const& ctrt2 = *retrieveContractByName(unit, "Y");
 
-    MapIndexSummary summary(5, 5);
+    MapIndexSummary summary(false, 5, 5);
 
     summary.extract_literals(ctrt1);
     summary.compute_interference(ctrt1);
@@ -243,12 +243,12 @@ BOOST_AUTO_TEST_CASE(basic_interference_count)
     auto const& ctrt1 = *retrieveContractByName(unit, "X");
     auto const& ctrt2 = *retrieveContractByName(unit, "Y");
 
-    MapIndexSummary summary1(5, 5);
+    MapIndexSummary summary1(false, 5, 5);
     summary1.extract_literals(ctrt1);
     summary1.compute_interference(ctrt1);
     BOOST_CHECK_EQUAL(summary1.max_interference(), 3);
 
-    MapIndexSummary summary2(5, 5);
+    MapIndexSummary summary2(false, 5, 5);
     summary2.extract_literals(ctrt1);
     summary2.extract_literals(ctrt2);
     summary2.compute_interference(ctrt1);
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(compound_interference_count)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(5, 5);
+    MapIndexSummary summary(false, 5, 5);
 
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
@@ -296,7 +296,7 @@ BOOST_AUTO_TEST_CASE(basic_map_of_addrs_count)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(2, 0);
+    MapIndexSummary summary(false, 2, 0);
 
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(basic_map_of_structs_count)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(2, 0);
+    MapIndexSummary summary(false, 2, 0);
 
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
@@ -341,11 +341,30 @@ BOOST_AUTO_TEST_CASE(inherited_addr_count)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(5, 5);
+    MapIndexSummary summary(false, 5, 5);
 
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
     BOOST_CHECK_EQUAL(summary.max_interference(), 3);
+}
+
+BOOST_AUTO_TEST_CASE(concrete_map_test)
+{
+    char const* text = R"(
+        contract X {
+            mapping(address => mapping(address => address)) m;
+            function f() public pure { }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(unit, "X");
+
+    MapIndexSummary summary(true, 2, 0);
+
+    summary.extract_literals(ctrt);
+    summary.compute_interference(ctrt);
+    BOOST_CHECK_EQUAL(summary.max_interference(), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

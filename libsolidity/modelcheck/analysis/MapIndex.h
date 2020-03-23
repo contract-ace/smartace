@@ -96,7 +96,8 @@ public:
     using ViolationGroup = std::list<Violation>;
 
     // Generates map indices for use by the number of _clients and _contracts.
-    MapIndexSummary(uint64_t _clients, uint64_t _contracts);
+    // If _concrete, then interference values are omitted.
+    MapIndexSummary(bool _concrete, uint64_t _clients, uint64_t _contracts);
     
     // A first-pass analysis which inspects contract code and extracts literals.
     void extract_literals(ContractDefinition const& _src);
@@ -140,6 +141,8 @@ protected:
     bool visit(Literal const& _node) override;
 
 private:
+    const bool IS_CONCRETE;
+
     uint64_t m_client_reps;
     uint64_t m_contract_reps;
     uint64_t m_max_inteference;

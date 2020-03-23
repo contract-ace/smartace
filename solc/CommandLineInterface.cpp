@@ -128,6 +128,7 @@ static string const g_strCModel = "c-model";
 static string const g_strModelMapLen = "map-k";
 static string const g_strModelLockstepTime = "lockstep-time";
 static string const g_strModelActor = "contract-list";
+static string const g_strModelConcrete = "concrete-addrs";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -184,6 +185,7 @@ static string const g_argCModel = g_strCModel;
 static string const g_argModelMapLen = g_strModelMapLen;
 static string const g_argModelLockstepTime = g_strModelLockstepTime;
 static string const g_argModelActor = g_strModelActor;
+static string const g_argModelConcrete = g_strModelConcrete;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -791,7 +793,8 @@ Allowed options)",
 			g_argModelActor.c_str(),
 			po::value<vector<string>>()->multitoken(),
 			"A list of contracts to instantiate in the model."
-		);
+		)
+		(g_argModelConcrete.c_str(), "Disable interference for concrete counterexamples.");
 	po::options_description outputComponents("Output Components");
 	outputComponents.add_options()
 		(g_argAst.c_str(), "AST of all source files.")
@@ -1323,7 +1326,8 @@ void CommandLineInterface::handleCModel()
 
 	// Extracts identifiers from contracts.
 	size_t client_count = m_args[g_argModelMapLen].as<size_t>();
-	modelcheck::MapIndexSummary index_summary(client_count, actor_count);
+	bool concrete_addrs = (m_args.count(g_argModelConcrete) > 0);
+	modelcheck::MapIndexSummary index_summary(concrete_addrs, client_count, actor_count);
 	for (auto const* ast: asts)
 	{
 		auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
