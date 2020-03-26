@@ -78,7 +78,7 @@ void StateGenerator::declare(CBlockList & _block) const
 // -------------------------------------------------------------------------- //
 
 void StateGenerator::update(
-    CBlockList & _block, list<CExprPtr> const& _addrvars
+    CBlockList & _block, list<shared_ptr<CMemberAccess>> const& _addrvars
 ) const
 {
     // Decides once, if lockstep will be used.
@@ -91,6 +91,7 @@ void StateGenerator::update(
 
     // Shuffles address variables which point to interference. The shuffle is
     // performed with respect to the first address, so it is skipped.
+    if (m_addrdata.max_interference() > 0)
     {
         uint64_t minaddr = m_addrdata.representative_count();
         uint64_t maxaddr = m_addrdata.size();
@@ -101,7 +102,7 @@ void StateGenerator::update(
             auto range = HarnessUtilities::range(minaddr, maxaddr, "addrvar");
 
             auto var = (*itr);
-            auto update = make_shared<CBinaryOp>(var, "=", range)->stmt();
+            auto update = var->assign(range)->stmt();
             auto cond = make_shared<CBinaryOp>(var, ">=", boundary);
             _block.push_back(make_shared<CIf>(cond, update, nullptr));
         }

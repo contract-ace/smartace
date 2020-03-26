@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
+#include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/harness/AddressSpace.h>
 #include <libsolidity/modelcheck/harness/StateGenerator.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
@@ -263,11 +264,17 @@ void ActorModel::assign_addresses(
             make_shared<CIntLiteral>(_addrspace.reserve())
         )->stmt());
     }
+
+    // Zero-initializes address variables.
+    for (auto addr : m_addrvar)
+    {
+        _block.push_back(addr->assign(Literals::ZERO)->stmt());
+    }
 }
 
 // -------------------------------------------------------------------------- //
 
-list<CExprPtr> const& ActorModel::vars() const
+list<shared_ptr<CMemberAccess>> const& ActorModel::vars() const
 {
     // Ensures the model has already been.
     if (!m_finalized)

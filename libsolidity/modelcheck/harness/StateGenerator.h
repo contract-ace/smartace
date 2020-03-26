@@ -7,8 +7,8 @@
 
 #include <libsolidity/modelcheck/codegen/Details.h>
 
-#include <memory>
 #include <list>
+#include <memory>
 #include <string>
 
 namespace dev
@@ -42,7 +42,8 @@ public:
 
     // Generate the instructions required to update the call state.
     void update(
-        CBlockList & _block, std::list<CExprPtr> const& _addrvars
+        CBlockList & _block,
+        std::list<std::shared_ptr<CMemberAccess>> const& _addrvars
     ) const;
 
     // Generates a value for a payable method.

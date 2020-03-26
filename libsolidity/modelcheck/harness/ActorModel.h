@@ -104,7 +104,7 @@ public:
     void assign_addresses(CBlockList & _block, AddressSpace & _addrspace) const;
 
     // Returns a list of contract address declarations.
-    std::list<CExprPtr> const& vars() const;
+    std::list<std::shared_ptr<CMemberAccess>> const& vars() const;
 
     // Allow read-only access to this contract's actors
     std::list<Actor> const& inspect() const;
@@ -125,7 +125,7 @@ private:
     std::list<ContractDefinition const*> m_contracts;
 
     // An anonymous list of contract address member variables.
-    std::list<CExprPtr> m_addrvar;
+    std::list<std::shared_ptr<CMemberAccess>> m_addrvar;
 
 	TypeConverter const& m_converter;
     MapIndexSummary const& m_addrdata;
