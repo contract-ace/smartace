@@ -24,8 +24,8 @@ namespace modelcheck
 void HarnessUtilities::require(CBlockList & _block, CExprPtr _cond)
 {
     auto fn = make_shared<CFuncCall>(
-        "sol_require", CArgList{_cond, Literals::ZERO
-    });
+        "sol_require", CArgList{ _cond, Literals::ZERO }
+    );
     _block.push_back(fn->stmt());
 }
 
@@ -33,13 +33,19 @@ void HarnessUtilities::require(CBlockList & _block, CExprPtr _cond)
 
 CExprPtr HarnessUtilities::range(uint8_t _l, uint8_t _u, string const& _msg)
 {
-    return make_shared<CFuncCall>(
-        "rt_nd_range", CArgList{
-            make_shared<CIntLiteral>(_l),
-            make_shared<CIntLiteral>(_u),
-            make_shared<CStringLiteral>(_msg)
-        }
-    );
+    // Determines if there is more than one solution.
+    auto lower = make_shared<CIntLiteral>(_l);
+    if (_l + 1 == _u)
+    {
+        return lower;
+    }
+    else
+    {
+        auto msg = make_shared<CStringLiteral>(_msg);
+        return make_shared<CFuncCall>(
+            "rt_nd_range", CArgList{ lower, make_shared<CIntLiteral>(_u), msg }
+        );
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -47,7 +53,7 @@ CExprPtr HarnessUtilities::range(uint8_t _l, uint8_t _u, string const& _msg)
 CExprPtr HarnessUtilities::byte(std::string const& _msg)
 {
     return make_shared<CFuncCall>(
-        "rt_nd_byte", CArgList{make_shared<CStringLiteral>(_msg)}
+        "rt_nd_byte", CArgList{ make_shared<CStringLiteral>(_msg) }
     );
 }
 
