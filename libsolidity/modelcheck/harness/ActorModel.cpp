@@ -46,9 +46,11 @@ Actor::Actor(
 
     // Analyzes all children and function calls.
     set<string> generated;
-    for (auto rel : contract->annotation().linearizedBaseContracts)
+    for (auto CONTRACT : contract->annotation().linearizedBaseContracts)
     {
-        for (auto const* FUNC : rel->definedFunctions())
+        if (CONTRACT->isInterface()) break;
+
+        for (auto FUNC : CONTRACT->definedFunctions())
         {
             if (FUNC->isConstructor()) continue;
             if (!FUNC->isPublic()) continue;

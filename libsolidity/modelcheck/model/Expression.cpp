@@ -699,14 +699,15 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 			auto const& hierarchy
 				= m_decls.spec()->useby().annotation().linearizedBaseContracts;
 
+			// The compiler accepted this call to `super` so a match exists.
 			FunctionDefinition const* override = nullptr;
-			for (auto derived : hierarchy)
+			for (auto DERIVED : hierarchy)
 			{
-				for (auto const* member_func : derived->definedFunctions())
+				for (auto MEMBER_FUNC : DERIVED->definedFunctions())
 				{
-					if (member_func->name() == call.func().name())
+					if (MEMBER_FUNC->name() == call.func().name())
 					{
-						override = member_func;
+						override = MEMBER_FUNC;
 						break;
 					}
 				}

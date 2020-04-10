@@ -107,40 +107,44 @@ AddressVariables::AddressEntry AddressVariables::analyze_map(
 
 void AddressVariables::record(ContractDefinition const& _src)
 {
+    // Skips interfaces which do not add functions or variables.
+    // Note that they are not skipped recursively.
+    if (_src.isInterface()) return;
+
     m_cache[&_src] = {};
 
     set<string> symbols;
-    for (auto const* contract : _src.annotation().linearizedBaseContracts)
+    for (auto CONTRACT : _src.annotation().linearizedBaseContracts)
     {
-        for (auto const* var : contract->stateVariables())
+        for (auto VAR : CONTRACT->stateVariables())
         {
             // Ensures this is the first instance of the variable.
-            if (symbols.find(var->name()) != symbols.end()) continue;
-            symbols.insert(var->name());
+            if (symbols.find(VAR->name()) != symbols.end()) continue;
+            symbols.insert(VAR->name());
 
             // Classifies variable.
-            if (var->type()->category() == Type::Category::Address)
+            if (VAR->type()->category() == Type::Category::Address)
             {
                 AddressEntry entry;
                 entry.address_only = true;
-                entry.decl = var;
+                entry.decl = VAR;
                 entry.depth = 0;
-                entry.paths.emplace_back(list<string>{var->name()});
+                entry.paths.emplace_back(list<string>{VAR->name()});
                 m_cache[&_src].emplace_back(move(entry));
             }
-            else if (var->type()->category() == Type::Category::Mapping)
+            else if (VAR->type()->category() == Type::Category::Mapping)
             {
-                m_cache[&_src].push_back(analyze_map(*var));
+                m_cache[&_src].push_back(analyze_map(*VAR));
             }
-            else if (var->type()->category() == Type::Category::Struct)
+            else if (VAR->type()->category() == Type::Category::Struct)
             {
-                auto structure = unroll<StructType>(var->type());
+                auto structure = unroll<StructType>(VAR->type());
 
                 AddressEntry entry;
                 entry.address_only = true;
-                entry.decl = var;
+                entry.decl = VAR;
                 entry.depth = 0;
-                entry.paths = analyze_struct(var->name(), structure);
+                entry.paths = analyze_struct(VAR->name(), structure);
                 m_cache[&_src].emplace_back(move(entry));
             }
         }
@@ -177,6 +181,9 @@ MapIndexSummary::MapIndexSummary(
 
 void MapIndexSummary::extract_literals(ContractDefinition const& _src)
 {
+    // Skips interfaces which do not add functions or variables.
+    if (_src.isInterface()) return;
+
     // Determines all addresses in contract.
     m_cache.record(_src);
 
@@ -216,6 +223,11 @@ void MapIndexSummary::extract_literals(ContractDefinition const& _src)
 
 void MapIndexSummary::compute_interference(ContractDefinition const& _src)
 {
+    // Skips interfaces which do not add functions or variables.
+    // Note that they are not skipped recursively.
+    // TODO: perhaps this should be factored out for reuse.
+    if (_src.isInterface()) return;
+
     // Summarizes state address variables.
     uint64_t address_var_count = 0;
     for (auto entry : m_cache.access(_src))
@@ -235,15 +247,19 @@ void MapIndexSummary::compute_interference(ContractDefinition const& _src)
     }
 
     // Summarizes functions.
-    for (auto rel : _src.annotation().linearizedBaseContracts)
+    for (auto CONTRACT : _src.annotation().linearizedBaseContracts)
     {
-        for (auto const* func : rel->definedFunctions())
+        if (CONTRACT->isInterface()) break;
+
+        for (auto const* FUNC : CONTRACT->definedFunctions())
         {
+            if (!FUNC->isImplemented()) continue;
+
             // All state addresses, along with the sender may be interference.
-            if (func->isPublic())
+            if (FUNC->isPublic())
             {
                 uint64_t potential_interference = address_var_count + 1;
-                for (auto var : func->parameters())
+                for (auto var : FUNC->parameters())
                 {
                     if (var->type()->category() == Type::Category::Address)
                     {

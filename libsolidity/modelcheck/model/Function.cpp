@@ -73,14 +73,18 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         }
 
         set<string> methods;
-        for (auto contract : _node.annotation().linearizedBaseContracts)
+        for (auto CONTRACT : _node.annotation().linearizedBaseContracts)
         {
-            for (auto func : contract->definedFunctions())
+            if (CONTRACT->isInterface()) break;
+
+            for (auto FUNC : CONTRACT->definedFunctions())
             {
-                auto res = methods.insert(func->name());
+                if (!FUNC->isImplemented()) break;
+
+                auto res = methods.insert(FUNC->name());
                 if (res.second)
                 {
-                    generate_function(FunctionSpecialization(*func, _node));
+                    generate_function(FunctionSpecialization(*FUNC, _node));
                 }
             }
         }

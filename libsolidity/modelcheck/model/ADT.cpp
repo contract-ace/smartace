@@ -81,25 +81,25 @@ bool ADTConverter::visit(ContractDefinition const& _node)
             }
 
             set<string> vars;
-            for (auto const* base : _node.annotation().linearizedBaseContracts)
+            for (auto BASE : _node.annotation().linearizedBaseContracts)
             {
-                for (auto decl : base->stateVariables())
+                for (auto DECL : BASE->stateVariables())
                 {
-                    auto res = vars.insert(decl->name());
+                    auto res = vars.insert(DECL->name());
                     if (!res.second) break;
 
                     string type;
-                    if (decl->annotation().type->category() == Type::Category::Contract)
+                    if (DECL->annotation().type->category() == Type::Category::Contract)
                     {
-                        type = M_CONVERTER.get_type(M_CALLGRAPH.specialize(*decl));
+                        type = M_CONVERTER.get_type(M_CALLGRAPH.specialize(*DECL));
                     }
                     else
                     {
-                        type = M_CONVERTER.get_type(*decl);
+                        type = M_CONVERTER.get_type(*DECL);
                     }
 
                     string const NAME = VariableScopeResolver::rewrite(
-                        decl->name(), false, VarContext::STRUCT
+                        DECL->name(), false, VarContext::STRUCT
                     );
 
                     fields->push_back(make_shared<CVarDecl>(type, NAME));

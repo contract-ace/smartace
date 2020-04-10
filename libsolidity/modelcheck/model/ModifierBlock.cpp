@@ -26,7 +26,7 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
     FunctionDefinition const& _func, string _name
 ): m_func(_func), m_name(move(_name))
 {
-    auto const* scope = dynamic_cast<ContractDefinition const*>(_func.scope());
+    auto scope = dynamic_cast<ContractDefinition const*>(_func.scope());
     if (!scope)
     {
         throw runtime_error("FunctionDefinition of unknown scope.");
@@ -37,9 +37,10 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
         ModifierDefinition const* match = nullptr;
         string const& target_name = mod->name()->name();
 
-        for (auto const* contract : scope->annotation().linearizedBaseContracts)
+        // This function must be concrete else the compiler would fail.
+        for (auto contract : scope->annotation().linearizedBaseContracts)
         {
-            for (auto const* candidate : contract->functionModifiers())
+            for (auto candidate : contract->functionModifiers())
             {
                 if (target_name == candidate->name())
                 {
@@ -51,6 +52,7 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
             if (match) break;
         }
 
+        // Captures the match if found.
         if (match)
         {
             m_filtered_mods.push_back(make_pair(match, mod.get()));
