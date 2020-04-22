@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(literals)
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
     MapIndexSummary summary(false, 5, 5);
-    BOOST_CHECK_EQUAL(summary.size(), 10);
+    BOOST_CHECK_EQUAL(summary.size(), 11);
 
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);

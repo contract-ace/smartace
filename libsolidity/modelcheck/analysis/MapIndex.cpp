@@ -176,6 +176,7 @@ MapIndexSummary::MapIndexSummary(
     , m_is_address_cast(false)
     , m_uses_contract_address(false)
     , m_context(nullptr)
+    , m_literals({0})
 {
 }
 
