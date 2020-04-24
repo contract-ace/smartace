@@ -35,6 +35,7 @@ public:
         ASTNode const& _ast,
 		NewCallGraph const& _newcalls,
 		TypeConverter const& _converter,
+		bool _add_sums,
 		size_t _map_k,
 		bool _forward_declare
     );
@@ -54,6 +55,7 @@ private:
 	NewCallGraph const& M_CALLGRAPH;
 	TypeConverter const& M_CONVERTER;
 
+	bool const M_ADD_SUMS;
 	size_t const M_MAP_K;
 	bool const M_FORWARD_DECLARE;
 

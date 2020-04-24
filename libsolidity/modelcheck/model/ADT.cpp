@@ -29,11 +29,13 @@ ADTConverter::ADTConverter(
     ASTNode const& _ast,
     NewCallGraph const& _newcalls,
     TypeConverter const& _converter,
+    bool _add_sums,
     size_t _map_k,
     bool _forward_declare
 ): M_AST(_ast)
  , M_CALLGRAPH(_newcalls)
  , M_CONVERTER(_converter)
+ , M_ADD_SUMS(_add_sums)
  , M_MAP_K(_map_k)
  , M_FORWARD_DECLARE(_forward_declare)
 {
@@ -118,7 +120,7 @@ bool ADTConverter::visit(ContractDefinition const& _node)
 
 bool ADTConverter::visit(Mapping const& _node)
 {
-    MapGenerator mapgen(_node, M_MAP_K, M_CONVERTER);
+    MapGenerator mapgen(_node, M_ADD_SUMS, M_MAP_K, M_CONVERTER);
     (*m_ostream) << mapgen.declare(M_FORWARD_DECLARE);
     return false;
 }

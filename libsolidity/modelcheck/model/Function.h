@@ -45,6 +45,7 @@ public:
 		CallState const& _statedata,
 		NewCallGraph const& _newcalls,
 		TypeConverter const& _converter,
+		bool _add_sums,
 		size_t _map_k,
 		View _view,
 		bool _fwd_dcl
@@ -74,6 +75,7 @@ private:
 	NewCallGraph const& M_NEWCALLS;
 	TypeConverter const& M_CONVERTER;
 
+	bool const M_ADD_SUMS;
 	size_t const M_MAP_K;
 
 	View const M_VIEW;

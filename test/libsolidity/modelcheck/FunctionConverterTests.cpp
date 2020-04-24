@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     expect << "void Init_A(struct A*self,sol_address_t sender"
            << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(payable_method)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     expect << "void Init_A(struct A*self,sol_address_t sender"
            << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_A
     expect << "void Init_A(struct A*self,sol_address_t sender"
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Ctor_A
     expect << "void Ctor_A(struct A*self,sol_address_t sender"
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_A
     expect << "void Init_A(struct A*self,sol_address_t sender"
@@ -364,7 +364,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
-        ast, statedata, graph, converter, 1, FunctionConverter::View::EXT, true
+        ast, statedata, graph, converter, false, 1, FunctionConverter::View::EXT, true
     ).print(ext_actual);
     ext_expect << "void Init_A(struct A*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     ostringstream int_actual, int_expect;
     FunctionConverter(
-        ast, statedata, graph, converter, 1, FunctionConverter::View::INT, true
+        ast, statedata, graph, converter, false, 1, FunctionConverter::View::INT, true
     ).print(int_actual);
     int_expect << "void Method_A_Funcg(struct A*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"

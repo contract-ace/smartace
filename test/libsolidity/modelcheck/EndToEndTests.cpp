@@ -50,9 +50,9 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -88,9 +88,9 @@ BOOST_AUTO_TEST_CASE(simple_map)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -138,9 +138,9 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -183,9 +183,9 @@ BOOST_AUTO_TEST_CASE(simple_func)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream func_expect;
@@ -230,9 +230,9 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream func_expect;
@@ -277,9 +277,9 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -335,9 +335,9 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -398,9 +398,9 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -452,9 +452,9 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     callgraph.finalize();
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, 1, true).print(adt_actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, true
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -522,13 +522,13 @@ BOOST_AUTO_TEST_CASE(reproducible)
     callgraph.finalize();
 
     ostringstream adt_1, adt_2, func_1, func_2;
-    ADTConverter(ast, callgraph, converter, 1, false).print(adt_1);
-    ADTConverter(ast, callgraph, converter, 1, false).print(adt_2);
+    ADTConverter(ast, callgraph, converter, false, 1, false).print(adt_1);
+    ADTConverter(ast, callgraph, converter, false, 1, false).print(adt_2);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, false
     ).print(func_1);
     FunctionConverter(
-        ast, statedata, callgraph, converter, 1, FunctionConverter::View::FULL, false
+        ast, statedata, callgraph, converter, false, 1, FunctionConverter::View::FULL, false
     ).print(func_2);
 
     BOOST_CHECK_EQUAL(adt_1.str(), adt_2.str());

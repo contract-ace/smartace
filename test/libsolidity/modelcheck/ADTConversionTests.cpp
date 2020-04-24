@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
     callgraph.finalize();
 
     ostringstream actual, expect;
-    ADTConverter(ast, callgraph, converter, 1, true).print(actual);
+    ADTConverter(ast, callgraph, converter, false, 1, true).print(actual);
     expect << "struct Map_1;";
     expect << "struct A_StructB;";
     expect << "struct Map_2;";
@@ -95,8 +95,8 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
     ostringstream actual_k_1;
     ostringstream actual_k_2;
 
-    ADTConverter(ast, callgraph, converter, 1, false).print(actual_k_1);
-    ADTConverter(ast, callgraph, converter, 2, false).print(actual_k_2);
+    ADTConverter(ast, callgraph, converter, false, 1, false).print(actual_k_1);
+    ADTConverter(ast, callgraph, converter, false, 2, false).print(actual_k_2);
 
     BOOST_CHECK(actual_k_1.str().find("data_0_0") != string::npos);
 
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     callgraph.finalize();
 
     ostringstream actual, expect;
-    ADTConverter(ctrt, callgraph, converter, 1, false).print(actual);
+    ADTConverter(ctrt, callgraph, converter, false, 1, false).print(actual);
     expect << "struct A"
            << "{"
            << "sol_address_t model_address;"
@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     callgraph.finalize();
 
     ostringstream actual, expect;
-    ADTConverter(ctrt, callgraph, converter, 1, false).print(actual);
+    ADTConverter(ctrt, callgraph, converter, false, 1, false).print(actual);
     expect << "struct X"
            << "{"
            << "sol_address_t model_address;"

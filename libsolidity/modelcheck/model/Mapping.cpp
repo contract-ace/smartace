@@ -21,8 +21,12 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 MapGenerator::MapGenerator(
-    Mapping const& _src, size_t _ct, TypeConverter const& _converter
+    Mapping const& _src,
+    bool _keep_sum,
+    size_t _ct,
+    TypeConverter const& _converter
 ): M_LEN(_ct)
+ , M_KEEP_SUM(_keep_sum)
  , M_TYPE(_converter.get_type(_src))
  , M_TYPES(_converter)
  , M_MAP_RECORD(_converter.mapdb().resolve(_src))
@@ -47,7 +51,12 @@ CStructDef MapGenerator::declare(bool _forward_declare) const
     shared_ptr<CParams> t;
     if (!_forward_declare)
     {
-        t = make_shared<CParams>();  
+        t = make_shared<CParams>();
+
+        if (M_KEEP_SUM)
+        {
+            t->push_back(make_shared<CVarDecl>(M_VAL_T, "sum"));
+        }
 
         if (M_LEN > 0)
         {
@@ -106,18 +115,27 @@ CFuncDef MapGenerator::declare_write(bool _forward_declare) const
     params.insert(params.end(), m_keys.begin(), m_keys.end());
     params.push_back(M_DAT);
 
+
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
+        CBlockList block;
+
         if (M_LEN > 0)
         {
-            body = make_shared<CBlock>(CBlockList{expand_access(0, "", true)});
+            block.push_back(expand_access(0, "", true));
         }
-        else
+
+        if (M_KEEP_SUM)
         {
-            body = make_shared<CBlock>(CBlockList{});
+            block.push_back(make_shared<CBinaryOp>(
+                M_ARR->access("sum")->access("v"),
+                "+=",
+                M_DAT->id()->access("v")
+            )->stmt());
         }
-        
+
+        body = make_shared<CBlock>(block);
     }
 
     return CFuncDef(move(fid), move(params), move(body));
@@ -161,6 +179,11 @@ shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
 {
     CBlockList block;
     block.push_back(M_TMP);
+
+    if (M_KEEP_SUM)
+    {
+        block.push_back(M_TMP->access("sum")->assign(_init_data)->stmt());
+    }
     
     if (M_LEN > 0)
     {
@@ -193,7 +216,15 @@ CStmtPtr MapGenerator::expand_access(
         auto const DATA = M_ARR->access("data" + _suffix);
         if (_is_writer)
         {
-            return DATA->assign(M_DAT->id())->stmt();
+            CBlockList block;
+            if (M_KEEP_SUM)
+            {
+                block.push_back(make_shared<CBinaryOp>(
+                    M_ARR->access("sum")->access("v"), "-=", DATA->access("v")
+                )->stmt());
+            }
+            block.push_back(DATA->assign(M_DAT->id())->stmt());
+            return make_shared<CBlock>(move(block));
         }
         else
         {

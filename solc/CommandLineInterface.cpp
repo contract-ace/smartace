@@ -126,6 +126,7 @@ static string const g_strBinary = "bin";
 static string const g_strBinaryRuntime = "bin-runtime";
 static string const g_strCModel = "c-model";
 static string const g_strModelMapLen = "map-k";
+static string const g_strModelMapSum = "map-sum";
 static string const g_strModelLockstepTime = "lockstep-time";
 static string const g_strModelActor = "contract-list";
 static string const g_strModelConcrete = "concrete-addrs";
@@ -183,6 +184,7 @@ static string const g_argBinary = g_strBinary;
 static string const g_argBinaryRuntime = g_strBinaryRuntime;
 static string const g_argCModel = g_strCModel;
 static string const g_argModelMapLen = g_strModelMapLen;
+static string const g_argModelMapSum = g_strModelMapSum;
 static string const g_argModelLockstepTime = g_strModelLockstepTime;
 static string const g_argModelActor = g_strModelActor;
 static string const g_argModelConcrete = g_strModelConcrete;
@@ -794,7 +796,8 @@ Allowed options)",
 			po::value<vector<string>>()->multitoken(),
 			"A list of contracts to instantiate in the model."
 		)
-		(g_argModelConcrete.c_str(), "Disable interference for concrete counterexamples.");
+		(g_argModelConcrete.c_str(), "Disable interference for concrete counterexamples.")
+		(g_argModelMapSum.c_str(), "Auto-instruments all maps with sum variables.");
 	po::options_description outputComponents("Output Components");
 	outputComponents.add_options()
 		(g_argAst.c_str(), "AST of all source files.")
@@ -1451,6 +1454,8 @@ void CommandLineInterface::handleCModelHeaders(
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
 
+	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
+
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
 	_os << "void run_model(void);";
@@ -1462,6 +1467,7 @@ void CommandLineInterface::handleCModelHeaders(
 			*ast,
 			_newcalls,
 			_types,
+			sum_maps,
 			_addrdata.representative_count(),
 			true
 		);
@@ -1474,6 +1480,7 @@ void CommandLineInterface::handleCModelHeaders(
 			_callstate,
 			_newcalls,
 			_types,
+			sum_maps,
 			_addrdata.representative_count(),
 			FunctionConverter::View::EXT,
 			true
@@ -1496,6 +1503,7 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 
+	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 
 	_os << "#include \"cmodel.h\"" << endl;
@@ -1512,6 +1520,7 @@ void CommandLineInterface::handleCModelBody(
 			*ast,
 			_newcalls,
 			_types,
+			sum_maps,
 			_addrdata.representative_count(),
 			false
 		);
@@ -1524,6 +1533,7 @@ void CommandLineInterface::handleCModelBody(
 			_callstate,
 			_newcalls,
 			_types,
+			sum_maps,
 			_addrdata.representative_count(),
 			FunctionConverter::View::INT,
 			true
@@ -1537,6 +1547,7 @@ void CommandLineInterface::handleCModelBody(
 			_callstate,
 			_newcalls,
 			_types,
+			sum_maps,
 			_addrdata.representative_count(),
 			FunctionConverter::View::FULL,
 			false

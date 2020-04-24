@@ -37,6 +37,7 @@ FunctionConverter::FunctionConverter(
     CallState const& _statedata,
     NewCallGraph const& _newcalls,
 	TypeConverter const& _converter,
+    bool _add_sums,
     size_t _map_k,
     View _view,
     bool _fwd_dcl
@@ -44,6 +45,7 @@ FunctionConverter::FunctionConverter(
  , M_STATEDATA(_statedata)
  , M_NEWCALLS(_newcalls)
  , M_CONVERTER(_converter)
+ , M_ADD_SUMS(_add_sums)
  , M_MAP_K(_map_k)
  , M_VIEW(_view)
  , M_FWD_DCL(_fwd_dcl)
@@ -188,7 +190,7 @@ bool FunctionConverter::visit(Mapping const& _node)
 {
     if (M_VIEW == View::EXT) return false;
 
-    MapGenerator gen(_node, M_MAP_K, M_CONVERTER);
+    MapGenerator gen(_node, M_ADD_SUMS, M_MAP_K, M_CONVERTER);
     (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
                  << gen.declare_nd_initializer(M_FWD_DCL)
                  << gen.declare_read(M_FWD_DCL)
