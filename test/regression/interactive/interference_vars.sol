@@ -2,7 +2,7 @@
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make icmodel
-// RUN: echo 2 0 0 1 2 0 0 0 1 1 1 2 0 0 1 2 0 0 0 3 4 2 0 0 1 3 3 0 | ./icmodel
+// RUN: echo 3 0 0 1 3 0 0 0 1 1 1 3 0 0 1 3 0 0 0 4 5 1 3 0 0 1 4 4 0 | ./icmodel
 
 /*
  * When a variabe is set to a representative address, this should be fixed. When

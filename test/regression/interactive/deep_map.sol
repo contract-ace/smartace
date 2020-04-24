@@ -2,7 +2,7 @@
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make icmodel
-// RUN: echo 1 0 0 1 1 0 0 0 2 3 10 1 1 0 0 1 2 3 10 1 2 0 0 0 2 3 10 1 2 0 0 1 2 3 10 1 4 0 0 1 2 3 10 | ./icmodel --return-0 --count-transactions 2>&1 | OutputCheck %s --comment=//
+// RUN: echo 2 0 0 1 2 0 0 0 2 3 10 1 2 0 0 1 2 3 10 1 3 0 0 0 2 3 10 1 3 0 0 1 2 3 10 1 5 0 0 1 2 3 10 | ./icmodel --return-0 --count-transactions 2>&1 | OutputCheck %s --comment=//
 // CHECK: assert
 // CHECK: Transaction Count: 5
 
