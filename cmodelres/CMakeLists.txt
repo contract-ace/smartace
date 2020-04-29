@@ -84,6 +84,19 @@ else()
     message(WARNING "Failed to find klee include directory. See -DKLEE_LIB.")
 endif()
 
+# Locates llvm-link, as required by KLEE.
+find_program(
+    LLVM_LINK_EXE
+    NAMES "llvm-link"
+    DOC "Path to llvm-link executable"
+)
+
+if(LLVM_LINK_EXE)
+    message(STATUS "llvm-link found: ${CLANG_FORMAT_EXE}")
+else()
+    message(WARNING "llvm-link not found, as required by KLEE.")
+endif()
+
 # Locates clang-format, if possible.
 find_program(
     CLANG_FORMAT_EXE
@@ -179,29 +192,36 @@ if(SEA_EXE)
     )
 endif()
 
-set(LLVM_LINK llvm-link)
+# If Klee is available, generates all Klee related targets.
 set(KLEE_DRIVER_BC "klee_driver.bc")
-set(KLEE_ARGS "--simplify-sym-indices;--write-cvcs;--write-cov;--output-module;--max-memory=1000;--disable-inlining;--optimize;--use-forked-solver;--use-cex-cache;--libc=uclibc;--posix-runtime;--external-calls=all;--only-output-states-covering-new;--max-sym-array-size=4096;--max-instruction-time=30s;--max-time=60min;--watchdog;--max-memory-inhibit=false;--max-static-fork-pct=1;--max-static-solve-pct=1;--max-static-cpfork-pct=1;--switch-type=internal;--search=random-path;--search=nurs:covnew;--use-batching-search;--batch-instructions=10000;--silent-klee-assume;--max-forks=512")
 set(KLEE_DEPS "")
-    list(APPEND KLEE_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/libverify/verify_klee.c")
-    foreach(fn ${EXE_SRCS_C})
-        list(APPEND KLEE_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
-    endforeach(fn)
+list(APPEND KLEE_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/libverify/verify_klee.c")
+foreach(fn ${EXE_HARNESSED_C})
+    list(APPEND KLEE_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
+endforeach(fn)
+set(KLEE_BCS "")
+foreach(fn ${KLEE_DEPS})
+    get_filename_component(raw_fn "${fn}" NAME_WE)
+    list(APPEND KLEE_BCS "${CMAKE_CURRENT_SOURCE_DIR}/${raw_fn}.bc")
+endforeach()
 
-# target for klee_driver
 if(KLEE_PATH)
-    if(KLEE_LIB)
+    # Target for Klee driver.
+    if(KLEE_LIB AND LLVM_LINK_EXE)
+        set(KLEE_FLAGS "-DMC_USE_STDINT;-emit-llvm;-c;-g;-O0;-Xclang;-disable-O0-optnone")
         add_custom_target(
             klee_driver
-            COMMAND ${CMAKE_C_COMPILER} -I ${KLEE_LIB} -D MC_USE_STDINT -emit-llvm -c -g -O0 -Xclang -disable-O0-optnone ${KLEE_DEPS}
-            COMMAND ${LLVM_LINK} -f cmodel.bc verify_klee.bc -o ${KLEE_DRIVER_BC}
+            COMMAND ${CMAKE_C_COMPILER} -I ${KLEE_LIB} ${KLEE_FLAGS} ${KLEE_DEPS}
+            COMMAND ${LLVM_LINK_EXE} -f ${KLEE_BCS} -o ${KLEE_DRIVER_BC}
             COMMAND_EXPAND_LISTS
             SOURCES ${KLEE_DEPS}
         )
     endif()
 
-    # target for klee
+    # Target for klee
     if(KLEE_EXE)
+        set(KLEE_ARGS "--simplify-sym-indices;--write-cvcs;--write-cov;--output-module;--max-memory=1000;--disable-inlining;--optimize;--use-forked-solver;--use-cex-cache;--libc=uclibc;--posix-runtime;--external-calls=all;--only-output-states-covering-new;--max-sym-array-size=4096;--max-instruction-time=30s;--max-time=60min;--watchdog;--max-memory-inhibit=false;--max-static-fork-pct=1;--max-static-solve-pct=1;--max-static-cpfork-pct=1;--switch-type=internal;--search=random-path;--search=nurs:covnew;--use-batching-search;--batch-instructions=10000;--silent-klee-assume;--max-forks=512")
+
         add_custom_target(
             symbex
             COMMAND ${KLEE_EXE} ${KLEE_ARGS} ${KLEE_DRIVER_BC}
