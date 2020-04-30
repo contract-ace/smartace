@@ -259,11 +259,12 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 
 bool ExpressionConverter::visit(Identifier const& _node)
 {
-	m_subexpr = make_shared<CIdentifier>(
-		m_decls.resolve_identifier(_node), M_TYPES.is_pointer(_node)
-	);
+	bool const IS_REF = M_TYPES.is_pointer(_node);
 
-	if (m_find_ref)
+	m_subexpr = make_shared<CIdentifier>(
+		m_decls.resolve_identifier(_node), IS_REF);
+
+	if (m_find_ref && !IS_REF)
 	{
 		m_subexpr = make_shared<CReference>(m_subexpr);
 	}
@@ -724,9 +725,14 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	size_t param_idx = 0;
 	if (call.source().isLibrary())
 	{
-		auto const* ARG_TYPE = fdecl.parameters()[param_idx]->type();
+		auto const ARG = fdecl.parameters()[param_idx];
+		auto const* ARGTYPE = ARG->type();
+
+		bool const IS_REF
+			= ARG->referenceLocation() == VariableDeclaration::Storage;
+
 		builder.push(
-			*_calldata.context(), m_statedata, M_TYPES, m_decls, false, ARG_TYPE
+			*_calldata.context(), m_statedata, M_TYPES, m_decls, IS_REF, ARGTYPE
 		);
 		++param_idx;
 	}
@@ -758,9 +764,14 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	// Pushes all user provided arguments.
 	for (size_t i = 0; i < _calldata.args().size(); ++i)
 	{
-		auto const* ARG_TYPE = fdecl.parameters()[param_idx + i]->type();
+		auto const ARG = fdecl.parameters()[param_idx + i];
+		auto const* ARGTYPE = ARG->type();
+
+		bool const IS_REF
+			= ARG->referenceLocation() == VariableDeclaration::Storage;
+	
 		builder.push(
-			*_calldata.args()[i], m_statedata, M_TYPES, m_decls, false, ARG_TYPE
+			*_calldata.args()[i], m_statedata, M_TYPES, m_decls, IS_REF, ARGTYPE
 		);
 	}
 

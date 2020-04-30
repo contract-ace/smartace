@@ -220,6 +220,9 @@ CParams FunctionConverter::generate_params(
     for (size_t i = 0; i < _args.size(); ++i)
     {
         auto const& ARGS = _args[i];
+    
+		bool const IS_REF
+			= ARGS.decl->referenceLocation() == VariableDeclaration::Storage;
 
         string const ARG_TYPE = M_CONVERTER.get_type(*ARGS.decl);
         string argname = ARGS.decl->name();
@@ -236,7 +239,7 @@ CParams FunctionConverter::generate_params(
             );
         }
 
-        params.push_back(make_shared<CVarDecl>(ARG_TYPE, argname));
+        params.push_back(make_shared<CVarDecl>(ARG_TYPE, argname, IS_REF));
     }
     if (_dest)
     {
