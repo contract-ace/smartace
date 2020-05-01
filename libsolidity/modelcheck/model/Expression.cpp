@@ -725,16 +725,25 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	size_t param_idx = 0;
 	if (call.source().isLibrary())
 	{
-		auto const ARG = fdecl.parameters()[param_idx];
-		auto const* ARGTYPE = ARG->type();
+		if (_calldata.context())
+		{
+			auto const ARG = fdecl.parameters()[param_idx];
+			auto const* ARGTYPE = ARG->type();
 
-		bool const IS_REF
-			= ARG->referenceLocation() == VariableDeclaration::Storage;
+			bool const IS_REF
+				= ARG->referenceLocation() == VariableDeclaration::Storage;
 
-		builder.push(
-			*_calldata.context(), m_statedata, M_TYPES, m_decls, IS_REF, ARGTYPE
-		);
-		++param_idx;
+			builder.push(
+				*_calldata.context(),
+				m_statedata,
+				M_TYPES,
+				m_decls,
+				IS_REF,
+				ARGTYPE
+			);
+
+			++param_idx;
+		}
 	}
 	else
 	{
