@@ -202,7 +202,7 @@ endforeach(fn)
 set(KLEE_BCS "")
 foreach(fn ${KLEE_DEPS})
     get_filename_component(raw_fn "${fn}" NAME_WE)
-    list(APPEND KLEE_BCS "${CMAKE_CURRENT_SOURCE_DIR}/${raw_fn}.bc")
+    list(APPEND KLEE_BCS "${CMAKE_BINARY_DIR}/${raw_fn}.bc")
 endforeach()
 
 if(KLEE_PATH)
