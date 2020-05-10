@@ -33,11 +33,13 @@ ExpressionConverter::ExpressionConverter(
 	CallState const& _statedata,
 	TypeConverter const& _types,
 	VariableScopeResolver const& _decls,
-	bool _is_ref
+	bool _is_ref,
+	bool _is_init
 ): M_EXPR(&_expr)
  , m_statedata(_statedata)
  , M_TYPES(_types)
  , m_decls(_decls)
+ , m_is_init(_is_init)
  , m_find_ref(_is_ref)
 {
 }
@@ -679,6 +681,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	auto &fdecl = _calldata.decl();
 	FunctionSpecialization call(fdecl);
 
+	// Determines call name and locality of call.
 	string callname;
 	bool is_ext_call = false;
 	if (_calldata.is_super())
@@ -719,7 +722,17 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		}
 		callname = call.name();
 	}
-	CFuncCallBuilder builder(callname);	
+
+	// Determines if builder's method produces return value by pointer.
+	bool rv_is_wrapped = false;
+	bool rv_is_ptr = false;
+	if (!_calldata.type().returnParameterTypes().empty())
+	{
+		auto const& rv = (*_calldata.type().returnParameterTypes()[0]);
+		rv_is_wrapped = is_wrapped_type(rv);
+		rv_is_ptr = (rv.category() == Type::Category::Contract);
+	}
+	CFuncCallBuilder builder(callname, rv_is_ptr);	
 
 	// Sets state for the next call.
 	size_t param_idx = 0;
@@ -750,10 +763,17 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		if (is_ext_call)
 		{
 			_calldata.context()->accept(*this);
+
+			// Checks if the context is taken by reference.
 			if (!(_calldata.id() && M_TYPES.is_pointer(*_calldata.id())))
 			{
-				m_subexpr = make_shared<CReference>(m_subexpr);
+				// Checks if the context is by retval (implicitly a pointer).
+				if (!dynamic_cast<FunctionCall const*>(_calldata.context()))
+				{
+					m_subexpr = make_shared<CReference>(m_subexpr);
+				}
 			}
+
 			builder.push(m_subexpr);
 		}
 		else
@@ -764,8 +784,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	}
 
 	// Passes dest if contract construction is in use.
-	auto rvs = _calldata.type().returnParameterTypes();
-	if (rvs.size() == 1 && rvs[0]->category() == Type::Category::Contract)
+	if (m_is_init)
 	{
 		builder.push(get_initializer_context());
 	}
@@ -788,12 +807,9 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	m_subexpr = builder.merge_and_pop();
 
 	// Unwraps the return value, if it is a wraped type.
-	if (rvs.size() == 1)
+	if (rv_is_wrapped)
 	{
-		if (is_wrapped_type(*rvs[0]))
-		{
-			m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
-		}
+		m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
 	}
 }
 
@@ -944,7 +960,7 @@ void ExpressionConverter::pass_next_call_state(
 	if (_call.value())
 	{
 		value = ExpressionConverter(
-			*_call.value(), m_statedata, M_TYPES, m_decls, false
+			*_call.value(), m_statedata, M_TYPES, m_decls, false, m_is_init
 		).convert();
 		value = FunctionUtilities::try_to_wrap(
 			*ContractUtilities::balance_type(), move(value)
@@ -961,17 +977,25 @@ void ExpressionConverter::print_address_member(
 {
 	if (_member == "balance")
 	{
-		auto const* id = NodeSniffer<Identifier>(_node, true).find();
-		if (id && id->annotation().type->category() == Type::Category::Contract)
-		{
-			id->accept(*this);
-			string const FIELD = ContractUtilities::balance_member();
-			m_subexpr = make_shared<CMemberAccess>(m_subexpr, FIELD);
-		}
-		else
+		auto const* fcall = NodeSniffer<FunctionCall>(_node, false).find();
+		if (!fcall)
 		{
 			throw runtime_error("Balance of arbitrary address not supported.");
 		}
+		if (fcall->annotation().kind != FunctionCallKind::TypeConversion)
+		{
+			throw runtime_error("Balance expects cast to address.");
+		}
+
+		auto base = fcall->arguments()[0];
+		if (base->annotation().type->category() != Type::Category::Contract)
+		{
+			throw runtime_error("Balance expects contract cast to address.");
+		}
+		
+		base->accept(*this);
+		string const FIELD = ContractUtilities::balance_member();
+		m_subexpr = make_shared<CMemberAccess>(m_subexpr, FIELD);
 	}
 	else
 	{

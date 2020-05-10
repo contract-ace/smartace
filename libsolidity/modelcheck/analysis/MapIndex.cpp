@@ -391,7 +391,8 @@ bool MapIndexSummary::visit(FunctionCall const& _node)
 {
     // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
 
-    if (m_is_address_cast)
+    auto const CALLTYPE = _node.annotation().type->category();
+    if (m_is_address_cast && CALLTYPE != Type::Category::Contract)
     {
         m_violations.emplace_front();
         m_violations.front().type = ViolationType::Mutate;
@@ -402,7 +403,7 @@ bool MapIndexSummary::visit(FunctionCall const& _node)
     else if (_node.annotation().kind == FunctionCallKind::TypeConversion)
     {
         auto base = _node.arguments()[0];
-        if (_node.annotation().type->category() == Type::Category::Address)
+        if (CALLTYPE == Type::Category::Address)
         {
             ScopedSwap<bool> scope(m_is_address_cast, true);
             base->accept(*this);

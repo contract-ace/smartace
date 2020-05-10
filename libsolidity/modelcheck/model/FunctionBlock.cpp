@@ -28,18 +28,20 @@ namespace modelcheck
 FunctionBlockConverter::FunctionBlockConverter(
     FunctionDefinition const& _func,
 	CallState const& _statedata,
+	NewCallGraph const& _newcalls,
 	TypeConverter const& _types
 ): GeneralBlockConverter(
 	_func.parameters(),
 	_func.returnParameters(),
 	_func.body(),
 	_statedata,
+	_newcalls,
 	_types,
 	_func.modifiers().empty(),
 	_func.isPayable()
 ), M_TYPES(_types)
 {
-	if (block_type() == BlockType::Operation)
+	if (has_retval())
 	{
 		// TODO(scottwe): support multiple return types.
 		m_rv = _func.returnParameters()[0];
@@ -93,8 +95,13 @@ bool FunctionBlockConverter::visit(Return const& _node)
 		new_substmt<CReturn>(nullptr);
 		break;
 	case BlockType::Operation:
+	case BlockType::AddressRef:
 		rv = expand(*_node.expression());
 		rv = FunctionUtilities::try_to_wrap(*m_rv->annotation().type, move(rv));
+		if (block_type() == BlockType::AddressRef)
+		{
+			rv = make_shared<CReference>(rv);
+		}
 		new_substmt<CReturn>(rv);
 		break;
 	case BlockType::Initializer:

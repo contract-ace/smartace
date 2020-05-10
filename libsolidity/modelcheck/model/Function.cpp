@@ -71,7 +71,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
 
         if (auto fallback = _node.fallbackFunction())
         {
-            handle_function(FunctionSpecialization(*fallback), "void");
+            handle_function(FunctionSpecialization(*fallback), "void", false);
         }
 
         set<string> methods;
@@ -281,11 +281,18 @@ void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
     auto rvs = FUNC.returnParameters();
     if (!rvs.empty() && rvs[0]->type()->category() == Type::Category::Contract)
     {
-        handle_function(_spec, "void");
+        if (M_NEWCALLS.retval_is_allocated(*rvs[0]))
+        {
+            handle_function(_spec, "void", false);
+        }
+        else
+        {
+            handle_function(_spec, M_CONVERTER.get_type(FUNC), true);
+        }
     }
     else
     {
-        handle_function(_spec, M_CONVERTER.get_type(FUNC));
+        handle_function(_spec, M_CONVERTER.get_type(FUNC), false);
     }
 }
 
@@ -326,7 +333,7 @@ string FunctionConverter::handle_contract_initializer(
             }
 
             ctor_name = handle_function(
-                FunctionSpecialization(*LOCAL_CTOR, _for), "void"
+                FunctionSpecialization(*LOCAL_CTOR, _for), "void", false
             );
         }
         params = generate_params(local_param_tmpl, &_for, nullptr);
@@ -453,7 +460,7 @@ string FunctionConverter::handle_contract_initializer(
 // -------------------------------------------------------------------------- //
 
 string FunctionConverter::handle_function(
-    FunctionSpecialization const& _spec, string _rvtype
+    FunctionSpecialization const& _spec, string _rvtype, bool _rvisptr
 )
 {
     // Bypasses pure virtual and uinterpreted functions.
@@ -485,7 +492,7 @@ string FunctionConverter::handle_function(
     // Determines if a contract initialization destination is required.
     ASTPointer<VariableDeclaration> dest;
     auto rvs = FUNC.returnParameters();
-    if (!rvs.empty() && rvs[0]->type()->category() == Type::Category::Contract)
+    if (!rvs.empty() && M_NEWCALLS.retval_is_allocated(*rvs[0]))
     {
         dest = rvs[0];
     }
@@ -493,7 +500,7 @@ string FunctionConverter::handle_function(
     // Generates super function calls.
     if (auto superfunc = _spec.super())
     {
-        handle_function(*superfunc, _rvtype);
+        handle_function(*superfunc, _rvtype, _rvisptr);
     }
 
     // Filters modifiers from constructors.
@@ -507,7 +514,10 @@ string FunctionConverter::handle_function(
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            FunctionBlockConverter cov(FUNC, M_STATEDATA, M_CONVERTER);
+            FunctionBlockConverter cov(
+                FUNC, M_STATEDATA, M_NEWCALLS, M_CONVERTER
+            );
+
             cov.set_for(_spec);
             body = cov.convert();
         }
@@ -517,7 +527,7 @@ string FunctionConverter::handle_function(
         {
             base_fname = FunctionUtilities::base_name(move(base_fname));
         }
-        auto id = make_shared<CVarDecl>(_rvtype, move(base_fname));
+        auto id = make_shared<CVarDecl>(_rvtype, move(base_fname), _rvisptr);
         defs.emplace_back(id, move(params), move(body));
     }
 
@@ -539,10 +549,10 @@ string FunctionConverter::handle_function(
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            body = mods.generate(IDX, M_STATEDATA, M_CONVERTER).convert();
+            body = mods.generate(IDX, M_STATEDATA, M_NEWCALLS, M_CONVERTER).convert();
         }
 
-        auto id = make_shared<CVarDecl>(_rvtype, move(mod_name));
+        auto id = make_shared<CVarDecl>(_rvtype, move(mod_name), _rvisptr);
         defs.emplace_back(id, mod_params, move(body));
     }
 

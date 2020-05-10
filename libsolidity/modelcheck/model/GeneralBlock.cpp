@@ -5,6 +5,7 @@
 
 #include <libsolidity/modelcheck/model/Block.h>
 
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/Expression.h>
@@ -52,6 +53,7 @@ GeneralBlockConverter::GeneralBlockConverter(
 	vector<ASTPointer<VariableDeclaration>> const& _rvs,
 	Block const& _body,
 	CallState const& _statedata,
+	NewCallGraph const& _newcalls,
 	TypeConverter const& _types,
 	bool _manage_pay,
 	bool _is_payable
@@ -60,7 +62,7 @@ GeneralBlockConverter::GeneralBlockConverter(
  , M_TYPES(_types)
  , M_MANAGE_PAY(_manage_pay)
  , M_IS_PAYABLE(_is_payable)
- , M_BLOCKTYPE(determine_block_type(_rvs))
+ , M_BLOCKTYPE(determine_block_type(_rvs, _newcalls))
 {
 	m_decls.enter();
 	for (auto const& arg : _args)
@@ -85,7 +87,11 @@ shared_ptr<CBlock> GeneralBlockConverter::convert()
 CExprPtr GeneralBlockConverter::expand(Expression const& _expr, bool _ref)
 {
 	return ExpressionConverter(
-		_expr, M_STATEDATA, M_TYPES, m_decls, _ref
+		_expr, M_STATEDATA,
+		M_TYPES,
+		m_decls,
+		_ref,
+		block_type() == BlockType::Initializer
 	).convert();
 }
 
@@ -101,6 +107,20 @@ CStmtPtr GeneralBlockConverter::last_substmt()
 GeneralBlockConverter::BlockType GeneralBlockConverter::block_type() const
 {
 	return M_BLOCKTYPE;
+}
+
+// -------------------------------------------------------------------------- //
+
+bool GeneralBlockConverter::has_retval() const
+{
+	switch (block_type())
+	{
+	case BlockType::Operation:
+	case BlockType::AddressRef:
+		return true;
+	default:
+		return false;
+	}
 }
 
 // -------------------------------------------------------------------------- //
@@ -252,6 +272,11 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 		auto const &DECL = *_node.declarations()[0];
 		bool const IS_REF
 			= DECL.referenceLocation() == VariableDeclaration::Storage;
+		if (DECL.annotation().type->category() == Type::Category::Contract)
+		{
+			// These are implicitly references.
+			throw runtime_error("Contract variable declarations unsupported.");
+		}
 
 		m_decls.record_declaration(DECL);
 
@@ -292,7 +317,8 @@ void GeneralBlockConverter::endVisit(Break const&)
 // -------------------------------------------------------------------------- //
 
 GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
-	vector<ASTPointer<VariableDeclaration>> const& _rvs
+	vector<ASTPointer<VariableDeclaration>> const& _rvs,
+	NewCallGraph const& _newcalls
 )
 {
 	if (_rvs.empty())
@@ -303,9 +329,13 @@ GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
 	{
 		throw runtime_error("Multiple return values not yet supported.");
 	}
-	else if (_rvs[0]->type()->category() == Type::Category::Contract)
+	else if (_newcalls.retval_is_allocated(*_rvs[0]))
 	{
 		return BlockType::Initializer;
+	}
+	else if (_rvs[0]->type()->category() == Type::Category::Contract)
+	{
+		return BlockType::AddressRef;
 	}
 	else
 	{

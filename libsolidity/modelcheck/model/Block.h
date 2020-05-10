@@ -22,6 +22,8 @@ namespace solidity
 namespace modelcheck
 {
 
+class NewCallGraph;
+
 // -------------------------------------------------------------------------- //
 
 /**
@@ -57,6 +59,7 @@ public:
 		std::vector<ASTPointer<VariableDeclaration>> const& _rvs,
 		Block const& _body,
 		CallState const& _statedata,
+		NewCallGraph const& _newcalls,
 		TypeConverter const& _types,
 		bool _manage_pay,
 		bool _is_payable
@@ -72,7 +75,7 @@ protected:
 	// - Initializer: wraps and returns a constructor call
 	// - Action: function without a return parameter.
 	// - Operation: produces one or more return values.
-	enum class BlockType { Initializer, Action, Operation };
+	enum class BlockType { Initializer, Action, Operation, AddressRef };
 
 	// Allows top-level setup and teardown.
 	virtual void enter(CBlockList & _stmts, VariableScopeResolver & _decls) = 0;
@@ -100,6 +103,9 @@ protected:
 	// Returns the block type.
 	BlockType block_type() const;
 
+	// Returns true if the function has a return value.
+	bool has_retval() const;
+
 	bool visit(Block const& _node) override;
 	bool visit(IfStatement const& _node) override;
 	bool visit(WhileStatement const& _node) override;
@@ -116,7 +122,8 @@ protected:
 private:
 	// Analyzes the return values to classify the block type of this block.
 	static BlockType determine_block_type(
-		std::vector<ASTPointer<VariableDeclaration>> const& _rvs
+		std::vector<ASTPointer<VariableDeclaration>> const& _rvs,
+		NewCallGraph const& _newcalls
 	);
 
 	Block const& M_BODY;
@@ -150,6 +157,7 @@ public:
 	FunctionBlockConverter(
 		FunctionDefinition const& _func,
 		CallState const& _statedata,
+		NewCallGraph const& _newcalls,
 		TypeConverter const& _types
 	);
 
@@ -198,7 +206,10 @@ public:
 
 		// Generates the _i-th modifier for _func, where _i is zero-indexed.
 		ModifierBlockConverter generate(
-			size_t _i, CallState const& _statedata, TypeConverter const& _types
+			size_t _i,
+			CallState const& _statedata,
+			NewCallGraph const& _newcalls,
+			TypeConverter const& _types
 		);
 
 		// Returns the number of modifiers which were not filtered away.
@@ -245,6 +256,7 @@ private:
 		ModifierDefinition const* _def,
 		ModifierInvocation const* _curr,
 		CallState const& _statedata,
+		NewCallGraph const& _newcalls,
 		TypeConverter const& _types,
 		std::string _next,
 		bool _entry

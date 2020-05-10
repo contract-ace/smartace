@@ -38,10 +38,7 @@ FunctionCallAnalyzer::FunctionCallAnalyzer(FunctionCall const& _call)
         );
     }
 
-    if (!m_context)
-    {
-        _call.expression().accept(*this);
-    }
+    _call.expression().accept(*this);
 }
 
 // -------------------------------------------------------------------------- //

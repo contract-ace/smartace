@@ -109,7 +109,8 @@ private:
 	// Generates a layer of the contract constructor.
 	std::string handle_function(
 		FunctionSpecialization const& _spec,
-		std::string _rvtype
+		std::string _rvtype,
+		bool _rvisptr
 	);
 
 	// Recursively expands an initializer for a contract.

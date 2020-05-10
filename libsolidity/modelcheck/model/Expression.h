@@ -43,7 +43,8 @@ public:
 		CallState const& _statedata,
         TypeConverter const& _converter,
         VariableScopeResolver const& _decls,
-		bool _is_ref = false
+		bool _is_ref = false,
+		bool _is_init = false
     );
 
     // Generates a SimpleCGenerator representation of the expression.
@@ -69,6 +70,8 @@ private:
 
 	CExprPtr m_subexpr;
 	Identifier const* m_last_assignment;
+
+	bool m_is_init;
 
 	bool m_is_address_cast = false;
 

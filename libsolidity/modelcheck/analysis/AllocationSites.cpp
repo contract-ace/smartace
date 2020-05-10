@@ -98,35 +98,35 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
 
     if (NEWTYPE)
     {
-        calls.emplace_back();
-        calls.back().callsite = &_node;
-        calls.back().context = m_context;
-        calls.back().is_retval = m_return;
-
-        // Splits returns from assignments. Returns have implicit destinations.
-        if (m_return)
-        {
-            calls.back().dest = m_context->returnParameters()[0].get();
-        }
-        else
-        {
-            calls.back().dest = m_dest;
-        }
-
         // Recursive type analysis for internal calls.
+        ContractDefinition const* newcall_rvtype = nullptr;
         if (CALLTYPE->kind() == FunctionType::Kind::Creation)
         {
-            calls.back().type = (&NEWTYPE->contractDefinition());
+            newcall_rvtype = (&NEWTYPE->contractDefinition());
         }
         else
         {
-            calls.back().type = handle_call_type(*CALLTYPE);
+            newcall_rvtype = handle_call_type(*CALLTYPE);
         }
 
-        // Checks that new type analysis succeeded.
-        if (!calls.back().type)
+        // If the call lacks a "true" return type, it is not an allocation.
+        if (newcall_rvtype)
         {
-            throw runtime_error("AllocationSite failed to resolve new type.");
+            calls.emplace_back();
+            calls.back().callsite = &_node;
+            calls.back().context = m_context;
+            calls.back().is_retval = m_return;
+            calls.back().type = newcall_rvtype;
+
+            // Splits returns from assignments. Return dests are implicit.
+            if (m_return)
+            {
+                calls.back().dest = m_context->returnParameters()[0].get();
+            }
+            else
+            {
+                calls.back().dest = m_dest;
+            }
         }
     }
 
@@ -313,6 +313,12 @@ void NewCallGraph::analyze(NewCallGraph::Graph::iterator _neighbourhood)
     }
 
     m_reach[root] = cost;
+}
+
+bool NewCallGraph::retval_is_allocated(VariableDeclaration const& _decl) const
+{
+    auto itr = m_truetypes.find(&_decl);
+    return ((itr != m_truetypes.end()) && (itr->second != nullptr));
 }
 
 ContractDefinition const& NewCallGraph::specialize(

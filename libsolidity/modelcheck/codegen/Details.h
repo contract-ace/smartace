@@ -275,17 +275,19 @@ class CFuncCall : public CExpr
 {
 public:
     // Encodes the C expression _name(_args[0],_args[1],...,args[n]).
-    CFuncCall(std::string _name, CArgList _args);
+    CFuncCall(std::string _name, CArgList _args, bool _rv_is_ref = false);
 
     ~CFuncCall() = default;
 
     void print(std::ostream & _out) const override;
+    bool is_pointer() const override;
 
     // Converts this standalone call into a statement.
     CStmtPtr stmt();
 
 private:
     std::string const m_name;
+    bool const m_rv_is_ref;
     CArgList const m_args;
 };
 
@@ -295,7 +297,7 @@ class CFuncCallBuilder
 {
 public:
     // Creates a generator for calls to _name.
-    CFuncCallBuilder(std::string _name);
+    CFuncCallBuilder(std::string _name, bool _rv_is_ref = false);
 
     // Pushes _expr to the end of the argument list.
     void push(CExprPtr _expr, Type const* _t = nullptr);
@@ -321,6 +323,7 @@ public:
 
 private:
     std::string const m_name;
+    bool const m_rv_is_ref;
     CArgList m_args;
 };
 

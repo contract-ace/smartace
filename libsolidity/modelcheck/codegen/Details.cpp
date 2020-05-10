@@ -154,8 +154,12 @@ bool CCast::is_pointer() const { return m_expr->is_pointer(); }
 
 // -------------------------------------------------------------------------- //
 
-CFuncCall::CFuncCall(string _name, CArgList _args)
-: m_name(move(_name)), m_args(move(_args)) {}
+CFuncCall::CFuncCall(string _name, CArgList _args, bool _rv_is_ref)
+    : m_name(move(_name))
+    , m_rv_is_ref(_rv_is_ref)
+    , m_args(move(_args))
+{
+}
 
 void CFuncCall::print(ostream & _out) const
 {
@@ -168,12 +172,21 @@ void CFuncCall::print(ostream & _out) const
     _out << ")";
 }
 
+bool CFuncCall::is_pointer() const
+{
+    return m_rv_is_ref;
+}
+
 CStmtPtr CFuncCall::stmt()
 {
     return make_shared<CExprStmt>(make_shared<CFuncCall>(m_name, m_args));
 }
 
-CFuncCallBuilder::CFuncCallBuilder(string _name): m_name(move(_name)) {}
+CFuncCallBuilder::CFuncCallBuilder(string _name, bool _rv_is_ref)
+    : m_name(move(_name))
+    , m_rv_is_ref(_rv_is_ref)
+{
+}
 
 void CFuncCallBuilder::push(CExprPtr _expr, Type const* _t)
 {
@@ -201,7 +214,7 @@ void CFuncCallBuilder::push(
 
 shared_ptr<CFuncCall> CFuncCallBuilder::merge_and_pop()
 {
-    return make_shared<CFuncCall>(m_name, move(m_args));
+    return make_shared<CFuncCall>(m_name, move(m_args), m_rv_is_ref);
 }
 
 CStmtPtr CFuncCallBuilder::merge_and_pop_stmt()

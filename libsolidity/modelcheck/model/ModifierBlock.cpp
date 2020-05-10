@@ -63,7 +63,10 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
 // -------------------------------------------------------------------------- //
 
 ModifierBlockConverter ModifierBlockConverter::Factory::generate(
-    size_t _i, CallState const& _statedata, TypeConverter const& _types
+    size_t _i,
+    CallState const& _statedata,
+    NewCallGraph const& _newcalls,
+    TypeConverter const& _types
 )
 {
     // Checks that _i is in bounds.
@@ -92,6 +95,7 @@ ModifierBlockConverter ModifierBlockConverter::Factory::generate(
         def_invoke_pair.first,
         def_invoke_pair.second,
         _statedata,
+        _newcalls,
         _types,
         next_name,
         _i == 0
@@ -120,6 +124,7 @@ ModifierBlockConverter::ModifierBlockConverter(
     ModifierDefinition const* _def,
     ModifierInvocation const* _curr,
     CallState const& _statedata,
+    NewCallGraph const& _newcalls,
     TypeConverter const& _types,
     std::string _next,
     bool _entry
@@ -128,6 +133,7 @@ ModifierBlockConverter::ModifierBlockConverter(
     _func.returnParameters(),
     _def->body(),
     _statedata,
+    _newcalls,
     _types,
     _entry,
     _func.isPayable()
@@ -139,7 +145,7 @@ ModifierBlockConverter::ModifierBlockConverter(
  , M_NEXT_CALL(move(_next))
  , m_shadow_decls(CodeType::SHADOWBLOCK)
 {
-	if (block_type() == BlockType::Operation)
+	if (has_retval())
 	{
 	    // TODO(scottwe): support multiple return types.
         auto const& ARG = *_func.returnParameters()[0];
@@ -162,7 +168,7 @@ void ModifierBlockConverter::enter(
     CBlockList & _stmts, VariableScopeResolver &_decls
 )
 {
-    if (block_type() == BlockType::Operation)
+    if (has_retval())
     {
 		_stmts.push_back(m_rv);
     }
@@ -178,7 +184,11 @@ void ModifierBlockConverter::enter(
             auto const SYM = _decls.resolve_declaration(PARAM);
 
             ExpressionConverter arg_converter(
-                ARG, M_STATEDATA, M_TYPES, m_shadow_decls
+                ARG, M_STATEDATA,
+                M_TYPES,
+                m_shadow_decls,
+                false,
+                block_type() == BlockType::Initializer
             );
 
             auto expr = arg_converter.convert();
@@ -190,7 +200,7 @@ void ModifierBlockConverter::enter(
 
 void ModifierBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 {
-    if (block_type() == BlockType::Operation)
+    if (has_retval())
     {
         _stmts.push_back(make_shared<CReturn>(m_rv->id()));
     }
@@ -201,7 +211,7 @@ void ModifierBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 bool ModifierBlockConverter::visit(Return const&)
 {
     CExprPtr rv_id = nullptr;
-    if (block_type() == BlockType::Operation)
+    if (has_retval())
     {
         rv_id = m_rv->id();
     }

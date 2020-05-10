@@ -131,6 +131,9 @@ public:
     // Performs a reverse lookup from contract name to contract address.
     Label reverse_name(std::string _name) const;
 
+    // Returns true if the given return value has been mapped to a new call.
+    bool retval_is_allocated(VariableDeclaration const& _decl) const;
+
     // Returns a more percise contract type for a given contract variable. This
     // takes into account upcasting. Throws if the variable was not recorded, or
     // if it was not of a contract type.
