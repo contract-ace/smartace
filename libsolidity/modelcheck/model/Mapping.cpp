@@ -42,6 +42,11 @@ MapGenerator::MapGenerator(
             M_TYPES.get_type(*KEY), "key_" + to_string(m_keys.size()))
         );
     }
+
+    if (M_LEN == 0)
+    {
+        throw runtime_error("Mapping requires at least one entry.");
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -86,20 +91,6 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
 
     shared_ptr<CBlock> body;
     if (!_forward_declare) body = expand_init(INIT_VAL);
-
-    return CFuncDef(move(fid), {}, move(body));
-}
-
-// -------------------------------------------------------------------------- //
-
-CFuncDef MapGenerator::declare_nd_initializer(bool _forward_declare) const
-{
-    const auto NAME = "ND_" + M_MAP_RECORD.name;
-    const auto ND_VAL = M_TYPES.get_nd_val(*M_MAP_RECORD.value_type, NAME);
-    auto fid = make_shared<CVarDecl>(M_TYPE, NAME);
-
-    shared_ptr<CBlock> body;
-    if (!_forward_declare) body = expand_init(ND_VAL);
 
     return CFuncDef(move(fid), {}, move(body));
 }
@@ -155,19 +146,7 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto const ND_VAL = M_TYPES.get_nd_val(*M_MAP_RECORD.value_type, NAME);
-        auto default_rv = make_shared<CReturn>(ND_VAL);
-
-        if (M_LEN > 0)
-        {
-            body = make_shared<CBlock>(CBlockList{
-                expand_access(0, "", false), move(default_rv)
-            });
-        }
-        else
-        {
-            body = make_shared<CBlock>(CBlockList{move(default_rv)});
-        }
+        body = make_shared<CBlock>(CBlockList{expand_access(0, "", false)});
     }
 
     return CFuncDef(move(fid), move(params), move(body));
@@ -185,21 +164,18 @@ shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
         block.push_back(M_TMP->access("sum")->assign(_init_data)->stmt());
     }
     
-    if (M_LEN > 0)
+    KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
+    do
     {
-        KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
-        do
-        {
-            string suffix = indices.suffix();
+        string suffix = indices.suffix();
 
-            if (indices.is_full())
-            {
-                block.push_back(
-                    M_TMP->access("data" + suffix)->assign(_init_data)->stmt()
-                );
-            }
-        } while (indices.next());
-    }
+        if (indices.is_full())
+        {
+            block.push_back(
+                M_TMP->access("data" + suffix)->assign(_init_data)->stmt()
+            );
+        }
+    } while (indices.next());
     
     block.push_back(make_shared<CReturn>(M_TMP->id()));
     return make_shared<CBlock>(move(block));

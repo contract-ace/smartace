@@ -40,7 +40,6 @@ public:
     // Declares all structures and functions used by a map.
     CStructDef declare(bool _forward_declare) const;
     CFuncDef declare_zero_initializer(bool _forward_declare) const;
-    CFuncDef declare_nd_initializer(bool _forward_declare) const;
     CFuncDef declare_write(bool _forward_declare) const;
     CFuncDef declare_read(bool _forward_declare) const;
 

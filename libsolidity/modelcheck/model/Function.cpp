@@ -120,11 +120,10 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 
     auto zero_id = make_shared<CVarDecl>(STRCT_TYPE, "Init_0_" + STRCT_NAME);
     auto init_id = make_shared<CVarDecl>(STRCT_TYPE, "Init_" + STRCT_NAME);
-    auto nd_id = make_shared<CVarDecl>(STRCT_TYPE, "ND_" + STRCT_NAME);
 
     auto init_params = generate_params(initializable_members, nullptr, nullptr);
 
-    shared_ptr<CBlock> zero_body, init_body, nd_body;
+    shared_ptr<CBlock> zero_body, init_body;
     if (!M_FWD_DCL)
     {
         CBlockList stmts;
@@ -156,28 +155,12 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         }
         stmts.push_back(make_shared<CReturn>(TMP));
         init_body = make_shared<CBlock>(move(stmts));
-        
-        stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp"));
-        for (auto decl : _node.members())
-        {
-            string const MSG = "Set " + decl->name() + " in " + _node.name();
-            string const NAME = VariableScopeResolver::rewrite(
-                decl->name(), false, VarContext::STRUCT
-            );
-    
-            auto member = TMP->access(NAME);
-            auto init = M_CONVERTER.get_nd_val(*decl, MSG);
-            stmts.push_back(member->assign(move(init))->stmt());
-        }
-        stmts.push_back(make_shared<CReturn>(TMP));
-        nd_body = make_shared<CBlock>(move(stmts));
     }
 
     CFuncDef zero(zero_id, CParams{}, move(zero_body));
     CFuncDef init(init_id, move(init_params), move(init_body));
-    CFuncDef nd(nd_id, CParams{}, move(nd_body));
 
-    (*m_ostream) << zero << init << nd;
+    (*m_ostream) << zero << init;
 
     return true;
 }
@@ -192,7 +175,6 @@ bool FunctionConverter::visit(Mapping const& _node)
 
     MapGenerator gen(_node, M_ADD_SUMS, M_MAP_K, M_CONVERTER);
     (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
-                 << gen.declare_nd_initializer(M_FWD_DCL)
                  << gen.declare_read(M_FWD_DCL)
                  << gen.declare_write(M_FWD_DCL);
 

@@ -1468,7 +1468,7 @@ void CommandLineInterface::handleCModelHeaders(
 			_newcalls,
 			_types,
 			sum_maps,
-			_addrdata.representative_count(),
+			_addrdata.size(),
 			true
 		);
 		cov.print(_os);
@@ -1481,7 +1481,7 @@ void CommandLineInterface::handleCModelHeaders(
 			_newcalls,
 			_types,
 			sum_maps,
-			_addrdata.representative_count(),
+			_addrdata.size(),
 			FunctionConverter::View::EXT,
 			true
 		);
@@ -1521,7 +1521,7 @@ void CommandLineInterface::handleCModelBody(
 			_newcalls,
 			_types,
 			sum_maps,
-			_addrdata.representative_count(),
+			_addrdata.size(),
 			false
 		);
 		cov.print(_os);
@@ -1534,7 +1534,7 @@ void CommandLineInterface::handleCModelBody(
 			_newcalls,
 			_types,
 			sum_maps,
-			_addrdata.representative_count(),
+			_addrdata.size(),
 			FunctionConverter::View::INT,
 			true
 		);
@@ -1548,7 +1548,7 @@ void CommandLineInterface::handleCModelBody(
 			_newcalls,
 			_types,
 			sum_maps,
-			_addrdata.representative_count(),
+			_addrdata.size(),
 			FunctionConverter::View::FULL,
 			false
 		);
