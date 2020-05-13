@@ -323,7 +323,19 @@ uint64_t MapIndexSummary::max_interference() const
 
 uint64_t MapIndexSummary::size() const
 {
-    return representative_count() + max_interference();
+    if (IS_CONCRETE)
+    {
+        uint64_t zero_fix = 1;
+        if (m_literals.find(0) == m_literals.end())
+        {
+            zero_fix = 0;
+        }
+        return representative_count() - m_literals.size() + zero_fix;
+    }
+    else
+    {
+        return representative_count() + max_interference();
+    }
 }
 
 // -------------------------------------------------------------------------- //

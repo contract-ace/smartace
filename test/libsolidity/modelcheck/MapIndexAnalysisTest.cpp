@@ -353,18 +353,21 @@ BOOST_AUTO_TEST_CASE(concrete_map_test)
     char const* text = R"(
         contract X {
             mapping(address => mapping(address => address)) m;
-            function f() public pure { }
+            function f() public {
+                address(1);
+            }
         }
     )";
 
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(true, 2, 0);
+    MapIndexSummary summary(true, 2, 1);
 
     summary.extract_literals(ctrt);
     summary.compute_interference(ctrt);
     BOOST_CHECK_EQUAL(summary.max_interference(), 0);
+    BOOST_CHECK_EQUAL(summary.size(), 4);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

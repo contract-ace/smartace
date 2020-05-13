@@ -168,14 +168,6 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "((tmp).user_a)=(user_a);";
     expect << "return tmp;";
     expect << "}";
-    // -- A_StructB
-    expect << "struct A_StructB ND_A_StructB(void)";
-    expect << "{";
-    expect << "struct A_StructB tmp;";
-    expect << "((tmp).user_a)=(Init_sol_uint256_t(nd_uint256_t"
-           << "(\"Set a in B\")));";
-    expect << "return tmp;";
-    expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
@@ -289,14 +281,6 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "((tmp).user_i1)=(user_i1);";
     expect << "return tmp;";
     expect << "}";
-    // -- ND_A_StructB
-    expect << "struct A_StructB ND_A_StructB(void)";
-    expect << "{";
-    expect << "struct A_StructB tmp;";
-    expect << "((tmp).user_i1)=(Init_sol_int256_t(nd_int256_t"
-           << "(\"Set i1 in B\")));";
-    expect << "return tmp;";
-    expect << "}";
     // -- Init_0_A_StructC
     expect << "struct A_StructC Init_0_A_StructC(void)";
     expect << "{";
@@ -316,20 +300,6 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "((tmp).user_i1)=(user_i1);";
     expect << "((tmp).user_i2)=(user_i2);";
     expect << "((tmp).user_ui1)=(user_ui1);";
-    expect << "return tmp;";
-    expect << "}";
-    // -- ND_A_StructB
-    expect << "struct A_StructC ND_A_StructC(void)";
-    expect << "{";
-    expect << "struct A_StructC tmp;";
-    expect << "((tmp).user_i1)=(Init_sol_int256_t(nd_int256_t"
-           << "(\"Set i1 in C\")));";
-    expect << "((tmp).user_b1)=(ND_A_StructB());";
-    expect << "((tmp).user_i2)=(Init_sol_int256_t(nd_int256_t"
-           << "(\"Set i2 in C\")));";
-    expect << "((tmp).user_ui1)=(Init_sol_uint256_t(nd_uint256_t"
-           << "(\"Set ui1 in C\")));";
-    expect << "((tmp).user_b2)=(ND_A_StructB());";
     expect << "return tmp;";
     expect << "}";
 
@@ -385,9 +355,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
                << ",sol_address_t origin);";
     int_expect << "struct A_StructB Init_0_A_StructB(void);";
     int_expect << "struct A_StructB Init_A_StructB(sol_int256_t user_i);";
-    int_expect << "struct A_StructB ND_A_StructB(void);";
     int_expect << "struct Map_1 Init_0_Map_1(void);";
-    int_expect << "struct Map_1 ND_Map_1(void);";
     int_expect << "sol_int256_t Read_Map_1(struct Map_1*arr"
                << ",sol_int256_t key_0);";
     int_expect << "void Write_Map_1(struct Map_1*arr,sol_int256_t key_0"
