@@ -116,16 +116,36 @@ add_subdirectory(libverify)
 # Defines a list of all source files.
 set(EXE_SRCS_COMMON cmodel.h primitive.h)
 set(EXE_SRCS_C cmodel.c)
-set(EXE_SRCS_CPP cmodel.cpp)
 set(EXE_HARNESSED_C ${EXE_SRCS_C} harness.c)
-SET(EXE_HARNESSED_CPP ${EXE_SRCS_CPP} harness.cpp)
+
+# Defines how to generate the cpp files.
+set(EXE_SRCS_CPP "")
+foreach(fn ${EXE_SRCS_C})
+    get_filename_component(raw_fn "${fn}" NAME_WE)
+    set(dst_fn "${raw_fn}.cpp")
+    set(dst_fn_full "${CMAKE_BINARY_DIR}/${dst_fn}")
+    list(APPEND EXE_SRCS_CPP "${dst_fn_full}")
+endforeach(fn)
+
+set(EXE_HARNESSED_CPP "")
+foreach(fn ${EXE_HARNESSED_C})
+    get_filename_component(raw_fn "${fn}" NAME_WE)
+    set(dst_fn "${raw_fn}.cpp")
+    set(dst_fn_full "${CMAKE_BINARY_DIR}/${dst_fn}")
+    list(APPEND EXE_HARNESSED_CPP "${dst_fn_full}")
+    add_custom_command(
+        OUTPUT ${dst_fn}
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${fn}" ${dst_fn_full}
+        DEPENDS ${fn}
+    )
+endforeach(fn)
 
 # Locates exactly all model files for seahorn and clang format.
 # Locates seahorn deps.
 set(EXE_SRCS_ABS "")
 set(SEAHORN_DEPS "")
 list(APPEND SEAHORN_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/libverify/verify_seahorn.c")
-foreach(fn ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP})
+foreach(fn ${EXE_SRCS_COMMON})
     list(APPEND EXE_SRCS_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${fn}")
 endforeach(fn)
 foreach(fn ${EXE_HARNESSED_C})
@@ -175,19 +195,19 @@ endif()
 if(SEA_EXE)
     add_custom_target(
         verify
-	COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --show-invars
+        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --show-invars
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         cex
-	COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --cex=cex.ll
+        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --cex=cex.ll
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         cexcmodel
-	COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} -o cexcmodel
+        COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} -o cexcmodel
         COMMAND_EXPAND_LISTS
     )
 endif()

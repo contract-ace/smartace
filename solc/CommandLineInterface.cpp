@@ -1390,9 +1390,7 @@ void CommandLineInterface::handleCModel()
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
 		createFile("cmodel.c", cmodel_cpp_data.str());
-		createFile("cmodel.cpp", cmodel_cpp_data.str());
 		createFile("harness.c", harness_data.str());
-		createFile("harness.cpp", harness_data.str());
 	}
 	else
 	{
