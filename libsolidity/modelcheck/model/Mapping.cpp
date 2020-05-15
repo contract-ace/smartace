@@ -146,7 +146,14 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        body = make_shared<CBlock>(CBlockList{expand_access(0, "", false)});
+        CFuncCallBuilder onfail("sol_assert");
+        onfail.push(Literals::ZERO);
+        onfail.push(Literals::ZERO);
+        body = make_shared<CBlock>(CBlockList{
+            expand_access(0, "", false),
+            onfail.merge_and_pop_stmt(),
+            make_shared<CReturn>(M_TYPES.get_init_val(*M_MAP_RECORD.value_type))
+        });
     }
 
     return CFuncDef(move(fid), move(params), move(body));
