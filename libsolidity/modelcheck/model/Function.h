@@ -9,6 +9,7 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/utils/Function.h>
@@ -42,6 +43,7 @@ public:
     // Constructs a printer for all function forward decl's required by the ast.
     FunctionConverter(
         ASTNode const& _ast,
+		ContractDependance const& _dependance,
 		CallState const& _statedata,
 		NewCallGraph const& _newcalls,
 		TypeConverter const& _converter,
@@ -71,6 +73,7 @@ private:
 	std::ostream* m_ostream = nullptr;
 
 	ASTNode const& M_AST;
+	ContractDependance const& M_DEPENDANCE;
 	CallState const& M_STATEDATA;
 	NewCallGraph const& M_NEWCALLS;
 	TypeConverter const& M_CONVERTER;

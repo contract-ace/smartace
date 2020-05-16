@@ -41,6 +41,7 @@
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/harness/MainFunction.h>
@@ -1297,12 +1298,14 @@ void CommandLineInterface::handleCModel()
 		return;
 	}
 
-	// Constructs a list of requested contracts.
-	size_t actor_count = 0;
-	list<ContractDefinition const*> major_actors;
+	// Determines major actors (contracts not spawned by other contracts) in model.
+	vector<ContractDefinition const*> major_actors;
 	if (!m_args[g_argModelActor].empty())
 	{
-		for (auto actor_name : m_args[g_argModelActor].as<vector<string>>())
+		auto const& actor_names = m_args[g_argModelActor].as<vector<string>>();
+
+		major_actors.reserve(actor_names.size());
+		for (auto actor_name : actor_names)
 		{
 			auto const* actor = newcall_graph.reverse_name(actor_name);
 			if (!actor)
@@ -1312,7 +1315,6 @@ void CommandLineInterface::handleCModel()
 				return;
 			}
 			major_actors.push_back(actor);
-			actor_count += newcall_graph.cost_of(actor);
 		}
 	}
 	else
@@ -1320,11 +1322,16 @@ void CommandLineInterface::handleCModel()
 		for (auto const* ast: asts)
 		{
 			auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-			for (auto actor : ctrts)
-			{
-				actor_count += newcall_graph.cost_of(actor);
-			}
+			major_actors.reserve(ctrts.size());
+			major_actors.insert(major_actors.begin(), ctrts.begin(), ctrts.end());
 		}
+	}
+
+	// Determines total number of actors.
+	size_t actor_count = 0;
+	for (auto actor : major_actors)
+	{
+		actor_count += newcall_graph.cost_of(actor);
 	}
 
 	// Extracts identifiers from contracts.
@@ -1371,6 +1378,7 @@ void CommandLineInterface::handleCModel()
 		handleCModelHarness(harness_data);
 		handleCModelHeaders(
 			asts,
+			major_actors,
 			index_summary,
 			newcall_graph,
 			converter,
@@ -1401,6 +1409,7 @@ void CommandLineInterface::handleCModel()
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(
 			asts,
+			major_actors,
 			index_summary,
 			newcall_graph,
 			converter,
@@ -1442,6 +1451,7 @@ void CommandLineInterface::handleCModelPrimitives(
 
 void CommandLineInterface::handleCModelHeaders(
 	vector<SourceUnit const*> const& _parsed_contracts,
+	vector<ContractDefinition const*> const& _model,
 	modelcheck::MapIndexSummary const& _addrdata,
 	modelcheck::NewCallGraph const& _newcalls,
 	modelcheck::TypeConverter const& _types,
@@ -1450,9 +1460,12 @@ void CommandLineInterface::handleCModelHeaders(
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
+	using dev::solidity::modelcheck::ContractDependance;
 	using dev::solidity::modelcheck::FunctionConverter;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
+
+	ContractDependance dependance(_model, _newcalls);
 
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
@@ -1475,6 +1488,7 @@ void CommandLineInterface::handleCModelHeaders(
 	{
 		FunctionConverter cov(
 			*ast,
+			dependance,
 			_callstate,
 			_newcalls,
 			_types,
@@ -1489,7 +1503,7 @@ void CommandLineInterface::handleCModelHeaders(
 
 void CommandLineInterface::handleCModelBody(
 	vector<SourceUnit const*> const& _parsed_contracts,
-	list<ContractDefinition const*> const& _model,
+	vector<ContractDefinition const*> const& _model,
 	modelcheck::MapIndexSummary const& _addrdata,
 	modelcheck::NewCallGraph const& _newcalls,
 	modelcheck::TypeConverter const& _types,
@@ -1498,11 +1512,14 @@ void CommandLineInterface::handleCModelBody(
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
+	using dev::solidity::modelcheck::ContractDependance;
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
+
+	ContractDependance dependance(_model, _newcalls);
 
 	_os << "#include \"cmodel.h\"" << endl;
 	for (auto lit : _addrdata.literals())
@@ -1528,6 +1545,7 @@ void CommandLineInterface::handleCModelBody(
 	{
 		FunctionConverter cov(
 			*ast,
+			dependance,
 			_callstate,
 			_newcalls,
 			_types,
@@ -1542,6 +1560,7 @@ void CommandLineInterface::handleCModelBody(
 	{
 		FunctionConverter cov(
 			*ast,
+			dependance,
 			_callstate,
 			_newcalls,
 			_types,
@@ -1561,11 +1580,6 @@ void CommandLineInterface::handleCModelBody(
 		_callstate,
 		_types
 	);
-	for (auto const* ast : _parsed_contracts)
-	{
-		main_gen.record(*ast);
-	}
-	main_gen.finalize();
 	main_gen.print(_os);
 }
 

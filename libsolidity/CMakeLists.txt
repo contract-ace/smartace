@@ -110,6 +110,8 @@ set(sources
 	modelcheck/analysis/AllocationSites.h
 	modelcheck/analysis/CallState.cpp
 	modelcheck/analysis/CallState.h
+	modelcheck/analysis/ContractDependance.cpp
+	modelcheck/analysis/ContractDependance.h
 	modelcheck/analysis/FunctionCall.cpp
 	modelcheck/analysis/FunctionCall.h
 	modelcheck/analysis/MapIndex.cpp

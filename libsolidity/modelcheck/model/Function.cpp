@@ -34,6 +34,7 @@ const shared_ptr<CIdentifier> FunctionConverter::TMP =
 
 FunctionConverter::FunctionConverter(
     ASTNode const& _ast,
+    ContractDependance const& _dependance,
     CallState const& _statedata,
     NewCallGraph const& _newcalls,
 	TypeConverter const& _converter,
@@ -42,6 +43,7 @@ FunctionConverter::FunctionConverter(
     View _view,
     bool _fwd_dcl
 ): M_AST(_ast)
+ , M_DEPENDANCE(_dependance)
  , M_STATEDATA(_statedata)
  , M_NEWCALLS(_newcalls)
  , M_CONVERTER(_converter)
@@ -62,9 +64,17 @@ void FunctionConverter::print(ostream& _stream)
 
 bool FunctionConverter::visit(ContractDefinition const& _node)
 {
-    if (!_node.isInterface())
+    // Libraries are handled differently from member functions.
+    if (_node.isLibrary())
     {
-        if (!_node.isLibrary() && M_VIEW != View::INT)
+        for (auto FUNC : _node.definedFunctions())
+        {
+            generate_function(FunctionSpecialization(*FUNC, _node));
+        }
+    }
+    else if (M_DEPENDANCE.is_deployed(&_node))
+    {
+        if (M_VIEW != View::INT)
         {
             handle_contract_initializer(_node, _node);
         }

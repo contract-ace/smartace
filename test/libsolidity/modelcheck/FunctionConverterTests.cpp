@@ -48,9 +48,19 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     graph.record(ast);
     graph.finalize();
 
+    ContractDependance deps(ast);
+
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
+        ast,
+        deps,
+        statedata,
+        graph,
+        converter,
+        false,
+        1,
+        FunctionConverter::View::FULL,
+        false
     ).print(actual);
     expect << "void Init_A(struct A*self,sol_address_t sender"
            << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -91,9 +101,19 @@ BOOST_AUTO_TEST_CASE(payable_method)
     graph.record(ast);
     graph.finalize();
 
+    ContractDependance deps(ast);
+
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
+        ast,
+        deps,
+        statedata,
+        graph,
+        converter,
+        false,
+        1,
+        FunctionConverter::View::FULL,
+        false
     ).print(actual);
     expect << "void Init_A(struct A*self,sol_address_t sender"
            << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -140,9 +160,19 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     graph.record(ast);
     graph.finalize();
 
+    ContractDependance deps(ast);
+
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
+        ast,
+        deps,
+        statedata,
+        graph,
+        converter,
+        false,
+        1,
+        FunctionConverter::View::FULL,
+        false
     ).print(actual);
     // -- Init_A
     expect << "void Init_A(struct A*self,sol_address_t sender"
@@ -198,9 +228,19 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     graph.record(ast);
     graph.finalize();
 
+    ContractDependance deps(ast);
+
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
+        ast,
+        deps,
+        statedata,
+        graph,
+        converter,
+        false,
+        1,
+        FunctionConverter::View::FULL,
+        false
     ).print(actual);
     // -- Ctor_A
     expect << "void Ctor_A(struct A*self,sol_address_t sender"
@@ -256,9 +296,19 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     graph.record(ast);
     graph.finalize();
 
+    ContractDependance deps(ast);
+
     ostringstream actual, expect;
     FunctionConverter(
-        ast, statedata, graph, converter, false, 1, FunctionConverter::View::FULL, false
+        ast,
+        deps,
+        statedata,
+        graph,
+        converter,
+        false,
+        1,
+        FunctionConverter::View::FULL,
+        false
     ).print(actual);
     // -- Init_A
     expect << "void Init_A(struct A*self,sol_address_t sender"
@@ -332,9 +382,19 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     graph.record(ast);
     graph.finalize();
 
+    ContractDependance deps(ast);
+
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
-        ast, statedata, graph, converter, false, 1, FunctionConverter::View::EXT, true
+        ast,
+        deps,
+        statedata,
+        graph,
+        converter,
+        false,
+        1,
+        FunctionConverter::View::EXT,
+        true
     ).print(ext_actual);
     ext_expect << "void Init_A(struct A*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -347,7 +407,15 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     ostringstream int_actual, int_expect;
     FunctionConverter(
-        ast, statedata, graph, converter, false, 1, FunctionConverter::View::INT, true
+        ast,
+        deps,
+        statedata,
+        graph,
+        converter,
+        false,
+        1,
+        FunctionConverter::View::INT,
+        true
     ).print(int_actual);
     int_expect << "void Method_A_Funcg(struct A*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -363,6 +431,65 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
     BOOST_CHECK_EQUAL(int_actual.str(), int_expect.str());
+}
+
+// Ensures we filter out irrelevant methods.
+BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
+{
+    char const* text = R"(
+        contract A {}
+        contract B is A {}
+        contract C {
+            A a;
+            constructor() public { a = new B(); }
+        }
+    )";
+
+    auto const &ast = *parseAndAnalyse(text);
+
+    TypeConverter converter;
+    converter.record(ast);
+
+    CallState statedata;
+    statedata.record(ast);
+
+    NewCallGraph graph;
+    graph.record(ast);
+    graph.finalize();
+
+    auto contracts = ASTNode::filteredNodes<ContractDefinition>(ast.nodes());
+    ContractDependance deps({ contracts.back() }, graph);
+
+    ostringstream ext_actual, ext_expect;
+    FunctionConverter(
+        ast,
+        deps,
+        statedata,
+        graph,
+        converter,
+        false,
+        1,
+        FunctionConverter::View::EXT,
+        true
+    ).print(ext_actual);
+    ext_expect << "void Init_A_For_B(struct B*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum"
+               << ",sol_uint256_t timestamp,sol_bool_t paid"
+               << ",sol_address_t origin);";
+    ext_expect << "void Init_B(struct B*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum"
+               << ",sol_uint256_t timestamp,sol_bool_t paid"
+               << ",sol_address_t origin);";
+    ext_expect << "void Ctor_C(struct C*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum"
+               << ",sol_uint256_t timestamp,sol_bool_t paid"
+               << ",sol_address_t origin);";
+    ext_expect << "void Init_C(struct C*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum"
+               << ",sol_uint256_t timestamp,sol_bool_t paid"
+               << ",sol_address_t origin);";
+
+    BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END();

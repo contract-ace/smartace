@@ -36,15 +36,14 @@ namespace modelcheck
 MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
     MapIndexSummary const& _addrdata,
-    list<ContractDefinition const *> const& _model,
+    vector<ContractDefinition const *> const& _model,
     NewCallGraph const& _new_graph,
     CallState const& _statedata,
     TypeConverter const& _converter
 ): m_addrspace(_addrdata)
  , m_stategen(_statedata, _converter, _addrdata, _lockstep_time)
- , m_actors(_model, _converter, _addrdata)
+ , m_actors(_model, _converter, _new_graph, _addrdata)
  , m_addrdata(_addrdata)
- , m_new_graph(_new_graph)
  , m_statedata(_statedata)
  , m_converter(_converter)
 {
@@ -52,43 +51,8 @@ MainFunctionGenerator::MainFunctionGenerator(
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::record(SourceUnit const& _ast)
-{
-    // Ensures the model has yet to be finalized.
-    if (m_finalized)
-    {
-        throw runtime_error("MainFunction already finalized.");
-    }
-
-    // Passes along source unit data to children.
-    m_actors.record(ASTNode::filteredNodes<ContractDefinition>(_ast.nodes()));
-}
-
-// -------------------------------------------------------------------------- //
-
-void MainFunctionGenerator::finalize()
-{
-    // Ensures the model has yet to be finalized.
-    if (m_finalized)
-    {
-        throw runtime_error("MainFunction already finalized.");
-    }
-    m_finalized = true;
-
-    // Invokes nested finalizations.
-    m_actors.setup(m_new_graph);
-}
-
-// -------------------------------------------------------------------------- //
-
 void MainFunctionGenerator::print(ostream& _stream)
 {
-    // Ensures the model has already been.
-    if (!m_finalized)
-    {
-        throw runtime_error("MainFunction not yet finalized.");
-    }
-
     // Generates function switch.
     size_t case_count = 0;
     auto next_case = make_shared<CVarDecl>("uint8_t", "next_call");

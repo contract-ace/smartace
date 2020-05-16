@@ -47,8 +47,12 @@ static RationalNumberType const NATURAL_TYPE(256);
 static RationalNumberType const RATIONAL_TYPE(rational(1) / rational(2));
 static BoolType const BOOL_TYPE;
 static EnumType const ENUM_TYPE(ENUM_DEF);
-static FixedPointType const FIXED_PT_TYPE(32, 10, FixedPointType::Modifier::Signed);
-static FixedPointType const UFIXED_PT_TYPE(48, 10, FixedPointType::Modifier::Unsigned);
+static FixedPointType const FIXED_PT_TYPE(
+    32, 10, FixedPointType::Modifier::Signed
+);
+static FixedPointType const UFIXED_PT_TYPE(
+    48, 10, FixedPointType::Modifier::Unsigned
+);
 static TupleType const TUPLE_TYPE;
 static TypeType const SIMPLE_TYPE_TYPE(&BOOL_TYPE);
 static TypeType const COMPLEX_TYPE_TYPE(&TUPLE_TYPE);
@@ -78,12 +82,24 @@ BOOST_AUTO_TEST_CASE(unwrap_on_types)
     BOOST_CHECK_EQUAL(&unwrap(NATURAL_TYPE), NATURAL_TYPE.integerType());
     BOOST_CHECK_EQUAL(&unwrap(RATIONAL_TYPE), RATIONAL_TYPE.fixedPointType());
     BOOST_CHECK_EQUAL(&unwrap(BOOL_TYPE), &BOOL_TYPE);
-    BOOST_CHECK_NE(static_cast<IntegerType const*>(&unwrap(ENUM_TYPE)), nullptr);
+    BOOST_CHECK_NE(
+        static_cast<IntegerType const*>(&unwrap(ENUM_TYPE)),
+        nullptr)
+    ;
     BOOST_CHECK_EQUAL(&unwrap(FIXED_PT_TYPE), &FIXED_PT_TYPE);
     BOOST_CHECK_EQUAL(&unwrap(SIMPLE_TYPE_TYPE), SIMPLE_TYPE_TYPE.actualType());
-    BOOST_CHECK_EQUAL(&unwrap(COMPLEX_TYPE_TYPE), COMPLEX_TYPE_TYPE.actualType());
-    BOOST_CHECK_EQUAL(&unwrap(SIMPLE_TYPE_TYPE_TYPE), &unwrap(*SIMPLE_TYPE_TYPE_TYPE.actualType()));
-    BOOST_CHECK_EQUAL(&unwrap(COMPLEX_TYPE_TYPE_TYPE), &unwrap(*COMPLEX_TYPE_TYPE_TYPE.actualType()));
+    BOOST_CHECK_EQUAL(
+        &unwrap(COMPLEX_TYPE_TYPE),
+        COMPLEX_TYPE_TYPE.actualType()
+    );
+    BOOST_CHECK_EQUAL(
+        &unwrap(SIMPLE_TYPE_TYPE_TYPE),
+        &unwrap(*SIMPLE_TYPE_TYPE_TYPE.actualType())
+    );
+    BOOST_CHECK_EQUAL(
+        &unwrap(COMPLEX_TYPE_TYPE_TYPE),
+        &unwrap(*COMPLEX_TYPE_TYPE_TYPE.actualType())
+    );
     BOOST_CHECK_EQUAL(&unwrap(STRING_TYPE), &STRING_TYPE);
     BOOST_CHECK_EQUAL(&unwrap(FIXED_BYTE_TYPE), &FIXED_BYTE_TYPE);
     BOOST_CHECK_EQUAL(&unwrap(ARRAY_TYPE), &ARRAY_TYPE);
@@ -125,8 +141,14 @@ BOOST_AUTO_TEST_CASE(bits_on_types)
     BOOST_CHECK_EQUAL(simple_bit_count(ADDR_TYPE), 160);
     BOOST_CHECK_EQUAL(simple_bit_count(INT_TYPE), INT_TYPE.numBits());
     BOOST_CHECK_EQUAL(simple_bit_count(UINT_TYPE), UINT_TYPE.numBits());
-    BOOST_CHECK_EQUAL(simple_bit_count(NATURAL_TYPE), NATURAL_TYPE.integerType()->numBits());
-    BOOST_CHECK_EQUAL(simple_bit_count(RATIONAL_TYPE), RATIONAL_TYPE.fixedPointType()->numBits());
+    BOOST_CHECK_EQUAL(
+        simple_bit_count(NATURAL_TYPE),
+        NATURAL_TYPE.integerType()->numBits()
+    );
+    BOOST_CHECK_EQUAL(
+        simple_bit_count(RATIONAL_TYPE),
+        RATIONAL_TYPE.fixedPointType()->numBits()
+    );
     BOOST_CHECK_EQUAL(simple_bit_count(BOOL_TYPE), 8);
     BOOST_CHECK_EQUAL(simple_bit_count(FIXED_PT_TYPE), FIXED_PT_TYPE.numBits());
     BOOST_CHECK_EQUAL(simple_bit_count(UFIXED_PT_TYPE), UFIXED_PT_TYPE.numBits());

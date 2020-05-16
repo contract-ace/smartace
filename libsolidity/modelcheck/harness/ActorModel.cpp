@@ -82,57 +82,17 @@ Actor::Actor(
 // -------------------------------------------------------------------------- //
 
 ActorModel::ActorModel(
-    list<ContractDefinition const *> _model,
+    vector<ContractDefinition const *> _model,
     TypeConverter const& _converter,
+    NewCallGraph const& _allocs,
     MapIndexSummary const& _addrdata
-): m_model(_model)
- , m_converter(_converter)
+): m_converter(_converter)
  , m_addrdata(_addrdata)
 {
-}
-
-// -------------------------------------------------------------------------- //
-
-void ActorModel::record(vector<ContractDefinition const*> _new)
-{
-    // Ensures the model has already been.
-    if (m_finalized)
-    {
-        throw runtime_error("ActorModel already finalized.");
-    }
-
-    // Inserts the contracts.
-    m_contracts.insert(m_contracts.end(), _new.begin(), _new.end());
-}
-
-// -------------------------------------------------------------------------- //
-
-void ActorModel::setup(NewCallGraph const& _allocs)
-{
-    // Ensures the model has yet to be finalized.
-    if (m_finalized)
-    {
-        throw runtime_error("ActorModel already finalized.");
-    }
-    m_finalized = true;
-
-    // Determines the set of clients to use.
-    vector<ContractDefinition const*> model;
-    if (!m_model.empty())
-    {
-        model.reserve(m_model.size());
-        model.insert(model.begin(), m_model.begin(), m_model.end());
-    }
-    else
-    {
-        model.reserve(m_contracts.size());
-        model.insert(model.begin(), m_contracts.begin(), m_contracts.end());
-    }
-
     // Generates an actor for each client.
     TicketSystem<uint16_t> cids;
     TicketSystem<uint16_t> fids;
-    for (auto const contract : model)
+    for (auto const contract : _model)
     {
         if (contract->isLibrary() || contract->isInterface()) continue;
 
@@ -174,12 +134,6 @@ void ActorModel::setup(NewCallGraph const& _allocs)
 
 void ActorModel::declare(CBlockList & _block) const
 {
-    // Ensures the model has already been.
-    if (!m_finalized)
-    {
-        throw runtime_error("ActorModel not yet finalized.");
-    }
-
     // Declares each actor.
     for (auto const& actor : m_actors)
     {
@@ -199,12 +153,6 @@ void ActorModel::initialize(
     StateGenerator const& _stategen
 ) const
 {
-    // Ensures the model has already been.
-    if (!m_finalized)
-    {
-        throw runtime_error("ActorModel not yet finalized.");
-    }
-
     // Initializes each actor.
     for (auto const& actor : m_actors)
     {
@@ -244,12 +192,6 @@ void ActorModel::assign_addresses(
     CBlockList & _block, AddressSpace & _addrspace
 ) const
 {
-    // Ensures the model has already been.
-    if (!m_finalized)
-    {
-        throw runtime_error("ActorModel not yet finalized.");
-    }
-
     // Assigns an address to each contract
     for (auto const& actor : m_actors)
     {
@@ -278,12 +220,6 @@ void ActorModel::assign_addresses(
 
 list<shared_ptr<CMemberAccess>> const& ActorModel::vars() const
 {
-    // Ensures the model has already been.
-    if (!m_finalized)
-    {
-        throw runtime_error("ActorModel not yet finalized.");
-    }
-
     // Returns all address declarations.
     return m_addrvar;
 }
@@ -292,12 +228,6 @@ list<shared_ptr<CMemberAccess>> const& ActorModel::vars() const
 
 list<Actor> const& ActorModel::inspect() const
 {
-    // Ensures the model has already been.
-    if (!m_finalized)
-    {
-        throw runtime_error("ActorModel not yet finalized.");
-    }
-
     // Returns all actors.
     return m_actors;
 }

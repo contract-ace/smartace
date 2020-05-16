@@ -13,7 +13,7 @@
 #include <libsolidity/modelcheck/harness/AddressSpace.h>
 #include <libsolidity/modelcheck/harness/StateGenerator.h>
 
-#include <list>
+#include <vector>
 #include <ostream>
 
 namespace dev
@@ -42,25 +42,16 @@ public:
     MainFunctionGenerator(
         bool _lockstep_time,
 	    MapIndexSummary const& _addrdata,
-        std::list<ContractDefinition const *> const& _model,
+        std::vector<ContractDefinition const *> const& _model,
         NewCallGraph const& _new_graph,
         CallState const& _statedata,
         TypeConverter const& _converter
     );
 
-    // Integrates a source unit with the main function.
-    void record(SourceUnit const& _ast);
-
-    // Signals the end of recording, and integrates data.
-    void finalize();
-
     // Prints the main function.
     void print(std::ostream& _stream);
 
 private:
-    // Flag variable used to signal when setup is over.
-    bool m_finalized = false;
-
     // Stores data required to handle addresses.
     AddressSpace m_addrspace;
 
@@ -73,7 +64,6 @@ private:
     // Stores all parameters over the address space.
     MapIndexSummary const& m_addrdata;
 
-    NewCallGraph const& m_new_graph;
     CallState const& m_statedata;
 	TypeConverter const& m_converter;
 

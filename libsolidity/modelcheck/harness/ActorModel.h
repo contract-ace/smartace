@@ -76,18 +76,11 @@ class ActorModel
 {
 public:
     ActorModel(
-        std::list<ContractDefinition const *> _model,
+        std::vector<ContractDefinition const *> _model,
         TypeConverter const& _converter,
+        NewCallGraph const& _allocs,
         MapIndexSummary const& _addrdata
     );
-
-    // Aggregates all contract in case no model is provided.
-    void record(std::vector<ContractDefinition const*> _new);
-
-    // Integrates all contracts (either model, or aggregate) into a single
-    // summary of actors. Once invoked calls to record are disallowed while
-    // calls to all other interfaces are allowed.
-    void setup(NewCallGraph const& _allocs);
 
     // Writes a declaration for each actor.
     void declare(CBlockList & _block) const;
@@ -110,19 +103,8 @@ public:
     std::list<Actor> const& inspect() const;
 
 private:
-    // Flag variable used to signal when setup is over.
-    bool m_finalized = false;
-
-    // If a model was given explicitly, it is recorded by this list. When the
-    // list is empty no model has been given, and the default model is used (one
-    // top-level instance of each contract).
-    std::list<ContractDefinition const *> m_model;
-
     // The list of actors, which is populated after setup.
     std::list<Actor> m_actors;
-
-    // A list of all contracts presented in the source.
-    std::list<ContractDefinition const*> m_contracts;
 
     // An anonymous list of contract address member variables.
     std::list<std::shared_ptr<CMemberAccess>> m_addrvar;
