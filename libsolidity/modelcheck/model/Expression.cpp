@@ -101,6 +101,7 @@ bool ExpressionConverter::visit(Assignment const& _node)
 		ScopedSwap<bool> swap(m_lval, true);
 		if (auto map = LValueSniffer<IndexAccess>(_node.leftHandSide()).find())
 		{
+			// TODO: "Write" should not be hard-coded.
 			FlatIndex idx(*map);
 			auto record = M_TYPES.mapdb().resolve(idx.decl());
 			generate_mapping_call("Write", record, idx, rhs);
@@ -244,6 +245,7 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 				throw runtime_error("Map references unsupported.");
 			}
 
+			// TODO: "Read" should not be hard-coded.
 			generate_mapping_call("Read", record, idx, nullptr);
 
 			if (is_wrapped_type(*_node.annotation().type))

@@ -434,6 +434,8 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
                << ",sol_int256_t key_0);";
     int_expect << "void Write_Map_1(struct Map_1*arr,sol_int256_t key_0"
                << ",sol_int256_t dat);";
+    int_expect << "void Set_Map_1(struct Map_1*arr,sol_int256_t key_0"
+               << ",sol_int256_t dat);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
     BOOST_CHECK_EQUAL(int_actual.str(), int_expect.str());

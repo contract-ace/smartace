@@ -106,27 +106,44 @@ CFuncDef MapGenerator::declare_write(bool _forward_declare) const
     params.insert(params.end(), m_keys.begin(), m_keys.end());
     params.push_back(M_DAT);
 
+    shared_ptr<CBlock> body;
+    if (!_forward_declare)
+    {
+        body = expand_update(M_KEEP_SUM);
+    }
+
+    return CFuncDef(move(fid), move(params), move(body));
+}
+
+// -------------------------------------------------------------------------- //
+
+CFuncDef MapGenerator::declare_set(bool _forward_declare) const
+{
+    auto fid = make_shared<CVarDecl>("void", "Set_" + M_MAP_RECORD.name);
+
+    CParams params;
+    params.push_back(M_ARR);
+    params.insert(params.end(), m_keys.begin(), m_keys.end());
+    params.push_back(M_DAT);
 
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        CBlockList block;
-
-        if (M_LEN > 0)
-        {
-            block.push_back(expand_access(0, "", true));
-        }
-
         if (M_KEEP_SUM)
         {
-            block.push_back(make_shared<CBinaryOp>(
-                M_ARR->access("sum")->access("v"),
-                "+=",
-                M_DAT->id()->access("v")
-            )->stmt());
+            body = expand_update(false);
         }
+        else
+        {
+            CFuncCallBuilder write_call("Write_" + M_MAP_RECORD.name);
+            write_call.push(M_ARR->id());
+            for (auto key : m_keys) write_call.push(key->id());
+            write_call.push(M_DAT->id());
 
-        body = make_shared<CBlock>(block);
+            body = make_shared<CBlock>(CBlockList{
+                write_call.merge_and_pop_stmt()
+            });
+        }
     }
 
     return CFuncDef(move(fid), move(params), move(body));
@@ -150,7 +167,7 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
         onfail.push(Literals::ZERO);
         onfail.push(Literals::ZERO);
         body = make_shared<CBlock>(CBlockList{
-            expand_access(0, "", false),
+            expand_access(0, "", false, false),
             onfail.merge_and_pop_stmt(),
             make_shared<CReturn>(M_TYPES.get_init_val(*M_MAP_RECORD.value_type))
         });
@@ -190,8 +207,26 @@ shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
 
 // -------------------------------------------------------------------------- //
 
+shared_ptr<CBlock> MapGenerator::expand_update(bool _maintain_sum) const
+{
+    CBlockList block{expand_access(0, "", true, _maintain_sum)};
+
+    if (_maintain_sum)
+    {
+        block.push_back(make_shared<CBinaryOp>(
+            M_ARR->access("sum")->access("v"),
+            "+=",
+            M_DAT->id()->access("v")
+        )->stmt());
+    }
+
+    return make_shared<CBlock>(block);
+}
+
+// -------------------------------------------------------------------------- //
+
 CStmtPtr MapGenerator::expand_access(
-    size_t _depth, string const& _suffix, bool _is_writer
+    size_t _depth, string const& _suffix, bool _is_writer, bool _maintain_sum
 ) const
 {
     if (_depth == M_MAP_RECORD.key_types.size())
@@ -200,7 +235,7 @@ CStmtPtr MapGenerator::expand_access(
         if (_is_writer)
         {
             CBlockList block;
-            if (M_KEEP_SUM)
+            if (_maintain_sum)
             {
                 block.push_back(make_shared<CBinaryOp>(
                     M_ARR->access("sum")->access("v"), "-=", DATA->access("v")
@@ -223,7 +258,9 @@ CStmtPtr MapGenerator::expand_access(
             auto const CURR_KEY = M_ARR->access("curr" + SUFFIX)->access("v");
             auto const REQ_KEY = m_keys[_depth]->access("v");
 
-            auto const NEXT = expand_access(_depth + 1, SUFFIX, _is_writer);
+            auto const NEXT = expand_access(
+                _depth + 1, SUFFIX, _is_writer, _maintain_sum
+            );
 
             stmt = make_shared<CIf>(make_shared<CBinaryOp>(
                 make_shared<CIntLiteral>(i), "==", REQ_KEY
@@ -231,15 +268,6 @@ CStmtPtr MapGenerator::expand_access(
         }
         return make_shared<CBlock>(CBlockList{stmt});
     }
-}
-
-// -------------------------------------------------------------------------- //
-
-string MapGenerator::name_global_key(size_t _id)
-{
-    return VariableScopeResolver::rewrite(
-        "addr_" + to_string(_id), true, VarContext::STRUCT
-    );
 }
 
 // -------------------------------------------------------------------------- //

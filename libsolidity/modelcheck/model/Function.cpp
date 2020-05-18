@@ -182,7 +182,8 @@ bool FunctionConverter::visit(Mapping const& _node)
     MapGenerator gen(_node, M_ADD_SUMS, M_MAP_K, M_CONVERTER);
     (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
                  << gen.declare_read(M_FWD_DCL)
-                 << gen.declare_write(M_FWD_DCL);
+                 << gen.declare_write(M_FWD_DCL)
+                 << gen.declare_set(M_FWD_DCL);
 
     return false;
 }

@@ -42,9 +42,7 @@ public:
     CFuncDef declare_zero_initializer(bool _forward_declare) const;
     CFuncDef declare_write(bool _forward_declare) const;
     CFuncDef declare_read(bool _forward_declare) const;
-
-    // Generates a name for each global index.
-    static std::string name_global_key(size_t _id);
+    CFuncDef declare_set(bool _forward_declare) const;
 
 private:
     // Utility to iterate all key combinations.
@@ -112,8 +110,15 @@ private:
     // taken to be either null, or the {i-1}-th term.
     std::shared_ptr<CBlock> expand_init(CExprPtr const& _init_data) const;
 
+    // Helper method to generate update functions. The _maintain_sum field is
+    // meant to disable sum instrumentation when "Set_" is in use.
+    std::shared_ptr<CBlock> expand_update(bool _maintain_sum) const;
+
     CStmtPtr expand_access(
-        size_t _depth, std::string const& _suffix, bool _is_writer
+        size_t _depth,
+        std::string const& _suffix,
+        bool _is_writer,
+        bool _maintain_sum
     ) const;
 };
 
