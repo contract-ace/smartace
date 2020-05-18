@@ -40,31 +40,24 @@ bool ModelDrivenContractDependance::SuperChainExtractor::visit(
 	if (KIND != FunctionCallKind::FunctionCall) return true;
 
     // Otherwise checks if this is a contract method call.
-    // TODO: this switch maps FunctionTypeKinds to SmartACE entities. Factor.
 	FunctionCallAnalyzer calldata(_node);
-    switch (calldata.type().kind())
+    if (calldata.classify() == FunctionCallAnalyzer::CallGroup::Method)
     {
-	case FunctionType::Kind::Internal:
-	case FunctionType::Kind::External:
-	case FunctionType::Kind::BareCall:
-	case FunctionType::Kind::BareStaticCall:
         if (calldata.is_super())
         {
             m_superchain.push_back(&calldata.decl());
             calldata.decl().body().accept(*this);
             return false;
         }
-        return true;
-    default:
-        return true;
     }
+    return false;
 }
 
 // -------------------------------------------------------------------------- //
 
 ModelDrivenContractDependance::ModelDrivenContractDependance(
     vector<ContractDefinition const*> _model, NewCallGraph const& _graph
-)
+): DependancyAnalyzer(_model)
 {
     // Iterates over each contract in the model, where the model is expanding.
     for (size_t i = 0; i < _model.size(); ++i)

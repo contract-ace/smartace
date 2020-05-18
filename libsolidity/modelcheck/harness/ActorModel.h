@@ -7,6 +7,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/General.h>
 
@@ -39,6 +40,7 @@ struct Actor
 {
     Actor(
         TypeConverter const& _converter,
+        ContractDependance const& _dependance,
         ContractDefinition const* _contract,
         CExprPtr _path,
         TicketSystem<uint16_t> & _cids,
@@ -64,6 +66,9 @@ struct Actor
     // Maintains a path of accesses, from parent contract decl to child contract
     // decl.
     CExprPtr path;
+
+    // If true the given call makes use of some map in the model.
+    std::map<FunctionDefinition const*, bool> uses_maps;
 };
 
 // -------------------------------------------------------------------------- //
@@ -76,7 +81,7 @@ class ActorModel
 {
 public:
     ActorModel(
-        std::vector<ContractDefinition const *> _model,
+        ContractDependance const& _dependance,
         TypeConverter const& _converter,
         NewCallGraph const& _allocs,
         MapIndexSummary const& _addrdata
@@ -116,6 +121,7 @@ private:
     // parent, starting from a top level contract.
     void recursive_setup(
         NewCallGraph const& _allocs,
+        ContractDependance const& _dependance,
         CExprPtr _path,
         ContractDefinition const* _parent,
         TicketSystem<uint16_t> & _cids,

@@ -36,13 +36,13 @@ namespace modelcheck
 MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
     MapIndexSummary const& _addrdata,
-    vector<ContractDefinition const *> const& _model,
+        ContractDependance const& _dependance,
     NewCallGraph const& _new_graph,
     CallState const& _statedata,
     TypeConverter const& _converter
 ): m_addrspace(_addrdata)
  , m_stategen(_statedata, _converter, _addrdata, _lockstep_time)
- , m_actors(_model, _converter, _new_graph, _addrdata)
+ , m_actors(_dependance, _converter, _new_graph, _addrdata)
  , m_addrdata(_addrdata)
  , m_statedata(_statedata)
  , m_converter(_converter)
@@ -65,7 +65,10 @@ void MainFunctionGenerator::print(ostream& _stream)
     {
         for (auto const& spec : actor.specs)
         {
-            auto call_body = build_case(spec, actor.fparams, actor.decl);
+            bool uses_maps = actor.uses_maps[&spec.func()];
+            auto call_body = build_case(
+                spec, actor.fparams, actor.decl, uses_maps
+            );
             call_cases->add_case(actor.fnums[&spec.func()], move(call_body));
             ++case_count;
         }
@@ -108,7 +111,8 @@ void MainFunctionGenerator::print(ostream& _stream)
 CBlockList MainFunctionGenerator::build_case(
     FunctionSpecialization const& _spec,
     map<VariableDeclaration const*, shared_ptr<CVarDecl>> & _args,
-    shared_ptr<const CVarDecl> _id
+    shared_ptr<const CVarDecl> _id,
+    bool uses_maps
 )
 {
     CExprPtr id = _id->id();
@@ -117,11 +121,18 @@ CBlockList MainFunctionGenerator::build_case(
         id = make_shared<CReference>(id);
     }
 
+    CBlockList call_body;
+
+    // TODO: actually populate maps.
+    if (uses_maps)
+    {
+        call_body.push_back(make_shared<CComment>("Uses maps."));
+    }
+
     CFuncCallBuilder call_builder(_spec.name());
     call_builder.push(id);
     m_statedata.push_state_to(call_builder);
 
-    CBlockList call_body;
     if (_spec.func().isPayable())
     {
         m_stategen.pay(call_body);

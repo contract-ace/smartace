@@ -30,9 +30,7 @@ namespace modelcheck
 class MapDeflate
 {
 public:
-    /**
-     * Fully describes the flattened map. See MapDeflate description.
-     */
+    // Fully describes the flattened map. See MapDeflate description.
     struct FlatMap
     {
         std::string name;
@@ -40,19 +38,15 @@ public:
         TypeName const* value_type;
     };
 
-    /**
-     * Either registers _map with the MapDlate lookup, or returns the pre-
-     * existing entry. When no entry is found, this flatten _map, and registers
-     * it in the map lookup. For a Mapping typename of the form
-     * mapping(A => mapping(B => mapping(C => ...))). a FlatMap with key
-     * tuple(A, B, C, ...) will be produced.
-     */
+    // Either registers _map with the MapDlate lookup, or returns the pre-
+    // existing entry. When no entry is found, this flatten _map, and registers
+    // it in the map lookup. For a Mapping typename of the form
+    // mapping(A => mapping(B => mapping(C => ...))). a FlatMap with key
+    // tuple(A, B, C, ...) will be produced.
     FlatMap query(Mapping const& _mapping);
 
-    /**
-     * Queries the FlatMap for the given declaration, and throws an exception on
-     * failed lookuo.
-     */
+    // Queries the FlatMap for the given declaration, and throws an exception on
+    // failed lookup.
     FlatMap resolve(Mapping const& _decl) const;
     FlatMap resolve(VariableDeclaration const& _decl) const;
 
@@ -69,24 +63,16 @@ private:
 class FlatIndex: public ASTConstVisitor
 {
 public:
-    /**
-     * Extracts all access information wrt _root.
-     */
+    // Extracts all access information wrt _root.
     FlatIndex(IndexAccess const& _root);
 
-    /**
-     * Returns a flattened list of indices to the map.
-     */
+    // Returns a flattened list of indices to the map.
     std::list<Expression const*> const& indices() const;
 
-    /**
-     * Returns the expression which designates the map.
-     */
+    // Returns the expression which designates the map.
     Expression const& base() const;
 
-    /**
-     * Returns the declaration referenced by this index.
-     */
+    // Returns the declaration referenced by this index.
     VariableDeclaration const& decl() const;
 
 protected:

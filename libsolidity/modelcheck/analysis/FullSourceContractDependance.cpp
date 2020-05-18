@@ -21,7 +21,7 @@ namespace modelcheck
 
 FullSourceContractDependance::FullSourceContractDependance(
     SourceUnit const& _srcs
-)
+): DependancyAnalyzer({})
 {
     auto listview = ASTNode::filteredNodes<ContractDefinition>(_srcs.nodes());
 

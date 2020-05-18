@@ -53,6 +53,25 @@ protected:
 // -------------------------------------------------------------------------- //
 
 /**
+ * Represents an inline C comment.
+ */
+class CComment : public CStmt
+{
+public:
+    // Creates a literal of signed value _val.
+    CComment(std::string _val);
+
+    ~CComment() = default;
+
+    void print_impl(std::ostream & _out) const override;
+
+private:
+    std::string m_val;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * Generalization of a binary operator.
  */
 class CBinaryOp : public CExpr

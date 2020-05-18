@@ -32,6 +32,18 @@ shared_ptr<CMemberAccess> CData::access(string _member) const
 
 // -------------------------------------------------------------------------- //
 
+CComment::CComment(string _val) : m_val(move(_val))
+{
+    nest();
+}
+
+void CComment::print_impl(ostream & _out) const
+{
+    _out << "/* " << m_val << " */" << endl;
+}
+
+// -------------------------------------------------------------------------- //
+
 CIdentifier::CIdentifier(string _name, bool _ptr)
 : m_name(move(_name)), m_ptr(_ptr) {}
 

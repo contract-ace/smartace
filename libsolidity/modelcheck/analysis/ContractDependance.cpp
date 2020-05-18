@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
 
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
+#include <libsolidity/modelcheck/analysis/Mapping.h>
 
 using namespace std;
 
@@ -19,9 +20,57 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+CallReachAnalyzer::CallReachAnalyzer(FunctionDefinition const& _func)
+{
+    m_calls.insert(&_func);
+    _func.body().accept(*this);
+}
+
+// -------------------------------------------------------------------------- //
+
+bool CallReachAnalyzer::visit(IndexAccess const& _node)
+{
+    FlatIndex idx(_node);
+    if (idx.base().annotation().type->category() == Type::Category::Mapping)
+    {
+        m_reads.insert(&idx.decl());
+    }
+
+    for (auto param : idx.indices()) param->accept(*this);
+    idx.base().accept(*this);
+
+    return false;
+}
+
+void CallReachAnalyzer::endVisit(FunctionCall const& _node)
+{
+    // If the type isn't a function this isn't a super call.
+	FunctionCallKind const KIND = _node.annotation().kind;
+	if (KIND != FunctionCallKind::FunctionCall) return;
+
+    // Otherwise checks if this is a contract method call.
+	FunctionCallAnalyzer calldata(_node);
+    if (calldata.classify() == FunctionCallAnalyzer::CallGroup::Method)
+    {
+        if (m_calls.insert(&calldata.decl()).second)
+        {
+            calldata.decl().body().accept(*this);
+        }
+    }
+}
+
+ContractDependance::DependancyAnalyzer::DependancyAnalyzer(
+    ContractDependance::ContractList _model
+): m_model(move(_model))
+{
+}
+
+// -------------------------------------------------------------------------- //
+
 ContractDependance::ContractDependance(
     ContractDependance::DependancyAnalyzer const& _analyzer
 ) : m_contracts(_analyzer.m_contracts)
+ ,  m_model(_analyzer.m_model)
 {
     // Does per-contract analysis.
     for (auto contract : m_contracts)
@@ -38,8 +87,26 @@ ContractDependance::ContractDependance(
                 m_superchain[interface]
                     = _analyzer.get_superchain_for(interface);
             }
+
+            // Computes ROI of the given interface.
+            // TODO: reusing partial results would be nice.
+            CallReachAnalyzer reach(*interface);
+            m_functions.insert(reach.m_calls.begin(), reach.m_calls.end());
+            m_callreach[interface] = std::move(reach.m_calls);
+            m_mapreach[interface] = std::move(reach.m_reads);
         }
     }
+}
+
+// -------------------------------------------------------------------------- //
+
+ContractDependance::ContractList const& ContractDependance::get_model() const
+{
+    if (m_model.empty())
+    {
+        throw std::runtime_error("ContractDependance: Model not available.");
+    }
+    return m_model;
 }
 
 // -------------------------------------------------------------------------- //
@@ -75,6 +142,34 @@ ContractDependance::FuncInterface const& ContractDependance::get_interface(
         return res->second;
     }
     throw std::runtime_error("Interface requested on out-of-scope contract.");
+}
+
+// -------------------------------------------------------------------------- //
+
+ContractDependance::FunctionSet const& ContractDependance::get_function_roi(
+    FunctionDefinition const* _func
+) const
+{
+    auto res = m_callreach.find(_func);
+    if (res != m_callreach.end())
+    {
+        return res->second;
+    }
+    throw std::runtime_error("Function ROI requested on out-of-scope method.");
+}
+
+// -------------------------------------------------------------------------- //
+
+ContractDependance::VarSet const& ContractDependance::get_map_roi(
+    FunctionDefinition const* _func
+) const
+{
+    auto res = m_mapreach.find(_func);
+    if (res != m_mapreach.end())
+    {
+        return res->second;
+    }
+    throw std::runtime_error("Map ROI requested on out-of-scope method.");
 }
 
 // -------------------------------------------------------------------------- //

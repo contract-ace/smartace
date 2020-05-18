@@ -1334,6 +1334,11 @@ void CommandLineInterface::handleCModel()
 		actor_count += newcall_graph.cost_of(actor);
 	}
 
+	// Determines actor dependancies.
+	modelcheck::ContractDependance dependance(
+		modelcheck::ModelDrivenContractDependance(major_actors, newcall_graph)
+	);
+
 	// Extracts identifiers from contracts.
 	size_t client_count = m_args[g_argModelMapLen].as<size_t>();
 	bool concrete_addrs = (m_args.count(g_argModelConcrete) > 0);
@@ -1378,7 +1383,7 @@ void CommandLineInterface::handleCModel()
 		handleCModelHarness(harness_data);
 		handleCModelHeaders(
 			asts,
-			major_actors,
+			dependance,
 			index_summary,
 			newcall_graph,
 			converter,
@@ -1387,7 +1392,7 @@ void CommandLineInterface::handleCModel()
 		);
 		handleCModelBody(
 			asts,
-			major_actors,
+			dependance,
 			index_summary,
 			newcall_graph,
 			converter,
@@ -1409,7 +1414,7 @@ void CommandLineInterface::handleCModel()
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(
 			asts,
-			major_actors,
+			dependance,
 			index_summary,
 			newcall_graph,
 			converter,
@@ -1419,7 +1424,7 @@ void CommandLineInterface::handleCModel()
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
 		handleCModelBody(
 			asts,
-			major_actors,
+			dependance,
 			index_summary,
 			newcall_graph,
 			converter,
@@ -1451,7 +1456,7 @@ void CommandLineInterface::handleCModelPrimitives(
 
 void CommandLineInterface::handleCModelHeaders(
 	vector<SourceUnit const*> const& _parsed_contracts,
-	vector<ContractDefinition const*> const& _model,
+	modelcheck::ContractDependance const& _dependance,
 	modelcheck::MapIndexSummary const& _addrdata,
 	modelcheck::NewCallGraph const& _newcalls,
 	modelcheck::TypeConverter const& _types,
@@ -1460,15 +1465,9 @@ void CommandLineInterface::handleCModelHeaders(
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
-	using dev::solidity::modelcheck::ContractDependance;
 	using dev::solidity::modelcheck::FunctionConverter;
-	using dev::solidity::modelcheck::ModelDrivenContractDependance;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
-
-	ContractDependance dependance(
-		ModelDrivenContractDependance(_model, _newcalls)
-	);
 
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
@@ -1491,7 +1490,7 @@ void CommandLineInterface::handleCModelHeaders(
 	{
 		FunctionConverter cov(
 			*ast,
-			dependance,
+			_dependance,
 			_callstate,
 			_newcalls,
 			_types,
@@ -1506,7 +1505,7 @@ void CommandLineInterface::handleCModelHeaders(
 
 void CommandLineInterface::handleCModelBody(
 	vector<SourceUnit const*> const& _parsed_contracts,
-	vector<ContractDefinition const*> const& _model,
+	modelcheck::ContractDependance const& _dependance,
 	modelcheck::MapIndexSummary const& _addrdata,
 	modelcheck::NewCallGraph const& _newcalls,
 	modelcheck::TypeConverter const& _types,
@@ -1522,10 +1521,6 @@ void CommandLineInterface::handleCModelBody(
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
-
-	ContractDependance dependance(
-		ModelDrivenContractDependance(_model, _newcalls)
-	);
 
 	_os << "#include \"cmodel.h\"" << endl;
 	for (auto lit : _addrdata.literals())
@@ -1551,7 +1546,7 @@ void CommandLineInterface::handleCModelBody(
 	{
 		FunctionConverter cov(
 			*ast,
-			dependance,
+			_dependance,
 			_callstate,
 			_newcalls,
 			_types,
@@ -1566,7 +1561,7 @@ void CommandLineInterface::handleCModelBody(
 	{
 		FunctionConverter cov(
 			*ast,
-			dependance,
+			_dependance,
 			_callstate,
 			_newcalls,
 			_types,
@@ -1581,7 +1576,7 @@ void CommandLineInterface::handleCModelBody(
 	modelcheck::MainFunctionGenerator main_gen(
 		lockstep_time,
 		_addrdata,
-		_model,
+		_dependance,
 		_newcalls,
 		_callstate,
 		_types

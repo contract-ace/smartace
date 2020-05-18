@@ -24,7 +24,6 @@ BOOST_FIXTURE_TEST_SUITE(
     ::dev::solidity::test::AnalysisFramework
 )
 
-// Tests that unused contracts are hidden.
 BOOST_AUTO_TEST_CASE(prunes_contracts)
 {
     char const* text = R"(
@@ -60,7 +59,6 @@ BOOST_AUTO_TEST_CASE(prunes_contracts)
     BOOST_CHECK(deps.is_deployed(ctrt_wx));
 }
 
-// Tests that the correct interfaces are extracted per contract.
 BOOST_AUTO_TEST_CASE(interfaces)
 {
     char const* text = R"(
@@ -92,7 +90,6 @@ BOOST_AUTO_TEST_CASE(interfaces)
     BOOST_CHECK_EQUAL(deps.get_interface(ctrt).size(), 4);
 }
 
-// Tests that unused contracts are hidden.
 BOOST_AUTO_TEST_CASE(supercalls)
 {
     char const* text = R"(
@@ -138,6 +135,98 @@ BOOST_AUTO_TEST_CASE(supercalls)
     BOOST_CHECK(supers[0] == ctrt_r->definedFunctions()[0]);
     BOOST_CHECK(supers[1] == ctrt_z->definedFunctions()[0]);
     BOOST_CHECK(supers[2] == ctrt_y->definedFunctions()[0]);
+}
+
+BOOST_AUTO_TEST_CASE(roi_for_calls)
+{
+    char const* text = R"(
+        contract X {
+            function f() public view {}
+            function g() public view {}
+            function h() public view {}
+        }
+        contract Y {
+            X x;
+            constructor() public { x = new X(); }
+            function f() public view { x.f(); }
+            function g() public view {}
+            function h() public view { x.h(); }
+        }
+        contract Z {
+            Y y;
+            constructor() public { y = new Y(); }
+            function f() public view { y.f(); y.h(); f(); }
+            function g() public view { y.g(); }
+            function h() public view {}
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const* ctrt = retrieveContractByName(unit, "Z");
+
+    NewCallGraph graph;
+    graph.record(unit);
+    graph.finalize();
+
+    ContractDependance deps(ModelDrivenContractDependance({ ctrt }, graph));
+
+    BOOST_CHECK_EQUAL(ctrt->definedFunctions()[1]->name(), "f");
+    BOOST_CHECK_EQUAL(ctrt->definedFunctions()[2]->name(), "g");
+    BOOST_CHECK_EQUAL(ctrt->definedFunctions()[3]->name(), "h");
+
+    BOOST_CHECK_EQUAL(
+        deps.get_function_roi(ctrt->definedFunctions()[1]).size(), 5
+    );
+    BOOST_CHECK_EQUAL(
+        deps.get_function_roi(ctrt->definedFunctions()[2]).size(), 2
+    );
+    BOOST_CHECK_EQUAL(
+        deps.get_function_roi(ctrt->definedFunctions()[3]).size(), 1
+    );
+}
+
+BOOST_AUTO_TEST_CASE(roi_for_map)
+{
+    char const* text = R"(
+        contract X {
+            mapping(address => int) m1;
+            mapping(address => mapping(address => int)) m2;
+            function f() public view { m1[address(1)]; }
+            function g() public view { m1[address(1)]; }
+            function h() public view { m2[address(1)][address(1)]; }
+        }
+        contract Y {
+            X x;
+            mapping(address => int) m1;
+            constructor() public { x = new X(); }
+            function calls_1a() public view { m1[address(1)]; }
+            function calls_1b() public view { x.f(); }
+            function calls_1c() public view { x.f(); x.g(); }
+            function calls_2() public view { x.f(); x.h(); }
+            function calls_3() public view { calls_1a(); x.f(); x.h(); }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const* ctrt = retrieveContractByName(unit, "Y");
+
+    NewCallGraph graph;
+    graph.record(unit);
+    graph.finalize();
+
+    ContractDependance deps(ModelDrivenContractDependance({ ctrt }, graph));
+
+    BOOST_CHECK_EQUAL(ctrt->definedFunctions()[1]->name(), "calls_1a");
+    BOOST_CHECK_EQUAL(ctrt->definedFunctions()[2]->name(), "calls_1b");
+    BOOST_CHECK_EQUAL(ctrt->definedFunctions()[3]->name(), "calls_1c");
+    BOOST_CHECK_EQUAL(ctrt->definedFunctions()[4]->name(), "calls_2");
+    BOOST_CHECK_EQUAL(ctrt->definedFunctions()[5]->name(), "calls_3");
+
+    BOOST_CHECK_EQUAL(deps.get_map_roi(ctrt->definedFunctions()[1]).size(), 1);
+    BOOST_CHECK_EQUAL(deps.get_map_roi(ctrt->definedFunctions()[2]).size(), 1);
+    BOOST_CHECK_EQUAL(deps.get_map_roi(ctrt->definedFunctions()[3]).size(), 1);
+    BOOST_CHECK_EQUAL(deps.get_map_roi(ctrt->definedFunctions()[4]).size(), 2);
+    BOOST_CHECK_EQUAL(deps.get_map_roi(ctrt->definedFunctions()[5]).size(), 3);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

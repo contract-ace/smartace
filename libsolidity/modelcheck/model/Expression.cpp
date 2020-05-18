@@ -577,103 +577,88 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 {
 	FunctionCallAnalyzer calldata(_call);
 
-	// TODO: this should be a helper method in call data.
-	switch (calldata.type().kind())
+	// TODO: error logging.
+	FunctionCallAnalyzer::CallGroup group = calldata.classify();
+	if (group == FunctionCallAnalyzer::CallGroup::Method)
 	{
-	case FunctionType::Kind::Internal:
-	case FunctionType::Kind::External:
-	case FunctionType::Kind::BareCall:
-	case FunctionType::Kind::BareStaticCall:
 		print_method(calldata);
-		break;
-	case FunctionType::Kind::DelegateCall:
-	case FunctionType::Kind::BareDelegateCall:
-	case FunctionType::Kind::BareCallCode:
-		// TODO(scottwe): report that calls to DELEGATECALL are not supported.
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Delegate)
+	{
 		throw runtime_error("Delegate calls are unsupported.");
-	case FunctionType::Kind::Creation:
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Constructor)
+	{
 		print_contract_ctor(_call);
-		break;
-	case FunctionType::Kind::Send:
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Send)
+	{
 		print_payment(_call, true);
-		break;
-	case FunctionType::Kind::Transfer:
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Transfer)
+	{
 		print_payment(_call, false);
-		break;
-	case FunctionType::Kind::KECCAK256:
-		// TODO(scottwe): implement.
-		throw runtime_error("KECCAK256 not yet supported.");
-	case FunctionType::Kind::Selfdestruct:
-		// TODO(scottwe): when should this be acceptable?
-		throw runtime_error("Selfdestruct unsupported.");
-	case FunctionType::Kind::Revert:
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Crypto)
+	{
+		throw runtime_error("Cryptographic calls are unsupported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Destruct)
+	{
+		throw runtime_error("Self-destruction is unsupported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Revert)
+	{
 		print_revert(_call.arguments());
-		break;
-	case FunctionType::Kind::ECRecover:
-		// TODO(scottwe): implement.
-		throw runtime_error("ECRecover not yet supported.");
-	case FunctionType::Kind::SHA256:
-		// TODO(scottwe): implement.
-		throw runtime_error("SHA256 not yet supported.");
-	case FunctionType::Kind::RIPEMD160:
-		// TODO(scottwe): implement.
-		throw runtime_error("RIPEMD160 not yet supported.");
-	case FunctionType::Kind::Log0:
-	case FunctionType::Kind::Log1:
-	case FunctionType::Kind::Log2:
-	case FunctionType::Kind::Log3:
-	case FunctionType::Kind::Log4:
-	case FunctionType::Kind::Event:
-		// TODO(scottwe): prune statements which operate on events...
-		throw runtime_error("Logging is not verified.");
-	case FunctionType::Kind::BlockHash:
-		// TODO(scottwe): implement.
-		throw runtime_error("`block.blockhash(<val>)` not yet supported.");
-	case FunctionType::Kind::AddMod:
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Assert)
+	{
+		print_assertion("sol_assert", _call.arguments());
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Require)
+	{
+		print_assertion("sol_require", _call.arguments());
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Logging)
+	{
+		throw runtime_error("Logging calls are unsupported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Blockhash)
+	{
+		throw runtime_error("block.blockhash(<val>)` is unsupported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::AddMod)
+	{
 		// TODO(scottwe): overflow free `assert(z > 0); return (x + y) % z;`.
 		throw runtime_error("AddMod not yet supported.");
-	case FunctionType::Kind::MulMod:
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::MulMod)
+	{
 		// TODO(scottwe): overflow free `assert(z > 0); return (x * y) % z;`.
-		throw runtime_error("AddMod not yet supported.");
-	case FunctionType::Kind::ArrayPush:
-	case FunctionType::Kind::ByteArrayPush:
-		// TODO(scottwe): implement.
-		throw runtime_error("`<array>.push(<val>)` not yet supported.");
-	case FunctionType::Kind::ArrayPop:
-		// TODO(scottwe): implement.
-		throw runtime_error("`<array>.pop()` not yet supported.");
-	case FunctionType::Kind::ObjectCreation:
-		// TODO(scottwe): implement.
+		throw runtime_error("MulMod not yet supported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Push)
+	{
+		throw runtime_error("`<array>.push(<val>)` is unsupported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Pop)
+	{
+		throw runtime_error("`<array>.pop(<val>)` not yet supported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::NewArray)
+	{
 		throw runtime_error("`new <array>` not yet supported.");
-	case FunctionType::Kind::Assert:
-		print_assertion("sol_assert", _call.arguments());
-		break;
-	case FunctionType::Kind::Require:
-		print_assertion("sol_require", _call.arguments());
-		break;
-	case FunctionType::Kind::ABIEncode:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.encode(...)` unsupported.");
-	case FunctionType::Kind::ABIEncodePacked:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.encodePacked(...)` unsupported.");
-	case FunctionType::Kind::ABIEncodeWithSelector:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.encodeWithSelector(...)` unsupported.");
-	case FunctionType::Kind::ABIEncodeWithSignature:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.encodeWithSignature(...)` unsupported.");
-	case FunctionType::Kind::ABIDecode:
-		// TODO(scottwe): decide how/if this should be used.
-		throw runtime_error("`abi.decode(...)` unsupported.");
-	case FunctionType::Kind::GasLeft:
-		// TODO(scottwe): decide how to handle remaining gas checks.
-		throw runtime_error("GasLeft not yet supported.");
-	case FunctionType::Kind::MetaType:
-		// Note: Compiler does not generate code for MetaType calls.
-		break;
-	default:
-		// Note: `.value` and `.gas` are handled in a special case.
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::ABI)
+	{
+		throw runtime_error("ABI calls are unsupported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::GasLeft)
+	{
+		throw runtime_error("gasLeft() is unsupported.");
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::UnhandledCall)
+	{
 		throw runtime_error("Unexpected function call type.");
 	}
 }

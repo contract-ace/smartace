@@ -29,6 +29,7 @@ namespace modelcheck
 
 Actor::Actor(
     TypeConverter const& _converter,
+    ContractDependance const& _dependance,
     ContractDefinition const* _contract,
     CExprPtr _path,
     TicketSystem<uint16_t> & _cids,
@@ -45,36 +46,31 @@ Actor::Actor(
     );
 
     // Analyzes all children and function calls.
-    set<string> generated;
-    for (auto CONTRACT : contract->annotation().linearizedBaseContracts)
+    for (auto method : _dependance.get_interface(_contract))
     {
-        if (CONTRACT->isInterface()) break;
+        if (method->isConstructor()) continue;
+        if (!method->isPublic()) continue;
 
-        for (auto FUNC : CONTRACT->definedFunctions())
+        auto fnum = _fids.next();
+        fnums[method] = fnum;
+        specs.emplace_back(*method, *contract);
+
+        for (size_t pidx = 0; pidx < method->parameters().size(); ++pidx)
         {
-            if (FUNC->isConstructor()) continue;
-            if (!FUNC->isPublic()) continue;
-            if (!FUNC->isImplemented()) continue;
-            
-            auto res = generated.insert(FUNC->name());
-            if (!res.second) continue;
+            auto PARAM = method->parameters()[pidx];
 
-            auto fnum = _fids.next();
-            fnums[FUNC] = fnum;
-            specs.emplace_back(*FUNC, *contract);
+            ostringstream pname;
+            pname << "c" << cid << "_f" << fnum << "_a" << pidx;
+            if (!PARAM->name().empty()) pname << "_" << PARAM->name();
 
-            for (size_t pidx = 0; pidx < FUNC->parameters().size(); ++pidx)
-            {
-                auto PARAM = FUNC->parameters()[pidx];
+            fparams[PARAM.get()] = make_shared<CVarDecl>(
+                _converter.get_type(*PARAM), pname.str()
+            );
+        }
 
-                ostringstream pname;
-                pname << "c" << cid << "_f" << fnum << "_a" << pidx;
-                if (!PARAM->name().empty()) pname << "_" << PARAM->name();
-
-                fparams[PARAM.get()] = make_shared<CVarDecl>(
-                    _converter.get_type(*PARAM), pname.str()
-                );
-            }
+        if (!_dependance.get_map_roi(method).empty())
+        {
+            uses_maps[method] = true;
         }
     }
 }
@@ -82,7 +78,7 @@ Actor::Actor(
 // -------------------------------------------------------------------------- //
 
 ActorModel::ActorModel(
-    vector<ContractDefinition const *> _model,
+    ContractDependance const& _dependance,
     TypeConverter const& _converter,
     NewCallGraph const& _allocs,
     MapIndexSummary const& _addrdata
@@ -92,14 +88,18 @@ ActorModel::ActorModel(
     // Generates an actor for each client.
     TicketSystem<uint16_t> cids;
     TicketSystem<uint16_t> fids;
-    for (auto const contract : _model)
+    for (auto const contract : _dependance.get_model())
     {
         if (contract->isLibrary() || contract->isInterface()) continue;
 
-        m_actors.emplace_back(m_converter, contract, nullptr, cids, fids);
+        m_actors.emplace_back(
+            m_converter, _dependance, contract, nullptr, cids, fids
+        );
 
         auto const& DECL = m_actors.back().decl;
-        recursive_setup(_allocs, DECL->id(), contract, cids, fids);
+        recursive_setup(
+            _allocs, _dependance, DECL->id(), contract, cids, fids
+        );
     }
 
     // Extracts the address variable for each contract.
@@ -236,6 +236,7 @@ list<Actor> const& ActorModel::inspect() const
 
 void ActorModel::recursive_setup(
     NewCallGraph const& _allocs,
+    ContractDependance const& _dependance,
     CExprPtr _path,
     ContractDefinition const* _parent,
     TicketSystem<uint16_t> & _cids,
@@ -251,8 +252,10 @@ void ActorModel::recursive_setup(
         );
         auto const PATH = make_shared<CMemberAccess>(_path, NAME);
 
-        m_actors.emplace_back(m_converter, child.type, PATH, _cids, _fids);
-        recursive_setup(_allocs, PATH, child.type, _cids, _fids);
+        m_actors.emplace_back(
+            m_converter, _dependance, child.type, PATH, _cids, _fids
+        );
+        recursive_setup(_allocs, _dependance, PATH, child.type, _cids, _fids);
     }
 }
 

@@ -42,8 +42,6 @@ MapDeflate::FlatMap MapDeflate::query(Mapping const& _map)
     return flatmap;
 }
 
-// -------------------------------------------------------------------------- //
-
 MapDeflate::FlatMap MapDeflate::resolve(Mapping const& _mapping) const
 {
     auto const& record = m_flatset.find(&_mapping);
@@ -71,22 +69,16 @@ FlatIndex::FlatIndex(IndexAccess const& _root)
     _root.accept(*this);
 }
 
-// -------------------------------------------------------------------------- //
-
 list<Expression const*> const& FlatIndex::indices() const
 {
     return m_indices;
 }
-
-// -------------------------------------------------------------------------- //
 
 
 Expression const& FlatIndex::base() const
 {
     return (*m_base);
 }
-
-// -------------------------------------------------------------------------- //
 
 VariableDeclaration const& FlatIndex::decl() const
 {

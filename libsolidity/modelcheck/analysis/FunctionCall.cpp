@@ -86,6 +86,73 @@ FunctionDefinition const& FunctionCallAnalyzer::decl() const
     return (*m_decl);
 }
 
+FunctionCallAnalyzer::CallGroup FunctionCallAnalyzer::classify() const
+{
+	switch (type().kind())
+	{
+	case FunctionType::Kind::Internal:
+	case FunctionType::Kind::External:
+	case FunctionType::Kind::BareCall:
+	case FunctionType::Kind::BareStaticCall:
+		return CallGroup::Method;
+	case FunctionType::Kind::DelegateCall:
+	case FunctionType::Kind::BareDelegateCall:
+	case FunctionType::Kind::BareCallCode:
+		return CallGroup::Delegate;
+	case FunctionType::Kind::Creation:
+		return CallGroup::Constructor;
+	case FunctionType::Kind::Send:
+		return CallGroup::Send;
+	case FunctionType::Kind::Transfer:
+		return CallGroup::Transfer;
+	case FunctionType::Kind::KECCAK256:
+	case FunctionType::Kind::ECRecover:
+	case FunctionType::Kind::SHA256:
+	case FunctionType::Kind::RIPEMD160:
+		return CallGroup::Crypto;
+	case FunctionType::Kind::Selfdestruct:
+		return CallGroup::Destruct;
+	case FunctionType::Kind::Revert:
+		return CallGroup::Revert;
+	case FunctionType::Kind::Assert:
+		return CallGroup::Assert;
+	case FunctionType::Kind::Require:
+		return CallGroup::Require;
+	case FunctionType::Kind::Log0:
+	case FunctionType::Kind::Log1:
+	case FunctionType::Kind::Log2:
+	case FunctionType::Kind::Log3:
+	case FunctionType::Kind::Log4:
+	case FunctionType::Kind::Event:
+		return CallGroup::Logging;
+	case FunctionType::Kind::BlockHash:
+		return CallGroup::Blockhash;
+	case FunctionType::Kind::AddMod:
+		return CallGroup::AddMod;
+	case FunctionType::Kind::MulMod:
+		return CallGroup::MulMod;
+	case FunctionType::Kind::ArrayPush:
+	case FunctionType::Kind::ByteArrayPush:
+		return CallGroup::Push;
+	case FunctionType::Kind::ArrayPop:
+		return CallGroup::Pop;
+	case FunctionType::Kind::ObjectCreation:
+		return CallGroup::NewArray;
+	case FunctionType::Kind::ABIEncode:
+	case FunctionType::Kind::ABIEncodePacked:
+	case FunctionType::Kind::ABIEncodeWithSelector:
+	case FunctionType::Kind::ABIEncodeWithSignature:
+	case FunctionType::Kind::ABIDecode:
+		return CallGroup::ABI;
+	case FunctionType::Kind::GasLeft:
+		return CallGroup::GasLeft;
+	case FunctionType::Kind::MetaType:
+		return CallGroup::NoOp;
+	default:
+		return CallGroup::UnhandledCall;
+	}
+}
+
 // -------------------------------------------------------------------------- //
 
 bool FunctionCallAnalyzer::visit(MemberAccess const& _node)

@@ -77,7 +77,7 @@ private:
 	);
 	void handleCModelHeaders(
 		std::vector<SourceUnit const*> const& _parsed_contracts,
-		std::vector<ContractDefinition const*> const& _model,
+		modelcheck::ContractDependance const& _dependance,
 		modelcheck::MapIndexSummary const& _addrdata,
 		modelcheck::NewCallGraph const& _newcalls,
 		modelcheck::TypeConverter const& _types,
@@ -86,7 +86,7 @@ private:
 	);
 	void handleCModelBody(
 		std::vector<SourceUnit const*> const& _parsed_contracts,
-		std::vector<ContractDefinition const*> const& _model,
+		modelcheck::ContractDependance const& _dependance,
 		modelcheck::MapIndexSummary const& _addrdata,
 		modelcheck::NewCallGraph const& _newcalls,
 		modelcheck::TypeConverter const& _types,

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/harness/ActorModel.h>
 #include <libsolidity/modelcheck/harness/AddressSpace.h>
@@ -42,7 +43,7 @@ public:
     MainFunctionGenerator(
         bool _lockstep_time,
 	    MapIndexSummary const& _addrdata,
-        std::vector<ContractDefinition const *> const& _model,
+        ContractDependance const& _dependance,
         NewCallGraph const& _new_graph,
         CallState const& _statedata,
         TypeConverter const& _converter
@@ -73,7 +74,8 @@ private:
     CBlockList build_case(
         FunctionSpecialization const& _spec,
         std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> & _args,
-        std::shared_ptr<const CVarDecl> _id
+        std::shared_ptr<const CVarDecl> _id,
+        bool uses_maps
     );
 };
 

@@ -24,6 +24,27 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
+ * A utility class which extracts all calls made by invoking a given function.
+ */
+class CallReachAnalyzer: public ASTConstVisitor
+{
+public:
+    // Determines all calls originating from the body of _func.
+    CallReachAnalyzer(FunctionDefinition const& _func);
+
+    std::set<FunctionDefinition const*> m_calls;
+
+    std::set<VariableDeclaration const*> m_reads;
+
+protected:
+    bool visit(IndexAccess const& _node) override;
+
+    void endVisit(FunctionCall const& _node) override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * The contract dependance is a second pass over the contract construction
  * graph. It is compared against a model (a list of contracts to model) and then
  * uses these contracts to determine the structures and methods we require to
@@ -33,8 +54,11 @@ class ContractDependance
 {
 public:
     using ContractSet = std::set<ContractDefinition const*>;
+    using ContractList = std::vector<ContractDefinition const*>;
+    using FunctionSet = std::set<FunctionDefinition const*>;
     using FuncInterface = std::list<FunctionDefinition const*>;
     using SuperCalls = std::vector<FunctionDefinition const*>;
+    using VarSet = std::set<VariableDeclaration const*>;
 
     // A utility used by ContractDependance to expand the entire model. The
     // DependanceAnalyzer handles targeted analysis without concern for how each
@@ -42,6 +66,10 @@ public:
     class DependancyAnalyzer
     {
     public:
+        // The _model parameter is needed for non-test setups, to list top level
+        // contracts in the scheduler.
+        DependancyAnalyzer(ContractDependance::ContractList _model);
+
         virtual ~DependancyAnalyzer() = default;
 
         // Returns all methods exposed (and used) by _ctrt.
@@ -54,12 +82,19 @@ public:
             FunctionDefinition const* _func
         ) const = 0;
 
-        // The list of all contracts in the model.
+        // The list of all contracts in the analysis.
         ContractDependance::ContractSet m_contracts;
+
+        // The list of all contracts specified by the model.
+        ContractDependance::ContractList m_model;
     };
 
     // Default constructor used to orchestrate dependancy analysis.
     ContractDependance(DependancyAnalyzer const& _analyzer);
+
+    // Returns all top level contracts in the graph, given the graphi is meant
+    // to generate a scheduler.
+    ContractList const& get_model() const;
 
     // Returns true if the contract is ever used.
     bool is_deployed(ContractDefinition const* _actor) const;
@@ -70,12 +105,26 @@ public:
     // Returns all super calls for a given method.
     SuperCalls const& get_superchain(FunctionDefinition const* _func) const;
 
+    // Returns all methods invoked by this call.
+    FunctionSet const& get_function_roi(FunctionDefinition const* _func) const;
+
+    // Returns all mapping declarations touched by a given function.
+    VarSet const& get_map_roi(FunctionDefinition const* _func) const;
+
 private:
     ContractSet m_contracts;
+
+    ContractList m_model;
+
+    FunctionSet m_functions;
 
     std::map<ContractDefinition const*, FuncInterface> m_interfaces;
 
     std::map<FunctionDefinition const*, SuperCalls> m_superchain;
+
+    std::map<FunctionDefinition const*, FunctionSet> m_callreach;
+
+    std::map<FunctionDefinition const*, VarSet> m_mapreach;
 };
 
 // -------------------------------------------------------------------------- //
