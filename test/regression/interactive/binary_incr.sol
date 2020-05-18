@@ -1,6 +1,6 @@
 // Copyright 2017-2019 ConsenSys AG
 //
-// RUN: %solc %s --c-model --output-dir=%t
+// RUN: %solc %s --reps=1 --c-model --output-dir=%t
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make icmodel

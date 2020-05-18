@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --contract-list C --output-dir=%t
+// RUN: %solc %s --c-model --bundle C --output-dir=%t
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify"
 // RUN: make cex

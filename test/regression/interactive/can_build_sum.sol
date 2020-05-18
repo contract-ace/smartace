@@ -1,10 +1,10 @@
-// RUN: %solc %s --c-model --map-sum --output-dir=%t
+// RUN: %solc %s --c-model --reps=1 --output-dir=%t
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make icmodel
 
 /*
- * A replication of basic.sol to ensure the --map-sum flag works.
+ * A replication of basic.sol to ensure the --reps flag works.
  */
 
 contract Contract {

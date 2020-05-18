@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --map-k=1 --output-dir=%t
+// RUN: %solc %s --c-model --reps=1 --output-dir=%t
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make icmodel

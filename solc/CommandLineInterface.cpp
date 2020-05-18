@@ -126,11 +126,11 @@ static string const g_strAstCompactJson = "ast-compact-json";
 static string const g_strBinary = "bin";
 static string const g_strBinaryRuntime = "bin-runtime";
 static string const g_strCModel = "c-model";
-static string const g_strModelMapLen = "map-k";
+static string const g_strModelMapLen = "reps";
 static string const g_strModelMapSum = "map-sum";
 static string const g_strModelLockstepTime = "lockstep-time";
-static string const g_strModelActor = "contract-list";
-static string const g_strModelConcrete = "concrete-addrs";
+static string const g_strModelActor = "bundle";
+static string const g_strModelConcrete = "concrete";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -781,24 +781,7 @@ Allowed options)",
 		(g_argColor.c_str(), "Force colored output.")
 		(g_argNoColor.c_str(), "Explicitly disable colored output, disabling terminal auto-detection.")
 		(g_argNewReporter.c_str(), "Enables new diagnostics reporter.")
-		(g_argIgnoreMissingFiles.c_str(), "Ignore missing files.")
-		(
-			g_argModelMapLen.c_str(),
-			po::value<size_t>()->value_name("k")->default_value(1),
-			"When modeling maps for the intent of model-checking, k entries will be represented."
-		)
-		(
-			g_argModelLockstepTime.c_str(),
-			po::value<bool>()->value_name("on")->default_value(false),
-			"When modeling maps for the intend of model-checking, locksteps blocknum and timestamp."
-		)
-		(
-			g_argModelActor.c_str(),
-			po::value<vector<string>>()->multitoken(),
-			"A list of contracts to instantiate in the model."
-		)
-		(g_argModelConcrete.c_str(), "Disable interference for concrete counterexamples.")
-		(g_argModelMapSum.c_str(), "Auto-instruments all maps with sum variables.");
+		(g_argIgnoreMissingFiles.c_str(), "Ignore missing files.");
 	po::options_description outputComponents("Output Components");
 	outputComponents.add_options()
 		(g_argAst.c_str(), "AST of all source files.")
@@ -817,6 +800,26 @@ Allowed options)",
 		(g_argNatspecDev.c_str(), "Natspec developer documentation of all contracts.")
 		(g_argMetadata.c_str(), "Combined Metadata JSON whose Swarm hash is stored on-chain.");
 	desc.add(outputComponents);
+	po::options_description smartaceOptions("SmartACE Configurations (requires --c-model)");
+	smartaceOptions.add_options()
+		(
+			g_argModelMapLen.c_str(),
+			po::value<size_t>()->value_name("k")->default_value(0),
+			"Sets the number of arbitrary clients represented in the model."
+		)
+		(
+			g_argModelLockstepTime.c_str(),
+			po::value<bool>()->value_name("on")->default_value(false),
+			"Forces block number and timestamp to be incremented in lockstep."
+		)
+		(
+			g_argModelActor.c_str(),
+			po::value<vector<string>>()->multitoken(),
+			"A list of top level contracts to instantiate. All member contracts are implicitly modeled."
+		)
+		(g_argModelConcrete.c_str(), "Forces all client to be concrete. This corresponds to a bounded model.")
+		(g_argModelMapSum.c_str(), "Auto-instruments all maps with sum variables.");
+	desc.add(smartaceOptions);
 
 	po::options_description allOptions = desc;
 	allOptions.add_options()(g_argInputFile.c_str(), po::value<vector<string>>(), "input file");

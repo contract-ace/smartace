@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --contract-list Child --output-dir=%t
+// RUN: %solc %s --c-model --bundle Child --output-dir=%t
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make verify 2>&1 | OutputCheck %s --comment=//
