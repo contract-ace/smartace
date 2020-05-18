@@ -1462,10 +1462,13 @@ void CommandLineInterface::handleCModelHeaders(
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::ContractDependance;
 	using dev::solidity::modelcheck::FunctionConverter;
+	using dev::solidity::modelcheck::ModelDrivenContractDependance;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 
-	ContractDependance dependance(_model, _newcalls);
+	ContractDependance dependance(
+		ModelDrivenContractDependance(_model, _newcalls)
+	);
 
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
@@ -1515,11 +1518,14 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::ContractDependance;
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
+	using dev::solidity::modelcheck::ModelDrivenContractDependance;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 
-	ContractDependance dependance(_model, _newcalls);
+	ContractDependance dependance(
+		ModelDrivenContractDependance(_model, _newcalls)
+	);
 
 	_os << "#include \"cmodel.h\"" << endl;
 	for (auto lit : _addrdata.literals())

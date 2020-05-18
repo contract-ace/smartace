@@ -67,6 +67,7 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
     // Libraries are handled differently from member functions.
     if (_node.isLibrary())
     {
+        // Generates the library methods.
         for (auto FUNC : _node.definedFunctions())
         {
             generate_function(FunctionSpecialization(*FUNC, _node));
@@ -74,30 +75,25 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
     }
     else if (M_DEPENDANCE.is_deployed(&_node))
     {
+        // Generates initializer of the contract when in correct view.
         if (M_VIEW != View::INT)
         {
             handle_contract_initializer(_node, _node);
         }
 
+        // Performs special handling of the fallback method.
         if (auto fallback = _node.fallbackFunction())
         {
             handle_function(FunctionSpecialization(*fallback), "void", false);
         }
 
-        set<string> methods;
-        for (auto CONTRACT : _node.annotation().linearizedBaseContracts)
+        // Generates the dependance-specified interface for the contract.
+        for (auto func : M_DEPENDANCE.get_interface(&_node))
         {
-            if (CONTRACT->isInterface()) break;
-
-            for (auto FUNC : CONTRACT->definedFunctions())
+            auto const& supers = M_DEPENDANCE.get_superchain(func);
+            for (auto func = supers.rbegin(); func != supers.rend(); func++)
             {
-                if (!FUNC->isImplemented()) break;
-
-                auto res = methods.insert(FUNC->name());
-                if (res.second)
-                {
-                    generate_function(FunctionSpecialization(*FUNC, _node));
-                }
+                generate_function(FunctionSpecialization(**func, _node));
             }
         }
     }
@@ -455,9 +451,6 @@ string FunctionConverter::handle_function(
     FunctionSpecialization const& _spec, string _rvtype, bool _rvisptr
 )
 {
-    // Bypasses pure virtual and uinterpreted functions.
-    if (!_spec.func().isImplemented()) return "";
-
     // Ensures this specialization is new.
     auto const& FUNC = _spec.func();
     string fname = _spec.name();
@@ -487,12 +480,6 @@ string FunctionConverter::handle_function(
     if (!rvs.empty() && M_NEWCALLS.retval_is_allocated(*rvs[0]))
     {
         dest = rvs[0];
-    }
-
-    // Generates super function calls.
-    if (auto superfunc = _spec.super())
-    {
-        handle_function(*superfunc, _rvtype, _rvisptr);
     }
 
     // Filters modifiers from constructors.
@@ -541,7 +528,9 @@ string FunctionConverter::handle_function(
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            body = mods.generate(IDX, M_STATEDATA, M_NEWCALLS, M_CONVERTER).convert();
+            body = mods.generate(
+                IDX, M_STATEDATA, M_NEWCALLS, M_CONVERTER
+            ).convert();
         }
 
         auto id = make_shared<CVarDecl>(_rvtype, move(mod_name), _rvisptr);

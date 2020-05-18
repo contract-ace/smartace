@@ -48,7 +48,8 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     graph.record(ast);
     graph.finalize();
 
-    ContractDependance deps(ast);
+    FullSourceContractDependance analyzer(ast);
+    ContractDependance deps(analyzer);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -101,7 +102,8 @@ BOOST_AUTO_TEST_CASE(payable_method)
     graph.record(ast);
     graph.finalize();
 
-    ContractDependance deps(ast);
+    FullSourceContractDependance analyzer(ast);
+    ContractDependance deps(analyzer);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -160,7 +162,8 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     graph.record(ast);
     graph.finalize();
 
-    ContractDependance deps(ast);
+    FullSourceContractDependance analyzer(ast);
+    ContractDependance deps(analyzer);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -228,7 +231,8 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     graph.record(ast);
     graph.finalize();
 
-    ContractDependance deps(ast);
+    FullSourceContractDependance analyzer(ast);
+    ContractDependance deps(analyzer);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -296,7 +300,8 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     graph.record(ast);
     graph.finalize();
 
-    ContractDependance deps(ast);
+    FullSourceContractDependance analyzer(ast);
+    ContractDependance deps(analyzer);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -382,7 +387,8 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     graph.record(ast);
     graph.finalize();
 
-    ContractDependance deps(ast);
+    FullSourceContractDependance analyzer(ast);
+    ContractDependance deps(analyzer);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
@@ -458,7 +464,9 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
     graph.finalize();
 
     auto contracts = ASTNode::filteredNodes<ContractDefinition>(ast.nodes());
-    ContractDependance deps({ contracts.back() }, graph);
+    ContractDependance deps(
+        ModelDrivenContractDependance({ contracts.back() }, graph)
+    );
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(

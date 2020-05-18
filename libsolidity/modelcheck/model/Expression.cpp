@@ -575,6 +575,7 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 {
 	FunctionCallAnalyzer calldata(_call);
 
+	// TODO: this should be a helper method in call data.
 	switch (calldata.type().kind())
 	{
 	case FunctionType::Kind::Internal:
@@ -703,7 +704,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 			auto const& hierarchy
 				= m_decls.spec()->useby().annotation().linearizedBaseContracts;
 
-			// The compiler accepted this call to `super` so a match exists.
+			// The compiler accepted the call so a match exists on some base.
 			FunctionDefinition const* override = nullptr;
 			for (auto DERIVED : hierarchy)
 			{

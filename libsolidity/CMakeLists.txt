@@ -112,12 +112,14 @@ set(sources
 	modelcheck/analysis/CallState.h
 	modelcheck/analysis/ContractDependance.cpp
 	modelcheck/analysis/ContractDependance.h
+	modelcheck/analysis/FullSourceContractDependance.cpp
 	modelcheck/analysis/FunctionCall.cpp
 	modelcheck/analysis/FunctionCall.h
 	modelcheck/analysis/MapIndex.cpp
 	modelcheck/analysis/MapIndex.h
 	modelcheck/analysis/Mapping.cpp
 	modelcheck/analysis/Mapping.h
+	modelcheck/analysis/ModelDrivenContractDependance.cpp
 	modelcheck/analysis/Primitives.cpp
 	modelcheck/analysis/Primitives.h
 	modelcheck/analysis/Types.cpp
