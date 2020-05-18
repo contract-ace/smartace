@@ -172,6 +172,25 @@ add_executable(fcmodel ${EXE_SRCS_COMMON} ${EXE_SRCS_CPP} libverify/verify_libfu
 target_link_libraries(fcmodel -fsanitize=fuzzer,address)
 set_target_properties(fcmodel PROPERTIES COMPILE_FLAGS "-g -fsanitize=fuzzer,address")
 
+# Adds a target for fuzzing with default arguments.
+set(CMODEL_FUZZ_ARGS "-max_len=20000;-runs=1000000;-timeout=15;-use_value_profile=1;-print_final_stats=1")
+
+set(CORPUS_DIR "corpus_dir")
+set(CORPUS_DIR_FULL "${CMAKE_BINARY_DIR}/${CORPUS_DIR}")
+
+add_custom_command(
+    OUTPUT ${CORPUS_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CORPUS_DIR_FULL}
+)
+
+add_custom_target(
+    fuzz
+    COMMAND "${CMAKE_BINARY_DIR}/fcmodel" ${CORPUS_DIR} ${CMODEL_FUZZ_ARGS}
+    SOURCES ${CORPUS_DIR}
+    COMMAND_EXPAND_LISTS
+)
+add_dependencies(fuzz fcmodel)
+
 # Locates all dependencies of seahorn's libverify, along with all compiler flags.
 set(CMODEL_COMPILE_DEFS "")
 get_directory_property(CMODEL_COMPILE_DEFS_RAW DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS)
