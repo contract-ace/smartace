@@ -225,8 +225,8 @@ if(SEA_EXE)
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
-        cexcmodel
-        COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} -o cexcmodel
+        witness
+        COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} -o witness
         COMMAND_EXPAND_LISTS
     )
 endif()

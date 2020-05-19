@@ -3,7 +3,7 @@
 // RUN: cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify"
 // RUN: make cex
 // RUN: [ -f cex.ll ]
-// RUN: make cexcmodel | OutputCheck %s --comment=//
+// RUN: make witness | OutputCheck %s --comment=//
 // CHECK: __VERIFIER_error
 
 /*
