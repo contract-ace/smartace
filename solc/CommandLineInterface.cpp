@@ -1278,18 +1278,15 @@ void CommandLineInterface::handleCModel()
 	}
 
 	// A first pass over the Solidity sources to aggregate type data.
-	modelcheck::CallState callstate;
 	modelcheck::TypeConverter converter;
 	modelcheck::PrimitiveTypeGenerator primitive_set;
 	modelcheck::NewCallGraph newcall_graph;
 	for (auto const* ast: asts)
 	{
-		callstate.record(*ast);
 		converter.record(*ast);
 		primitive_set.record(*ast);
 		newcall_graph.record(*ast);
 	}
-	callstate.register_primitives(primitive_set);
 	newcall_graph.finalize();
 
 	// Checks for violations in the NewCallGraph.
@@ -1337,10 +1334,12 @@ void CommandLineInterface::handleCModel()
 		actor_count += newcall_graph.cost_of(actor);
 	}
 
-	// Determines actor dependancies.
+	// Determines actor dependencies.
 	modelcheck::ContractDependance dependance(
 		modelcheck::ModelDrivenContractDependance(major_actors, newcall_graph)
 	);
+	modelcheck::CallState callstate(dependance);
+	callstate.register_primitives(primitive_set);
 
 	// Extracts identifiers from contracts.
 	size_t client_count = m_args[g_argModelMapLen].as<size_t>();

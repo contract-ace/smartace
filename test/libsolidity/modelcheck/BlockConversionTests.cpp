@@ -9,6 +9,7 @@
 #include <test/libsolidity/AnalysisFramework.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 
 #include <sstream>
 
@@ -51,8 +52,10 @@ BOOST_AUTO_TEST_CASE(argument_registration)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(
@@ -100,8 +103,10 @@ BOOST_AUTO_TEST_CASE(if_statement)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual_if, expected_if;
     actual_if << *FunctionBlockConverter(
@@ -166,8 +171,10 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     auto while_stmt = (fncs[0]->name() == "while_stmt") ? fncs[0] : fncs[1];
     ostringstream actual_while, expected_while;
@@ -223,8 +230,10 @@ BOOST_AUTO_TEST_CASE(continue_statement)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(
@@ -257,8 +266,10 @@ BOOST_AUTO_TEST_CASE(break_statement)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(
@@ -290,8 +301,10 @@ BOOST_AUTO_TEST_CASE(return_statement)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     auto void_func = (fncs[0]->name() == "void_func") ? fncs[0] : fncs[1];
     ostringstream actual_void, expect_void;
@@ -346,8 +359,10 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -393,8 +408,10 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual_named, expected_named;
     actual_named << *FunctionBlockConverter(
@@ -443,8 +460,10 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -497,8 +516,10 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
     
     for (auto func_ptr : ctrt.definedFunctions())
     {
@@ -567,8 +588,10 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
     
     for (auto func_ptr : ctrt.definedFunctions())
     {
@@ -627,8 +650,10 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -669,8 +694,10 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -709,8 +736,10 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -756,8 +785,10 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -804,8 +835,10 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -854,8 +887,10 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -908,8 +943,10 @@ BOOST_AUTO_TEST_CASE(type_casting)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -957,8 +994,10 @@ BOOST_AUTO_TEST_CASE(storage_variable_resolution)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -996,8 +1035,10 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -1031,8 +1072,10 @@ BOOST_AUTO_TEST_CASE(else_if_formatting_regression)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
@@ -1067,8 +1110,10 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     FunctionBlockConverter fbc(*func, statedata, newcalls, converter);
@@ -1112,8 +1157,10 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ModifierBlockConverter::Factory f_factory(func_f, converter.get_name(func_f));
     ModifierBlockConverter::Factory g_factory(func_g, converter.get_name(func_g));
@@ -1190,8 +1237,10 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream expected, actual;
     ModifierBlockConverter::Factory factory(func, converter.get_name(func));
@@ -1231,8 +1280,10 @@ BOOST_AUTO_TEST_CASE(modifier_args)
     NewCallGraph newcalls;
     newcalls.record(unit);
 
-    CallState statedata;
-    statedata.record(unit);
+    FullSourceContractDependance analyzer(unit);
+    ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream expected, actual;
     ModifierBlockConverter::Factory factory(func, converter.get_name(func));

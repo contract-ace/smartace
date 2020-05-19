@@ -408,7 +408,9 @@ string FunctionConverter::handle_contract_initializer(
             CExprPtr v0;
             if (decl->value())
             {
-                ExpressionConverter init_expr(*decl->value(), {}, {}, {});
+                ExpressionConverter init_expr(
+                    *decl->value(), M_STATEDATA, {}, {}
+                );
                 v0 = init_expr.convert();
                 v0 = FunctionUtilities::try_to_wrap(*decl->type(), move(v0));
             }

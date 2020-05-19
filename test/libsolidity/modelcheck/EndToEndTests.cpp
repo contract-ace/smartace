@@ -42,15 +42,14 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -91,15 +90,14 @@ BOOST_AUTO_TEST_CASE(simple_map)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -153,15 +151,14 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -208,15 +205,14 @@ BOOST_AUTO_TEST_CASE(simple_func)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -266,15 +262,14 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -324,15 +319,14 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -393,15 +387,14 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -468,15 +461,14 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -534,15 +526,14 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
@@ -614,15 +605,14 @@ BOOST_AUTO_TEST_CASE(reproducible)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph callgraph;
     callgraph.record(ast);
     callgraph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream adt_1, adt_2, func_1, func_2;
     ADTConverter(ast, callgraph, converter, false, 1, false).print(adt_1);

@@ -92,9 +92,13 @@ public:
     // Default constructor used to orchestrate dependancy analysis.
     ContractDependance(DependancyAnalyzer const& _analyzer);
 
-    // Returns all top level contracts in the graph, given the graphi is meant
+    // Returns all top level contracts in the graph, given the graph is meant
     // to generate a scheduler.
     ContractList const& get_model() const;
+
+    // Returns all methods in the graph. This includes methods which are called
+    // indirectly (i.e., as a call to super).
+    FunctionSet const& get_executed_code() const;
 
     // Returns true if the contract is ever used.
     bool is_deployed(ContractDefinition const* _actor) const;

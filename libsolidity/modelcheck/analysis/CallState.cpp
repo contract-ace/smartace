@@ -6,6 +6,7 @@
 
 #include <libsolidity/modelcheck/analysis/CallState.h>
 
+#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
@@ -27,21 +28,25 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-CallState::CallState()
+CallState::CallState(ContractDependance const& _dependance)
 {
+    // TODO: separate analysis from codegen.
+    for (auto call : _dependance.get_executed_code())
+    {
+        if (call->isPayable())
+        {
+            m_uses_pay = true;
+        }
+        call->accept(*this);
+    }
+
+    // TODO: can we restrict this to only the fields we actually use?
     add_field(CallStateUtilities::Field::Sender);
     add_field(CallStateUtilities::Field::Value);
     add_field(CallStateUtilities::Field::Block);
     add_field(CallStateUtilities::Field::Timestamp);
     add_field(CallStateUtilities::Field::Paid);
     add_field(CallStateUtilities::Field::Origin);
-}
-
-// -------------------------------------------------------------------------- //
-
-void CallState::record(ASTNode const& _ast)
-{
-    _ast.accept(*this);
 }
 
 // -------------------------------------------------------------------------- //
@@ -108,25 +113,32 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
         });
     }
 
-    CFuncDef pay(
-        make_shared<CVarDecl>("void", "_pay"), CParams{
-            bal_var, dst_var, amt_var
-        }, move(throw_pay_body)
-    );
+    if (m_uses_transfer)
+    {
+        _stream << CFuncDef(
+            make_shared<CVarDecl>("void", "_pay"), CParams{
+                bal_var, dst_var, amt_var
+            }, move(throw_pay_body)
+        );
+    }
 
-    CFuncDef pay_use_rv(
-        make_shared<CVarDecl>("uint8_t", "_pay_use_rv"), CParams{
-            bal_var, dst_var, amt_var
-        }, move(nothrow_pay_body)
-    );
+    if (m_uses_transfer || m_uses_send)
+    {
+        _stream << CFuncDef(
+            make_shared<CVarDecl>("uint8_t", "_pay_use_rv"), CParams{
+                bal_var, dst_var, amt_var
+            }, move(nothrow_pay_body)
+        );
+    }
 
-    CFuncDef pay_by_value(
-        make_shared<CVarDecl>(VALUE_T, "_pay_by_val"), CParams{
-            bal_var, amt_var
-        }, move(pay_by_val_body)
-    );
-
-    _stream << pay << pay_use_rv << pay_by_value;
+    if (m_uses_pay)
+    {
+        _stream << CFuncDef(
+            make_shared<CVarDecl>(VALUE_T, "_pay_by_val"), CParams{
+                bal_var, amt_var
+            }, move(pay_by_val_body)
+        );
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -195,6 +207,26 @@ void CallState::compute_next_state_for(
 			_builder.push(make_shared<CIdentifier>(f.name, false));
 		}
 	}
+}
+
+// -------------------------------------------------------------------------- //
+
+void CallState::endVisit(FunctionCall const& _node)
+{
+    // The scan is in search of transfer and send which must be FunctionCall's.
+	FunctionCallKind const KIND = _node.annotation().kind;
+	if (KIND != FunctionCallKind::FunctionCall) return;
+
+    // Otherwise checks if this is a contract method call.
+	FunctionCallAnalyzer calldata(_node);
+    if (calldata.classify() == FunctionCallAnalyzer::CallGroup::Send)
+    {
+        m_uses_send = true;
+    }
+    else if (calldata.classify() == FunctionCallAnalyzer::CallGroup::Transfer)
+    {
+        m_uses_transfer = true;
+    }
 }
 
 // -------------------------------------------------------------------------- //

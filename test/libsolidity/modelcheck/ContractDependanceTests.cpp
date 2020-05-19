@@ -229,6 +229,47 @@ BOOST_AUTO_TEST_CASE(roi_for_map)
     BOOST_CHECK_EQUAL(deps.get_map_roi(ctrt->definedFunctions()[5]).size(), 3);
 }
 
+BOOST_AUTO_TEST_CASE(executable_code)
+{
+    char const* text = R"(
+        contract X {
+            function f() public pure { }
+            function g() public pure { }
+            function h() public pure { }
+        }
+        contract Y is X {
+            function f() public pure { }
+            function g() public pure { }
+            function q() public pure { }
+            function r() public pure { }
+        }
+        contract Z is Y {
+            function f() public pure { super.f(); }
+            function g() public pure { super.g(); }
+            function h() public pure { super.h(); }
+            function q() public pure { super.q(); }
+            function r() public pure { super.r(); }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const* ctrt_x = retrieveContractByName(unit, "X");
+    auto const* ctrt_y = retrieveContractByName(unit, "Y");
+    auto const* ctrt_z = retrieveContractByName(unit, "Z");
+
+    NewCallGraph graph;
+    graph.record(unit);
+    graph.finalize();
+
+    ContractDependance deps_x(ModelDrivenContractDependance({ ctrt_x }, graph));
+    ContractDependance deps_y(ModelDrivenContractDependance({ ctrt_y }, graph));
+    ContractDependance deps_z(ModelDrivenContractDependance({ ctrt_z }, graph));
+
+    BOOST_CHECK_EQUAL(deps_x.get_executed_code().size(), 3);
+    BOOST_CHECK_EQUAL(deps_y.get_executed_code().size(), 5);
+    BOOST_CHECK_EQUAL(deps_z.get_executed_code().size(), 10);
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 }

@@ -111,6 +111,14 @@ ContractDependance::ContractList const& ContractDependance::get_model() const
 
 // -------------------------------------------------------------------------- //
 
+ContractDependance::FunctionSet const&
+    ContractDependance::get_executed_code() const
+{
+    return m_functions;
+}
+
+// -------------------------------------------------------------------------- //
+
 bool ContractDependance::is_deployed(ContractDefinition const* _actor) const
 {
     return (m_contracts.find(_actor) != m_contracts.end());

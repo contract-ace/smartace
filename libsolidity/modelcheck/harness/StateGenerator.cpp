@@ -42,7 +42,10 @@ StateGenerator::StateGenerator(
 
 void StateGenerator::declare(CBlockList & _block) const
 {
-    _block.push_back(M_STEPVAR);
+    if (M_USE_LOCKSTEP_TIME)
+    {
+        _block.push_back(M_STEPVAR);
+    }
     for (auto const& fld : m_statedata.order())
     {
         auto const DECL = make_shared<CVarDecl>(fld.tname, fld.name);

@@ -41,15 +41,14 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph graph;
     graph.record(ast);
     graph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -95,15 +94,14 @@ BOOST_AUTO_TEST_CASE(payable_method)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph graph;
     graph.record(ast);
     graph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -155,15 +153,14 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph graph;
     graph.record(ast);
     graph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -224,15 +221,14 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph graph;
     graph.record(ast);
     graph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -293,15 +289,14 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph graph;
     graph.record(ast);
     graph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -380,15 +375,14 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph graph;
     graph.record(ast);
     graph.finalize();
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
+
+    CallState statedata(deps);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
@@ -458,9 +452,6 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
     TypeConverter converter;
     converter.record(ast);
 
-    CallState statedata;
-    statedata.record(ast);
-
     NewCallGraph graph;
     graph.record(ast);
     graph.finalize();
@@ -469,6 +460,8 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
     ContractDependance deps(
         ModelDrivenContractDependance({ contracts.back() }, graph)
     );
+
+    CallState statedata(deps);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
