@@ -11,7 +11,7 @@ SmartACE can be built from source, or obtained as a pre-built Docker container.
 
 ## Building from Source
 
-SmartACE has the following dependancies:
+SmartACE has the following dependencies:
 
   1. **CMake** version **3.0.0** or later,
   2. a **C++14** compliant compiler,
@@ -33,10 +33,10 @@ You should now have SmartACE installed as
 To verify your installation run `./scripts/soltest.sh --no-smt --no-ipc` from
 the root directory.
 
-### (Optional) Additional Dependancies
+### (Optional) Additional Dependencies
 
 SmartACE supports many flavours of program analysis. Certain modes of analysis
-have additional dependancies, as listed below:
+have additional dependencies, as listed below:
 
   * **Model Checking**: the latest version of
     [Seahorn](https://github.com/seahorn/seahorn)

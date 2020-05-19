@@ -23,7 +23,7 @@ learn how to:
 
 Let's start with a *crowdsale* smart contract designed to raise `goal` funds by
 `deadline`. Clients may call `finish()` if the goal is reached by `deadline`,
-and `cancle()` if the goal is not reached by `deadline`.
+and `cancel()` if the goal is not reached by `deadline`.
 
 ```
 contract Crowdsale {
@@ -32,7 +32,7 @@ contract Crowdsale {
     uint deadline;
 
     // bool called_finish;
-    // bool called_cancle;
+    // bool called_cancel;
 
     constructor(uint _goal) public {
         goal = _goal;
@@ -49,24 +49,24 @@ contract Crowdsale {
         // called_finish = true;
     }
 
-    function cancle() public {
+    function cancel() public {
         require(address(this).balance < goal && now > deadline);
-        // called_cancle = true;
+        // called_cancel = true;
     }
 
     // function check() public view {
-    //     assert(!(called_finish && called_cancle));
+    //     assert(!(called_finish && called_cancel));
     // }
 }
 ```
 
 A real crowdsale would track each client's contribution through the use of a
 map. We will look at map properties in a future tutorial. For now, let's verify
-that `finish()` and `cancle()` are mutually exclusion.
+that `finish()` and `cancel()` are mutually exclusion.
 
 We can instrument this by:
 
-  1. Adding two ghost variable which track when `finish()` and `cancled()` are
+  1. Adding two ghost variable which track when `finish()` and `canceled()` are
      first called.
   2. Adding a public method which asserts that both ghost variables are never
      true at the same time.
