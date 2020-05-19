@@ -15,7 +15,7 @@ SmartACE has the following dependencies:
 
   1. **CMake** version **3.0.0** or later,
   2. a **C++14** compliant compiler,
-  3. **Boost** version **16.5** or later.
+  3. **Boost** version **1.65** or later.
 
 Afterwards. build SmartACE by running:
 
