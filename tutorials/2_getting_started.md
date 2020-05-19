@@ -1,23 +1,26 @@
 ---
 layout: post
-title: "2. Getting Started with SmartACE"
-subtitle: "My First Contract Audit!"
+title: "2. Finding Representation Invariants for Smart Contracts"
+subtitle: "Basic Auditing with SmartACE"
 date: 2020-05-18 15:00:00
-categories: [smartace, verification, model checking, fuzzing]
+categories: [smartace, verification, model checking, fuzzing, invariants]
 ---
 
-# 2. Getting Started with SmartACE
+# 2. Finding Representation Invariants for Smart Contracts
 
 An important aspect of smart contract analysis is functional verification. That
 is, the ability to check if a *bundle* (a set of smart contracts) satisfies a
-given requirement. In this tutorial we will learn how to use SmartACE to test
-and verify a simple functional property in a Solidity smart contract. We will
-learn how to:
+given requirement. Often these requirements are written independently from the
+implementation and refer only to the interface.
+
+In this tutorial we will prove a simple requirement by finding a "representation
+invariant", and then use fuzz testing to corroborate our proof. We will learn
+to:
 
   1. Instrument a smart contract at the Solidity level.
   2. Generate a SmartACE model from a single smart contract.
-  2. Use software model checking to verify a property of the model.
-  4. Use fuzz testing to detect a violation in the smart contract.
+  2. Use software model checking to find a representation invariant.
+  4. Use fuzz testing to search for violations in the smart contract.
 
 ## Instrumenting a Solidity Smart Contract
 
@@ -31,8 +34,8 @@ contract Crowdsale {
     uint goal;
     uint deadline;
 
-    // bool called_finish;
-    // bool called_cancel;
+    // bool finished;
+    // bool canceled;
 
     constructor(uint _goal) public {
         goal = _goal;
@@ -46,16 +49,16 @@ contract Crowdsale {
 
     function finish() public {
         require(address(this).balance >= goal);
-        // called_finish = true;
+        // finished = true;
     }
 
     function cancel() public {
         require(address(this).balance < goal && now > deadline);
-        // called_cancel = true;
+        // canceled = true;
     }
 
-    // function check() public view {
-    //     assert(!(called_finish && called_cancel));
+    // function repOK() public view {
+    //     assert(!(finished && canceled));
     // }
 }
 ```
@@ -64,10 +67,16 @@ A real crowdsale would track each client's contribution through the use of a
 map. We will look at map properties in a future tutorial. For now, let's verify
 that `finish()` and `cancel()` are mutually exclusion.
 
+Our property says that given a valid implementation, `Crowdsale` should never
+move between a *finished* state and *canceled* state. We prove this property by
+finding a [representation invariant](http://www.cs.cornell.edu/courses/cs312/2005sp/lectures/lec09.html).
+The invariant will summarize the concrete states of `Crowdsale`, and imply that
+*finished* and *canceled* are mutually exclusive.
+
 We can instrument this by:
 
-  1. Adding two ghost variable which track when `finish()` and `canceled()` are
-     first called.
+  1. Adding two ghost variable which track when the contract is `finished` or
+     `canceled`.
   2. Adding a public method which asserts that both ghost variables are never
      true at the same time.
 
@@ -115,7 +124,7 @@ This example requires an installation of `Seahorn` as described
 This will use `Seahorn` to verify the smart contract for an unbounded number of
 clients. The default analysis handles integers arithmetically. That is, overflow
 and underflow are not modeled. When the analysis completes, you will see a
-certificate of correctness.
+certificate of correctness. This certificate is the representation invariant.
 
 In future tutorials, we will learn how to interpret this certificate, and how to
 debug a model when `Seahorn` fails to verify the property.
@@ -130,4 +139,6 @@ This example requires support for of `libfuzzer` as described
   3. `make fuzz`
 
 By default, `fuzz` will run `1000000` trials with a timeout of `15` seconds.
-Each trial terminates if a `require` fails. A test fails if an `assert` fails.
+Each trial terminates if a `require` fails. A trial fails if an `assert` fails.
+After a few minutes, all trial will pass, as expected. You will see a summary
+of the tests printed to the console.
