@@ -34,6 +34,9 @@ public:
 
     // Generates a random byte of data, through a unique uninterpreted function.
     static CExprPtr byte(std::string const& _msg);
+
+    // Appends a log statement to _block, with message _msg.
+    static void log(CBlockList & _block, std::string _msg);
 };
 
 // -------------------------------------------------------------------------- //

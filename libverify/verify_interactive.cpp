@@ -134,6 +134,13 @@ void sol_emit(const char* _msg)
 
 // -------------------------------------------------------------------------- //
 
+void smartace_log(const char* _msg)
+{
+	cout << _msg << endl;
+}
+
+// -------------------------------------------------------------------------- //
+
 void on_entry(const char* _type, const char* _msg)
 {
     cout << _msg << " [" << _type << "]: ";

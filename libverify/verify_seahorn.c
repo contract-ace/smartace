@@ -50,7 +50,10 @@ void sol_require(sol_raw_uint8_t _cond, const char* _msg)
 
 void sol_emit(const char* _msg)
 {
+	(void) _msg;
+	#ifdef MC_LOG_ALL
     printf("Emit: %s\n", _msg);
+	#endif
 }
 
 // -------------------------------------------------------------------------- //
@@ -79,6 +82,15 @@ uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
 	ll_assume(v >= l);
 	ll_assume(v < u);
 	return v;
+}
+
+// -------------------------------------------------------------------------- //
+
+void smartace_log(const char* _msg)
+{
+	#ifdef MC_LOG_ALL
+	printf("%s\n", _msg);
+	#endif
 }
 
 // -------------------------------------------------------------------------- //

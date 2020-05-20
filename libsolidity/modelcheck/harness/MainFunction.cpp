@@ -95,6 +95,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     transactionals.push_back(call_cases);
 
     // Adds transactional loop to end of body.
+    HarnessUtilities::log(main, "[Entering transaction loop]");
     main.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(move(transactionals)),
         make_shared<CFuncCall>("sol_continue", CArgList{}),
@@ -123,6 +124,11 @@ CBlockList MainFunctionGenerator::build_case(
 
     CBlockList call_body;
 
+    stringstream caselog;
+    caselog << "[Calling " << _spec.func().name()
+            << " on " << (*_id->id()) << "]";
+    HarnessUtilities::log(call_body, caselog.str());
+
     // TODO: actually populate maps.
     if (uses_maps)
     {
@@ -146,6 +152,7 @@ CBlockList MainFunctionGenerator::build_case(
         call_builder.push(PDECL->id());
     }
     call_body.push_back(call_builder.merge_and_pop_stmt());
+    HarnessUtilities::log(call_body, "[Call successful]");
     call_body.push_back(make_shared<CBreak>());
 
     return call_body;

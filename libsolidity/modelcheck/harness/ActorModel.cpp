@@ -15,6 +15,7 @@
 #include <libsolidity/modelcheck/harness/StateGenerator.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+#include <libsolidity/modelcheck/utils/Harness.h>
 
 using namespace std;
 
@@ -159,6 +160,10 @@ void ActorModel::initialize(
         if (actor.path) continue;
 
         auto ctx = actor.contract;
+
+        stringstream caselog;
+        caselog << "[Initializing " << (*actor.decl->id()) << "]";
+        HarnessUtilities::log(_block, caselog.str());
 
         // Populates core constructor arguments.
         CFuncCallBuilder init_builder("Init_" + m_converter.get_name(*ctx));

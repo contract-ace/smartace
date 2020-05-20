@@ -185,6 +185,9 @@ void sol_emit(const char * _event);
 uint8_t rt_nd_byte(const char* _msg);
 uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg);
 
+// Allows logs from the model.
+void smartace_log(const char* _msg);
+
 // Provides non-deterministic integers for all native Solidity byte-widths.
 sol_raw_int8_t nd_int8_t(const char* _msg);
 sol_raw_uint8_t nd_uint8_t(const char* _msg);

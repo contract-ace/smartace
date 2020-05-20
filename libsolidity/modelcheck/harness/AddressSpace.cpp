@@ -52,6 +52,10 @@ uint64_t AddressSpace::reserve()
 void AddressSpace::map_constants(CBlockList & _block) const
 {
     list<shared_ptr<CIdentifier>> used_so_far;
+    if (m_addrdata.literals().size() > 1)
+    {
+        HarnessUtilities::log(_block, "[Handling constants]");
+    }
     for (auto lit : m_addrdata.literals())
     {
         auto const NAME = modelcheck::Indices::const_global_name(lit);

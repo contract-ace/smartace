@@ -59,6 +59,16 @@ CExprPtr HarnessUtilities::byte(std::string const& _msg)
 
 // -------------------------------------------------------------------------- //
 
+void HarnessUtilities::log(CBlockList & _block, string _msg)
+{
+    auto fn = make_shared<CFuncCall>(
+        "smartace_log", CArgList{ make_shared<CStringLiteral>(_msg)
+    });
+    _block.push_back(fn->stmt());
+}
+
+// -------------------------------------------------------------------------- //
+
 }
 }
 }
