@@ -41,9 +41,13 @@ have additional dependencies, as listed below:
   * **Model Checking**: the latest version of
     [Seahorn](https://github.com/seahorn/seahorn)
   * **Symbolic Execution**: the latest version of
-    [Klee](https://github.com/klee/klee)
+    [KLEE](https://github.com/klee/klee)
   * **Fuzzing**: a clang installation with
     [libfuzzer](https://llvm.org/docs/LibFuzzer.html) support
+
+Under certain circumstances you may wish to edit a SmartACE model by hand. To do
+this we highly recommend
+[clang-format](https://clang.llvm.org/docs/ClangFormat.html).
 
 ## Setup Through Docker
 
