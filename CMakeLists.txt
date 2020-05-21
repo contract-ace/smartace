@@ -15,10 +15,10 @@ project(solidity VERSION ${PROJECT_VERSION} LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(LLL "Build LLL" OFF)
+# option(LLL "Build LLL" OFF)
 option(SOLC_LINK_STATIC "Link solc executable statically on supported platforms" OFF)
-option(LLLC_LINK_STATIC "Link lllc executable statically on supported platforms" OFF)
-option(INSTALL_LLLC "Include lllc executable in installation" ${LLL})
+# option(LLLC_LINK_STATIC "Link lllc executable statically on supported platforms" OFF)
+# option(INSTALL_LLLC "Include lllc executable in installation" ${LLL})
 
 # Setup cccache.
 include(EthCcache)
@@ -65,10 +65,10 @@ install(FILES cmake/McOptions.cmake DESTINATION share/solc/project/cmake)
 
 if (NOT EMSCRIPTEN)
 	add_subdirectory(solc)
-	if (LLL)
-		add_subdirectory(liblll)
-		add_subdirectory(lllc)
-	endif()
+	# if (LLL)
+	# 	add_subdirectory(liblll)
+	# 	add_subdirectory(lllc)
+	# endif()
 endif()
 
 if (TESTS AND NOT EMSCRIPTEN)
