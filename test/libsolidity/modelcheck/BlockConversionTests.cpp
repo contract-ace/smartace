@@ -660,11 +660,11 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
         func, statedata, newcalls, converter
     ).convert();
     expected << "{";
-    expected << "_pay(&((self)->model_balance),Init_sol_address_t("
+    expected << "sol_transfer(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(5));";
-    expected << "_pay_use_rv(&((self)->model_balance),Init_sol_address_t("
+    expected << "sol_send(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(10));";
-    expected << "_pay_use_rv(&((self)->model_balance),Init_sol_address_t("
+    expected << "sol_send(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(15));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());

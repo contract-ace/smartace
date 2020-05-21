@@ -1,9 +1,7 @@
 // RUN: %solc %s --c-model --output-dir=%t
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
-// RUN: make fcmodel
-// RUN: mkdir CORPUS_DIR
-// RUN: ./fcmodel CORPUS_DIR -max_len=16384 -runs=1000000 -timeout=5 -use_value_profile=1 -print_final_stats=1
+// RUN: make fuzz
 // XFAIL: true
 
 /*
