@@ -87,7 +87,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     transactionals.push_back(
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
-    m_stategen.update(transactionals, m_actors.vars());
+    m_stategen.update(transactionals);
     transactionals.push_back(next_case);
     transactionals.push_back(next_case->assign(
         HarnessUtilities::range(0, case_count, "next_call")

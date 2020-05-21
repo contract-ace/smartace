@@ -12,6 +12,7 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/General.h>
+#include <libsolidity/modelcheck/utils/Harness.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <sstream>
@@ -244,32 +245,23 @@ CExprPtr TypeConverter::raw_simple_nd(
     }
 
     auto const CATEGORY = unwrap(_type).category();
-    auto msg_lit = make_shared<CStringLiteral>(_msg);
     if (CATEGORY == Type::Category::Bool)
     {
-        auto min_bool = make_shared<CIntLiteral>(0);
-        auto max_bool = make_shared<CIntLiteral>(2);
-        return make_shared<CFuncCall>("rt_nd_range", CArgList{
-            min_bool, max_bool, msg_lit
-        });
+        return HarnessUtilities::range(0, 2, _msg);
     }
-    else if (m_address_count == 0 || CATEGORY != Type::Category::Address)
+    else if (CATEGORY == Type::Category::Address)
+    {
+        return HarnessUtilities::range(0, m_address_count, _msg);
+    }
+    else
     {
         ostringstream call;
         call << "nd_";
         if (!simple_is_signed(_type)) call << "u";
         call << "int" << simple_bit_count(_type) << "_t";
 
+        auto msg_lit = make_shared<CStringLiteral>(_msg);
         return make_shared<CFuncCall>(call.str(), CArgList{msg_lit});
-    }
-    else
-    {
-        // TODO: this is limited to 256 addresses.
-        auto min_addr = make_shared<CIntLiteral>(0);
-        auto max_addr = make_shared<CIntLiteral>(m_address_count);
-        return make_shared<CFuncCall>("rt_nd_range", CArgList{
-            min_addr, max_addr, msg_lit
-        });
     }
 }
 

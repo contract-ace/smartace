@@ -54,9 +54,6 @@ void StateGenerator::declare(CBlockList & _block) const
         if (fld.field == CallStateUtilities::Field::Block ||
             fld.field == CallStateUtilities::Field::Timestamp)
         {
-            auto const TMP_DECL = make_shared<CVarDecl>(fld.tname, fld.temp);
-            _block.push_back(TMP_DECL);
-
             if (M_USE_LOCKSTEP_TIME)
             {
                 auto nd = m_converter.raw_simple_nd(*fld.type, fld.name);
@@ -80,9 +77,7 @@ void StateGenerator::declare(CBlockList & _block) const
 
 // -------------------------------------------------------------------------- //
 
-void StateGenerator::update(
-    CBlockList & _block, list<shared_ptr<CMemberAccess>> const& _addrvars
-) const
+void StateGenerator::update(CBlockList & _block) const
 {
     // Decides once, if lockstep will be used.
     if (M_USE_LOCKSTEP_TIME)
@@ -90,25 +85,6 @@ void StateGenerator::update(
         _block.push_back(M_STEPVAR->id()->assign(
             HarnessUtilities::range(0, 2, "take_step"))->stmt()
         );
-    }
-
-    // Shuffles address variables which point to interference. The shuffle is
-    // performed with respect to the first address, so it is skipped.
-    if (m_addrdata.max_interference() > 0)
-    {
-        uint64_t minaddr = m_addrdata.representative_count();
-        uint64_t maxaddr = m_addrdata.size();
-        auto boundary = make_shared<CIntLiteral>(minaddr);
-        for (auto itr = (++_addrvars.begin()); itr != _addrvars.end(); ++itr)
-        {
-            // TODO: better message.
-            auto range = HarnessUtilities::range(minaddr, maxaddr, "addrvar");
-
-            auto var = (*itr);
-            auto update = var->assign(range)->stmt();
-            auto cond = make_shared<CBinaryOp>(var, ">=", boundary);
-            _block.push_back(make_shared<CIf>(cond, update, nullptr));
-        }
     }
 
     // Updates the values.
@@ -123,30 +99,21 @@ void StateGenerator::update(
         if (fld.field == CallStateUtilities::Field::Block ||
             fld.field == CallStateUtilities::Field::Timestamp)
         {
-            auto tmp_state = make_shared<CIdentifier>(fld.temp, false);
+            auto step = state->access("v")->assign(HarnessUtilities::increase(
+                state->access("v"), M_USE_LOCKSTEP_TIME, fld.name
+            ))->stmt();
             if (M_USE_LOCKSTEP_TIME)
             {
-                CBlockList step;
-                step.push_back(tmp_state->access("v")->assign(nd)->stmt());
-    
-                HarnessUtilities::require(step, make_shared<CBinaryOp>(
-                    state->access("v"), "<", tmp_state->access("v")
-                ));
-
                 _block.push_back(make_shared<CIf>(
-                    M_STEPVAR->id(), make_shared<CBlock>(move(step)), nullptr
+                    M_STEPVAR->id(),
+                    make_shared<CBlock>(CBlockList{ move(step) }),
+                    nullptr
                 ));
             }
             else
             {
-                _block.push_back(tmp_state->access("v")->assign(nd)->stmt());
-
-                // TODO: it would be ideal to drop the <=.
-                HarnessUtilities::require(_block, make_shared<CBinaryOp>(
-                    state->access("v"), "<=", tmp_state->access("v")
-                ));
+                _block.push_back(step);
             }
-            _block.push_back(state->assign(tmp_state)->stmt());
         }
         else if (fld.field == CallStateUtilities::Field::Value)
         {

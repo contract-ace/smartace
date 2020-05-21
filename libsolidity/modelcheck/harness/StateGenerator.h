@@ -41,10 +41,7 @@ public:
     void declare(CBlockList & _block) const;
 
     // Generate the instructions required to update the call state.
-    void update(
-        CBlockList & _block,
-        std::list<std::shared_ptr<CMemberAccess>> const& _addrvars
-    ) const;
+    void update(CBlockList & _block) const;
 
     // Generates a value for a payable method.
     void pay(CBlockList & _block) const;

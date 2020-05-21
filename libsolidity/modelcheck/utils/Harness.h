@@ -37,6 +37,9 @@ public:
 
     // Appends a log statement to _block, with message _msg.
     static void log(CBlockList & _block, std::string _msg);
+
+    // Appends a log statement to _block, with message _msg.
+    static CExprPtr increase(CExprPtr _curr, bool _strict, std::string _msg);
 };
 
 // -------------------------------------------------------------------------- //

@@ -147,6 +147,8 @@ typedef int64_t sol_raw_int248_t;
 typedef uint64_t sol_raw_uint248_t;
 typedef int64_t sol_raw_int256_t;
 typedef uint64_t sol_raw_uint256_t;
+// TODO(scottwe): this should be 256 but we don't support it.
+#define SOL_UINT256_MAX UINT64_MAX
 #else
 #error An integer model is requried.
 #endif
@@ -170,9 +172,6 @@ uint8_t sol_continue(void);
 // This method is called once before each transaction.
 void sol_on_transaction(void);
 
-// Raw call to assume, meant for use by the model's execution environment.
-void ll_assume(sol_raw_uint8_t _cond);
-
 // Placeholder calls for require() and assert() in solidity.
 void sol_require(sol_raw_uint8_t _cond, const char* _msg);
 void sol_assert(sol_raw_uint8_t cond, const char* _msg);
@@ -180,10 +179,19 @@ void sol_assert(sol_raw_uint8_t cond, const char* _msg);
 // Allows special behaviour on emit events.
 void sol_emit(const char * _event);
 
+// Raw call to assume, meant for use by the model's execution environment.
+void ll_assume(sol_raw_uint8_t _cond);
+
 // Returns a raw byte without any wrapping. This is meant to be used by the
 // model's execution environment.
-uint8_t rt_nd_byte(const char* _msg);
-uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg);
+uint8_t nd_byte(const char* _msg);
+uint8_t nd_range(uint8_t l, uint8_t u, const char* _msg);
+
+// Method used to compute a value no less than than _curr. If _strict then the
+// value must be larger.
+sol_raw_uint256_t nd_increase(
+    sol_raw_uint256_t _curr, uint8_t _strict, const char* _msg
+);
 
 // Allows logs from the model.
 void smartace_log(const char* _msg);

@@ -47,20 +47,32 @@ void sol_emit(const char*) {}
 
 // -------------------------------------------------------------------------- //
 
-uint8_t rt_nd_byte(const char* _msg)
+uint8_t nd_byte(const char* _msg)
 {
     uint8_t res;
     klee_make_symbolic(&res, sizeof(res), _msg);
     return res;
 }
 
-uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
+uint8_t nd_range(uint8_t l, uint8_t u, const char* _msg)
 {
     uint8_t res;
     klee_make_symbolic(&res, sizeof(res), _msg);
-	klee_assume(res >= l);
-	klee_assume(res < u);
+	ll_assume(res >= l);
+	ll_assume(res < u);
     return res;
+}
+
+// -------------------------------------------------------------------------- //
+
+sol_raw_uint256_t nd_increase(
+	sol_raw_uint256_t _curr, uint8_t _strict, const char* _msg
+)
+{
+	sol_raw_uint256_t next = nd_uint256_t(_msg);
+	if (_strict) ll_assume(next > _curr);
+	else ll_assume(next >= _curr);
+	return next;
 }
 
 // -------------------------------------------------------------------------- //

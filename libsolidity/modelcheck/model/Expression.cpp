@@ -878,7 +878,6 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 		}
 
 		// Determines if recipient is known.
-		string paymode;
 		CExprPtr recipient;
 		TypePointer recipient_type;
 		if (cast)
@@ -887,7 +886,6 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 		}
 		else
 		{
-			paymode = "_pay";
 			dst.accept(*this);
 			recipient = m_subexpr;
 			recipient_type = (&ADR_TYPE);
@@ -895,18 +893,12 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 			// TODO: map target to address space.
 		}
 
-		// Determines if the call throws.
-		if (_nothrow)
-		{
-			paymode += "_use_rv";
-		}
-
 		// Generates the call.
-		CFuncCallBuilder builder(paymode);
-		builder.push(srcbalref);
-		builder.push(recipient, recipient_type);
-		builder.push(AMT, m_statedata, M_TYPES, m_decls, false, &AMT_TYPE);
-		m_subexpr = builder.merge_and_pop();
+		CFuncCallBuilder fn(_nothrow ? CallState::SEND : CallState::TRANSFER);
+		fn.push(srcbalref);
+		fn.push(recipient, recipient_type);
+		fn.push(AMT, m_statedata, M_TYPES, m_decls, false, &AMT_TYPE);
+		m_subexpr = fn.merge_and_pop();
 
 		// TODO: handle fallbacks.
 	}

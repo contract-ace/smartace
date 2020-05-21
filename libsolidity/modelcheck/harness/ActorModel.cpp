@@ -170,7 +170,7 @@ void ActorModel::initialize(
         init_builder.push(make_shared<CReference>(actor.decl->id()));
         _statedata.push_state_to(init_builder);
 
-        _stategen.update(_block, m_addrvar);
+        _stategen.update(_block);
 
         // Populates specialized costructor arguments.
         if (auto const ctor = ctx->constructor())

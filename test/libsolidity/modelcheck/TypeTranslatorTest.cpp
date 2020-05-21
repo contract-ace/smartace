@@ -453,7 +453,19 @@ BOOST_AUTO_TEST_CASE(bounded_addr)
 
     std::ostringstream expr;
     expr << *raw_nd;
-    BOOST_CHECK_EQUAL(expr.str(), "rt_nd_range(0,10,\"Blah\")");
+    BOOST_CHECK_EQUAL(expr.str(), "nd_range(0,10,\"Blah\")");
+}
+
+BOOST_AUTO_TEST_CASE(bounded_bool)
+{
+    TypeConverter converter;
+
+    BoolType type;
+    auto raw_nd = converter.raw_simple_nd(type, "Blah");
+
+    std::ostringstream expr;
+    expr << *raw_nd;
+    BOOST_CHECK_EQUAL(expr.str(), "nd_range(0,2,\"Blah\")");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

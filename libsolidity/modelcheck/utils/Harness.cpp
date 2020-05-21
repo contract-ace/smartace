@@ -43,7 +43,7 @@ CExprPtr HarnessUtilities::range(uint8_t _l, uint8_t _u, string const& _msg)
     {
         auto msg = make_shared<CStringLiteral>(_msg);
         return make_shared<CFuncCall>(
-            "rt_nd_range", CArgList{ lower, make_shared<CIntLiteral>(_u), msg }
+            "nd_range", CArgList{ lower, make_shared<CIntLiteral>(_u), msg }
         );
     }
 }
@@ -53,7 +53,7 @@ CExprPtr HarnessUtilities::range(uint8_t _l, uint8_t _u, string const& _msg)
 CExprPtr HarnessUtilities::byte(std::string const& _msg)
 {
     return make_shared<CFuncCall>(
-        "rt_nd_byte", CArgList{ make_shared<CStringLiteral>(_msg) }
+        "nd_byte", CArgList{ make_shared<CStringLiteral>(_msg) }
     );
 }
 
@@ -65,6 +65,17 @@ void HarnessUtilities::log(CBlockList & _block, string _msg)
         "smartace_log", CArgList{ make_shared<CStringLiteral>(_msg)
     });
     _block.push_back(fn->stmt());
+}
+
+// -------------------------------------------------------------------------- //
+
+CExprPtr HarnessUtilities::increase(CExprPtr _curr, bool _strict, string _msg)
+{
+    CFuncCallBuilder call("nd_increase");
+    call.push(_curr);
+    call.push(_strict ? Literals::ONE : Literals::ZERO);
+    call.push(make_shared<CStringLiteral>(_msg));
+    return call.merge_and_pop();
 }
 
 // -------------------------------------------------------------------------- //

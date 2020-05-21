@@ -13,6 +13,7 @@
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+#include <libsolidity/modelcheck/utils/Harness.h>
 #include <libsolidity/modelcheck/utils/General.h>
 
 #include <sstream>
@@ -25,6 +26,12 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+string const CallState::TRANSFER = "sol_transfer";
+string const CallState::SEND = "sol_send";
+string const CallState::PAY = "sol_pay";
 
 // -------------------------------------------------------------------------- //
 
@@ -73,10 +80,8 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
 
     if (!_forward_declare)
     {
-        string ndmsg("Return value for send.");
-        auto nd_result = make_shared<CFuncCall>(
-            "rt_nd_byte", CArgList{ make_shared<CStringLiteral>(ndmsg) }
-        );
+        // TODO: restrict to [0, 1]
+        auto nd_result = HarnessUtilities::byte("Return value for send.");
         auto bal_cond = make_shared<CBinaryOp>(
             bal_var->access("v"), ">=", amt_var->access("v")
         );
@@ -116,7 +121,7 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
     if (m_uses_transfer)
     {
         _stream << CFuncDef(
-            make_shared<CVarDecl>("void", "_pay"), CParams{
+            make_shared<CVarDecl>("void", TRANSFER), CParams{
                 bal_var, dst_var, amt_var
             }, move(throw_pay_body)
         );
@@ -125,7 +130,7 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
     if (m_uses_transfer || m_uses_send)
     {
         _stream << CFuncDef(
-            make_shared<CVarDecl>("uint8_t", "_pay_use_rv"), CParams{
+            make_shared<CVarDecl>("uint8_t", SEND), CParams{
                 bal_var, dst_var, amt_var
             }, move(nothrow_pay_body)
         );
@@ -134,7 +139,7 @@ void CallState::print(std::ostream& _stream, bool _forward_declare) const
     if (m_uses_pay)
     {
         _stream << CFuncDef(
-            make_shared<CVarDecl>(VALUE_T, "_pay_by_val"), CParams{
+            make_shared<CVarDecl>(VALUE_T, PAY), CParams{
                 bal_var, amt_var
             }, move(pay_by_val_body)
         );
@@ -187,7 +192,7 @@ void CallState::compute_next_state_for(
 			if (_value)
 			{
 				string const BAL = ContractUtilities::balance_member();
-				CFuncCallBuilder val_builder("_pay_by_val");
+				CFuncCallBuilder val_builder(PAY);
 				val_builder.push(make_shared<CReference>(self_id->access(BAL)));
 				val_builder.push(_value);
 				_builder.push(val_builder.merge_and_pop());

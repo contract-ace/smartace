@@ -65,10 +65,10 @@ void on_entry(const char* _type, const char* _msg)
 }
 #endif
 
-uint8_t nd_byte(void);
-uint8_t rt_nd_byte(const char* _msg)
+uint8_t ll_nd_byte(void);
+uint8_t nd_byte(const char* _msg)
 {
-    uint8_t v = nd_byte();
+    uint8_t v = ll_nd_byte();
 	#ifdef MC_LOG_ALL
 	on_entry("uint8", _msg);
     printf("%hhu\n", v);
@@ -76,12 +76,24 @@ uint8_t rt_nd_byte(const char* _msg)
     return v;
 }
 
-uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
+uint8_t nd_range(uint8_t l, uint8_t u, const char* _msg)
 {
-	uint8_t v = rt_nd_byte(_msg);
+	uint8_t v = nd_byte(_msg);
 	ll_assume(v >= l);
 	ll_assume(v < u);
 	return v;
+}
+
+// -------------------------------------------------------------------------- //
+
+sol_raw_uint256_t nd_increase(
+	sol_raw_uint256_t _curr, uint8_t _strict, const char* _msg
+)
+{
+	sol_raw_uint256_t next = nd_uint256_t(_msg);
+	if (_strict) ll_assume(next > _curr);
+	else ll_assume(next >= _curr);
+	return next;
 }
 
 // -------------------------------------------------------------------------- //
@@ -95,7 +107,6 @@ void smartace_log(const char* _msg)
 
 // -------------------------------------------------------------------------- //
 
-extern sol_raw_uint8_t sea_nd_u8(void);
 sol_raw_uint8_t nd_uint8_t(const char* _msg)
 {
 	sol_raw_int8_t v = sea_nd_u8();

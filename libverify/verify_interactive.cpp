@@ -69,7 +69,7 @@ void sol_setup(int _argc, const char **_argv)
 
 uint8_t sol_continue(void)
 {
-	return rt_nd_byte("Select 0 to terminate");
+	return nd_byte("Select 0 to terminate");
 }
 
 // -------------------------------------------------------------------------- //
@@ -146,7 +146,7 @@ void on_entry(const char* _type, const char* _msg)
     cout << _msg << " [" << _type << "]: ";
 }
 
-uint8_t rt_nd_byte(const char* _msg)
+uint8_t nd_byte(const char* _msg)
 {
     on_entry("uint8", _msg);
     uint8_t retval;
@@ -154,12 +154,17 @@ uint8_t rt_nd_byte(const char* _msg)
     return retval;
 }
 
-uint8_t rt_nd_range(uint8_t l, uint8_t u, const char* _msg)
+uint8_t nd_range(uint8_t _l, uint8_t _u, const char* _msg)
 {
-	uint8_t v = rt_nd_byte(_msg);
-	ll_assume(v >= l);
-	ll_assume(v < u);
-	return v;
+    stringstream type;
+    type << "uint8 from " << _l << " to " << (_u - 1);
+    on_entry(type.str().c_str(), _msg);
+
+    uint8_t retval;
+    scanf("%hhu", &retval);
+	ll_assume(retval >= _l);
+	ll_assume(retval < _u);
+	return retval;
 }
 
 sol_raw_int8_t nd_int8_t(const char* _msg)
@@ -999,9 +1004,8 @@ sol_raw_uint248_t nd_uint248_t(const char* _msg)
     return retval;
 }
 
-sol_raw_uint256_t nd_uint256_t(const char* _msg)
+sol_raw_uint256_t ll_nd_uint256_t(void)
 {
-    on_entry("uint256", _msg);
     sol_raw_uint256_t retval = 0;
 
     #ifdef MC_USE_STDINT
@@ -1011,6 +1015,26 @@ sol_raw_uint256_t nd_uint256_t(const char* _msg)
     #endif
 
     return retval;
+}
+
+sol_raw_uint256_t nd_uint256_t(const char* _msg)
+{
+    on_entry("uint256", _msg);
+    return ll_nd_uint256_t();
+}
+
+sol_raw_uint256_t nd_increase(
+    sol_raw_uint256_t _curr, uint8_t _strict, const char* _msg
+)
+{
+    stringstream type;
+    type << "uint " << (_strict ? " larger" : " no less") << " than " << _curr;
+    on_entry(type.str().c_str(), _msg);
+
+    sol_raw_uint256_t next = ll_nd_uint256_t();
+	if (_strict) ll_assume(next > _curr);
+	else ll_assume(next >= _curr);
+	return next;
 }
 
 // -------------------------------------------------------------------------- //
