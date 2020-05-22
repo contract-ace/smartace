@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(contract_and_structs)
     BOOST_CHECK_EQUAL(converter.get_type(ctrt_b), "struct B");
     for (auto structure : ctrt_a.definedStructs())
     {
-        string expt_name = ctrt_a.name() + "_Struct" + structure->name();
+        string expt_name = ctrt_a.name() + "_Struct_" + structure->name();
         string expt_type = "struct " + expt_name;
         BOOST_CHECK(converter.has_record(*structure));
         BOOST_CHECK_EQUAL(converter.get_name(*structure), expt_name);
@@ -439,7 +439,7 @@ BOOST_AUTO_TEST_CASE(name_escape)
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.get_name(ctrt), "A__B");
-    BOOST_CHECK_EQUAL(converter.get_name(strt), "A__B_StructC__D");
+    BOOST_CHECK_EQUAL(converter.get_name(strt), "A__B_Struct_C__D");
     BOOST_CHECK_EQUAL(converter.get_name(mapv), "Map_1");
 }
 

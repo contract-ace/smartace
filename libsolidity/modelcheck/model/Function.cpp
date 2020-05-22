@@ -124,7 +124,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         }
     }
 
-    auto zero_id = make_shared<CVarDecl>(STRCT_TYPE, "Init_0_" + STRCT_NAME);
+    auto zero_id = make_shared<CVarDecl>(STRCT_TYPE, "ZeroInit_" + STRCT_NAME);
     auto init_id = make_shared<CVarDecl>(STRCT_TYPE, "Init_" + STRCT_NAME);
 
     auto init_params = generate_params(initializable_members, nullptr, nullptr);
@@ -147,7 +147,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CReturn>(TMP));
         zero_body = make_shared<CBlock>(move(stmts));
 
-        auto zinit = make_shared<CFuncCall>("Init_0_" + STRCT_NAME, CArgList{});
+        auto zinit = make_shared<CFuncCall>("ZeroInit_" + STRCT_NAME, CArgList{});
         stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp", false, zinit));
         for (auto m : initializable_members)
         {
@@ -455,9 +455,8 @@ string FunctionConverter::handle_function(
 )
 {
     // Ensures this specialization is new.
-    auto const& FUNC = _spec.func();
-    string fname = _spec.name();
-    if (!record_pair(FUNC, _spec.useby())) return fname;
+    string fname = _spec.name(0);
+    if (!record_pair(_spec.func(), _spec.useBy())) return fname;
 
     // Generates parameter list for all levels.
     vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
@@ -465,7 +464,7 @@ string FunctionConverter::handle_function(
         FunctionConverter::ParamTmpl tmpl;
         tmpl.context = VarContext::FUNCTION;
 
-        for (auto arg : FUNC.parameters())
+        for (auto arg : _spec.func().parameters())
         {
             tmpl.decl = arg;
 
@@ -479,55 +478,42 @@ string FunctionConverter::handle_function(
 
     // Determines if a contract initialization destination is required.
     ASTPointer<VariableDeclaration> dest;
-    auto rvs = FUNC.returnParameters();
+    auto rvs = _spec.func().returnParameters();
     if (!rvs.empty() && M_NEWCALLS.retval_is_allocated(*rvs[0]))
     {
         dest = rvs[0];
     }
 
     // Filters modifiers from constructors.
-    ModifierBlockConverter::Factory mods(FUNC, fname);
+    ModifierBlockConverter::Factory mods(_spec);
 
     // Generates a declaration for the base call.
     vector<CFuncDef> defs;
     {
-        CParams params = generate_params(base_tmpl, &_spec.useby(), dest);
+        CParams params = generate_params(base_tmpl, &_spec.useBy(), dest);
 
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
             FunctionBlockConverter cov(
-                FUNC, M_STATEDATA, M_NEWCALLS, M_CONVERTER
+                _spec.func(), M_STATEDATA, M_NEWCALLS, M_CONVERTER
             );
 
             cov.set_for(_spec);
             body = cov.convert();
         }
 
-        string base_fname = fname;
-        if (!mods.empty())
-        {
-            base_fname = FunctionUtilities::base_name(move(base_fname));
-        }
+        string base_fname = _spec.name(mods.len());
         auto id = make_shared<CVarDecl>(_rvtype, move(base_fname), _rvisptr);
         defs.emplace_back(id, move(params), move(body));
     }
 
     // Generates a declaration for each modifier.
-    CParams const mod_params = generate_params(mod_tmpl, &_spec.useby(), dest);
+    CParams const mod_params = generate_params(mod_tmpl, &_spec.useBy(), dest);
     for (size_t i = mods.len(); i > 0; --i)
     {
         size_t const IDX = i - 1;
-        string mod_name;
-        if (IDX != 0)
-        {
-            mod_name = FunctionUtilities::modifier_name(fname, IDX);
-        }
-        else
-        {
-            mod_name = fname;
-        }
-        
+
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
@@ -536,7 +522,7 @@ string FunctionConverter::handle_function(
             ).convert();
         }
 
-        auto id = make_shared<CVarDecl>(_rvtype, move(mod_name), _rvisptr);
+        auto id = make_shared<CVarDecl>(_rvtype, _spec.name(IDX), _rvisptr);
         defs.emplace_back(id, mod_params, move(body));
     }
 

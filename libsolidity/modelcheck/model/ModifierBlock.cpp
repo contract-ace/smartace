@@ -8,7 +8,6 @@
 
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/model/Expression.h>
-#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 using namespace std;
@@ -23,22 +22,16 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
-    FunctionDefinition const& _func, string _name
-): m_func(_func), m_name(move(_name))
+    FunctionSpecialization const& _spec
+): M_SPEC(_spec)
 {
-    auto scope = dynamic_cast<ContractDefinition const*>(_func.scope());
-    if (!scope)
-    {
-        throw runtime_error("FunctionDefinition of unknown scope.");
-    }
-
-    for (auto mod : _func.modifiers())
+    for (auto mod : _spec.func().modifiers())
     {
         ModifierDefinition const* match = nullptr;
         string const& target_name = mod->name()->name();
 
         // This function must be concrete else the compiler would fail.
-        for (auto contract : scope->annotation().linearizedBaseContracts)
+        for (auto contract : _spec.source().annotation().linearizedBaseContracts)
         {
             for (auto candidate : contract->functionModifiers())
             {
@@ -67,7 +60,7 @@ ModifierBlockConverter ModifierBlockConverter::Factory::generate(
     CallState const& _statedata,
     NewCallGraph const& _newcalls,
     TypeConverter const& _types
-)
+) const
 {
     // Checks that _i is in bounds.
     if (len() < _i)
@@ -78,26 +71,15 @@ ModifierBlockConverter ModifierBlockConverter::Factory::generate(
     // Finds the definition/invocation pair.
     auto const& def_invoke_pair = m_filtered_mods[_i];
 
-    // Computes the next call name.
-    string next_name;
-    if (_i + 1 < len())
-    {
-        next_name = FunctionUtilities::modifier_name(m_name, _i + 1);
-    }
-    else
-    {
-        next_name = FunctionUtilities::base_name(m_name);
-    }
-
-    // Constructors the bodifier block.
+    // Constructors the modifier block.
     return ModifierBlockConverter(
-        m_func,
+        M_SPEC.func(),
         def_invoke_pair.first,
         def_invoke_pair.second,
         _statedata,
         _newcalls,
         _types,
-        next_name,
+        M_SPEC.name(_i + 1),
         _i == 0
     );
 }

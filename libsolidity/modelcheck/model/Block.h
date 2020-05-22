@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 
 #include <ostream>
 #include <type_traits>
@@ -202,7 +203,7 @@ public:
 	public:
 		// Preprocesses _func to generate all of its modifiers. _name is the
 		// name to associate with _func.
-		Factory(FunctionDefinition const& _func, std::string _name);
+		Factory(FunctionSpecialization const& _spec);
 
 		// Generates the _i-th modifier for _func, where _i is zero-indexed.
 		ModifierBlockConverter generate(
@@ -210,7 +211,7 @@ public:
 			CallState const& _statedata,
 			NewCallGraph const& _newcalls,
 			TypeConverter const& _types
-		);
+		) const;
 
 		// Returns the number of modifiers which were not filtered away.
 		size_t len() const;
@@ -220,9 +221,7 @@ public:
 		bool empty() const;
 	
 	private:
-		FunctionDefinition const& m_func;
-
-		std::string const m_name;
+		FunctionSpecialization const& M_SPEC;
 
 		std::vector<
 			std::pair<ModifierDefinition const*, ModifierInvocation const*>

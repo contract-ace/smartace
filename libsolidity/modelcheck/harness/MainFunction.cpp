@@ -135,7 +135,7 @@ CBlockList MainFunctionGenerator::build_case(
         call_body.push_back(make_shared<CComment>("Uses maps."));
     }
 
-    CFuncCallBuilder call_builder(_spec.name());
+    CFuncCallBuilder call_builder(_spec.name(0));
     call_builder.push(id);
     m_statedata.push_state_to(call_builder);
 

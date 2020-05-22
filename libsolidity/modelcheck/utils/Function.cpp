@@ -33,16 +33,6 @@ CExprPtr FunctionUtilities::try_to_wrap(Type const& _type, CExprPtr _expr)
     return _expr;
 }
 
-string FunctionUtilities::modifier_name(string _base, size_t _i)
-{
-    return _base + "_mod" + to_string(_i);
-}
-
-string FunctionUtilities::base_name(std::string _base)
-{
-    return _base + "_base";
-}
-
 string FunctionUtilities::init_var()
 {
     return "dest";
@@ -58,15 +48,7 @@ FunctionSpecialization::FunctionSpecialization(
 
 FunctionSpecialization::FunctionSpecialization(
     FunctionDefinition const& _def, ContractDefinition const& _for
-): FunctionSpecialization(_def, get_scope(_def), _for)
-{
-}
-
-FunctionSpecialization::FunctionSpecialization(
-    FunctionDefinition const& _def,
-    ContractDefinition const& _src,
-    ContractDefinition const& _for
-): M_CALL(&_def), M_SRC(&_src), M_USER(&_for)
+): M_CALL(&_def), M_SRC(&get_scope(_def)), M_USER(&_for)
 {
 }
 
@@ -76,31 +58,48 @@ unique_ptr<FunctionSpecialization> FunctionSpecialization::super() const
     {
         if (superfunc->isImplemented())
         {
-            return make_unique<FunctionSpecialization>(
-                *superfunc, get_scope(*superfunc), useby()
-            );
+            return make_unique<FunctionSpecialization>(*superfunc, useBy());
         }
     }
     return nullptr;
 }
 
-string FunctionSpecialization::name() const
+string FunctionSpecialization::name(size_t _depth) const
 {
     ostringstream oss;
 
-    if (func().isConstructor())
+    // Prefixed by name of source contract.
+    oss << escape_decl_name(*M_SRC) << "_";
+
+    // Determines the type of method.
+    bool is_method = false;
+    if (M_CALL->isConstructor())
     {
-        oss << "Ctor_" << escape_decl_name(source());
+        oss << "Constructor";
+    }
+    else if (M_CALL->isFallback())
+    {
+        oss << "Fallback";
     }
     else
     {
-        oss << "Method_" << escape_decl_name(source())
-            << "_Func" << escape_decl_name(func());
+        oss << "Method";
+        is_method = true;
+    }
+    
+    // Appends the modifier index if this is not the entry method.
+    if (_depth > 0) oss << "_" << _depth;
+
+    // Adds an override specifier, for when M_CALL is specialized for M_USER.
+    if (M_SRC != M_USER)
+    {
+        oss << "_For_" << escape_decl_name(*M_USER);
     }
 
-    if (source().name() != useby().name())
+    // Adds method name if  this is a named method.
+    if (is_method)
     {
-        oss << "_For_" << escape_decl_name(useby());
+        oss << "_" << escape_decl_name(*M_CALL);
     }
 
     return oss.str();
@@ -111,7 +110,7 @@ ContractDefinition const& FunctionSpecialization::source() const
     return (*M_SRC);
 }
 
-ContractDefinition const& FunctionSpecialization::useby() const
+ContractDefinition const& FunctionSpecialization::useBy() const
 {
     return (*M_USER);
 }
@@ -121,9 +120,8 @@ FunctionDefinition const& FunctionSpecialization::func() const
     return (*M_CALL);
 }
 
-ContractDefinition const& FunctionSpecialization::get_scope(
-    FunctionDefinition const& _func
-)
+ContractDefinition const&
+    FunctionSpecialization::get_scope(FunctionDefinition const& _func)
 {
     auto scope = dynamic_cast<ContractDefinition const*>(_func.scope());
     if (!scope)

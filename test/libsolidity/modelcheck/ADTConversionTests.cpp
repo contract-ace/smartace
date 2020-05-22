@@ -62,9 +62,9 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
     ostringstream actual, expect;
     ADTConverter(ast, callgraph, converter, false, 1, true).print(actual);
     expect << "struct Map_1;";
-    expect << "struct A_StructB;";
+    expect << "struct A_Struct_B;";
     expect << "struct Map_2;";
-    expect << "struct A_StructC;";
+    expect << "struct A_Struct_C;";
     expect << "struct Map_3;";
     expect << "struct Map_4;";
     expect << "struct A;";

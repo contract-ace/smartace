@@ -532,22 +532,20 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
             fbc.set_for(FunctionSpecialization(*func_ptr));
             actual << *fbc.convert();
             expected << "{";
-            expected << "Method_A_Funcf(self,sender,value,blocknum"
-                     << ",timestamp,Init_sol_bool_t(0),origin);";
-            expected << "Method_A_Funcg(self,sender,value,blocknum"
-                     << ",timestamp,Init_sol_bool_t(0),origin"
-                     << ",Init_sol_int256_t(1));";
-            expected << "Method_A_Funch(self,sender,value,blocknum"
-                     << ",timestamp,Init_sol_bool_t(0),origin"
-                     << ",Init_sol_int256_t(1),Init_sol_int256_t(2));";
-            expected << "Method_A_Funcp(self,sender,value,blocknum"
-                     << ",timestamp,Init_sol_bool_t(0),origin);";
-            expected << "Method_A_Funcq(self,sender,value,blocknum"
-                     << ",timestamp,Init_sol_bool_t(0),origin"
-                     << ",Init_sol_int256_t(1));";
-            expected << "Method_A_Funcr(self,sender,value,blocknum"
-                     << ",timestamp,Init_sol_bool_t(0),origin"
-                     << ",Init_sol_int256_t(1),Init_sol_int256_t(2));";
+            expected << "A_Method_f(self,sender,value,blocknum,timestamp"
+                     << ",Init_sol_bool_t(0),origin);";
+            expected << "A_Method_g(self,sender,value,blocknum,timestamp"
+                     << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1));";
+            expected << "A_Method_h(self,sender,value,blocknum,timestamp"
+                     << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1)"
+                     << ",Init_sol_int256_t(2));";
+            expected << "A_Method_p(self,sender,value,blocknum,timestamp"
+                     << ",Init_sol_bool_t(0),origin);";
+            expected << "A_Method_q(self,sender,value,blocknum,timestamp"
+                     << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1));";
+            expected << "A_Method_r(self,sender,value,blocknum,timestamp"
+                     << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1)"
+                     << ",Init_sol_int256_t(2));";
             expected << "}";
             BOOST_CHECK_EQUAL(actual.str(), expected.str());
             break;
@@ -604,19 +602,19 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
             fbc.set_for(FunctionSpecialization(*func_ptr));
             actual << *fbc.convert();
             expected << "{";
-            expected << "Method_A_Funcf(&(self->user_a),(self)->model_address"
+            expected << "A_Method_f(&(self->user_a),(self)->model_address"
                      << ",Init_sol_uint256_t(0),blocknum,timestamp"
                      << ",Init_sol_bool_t(1),origin);";
-            expected << "Method_A_Funcg(&(self->user_a),(self)->model_address"
+            expected << "A_Method_g(&(self->user_a),(self)->model_address"
                      << ",Init_sol_uint256_t(0),blocknum,timestamp"
                      << ",Init_sol_bool_t(1),origin);";
-            expected << "Method_B_Funcf(&(self->user_b),(self)->model_address"
+            expected << "B_Method_f(&(self->user_b),(self)->model_address"
                      << ",Init_sol_uint256_t(0),blocknum,timestamp"
                      << ",Init_sol_bool_t(1),origin);";
-            expected << "Method_B_Funcf(self,(self)->model_address"
+            expected << "B_Method_f(self,(self)->model_address"
                      << ",Init_sol_uint256_t(0),blocknum,timestamp"
                      << ",Init_sol_bool_t(1),origin);";
-            expected << "Method_B_Funcf(self,(self)->model_address"
+            expected << "B_Method_f(self,(self)->model_address"
                      << ",Init_sol_uint256_t(0),blocknum,timestamp"
                      << ",Init_sol_bool_t(1),origin);";
             expected << "}";;
@@ -746,9 +744,9 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
         func, statedata, newcalls, converter
     ).convert();
     expected << "{";
-    expected << "Init_A_StructB();";
-    expected << "Init_A_StructC(Init_sol_uint256_t(1));";
-    expected << "Init_A_StructD(Init_sol_uint256_t(1),Init_sol_uint256_t(2));";
+    expected << "Init_A_Struct_B();";
+    expected << "Init_A_Struct_C(Init_sol_uint256_t(1));";
+    expected << "Init_A_Struct_D(Init_sol_uint256_t(1),Init_sol_uint256_t(2));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -1004,7 +1002,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_resolution)
         func, statedata, newcalls, converter
     ).convert();
     expected << "{";
-    expected << "struct A_StructB*func_user_b__ref=&(self->user_b);";
+    expected << "struct A_Struct_B*func_user_b__ref=&(self->user_b);";
     expected << "((func_user_b__ref)->user_i).v;";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
@@ -1045,7 +1043,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
         func, statedata, newcalls, converter
     ).convert();
     expected << "{";
-    expected << "struct A_StructB*func_user_b__ref=&(self->user_b);";
+    expected << "struct A_Struct_B*func_user_b__ref=&(self->user_b);";
     expected << "(func_user_b__ref)=(&(self->user_b));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
@@ -1120,7 +1118,7 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
     fbc.set_for(FunctionSpecialization(*func));
     actual << *fbc.convert();
     expect << "{"
-           << "(Method_A_Funcf(self,sender,value,blocknum,timestamp"
+           << "(A_Method_f(self,sender,value,blocknum,timestamp"
            << ",Init_sol_bool_t(0),origin)).v;"
            << "}";
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
@@ -1162,17 +1160,19 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
 
     CallState statedata(deps);
 
-    ModifierBlockConverter::Factory f_factory(func_f, converter.get_name(func_f));
-    ModifierBlockConverter::Factory g_factory(func_g, converter.get_name(func_g));
+    FunctionSpecialization spec_f(func_f);
+    FunctionSpecialization spec_g(func_g);
+    ModifierBlockConverter::Factory f_factory(spec_f);
+    ModifierBlockConverter::Factory g_factory(spec_g);
 
     ostringstream f0_actual, f0_expect;
     f0_actual << *f_factory.generate(
         0, statedata, newcalls, converter
     ).convert();
     f0_expect << "{"
-              << "Method_A_Funcf_mod1(self,sender,value,blocknum,timestamp"
+              << "A_Method_1_f(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);"
-              << "Method_A_Funcf_mod1(self,sender,value,blocknum,timestamp"
+              << "A_Method_1_f(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);"
               << "return;"
               << "}";
@@ -1183,9 +1183,9 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
         0, statedata, newcalls, converter
     ).convert();
     g0_expect << "{";
-    g0_expect << "Method_A_Funcg_mod1(self,sender,value,blocknum,timestamp"
+    g0_expect << "A_Method_1_g(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);";
-    g0_expect << "Method_A_Funcg_mod1(self,sender,value,blocknum,timestamp"
+    g0_expect << "A_Method_1_g(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);";
     g0_expect << "return;";
     g0_expect << "}";
@@ -1196,7 +1196,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
         1, statedata, newcalls, converter
     ).convert();
     f1_expect << "{";
-    f1_expect << "Method_A_Funcf_base(self,sender,value,blocknum,timestamp"
+    f1_expect << "A_Method_2_f(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);";
     f1_expect << "return;";
     f1_expect << "}";
@@ -1207,7 +1207,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
         1, statedata, newcalls, converter
     ).convert();
     g1_expect << "{";
-    g1_expect << "Method_A_Funcg_base(self,sender,value,blocknum,timestamp"
+    g1_expect << "A_Method_2_g(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);";
     g1_expect << "return;";
     g1_expect << "}";;
@@ -1243,15 +1243,16 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
     CallState statedata(deps);
 
     ostringstream expected, actual;
-    ModifierBlockConverter::Factory factory(func, converter.get_name(func));
+    FunctionSpecialization spec(func);
+    ModifierBlockConverter::Factory factory(spec);
     actual << *factory.generate(0, statedata, newcalls, converter).convert();
     expected << "{";
     expected << "sol_int256_t func_model_rv;";
-    expected << "(func_model_rv)=(Method_A_Funcf_base(self,sender,value"
-             << ",blocknum,timestamp,Init_sol_bool_t(0),origin));";
+    expected << "(func_model_rv)=(A_Method_1_f(self,sender,value,blocknum,"
+             << "timestamp,Init_sol_bool_t(0),origin));";
     expected << "return func_model_rv;";
-    expected << "(func_model_rv)=(Method_A_Funcf_base(self,sender,value"
-             << ",blocknum,timestamp,Init_sol_bool_t(0),origin));";
+    expected << "(func_model_rv)=(A_Method_1_f(self,sender,value,blocknum,"
+             << "timestamp,Init_sol_bool_t(0),origin));";
     expected << "return func_model_rv;";
     expected << "}";
 
@@ -1286,15 +1287,15 @@ BOOST_AUTO_TEST_CASE(modifier_args)
     CallState statedata(deps);
 
     ostringstream expected, actual;
-    ModifierBlockConverter::Factory factory(func, converter.get_name(func));
+    FunctionSpecialization spec(func);
+    ModifierBlockConverter::Factory factory(spec);
     actual << *factory.generate(0, statedata, newcalls, converter).convert();
     expected << "{";
     expected << "sol_int256_t func_user_a=Init_sol_int256_t("
              << "((func_model_b).v)+(5));";
-    expected << "sol_int256_t func_user_b=Init_sol_int256_t("
-             << "(func_model_a).v);";
+    expected << "sol_int256_t func_user_b=Init_sol_int256_t((func_model_a).v);";
     expected << "sol_require(((func_user_a).v)>((func_user_b).v),0);";
-    expected << "Method_A_Funcf_base(self,sender,value,blocknum,timestamp"
+    expected << "A_Method_1_f(self,sender,value,blocknum,timestamp"
              << ",Init_sol_bool_t(0),origin,func_model_a,func_model_b);";
     expected << "}";
 

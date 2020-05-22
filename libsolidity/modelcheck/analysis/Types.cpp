@@ -63,7 +63,7 @@ void TypeConverter::record(SourceUnit const& _unit)
         for (auto structure : contract->definedStructs())
         {
             ostringstream struct_oss;
-            struct_oss << cname << "_Struct" << escape_decl_name(*structure);
+            struct_oss << cname << "_Struct_" << escape_decl_name(*structure);
 
             m_name_lookup.insert({structure, struct_oss.str()});
             m_type_lookup.insert({structure, "struct " + struct_oss.str()});
@@ -105,8 +105,9 @@ void TypeConverter::record(SourceUnit const& _unit)
                     returnParams->accept(*this);
                 }
 
+                // TODO: is this still used?
                 auto const FUNC_RETURN_TYPE = get_type(*returnParams);
-                auto const FUNC_NAME = FunctionSpecialization(*fun).name();
+                auto const FUNC_NAME = FunctionSpecialization(*fun).name(0);
                 m_name_lookup.insert({fun, FUNC_NAME});
                 m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
             }
@@ -281,13 +282,13 @@ CExprPtr TypeConverter::get_init_val(TypeName const& _typename) const
             *_typename.annotation().type
         );
     }
-    return make_shared<CFuncCall>("Init_0_" + get_name(_typename), CArgList{});
+    return make_shared<CFuncCall>("ZeroInit_" + get_name(_typename), CArgList{});
 }
 
 CExprPtr TypeConverter::get_init_val(Declaration const& _decl) const
 {
     if (has_simple_type(_decl)) return init_val_by_simple_type(*_decl.type());
-    return make_shared<CFuncCall>("Init_0_" + get_name(_decl), CArgList{});
+    return make_shared<CFuncCall>("ZeroInit_" + get_name(_decl), CArgList{});
 }
 
 CExprPtr TypeConverter::get_nd_val(

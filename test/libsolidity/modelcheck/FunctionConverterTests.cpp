@@ -62,15 +62,15 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
         FunctionConverter::View::FULL,
         false
     ).print(actual);
-    expect << "void Init_A(struct A*self,sol_address_t sender"
-           << ",sol_uint256_t value,sol_uint256_t blocknum"
-           << ",sol_uint256_t timestamp,sol_bool_t paid,sol_address_t origin)";
+    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
+           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
+           << "paid,sol_address_t origin)";
     expect << "{";
     expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
     expect << "}";
-    expect << "sol_uint40_t Method_A_Funcf(struct A*self,sol_address_t sender"
-           << ",sol_uint256_t value,sol_uint256_t blocknum"
-           << ",sol_uint256_t timestamp,sol_bool_t paid,sol_address_t origin)";
+    expect << "sol_uint40_t A_Method_f(struct A*self,sol_address_t sender"
+           << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
+           << "timestamp,sol_bool_t paid,sol_address_t origin)";
     expect << "{";
     expect << "return Init_sol_uint40_t(20);";
     expect << "}";
@@ -115,15 +115,15 @@ BOOST_AUTO_TEST_CASE(payable_method)
         FunctionConverter::View::FULL,
         false
     ).print(actual);
-    expect << "void Init_A(struct A*self,sol_address_t sender"
-           << ",sol_uint256_t value,sol_uint256_t blocknum"
-           << ",sol_uint256_t timestamp,sol_bool_t paid,sol_address_t origin)";
+    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
+           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
+           << "paid,sol_address_t origin)";
     expect << "{";
     expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
     expect << "}";
-    expect << "sol_uint40_t Method_A_Funcf(struct A*self,sol_address_t sender"
-           << ",sol_uint256_t value,sol_uint256_t blocknum"
-           << ",sol_uint256_t timestamp,sol_bool_t paid,sol_address_t origin)";
+    expect << "sol_uint40_t A_Method_f(struct A*self,sol_address_t sender"
+           << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
+           << "timestamp,sol_bool_t paid,sol_address_t origin)";
     expect << "{";
     expect << "if(((paid).v)==(1))(((self)->model_balance).v)+=((value).v);";
     expect << "return Init_sol_uint40_t(20);";
@@ -175,26 +175,26 @@ BOOST_AUTO_TEST_CASE(default_constructors)
         false
     ).print(actual);
     // -- Init_A
-    expect << "void Init_A(struct A*self,sol_address_t sender"
-           << ",sol_uint256_t value,sol_uint256_t blocknum"
-           << ",sol_uint256_t timestamp,sol_bool_t paid,sol_address_t origin)";
+    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
+           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
+           << "paid,sol_address_t origin)";
     expect << "{";
     expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
     expect << "((self)->user_a)=(Init_sol_uint256_t(0));";
     expect << "((self)->user_b)=(Init_sol_uint256_t(10));";
-    expect << "((self)->user_c)=(Init_0_A_StructB());";
+    expect << "((self)->user_c)=(ZeroInit_A_Struct_B());";
     expect << "}";
-    // -- Init_0_A_StructB
-    expect << "struct A_StructB Init_0_A_StructB(void)";
+    // -- Init_0_A_Struct_B
+    expect << "struct A_Struct_B ZeroInit_A_Struct_B(void)";
     expect << "{";
-    expect << "struct A_StructB tmp;";
+    expect << "struct A_Struct_B tmp;";
     expect << "((tmp).user_a)=(Init_sol_uint256_t(0));";
     expect << "return tmp;";
     expect << "}";
-    // -- Init_A_StructB
-    expect << "struct A_StructB Init_A_StructB(sol_uint256_t user_a)";
+    // -- Init_A_Struct_B
+    expect << "struct A_Struct_B Init_A_Struct_B(sol_uint256_t user_a)";
     expect << "{";
-    expect << "struct A_StructB tmp=Init_0_A_StructB();";
+    expect << "struct A_Struct_B tmp=ZeroInit_A_Struct_B();";
     expect << "((tmp).user_a)=(user_a);";
     expect << "return tmp;";
     expect << "}";
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
         false
     ).print(actual);
     // -- Ctor_A
-    expect << "void Ctor_A(struct A*self,sol_address_t sender"
+    expect << "void A_Constructor(struct A*self,sol_address_t sender"
            << ",sol_uint256_t value,sol_uint256_t blocknum"
            << ",sol_uint256_t timestamp,sol_bool_t paid,sol_address_t origin"
            << ",sol_uint256_t func_user___a)";
@@ -251,16 +251,15 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     expect << "((self->user_a).v)=((func_user___a).v);";
     expect << "}";
     // -- Init_A
-    expect << "void Init_A(struct A*self,sol_address_t sender"
-           << ",sol_uint256_t value,sol_uint256_t blocknum"
-           << ",sol_uint256_t timestamp,sol_bool_t paid,sol_address_t origin"
-           << ",sol_uint256_t user___a)";
+    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
+           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
+           << "paid,sol_address_t origin,sol_uint256_t user___a)";
     expect << "{";
     expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
     expect << "((self)->user_a)=(Init_sol_uint256_t(0));";
     expect << "((self)->user_b)=(Init_sol_uint256_t(0));";
-    expect << "Ctor_A(self,sender,value,blocknum,timestamp,Init_sol_bool_t(0)"
-           << ",origin,user___a);";
+    expect << "A_Constructor(self,sender,value,blocknum,timestamp"
+           << ",Init_sol_bool_t(0),origin,user___a);";
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
@@ -311,42 +310,42 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
         false
     ).print(actual);
     // -- Init_A
-    expect << "void Init_A(struct A*self,sol_address_t sender"
-           << ",sol_uint256_t value,sol_uint256_t blocknum"
-           << ",sol_uint256_t timestamp,sol_bool_t paid,sol_address_t origin)";
+    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
+           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t"
+           << " paid,sol_address_t origin)";
     expect << "{";
     expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
     expect << "}";
-    // -- Init_0_A_StructB
-    expect << "struct A_StructB Init_0_A_StructB(void)";
+    // -- Init_0_A_Struct_B
+    expect << "struct A_Struct_B ZeroInit_A_Struct_B(void)";
     expect << "{";
-    expect << "struct A_StructB tmp;";
+    expect << "struct A_Struct_B tmp;";
     expect << "((tmp).user_i1)=(Init_sol_int256_t(0));";
     expect << "return tmp;";
     expect << "}";
-    // -- Init_A_StructB
-    expect << "struct A_StructB Init_A_StructB(sol_int256_t user_i1)";
+    // -- Init_A_Struct_B
+    expect << "struct A_Struct_B Init_A_Struct_B(sol_int256_t user_i1)";
     expect << "{";
-    expect << "struct A_StructB tmp=Init_0_A_StructB();";
+    expect << "struct A_Struct_B tmp=ZeroInit_A_Struct_B();";
     expect << "((tmp).user_i1)=(user_i1);";
     expect << "return tmp;";
     expect << "}";
-    // -- Init_0_A_StructC
-    expect << "struct A_StructC Init_0_A_StructC(void)";
+    // -- Init_0_A_Struct_C
+    expect << "struct A_Struct_C ZeroInit_A_Struct_C(void)";
     expect << "{";
-    expect << "struct A_StructC tmp;";
+    expect << "struct A_Struct_C tmp;";
     expect << "((tmp).user_i1)=(Init_sol_int256_t(0));";
-    expect << "((tmp).user_b1)=(Init_0_A_StructB());";
+    expect << "((tmp).user_b1)=(ZeroInit_A_Struct_B());";
     expect << "((tmp).user_i2)=(Init_sol_int256_t(0));";
     expect << "((tmp).user_ui1)=(Init_sol_uint256_t(0));";
-    expect << "((tmp).user_b2)=(Init_0_A_StructB());";
+    expect << "((tmp).user_b2)=(ZeroInit_A_Struct_B());";
     expect << "return tmp;";
     expect << "}";
-    // -- Init_A_StructC
-    expect << "struct A_StructC Init_A_StructC(sol_int256_t user_i1"
+    // -- Init_A_Struct_C
+    expect << "struct A_Struct_C Init_A_Struct_C(sol_int256_t user_i1"
               ",sol_int256_t user_i2,sol_uint256_t user_ui1)";
     expect << "{";
-    expect << "struct A_StructC tmp=Init_0_A_StructC();";
+    expect << "struct A_Struct_C tmp=ZeroInit_A_Struct_C();";
     expect << "((tmp).user_i1)=(user_i1);";
     expect << "((tmp).user_i2)=(user_i2);";
     expect << "((tmp).user_ui1)=(user_ui1);";
@@ -396,14 +395,12 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
         FunctionConverter::View::EXT,
         true
     ).print(ext_actual);
-    ext_expect << "void Init_A(struct A*self,sol_address_t sender"
-               << ",sol_uint256_t value,sol_uint256_t blocknum"
-               << ",sol_uint256_t timestamp,sol_bool_t paid"
-               << ",sol_address_t origin);";
-    ext_expect << "void Method_A_Funcf(struct A*self,sol_address_t sender"
-               << ",sol_uint256_t value,sol_uint256_t blocknum"
-               << ",sol_uint256_t timestamp,sol_bool_t paid"
-               << ",sol_address_t origin);";
+    ext_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t"
+               << " value,sol_uint256_t blocknum,sol_uint256_t timestamp,"
+               << "sol_bool_t paid,sol_address_t origin);";
+    ext_expect << "void A_Method_f(struct A*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
+               << "timestamp,sol_bool_t paid,sol_address_t origin);";
 
     ostringstream int_actual, int_expect;
     FunctionConverter(
@@ -417,15 +414,14 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
         FunctionConverter::View::INT,
         true
     ).print(int_actual);
-    int_expect << "void Method_A_Funcg(struct A*self,sol_address_t sender"
-               << ",sol_uint256_t value,sol_uint256_t blocknum"
-               << ",sol_uint256_t timestamp,sol_bool_t paid"
-               << ",sol_address_t origin);";
-    int_expect << "struct A_StructB Init_0_A_StructB(void);";
-    int_expect << "struct A_StructB Init_A_StructB(sol_int256_t user_i);";
-    int_expect << "struct Map_1 Init_0_Map_1(void);";
-    int_expect << "sol_int256_t Read_Map_1(struct Map_1*arr"
-               << ",sol_int256_t key_0);";
+    int_expect << "void A_Method_g(struct A*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
+               << "timestamp,sol_bool_t paid,sol_address_t origin);";
+    int_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    int_expect << "struct A_Struct_B Init_A_Struct_B(sol_int256_t user_i);";
+    int_expect << "struct Map_1 ZeroInit_Map_1(void);";
+    int_expect << "sol_int256_t Read_Map_1(struct Map_1*arr,sol_int256_t "
+               << "key_0);";
     int_expect << "void Write_Map_1(struct Map_1*arr,sol_int256_t key_0"
                << ",sol_int256_t dat);";
     int_expect << "void Set_Map_1(struct Map_1*arr,sol_int256_t key_0"
@@ -483,7 +479,7 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
                << ",sol_uint256_t value,sol_uint256_t blocknum"
                << ",sol_uint256_t timestamp,sol_bool_t paid"
                << ",sol_address_t origin);";
-    ext_expect << "void Ctor_C(struct C*self,sol_address_t sender"
+    ext_expect << "void C_Constructor(struct C*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"
                << ",sol_uint256_t timestamp,sol_bool_t paid"
                << ",sol_address_t origin);";

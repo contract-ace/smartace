@@ -87,7 +87,7 @@ CStructDef MapGenerator::declare(bool _forward_declare) const
 CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
 {
     const auto INIT_VAL = M_TYPES.get_init_val(*M_MAP_RECORD.value_type);
-    auto fid = make_shared<CVarDecl>(M_TYPE, "Init_0_" + M_MAP_RECORD.name);
+    auto fid = make_shared<CVarDecl>(M_TYPE, "ZeroInit_" + M_MAP_RECORD.name);
 
     shared_ptr<CBlock> body;
     if (!_forward_declare) body = expand_init(INIT_VAL);

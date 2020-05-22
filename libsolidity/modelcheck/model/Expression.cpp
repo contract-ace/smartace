@@ -665,9 +665,7 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 
 void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 {
-	// Analyzes the function call.
-	auto &fdecl = _calldata.decl();
-	FunctionSpecialization call(fdecl);
+	FunctionSpecialization call(_calldata.decl());
 
 	// Determines call name and locality of call.
 	string callname;
@@ -676,7 +674,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	{
 		if (auto super = m_decls.spec()->super())
 		{
-			callname = super->name();
+			callname = super->name(0);
 		}
 		else
 		{
@@ -688,8 +686,9 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		is_ext_call = (_calldata.context() != nullptr);
 		if (!is_ext_call)
 		{
+			// TODO: reuse earlier analysis?
 			auto const& hierarchy
-				= m_decls.spec()->useby().annotation().linearizedBaseContracts;
+				= m_decls.spec()->useBy().annotation().linearizedBaseContracts;
 
 			// The compiler accepted the call so a match exists on some base.
 			FunctionDefinition const* override = nullptr;
@@ -706,9 +705,9 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 				if (override) break;
 			}
 
-			call = FunctionSpecialization(*override, m_decls.spec()->useby());
+			call = FunctionSpecialization(*override, m_decls.spec()->useBy());
 		}
-		callname = call.name();
+		callname = call.name(0);
 	}
 
 	// Determines if builder's method produces return value by pointer.
@@ -728,7 +727,8 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	{
 		if (_calldata.context())
 		{
-			auto const ARG = fdecl.parameters()[param_idx];
+			// TODO: this is duplicated further down.
+			auto const ARG = call.func().parameters()[param_idx];
 			auto const* ARGTYPE = ARG->type();
 
 			bool const IS_REF
@@ -780,7 +780,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	// Pushes all user provided arguments.
 	for (size_t i = 0; i < _calldata.args().size(); ++i)
 	{
-		auto const ARG = fdecl.parameters()[param_idx + i];
+		auto const ARG = call.func().parameters()[param_idx + i];
 		auto const* ARGTYPE = ARG->type();
 
 		bool const IS_REF

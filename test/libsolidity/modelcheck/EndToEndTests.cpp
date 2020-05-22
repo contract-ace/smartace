@@ -67,10 +67,9 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A;";
-    func_expect << "void Init_A(struct A*self,sol_address_t sender"
-                << ",sol_uint256_t value,sol_uint256_t blocknum"
-                << ",sol_uint256_t timestamp,sol_bool_t paid"
-                << ",sol_address_t origin);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender,"
+                << "sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t"
+                << " timestamp,sol_bool_t paid,sol_address_t origin);";
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
 }
@@ -119,7 +118,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct Map_1 Init_0_Map_1(void);";
+    func_expect << "struct Map_1 ZeroInit_Map_1(void);";
     func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
                 << ",sol_uint256_t key_0);";
     func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_0"
@@ -175,13 +174,13 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A_StructB;" << "struct A;";
+    adt_expect << "struct A_Struct_B;" << "struct A;";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct A_StructB Init_0_A_StructB(void);";
-    func_expect << "struct A_StructB Init_A_StructB"
+    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    func_expect << "struct A_Struct_B Init_A_Struct_B"
                 << "(sol_uint256_t user_a,sol_uint256_t user_b);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
@@ -233,7 +232,7 @@ BOOST_AUTO_TEST_CASE(simple_func)
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "sol_uint256_t Method_A_FuncsimpleFunc(struct A*self"
+    func_expect << "sol_uint256_t A_Method_simpleFunc(struct A*self"
                 << ",sol_address_t sender,sol_uint256_t value"
                 << ",sol_uint256_t blocknum,sol_uint256_t timestamp"
                 << ",sol_bool_t paid,sol_address_t origin"
@@ -290,7 +289,7 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
                 << "sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "void Method_A_FuncsimpleFunc(struct A*self"
+    func_expect << "void A_Method_simpleFunc(struct A*self"
                 << ",sol_address_t sender,sol_uint256_t value"
                 << ",sol_uint256_t blocknum,sol_uint256_t timestamp,"
                 << "sol_bool_t paid,sol_address_t origin"
@@ -344,15 +343,15 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct Map_1;";
-    adt_expect << "struct A_StructB;";
+    adt_expect << "struct A_Struct_B;";
     adt_expect << "struct A;";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct A_StructB Init_0_A_StructB(void);";
-    func_expect << "struct A_StructB Init_A_StructB(void);";
-    func_expect << "struct Map_1 Init_0_Map_1(void);";
+    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    func_expect << "struct A_Struct_B Init_A_Struct_B(void);";
+    func_expect << "struct Map_1 ZeroInit_Map_1(void);";
     func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
                 << ",sol_uint256_t key_0,sol_uint256_t key_1);";
     func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_0"
@@ -412,7 +411,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct Map_1;";
-    adt_expect << "struct A_StructB;";
+    adt_expect << "struct A_Struct_B;";
     adt_expect << "struct A;";
     adt_expect << "struct Map_2;";
     adt_expect << "struct C;";
@@ -420,9 +419,9 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct A_StructB Init_0_A_StructB(void);";
-    func_expect << "struct A_StructB Init_A_StructB(void);";
-    func_expect << "struct Map_1 Init_0_Map_1(void);";
+    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    func_expect << "struct A_Struct_B Init_A_Struct_B(void);";
+    func_expect << "struct Map_1 ZeroInit_Map_1(void);";
     func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
                 << ",sol_uint256_t key_0);";
     func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_0"
@@ -433,7 +432,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct Map_2 Init_0_Map_2(void);";
+    func_expect << "struct Map_2 ZeroInit_Map_2(void);";
     func_expect << "sol_uint256_t Read_Map_2(struct Map_2*arr"
                 << ",sol_uint256_t key_0);";
     func_expect << "void Write_Map_2(struct Map_2*arr,sol_uint256_t key_0"
@@ -491,7 +490,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct Map_1 Init_0_Map_1(void);";
+    func_expect << "struct Map_1 ZeroInit_Map_1(void);";
     func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
                 << ",sol_uint256_t key_0,sol_uint256_t key_1"
                 << ",sol_uint256_t key_2);";
@@ -550,18 +549,17 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
-    adt_expect << "struct A_StructB;" << "struct A;";
+    adt_expect << "struct A_Struct_B;" << "struct A;";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct A_StructB Method_A_FuncadvFunc"
-                << "(struct A*self,sol_address_t sender,sol_uint256_t value"
-                << ",sol_uint256_t blocknum,sol_uint256_t timestamp"
-                << ",sol_bool_t paid,sol_address_t origin"
-                << ",sol_uint256_t func_user___in);";
-    func_expect << "struct A_StructB Init_0_A_StructB(void);";
-    func_expect << "struct A_StructB Init_A_StructB(sol_uint256_t user_a);";
+    func_expect << "struct A_Struct_B A_Method_advFunc(struct A*self,"
+                << "sol_address_t sender,sol_uint256_t value,sol_uint256_t "
+                << "blocknum,sol_uint256_t timestamp,sol_bool_t paid,"
+                << "sol_address_t origin,sol_uint256_t func_user___in);";
+    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    func_expect << "struct A_Struct_B Init_A_Struct_B(sol_uint256_t user_a);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
