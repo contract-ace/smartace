@@ -131,8 +131,8 @@ sol_raw_uint256_t nd_increase(
 		ll_assume(_curr < SOL_UINT256_MAX);
 		_curr += 1;
 	}
-	sol_raw_uint256_t max_increase = (SOL_UINT256_MAX - _curr);
-	sol_raw_uint256_t delta = (nd_uint256_t(_msg) % max_increase);
+	sol_raw_uint256_t max_increase = SOL_UINT256_MAX - _curr;
+	sol_raw_uint256_t delta = nd_uint256_t(_msg) % max_increase;
 	return _curr + delta;
 }
 
@@ -214,7 +214,7 @@ uint8_t nd_byte(const char* _msg)
 uint8_t nd_range(uint8_t l, uint8_t u, const char* _msg)
 {
 	uint8_t v = nd_byte(_msg);
-	return v % (u - l) + l;
+	return (v % (u - l)) + l;
 }
 
 sol_raw_int8_t nd_int8_t(const char* _msg)

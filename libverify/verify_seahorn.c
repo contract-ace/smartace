@@ -107,6 +107,7 @@ void smartace_log(const char* _msg)
 
 // -------------------------------------------------------------------------- //
 
+extern sol_raw_int8_t sea_nd_u8(void);
 sol_raw_uint8_t nd_uint8_t(const char* _msg)
 {
 	sol_raw_int8_t v = sea_nd_u8();

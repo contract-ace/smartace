@@ -5,6 +5,11 @@
 
 #pragma once
 
+// Macro for ghost variable autoinstrumentation.
+#define GHOST_VAR 
+
+// Switches interger implementations based on preprocessor flags.
+// TODO: refine this.
 #ifdef MC_USE_BOOST_MP
     #ifndef __cplusplus
     #error A C++ compiler is required for Boost.
