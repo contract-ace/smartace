@@ -126,7 +126,7 @@ CBlockList MainFunctionGenerator::build_case(
 
     stringstream caselog;
     caselog << "[Calling " << _spec.func().name()
-            << " on " << (*_id->id()) << "]";
+            << "() on " << (*_id->id()) << "]";
     HarnessUtilities::log(call_body, caselog.str());
 
     // TODO: actually populate maps.

@@ -97,10 +97,7 @@ ActorModel::ActorModel(
             m_converter, _dependance, contract, nullptr, cids, fids
         );
 
-        auto const& DECL = m_actors.back().decl;
-        recursive_setup(
-            _allocs, _dependance, DECL->id(), contract, cids, fids
-        );
+        recursive_setup(_allocs, _dependance, m_actors.back() , cids, fids);
     }
 
     // Extracts the address variable for each contract.
@@ -112,7 +109,7 @@ ActorModel::ActorModel(
 
             if (entry.depth > 0)
             {
-                throw runtime_error("Map to address unsupoorted.");
+                throw runtime_error("Map to address unsupported.");
             }
             
             for (auto path : entry.paths)
@@ -162,7 +159,9 @@ void ActorModel::initialize(
         auto ctx = actor.contract;
 
         stringstream caselog;
-        caselog << "[Initializing " << (*actor.decl->id()) << "]";
+        caselog << "[Initializing " << (*actor.decl->id());
+        if (actor.has_children) caselog << " and children.";
+        caselog << "]";
         HarnessUtilities::log(_block, caselog.str());
 
         // Populates core constructor arguments.
@@ -242,25 +241,25 @@ list<Actor> const& ActorModel::inspect() const
 void ActorModel::recursive_setup(
     NewCallGraph const& _allocs,
     ContractDependance const& _dependance,
-    CExprPtr _path,
-    ContractDefinition const* _parent,
+    Actor & _parent,
     TicketSystem<uint16_t> & _cids,
     TicketSystem<uint16_t> & _fids
 )
 {
-    for (auto const& child : _allocs.children_of(_parent))
+    for (auto const& child : _allocs.children_of(_parent.contract))
     {
         if (child.is_retval) continue;
+        _parent.has_children = true;
 
         auto const NAME = VariableScopeResolver::rewrite(
             child.dest->name(), false, VarContext::STRUCT
         );
-        auto const PATH = make_shared<CMemberAccess>(_path, NAME);
+        auto const PATH = make_shared<CMemberAccess>(_parent.decl->id(), NAME);
 
         m_actors.emplace_back(
             m_converter, _dependance, child.type, PATH, _cids, _fids
         );
-        recursive_setup(_allocs, _dependance, PATH, child.type, _cids, _fids);
+        recursive_setup(_allocs, _dependance, m_actors.back(), _cids, _fids);
     }
 }
 

@@ -69,6 +69,9 @@ struct Actor
 
     // If true the given call makes use of some map in the model.
     std::map<FunctionDefinition const*, bool> uses_maps;
+
+    // If true, the actor has been used to spawn a child contract.
+    bool has_children;
 };
 
 // -------------------------------------------------------------------------- //
@@ -122,8 +125,7 @@ private:
     void recursive_setup(
         NewCallGraph const& _allocs,
         ContractDependance const& _dependance,
-        CExprPtr _path,
-        ContractDefinition const* _parent,
+        Actor & _parent,
         TicketSystem<uint16_t> & _cids,
         TicketSystem<uint16_t> & _fids
     );
