@@ -1,6 +1,7 @@
 /**
  * Provides utilities for identifying call sites for dynamic smart contract
  * allocations. This handles reasoning and validation, through static methods.
+ * @date 2019
  */
 
 #pragma once
@@ -71,6 +72,7 @@ private:
     public:
         CallGroup calls;
 
+        // Extracts new calls from _context, up to a call depth of _depth_limit.
         Visitor(FunctionDefinition const* _context, size_t _depth_limit);
 
     protected:
@@ -87,6 +89,7 @@ private:
 
         std::map<FunctionDefinition const*, ContractDefinition const*> _fcache;
 
+        // Utility method to handle _ftype based on call type.
         ContractDefinition const* handle_call_type(FunctionType const& _ftype);
     };
 };
@@ -134,7 +137,7 @@ public:
     // Returns true if the given return value has been mapped to a new call.
     bool retval_is_allocated(VariableDeclaration const& _decl) const;
 
-    // Returns a more percise contract type for a given contract variable. This
+    // Returns a more precise contract type for a given contract variable. This
     // takes into account upcasting. Throws if the variable was not recorded, or
     // if it was not of a contract type.
     ContractDefinition const& specialize(VariableDeclaration const& _decl) const;
@@ -147,6 +150,8 @@ private:
 
     bool m_finalized = false;
 
+    // Computes and caches the cost of constructing each neighbour. Cost is
+    // defined as the number of instantiated constracts
     void analyze(Graph::iterator _neighbourhood);
 
     Graph m_vertices;

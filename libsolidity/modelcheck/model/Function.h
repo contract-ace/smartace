@@ -6,14 +6,8 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
-#include <libsolidity/modelcheck/utils/Function.h>
-#include <libsolidity/modelcheck/utils/Types.h>
+#include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <map>
 #include <ostream>
@@ -26,6 +20,12 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+class CallState;
+class ContractDependance;
+class FunctionSpecialization;
+class NewCallGraph;
+class TypeConverter;
 
 // -------------------------------------------------------------------------- //
 
@@ -85,7 +85,7 @@ private:
 	bool const M_FWD_DCL;
 
 	// Helper structure to communicate parameters to the parameter generator.
-	struct ParamTmpl
+	struct ParamTemplate
 	{
 		VarContext context;
 		bool instrumentation;
@@ -97,7 +97,7 @@ private:
 	// are assumed to be of a stateful Solidity method, bound to structures of
 	// the given type.
 	CParams generate_params(
-		std::vector<ParamTmpl> const& _args,
+		std::vector<ParamTemplate> const& _args,
 		ContractDefinition const* _scope,
 		ASTPointer<VariableDeclaration> _dest
 	);
@@ -112,8 +112,8 @@ private:
 	// Generates a layer of the contract constructor.
 	std::string handle_function(
 		FunctionSpecialization const& _spec,
-		std::string _rvtype,
-		bool _rvisptr
+		std::string _rv_type,
+		bool _rv_is_ptr
 	);
 
 	// Recursively expands an initializer for a contract.

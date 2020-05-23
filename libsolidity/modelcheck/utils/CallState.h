@@ -7,6 +7,8 @@
 
 #include <libsolidity/ast/AST.h>
 
+#include <map>
+#include <utility>
 #include <string>
 
 namespace dev

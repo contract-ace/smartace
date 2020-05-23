@@ -5,12 +5,10 @@
 
 #pragma once
 
-#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
 
 #include <map>
 #include <string>
-#include <type_traits>
 
 namespace dev
 {
@@ -23,6 +21,7 @@ class Type;
 namespace modelcheck
 {
 
+class CallState;
 class TypeConverter;
 class VariableScopeResolver;
 
@@ -72,7 +71,7 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalization of a binary operator.
+ * A template for a binary operator.
  */
 class CBinaryOp : public CExpr
 {
@@ -88,9 +87,9 @@ public:
     CStmtPtr stmt();
 
 private:
-    CExprPtr const m_lhs;
-    CExprPtr const m_rhs;
-    std::string const m_op;
+    CExprPtr const M_LHS;
+    CExprPtr const M_RHS;
+    std::string const M_OP;
 };
 
 /**
@@ -109,7 +108,7 @@ public:
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalizes member access, both to pointers and to references.
+ * A template for member accesses, both to pointers and to references.
  */
 class CMemberAccess : public CExpr, public CData
 {
@@ -125,8 +124,8 @@ protected:
     CExprPtr expr() const override;
 
 private:
-    CExprPtr const m_expr;
-    std::string const m_member;
+    CExprPtr const M_EXPR;
+    std::string const M_MEMBER;
 };
 
 // -------------------------------------------------------------------------- //
@@ -151,8 +150,8 @@ protected:
     CExprPtr expr() const override;
 
 private:
-    std::string const m_name;
-    bool m_ptr;
+    std::string const M_NAME;
+    bool const M_IS_PTR;
 };
 
 // -------------------------------------------------------------------------- //
@@ -171,7 +170,7 @@ public:
     void print(std::ostream & _out) const override;
 
 private:
-    long long int m_val;
+    long long int const M_VAL;
 };
 
 // -------------------------------------------------------------------------- //
@@ -190,13 +189,16 @@ public:
     void print(std::ostream & _out) const override;
 
 private:
-    std::string m_val;
+    std::string const M_VAL;
+
+    // Helper method to escape the string _val.
+    static std::string escape_cstring(std::string _val);
 };
 
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalization of a prefix or suffix unary operator.
+ * A template for a prefix or suffix unary operator.
  */
 class CUnaryOp : public CExpr
 {
@@ -212,9 +214,9 @@ public:
     CStmtPtr stmt();
 
 private:
-    std::string const m_op;
-    std::shared_ptr<CExpr> const m_expr;
-    bool const m_pre;
+    std::string const M_OP;
+    std::shared_ptr<CExpr> const M_EXPR;
+    bool const M_PRE;
 };
 
 /**
@@ -242,13 +244,13 @@ public:
 // -------------------------------------------------------------------------- //
 
 /**
- * Generializes a conditional C statement.
+ * A template for a conditional c-statement.
  */
 class CCond : public CExpr
 {
 public:
-    // Encodes the C expression (_cond)?(_tcase):(_fcase).
-    CCond(CExprPtr _cond, CExprPtr _tcase, CExprPtr _fcase);
+    // Encodes the C expression (_cond)?(_true_case):(_false_case).
+    CCond(CExprPtr _cond, CExprPtr _true_case, CExprPtr _false_case);
 
     ~CCond() = default;
 
@@ -259,15 +261,15 @@ public:
     CStmtPtr stmt();
 
 private:
-    CExprPtr const m_cond;
-    CExprPtr const m_tcase;
-    CExprPtr const m_fcase;
+    CExprPtr const M_COND;
+    CExprPtr const M_TRUE_CASE;
+    CExprPtr const M_FALSE_CASE;
 };
 
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalizes an inline, expliict cast.
+ * A template for an inline, explicit cast.
  */
 class CCast : public CExpr
 {
@@ -281,14 +283,14 @@ public:
     bool is_pointer() const override;
 
 private:
-    CExprPtr const m_expr;
-    std::string const m_type;
+    CExprPtr const M_EXPR;
+    std::string const M_TYPE;
 };
 
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalizes a function call, without support for function pointers.
+ * A template for a function call, without support for function pointers.
  */
 class CFuncCall : public CExpr
 {
@@ -305,9 +307,9 @@ public:
     CStmtPtr stmt();
 
 private:
-    std::string const m_name;
-    bool const m_rv_is_ref;
-    CArgList const m_args;
+    std::string const M_NAME;
+    bool const M_RV_IS_REF;
+    CArgList const M_ARGS;
 };
 
 // Wraps the name of a function, and then allows calls to said function be built
@@ -327,8 +329,8 @@ public:
     // of implicitly casting raw types.
     void push(
         Expression const& _expr,
-        CallState const& _state,
         TypeConverter const& _converter,
+        CallState const& _state,
         VariableScopeResolver const& _decls,
         bool _is_ref,
         Type const* _t = nullptr
@@ -341,8 +343,8 @@ public:
     CStmtPtr merge_and_pop_stmt();
 
 private:
-    std::string const m_name;
-    bool const m_rv_is_ref;
+    std::string const M_NAME;
+    bool const M_RV_IS_REF;
     CArgList m_args;
 };
 
@@ -360,7 +362,7 @@ public:
     ~CBlock() = default;
 
 private:
-    CBlockList const m_stmts;
+    CBlockList const M_STMTS;
 
     void print_impl(std::ostream & _out) const override;
 };
@@ -379,7 +381,7 @@ public:
     ~CExprStmt() = default;
 
 private:
-    CExprPtr const m_expr;
+    CExprPtr const M_EXPR;
 
     void print_impl(std::ostream & _out) const override;
 };
@@ -407,10 +409,10 @@ protected:
     CExprPtr expr() const override;
 
 private:
-    std::string const m_type;
-    std::string const m_name;
-    bool const m_ptr;
-    CExprPtr const m_init;
+    std::string const M_TYPE;
+    std::string const M_NAME;
+    bool const M_IS_PTR;
+    CExprPtr const M_INIT_VAL;
 
     void print_impl(std::ostream & _out) const override;
 };
@@ -423,16 +425,16 @@ private:
 class CIf : public CStmt
 {
 public:
-    // Represents the statement if(_cond)_tsmtm[ else _fstmt], where _fstmt is
-    // optional.
-    CIf(CExprPtr _cond, CStmtPtr _tstmt, CStmtPtr _fstmt);
+    // Represents the statement if(_cond)_true_stmt[ else _false_stmt], where
+    // _false_stmt is optional.
+    CIf(CExprPtr _cond, CStmtPtr _true_stmt, CStmtPtr _false_stmt = nullptr);
 
     ~CIf() = default;
 
 private:
-    CExprPtr const m_cond;
-    CStmtPtr const m_tstmt;
-    CStmtPtr const m_fstmt;
+    CExprPtr const M_COND;
+    CStmtPtr const M_TRUE_STMT;
+    CStmtPtr const M_FALSE_STMT;
 
     void print_impl(std::ostream & _out) const override;
 };
@@ -452,9 +454,9 @@ public:
     ~CWhileLoop() = default;
 
 private:
-    CStmtPtr const m_body;
-    CExprPtr const m_cond;
-    bool const m_dowhile;
+    CStmtPtr const M_BODY;
+    CExprPtr const M_COND;
+    bool const M_IS_DO_WHILE;
 
     void print_impl(std::ostream & _out) const override;
 };
@@ -462,7 +464,7 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * Corresponds to a for loop in C, in which all sub-stmts are optional.
+ * Corresponds to a for loop in C, in which all sub-statements are optional.
  */
 class CForLoop : public CStmt
 {
@@ -474,10 +476,10 @@ public:
     ~CForLoop() = default;
 
 private:
-    CStmtPtr const m_init;
-    CExprPtr const m_cond;
-    CStmtPtr const m_loop;
-    CStmtPtr const m_body;
+    CStmtPtr const M_INIT;
+    CExprPtr const M_COND;
+    CStmtPtr const M_LOOP;
+    CStmtPtr const M_BODY;
 
     void print_impl(std::ostream & _out) const override;
 };
@@ -495,7 +497,8 @@ public:
     CSwitch(CExprPtr _cond);
     CSwitch(CExprPtr _cond, CBlockList _default);
 
-    void add_case(int64_t val, CBlockList body);
+    // Adds a case `case _val: _body`.
+    void add_case(int64_t _val, CBlockList _body);
 
     ~CSwitch() = default;
 
@@ -537,7 +540,7 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalizes a return call, with or without return value.
+ * A template for a return call, with or without return value.
  */
 class CReturn : public CStmt
 {
@@ -556,8 +559,8 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalizes the definition of a standard C function. The function may be made
- * a forward declaration by providing no body.
+ * A template for the definition of a standard C function. The function may be
+ * made a forward declaration by providing no body.
  */
 class CFuncDef : public CElement
 {
@@ -575,16 +578,16 @@ public:
     void print(std::ostream & _out) const override;
 
 private:
-    std::shared_ptr<CVarDecl> m_id;
-    CParams m_args;
-    std::shared_ptr<CBlock> m_body;
-    Modifier m_mod;
+    std::shared_ptr<CVarDecl> const M_ID;
+    CParams const M_ARGS;
+    std::shared_ptr<CBlock> const M_BODY;
+    Modifier const M_MOD;
 };
 
 // -------------------------------------------------------------------------- //
 
 /**
- * Generalizes a C typedef. The typedef is not verified for valid types.
+ * A template for a c-typedef. The typedef is not verified for valid types.
  */
 class CTypedef : public CElement
 {
@@ -595,13 +598,13 @@ public:
     void print(std::ostream & _out) const override;
 
 private:
-    std::string const m_type;
-    std::string const m_name;
+    std::string const M_TYPE;
+    std::string const M_NAME;
 };
 
 /**
- * Generalizes the definition of a standard C structure. This function may be
- * made a forward declaration by providing no body.
+ * A template for the definition of a standard c-structure. This function may
+ * be made a forward declaration by providing no body.
  */
 class CStructDef : public CElement
 {
@@ -619,8 +622,8 @@ public:
     std::shared_ptr<CVarDecl> decl(std::string _name, bool _ptr);
 
 private:
-    std::string m_name;
-    std::shared_ptr<CParams> m_fields;
+    std::string M_NAME;
+    std::shared_ptr<CParams> const M_FIELDS;
 };
 
 // -------------------------------------------------------------------------- //

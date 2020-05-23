@@ -4,7 +4,7 @@
  * value, and context.
  */
 
-#include "libsolidity/modelcheck/analysis/FunctionCall.h"
+#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 
 #include <iostream>
 

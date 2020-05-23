@@ -5,13 +5,17 @@
 
 #include <libsolidity/modelcheck/model/Function.h>
 
-#include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/model/Block.h>
 #include <libsolidity/modelcheck/model/Mapping.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
+#include <libsolidity/modelcheck/utils/Types.h>
 
 #include <set>
 #include <sstream>
@@ -107,18 +111,18 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 
     InitFunction initdata(M_CONVERTER, _node);
 
-    vector<FunctionConverter::ParamTmpl> initializable_members;
+    vector<FunctionConverter::ParamTemplate> initializable_members;
     {
-        FunctionConverter::ParamTmpl tmpl;
-        tmpl.context = VarContext::STRUCT;
-        tmpl.instrumentation = false;
+        FunctionConverter::ParamTemplate t;
+        t.context = VarContext::STRUCT;
+        t.instrumentation = false;
 
         for (auto const& member : _node.members())
         {
             if (has_simple_type(*member))
             {
-                tmpl.decl = member;
-                initializable_members.push_back(tmpl);
+                t.decl = member;
+                initializable_members.push_back(t);
             }
         }
     }
@@ -189,7 +193,7 @@ bool FunctionConverter::visit(Mapping const& _node)
 // -------------------------------------------------------------------------- //
 
 CParams FunctionConverter::generate_params(
-    vector<FunctionConverter::ParamTmpl> const& _args,
+    vector<FunctionConverter::ParamTemplate> const& _args,
     ContractDefinition const* _scope,
     ASTPointer<VariableDeclaration> _dest
 )
@@ -201,7 +205,9 @@ CParams FunctionConverter::generate_params(
         params.push_back(make_shared<CVarDecl>(SELF_TYPE, "self", true));
         for (auto const& fld : M_STATEDATA.order())
         {
-            params.push_back(make_shared<CVarDecl>(fld.tname, fld.name, false));
+            params.push_back(make_shared<CVarDecl>(
+                fld.type_name, fld.name, false
+            ));
         }
     }
     for (size_t i = 0; i < _args.size(); ++i)
@@ -298,24 +304,24 @@ string FunctionConverter::handle_contract_initializer(
     CParams params;
     string ctor_name;
     {
-        vector<FunctionConverter::ParamTmpl> local_param_tmpl;
+        vector<FunctionConverter::ParamTemplate> local_param_template;
         if (LOCAL_CTOR)
         {
-            FunctionConverter::ParamTmpl tmpl;
-            tmpl.context = VarContext::STRUCT;
-            tmpl.instrumentation = false;
+            FunctionConverter::ParamTemplate t;
+            t.context = VarContext::STRUCT;
+            t.instrumentation = false;
 
             for (auto arg : LOCAL_CTOR->parameters())
             {
-                tmpl.decl = arg;
-                local_param_tmpl.push_back(tmpl);
+                t.decl = arg;
+                local_param_template.push_back(t);
             }
 
             ctor_name = handle_function(
                 FunctionSpecialization(*LOCAL_CTOR, _for), "void", false
             );
         }
-        params = generate_params(local_param_tmpl, &_for, nullptr);
+        params = generate_params(local_param_template, &_for, nullptr);
     }
 
     auto self_ptr = params[0]->id();
@@ -350,7 +356,7 @@ string FunctionConverter::handle_contract_initializer(
                             auto const& V = *CARGS->at(i);
                             auto const* T = PARGS[i]->annotation().type;
                             builder.push(
-                                V, M_STATEDATA, M_CONVERTER, resolver, false, T
+                                V, M_CONVERTER, M_STATEDATA, resolver, false, T
                             );
                         }
                     }
@@ -365,7 +371,7 @@ string FunctionConverter::handle_contract_initializer(
                 auto const& arg = (*(*spec->arguments())[i]);
                 auto const& param = (*parent.constructor()->parameters()[i]);
                 auto const* type = param.annotation().type;
-                builder.push(arg, M_STATEDATA, M_CONVERTER, {}, type);
+                builder.push(arg, M_CONVERTER, M_STATEDATA, {}, type);
             }
         }
     }
@@ -399,7 +405,7 @@ string FunctionConverter::handle_contract_initializer(
             if (decl->value())
             {
                 ExpressionConverter init_expr(
-                    *decl->value(), M_STATEDATA, {}, {}
+                    *decl->value(), {}, M_STATEDATA, {}
                 );
                 v0 = init_expr.convert();
                 v0 = InitFunction::wrap(*decl->type(), move(v0));
@@ -441,7 +447,7 @@ string FunctionConverter::handle_contract_initializer(
 // -------------------------------------------------------------------------- //
 
 string FunctionConverter::handle_function(
-    FunctionSpecialization const& _spec, string _rvtype, bool _rvisptr
+    FunctionSpecialization const& _spec, string _rv_type, bool _rv_is_ptr
 )
 {
     // Ensures this specialization is new.
@@ -449,20 +455,20 @@ string FunctionConverter::handle_function(
     if (!record_pair(_spec.func(), _spec.use_by())) return fname;
 
     // Generates parameter list for all levels.
-    vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
+    vector<FunctionConverter::ParamTemplate> base_template, mod_template;
     {
-        FunctionConverter::ParamTmpl tmpl;
-        tmpl.context = VarContext::FUNCTION;
+        FunctionConverter::ParamTemplate t;
+        t.context = VarContext::FUNCTION;
 
         for (auto arg : _spec.func().parameters())
         {
-            tmpl.decl = arg;
+            t.decl = arg;
 
-            tmpl.instrumentation = false;
-            base_tmpl.push_back(tmpl);
+            t.instrumentation = false;
+            base_template.push_back(t);
 
-            tmpl.instrumentation = true;
-            mod_tmpl.push_back(tmpl);
+            t.instrumentation = true;
+            mod_template.push_back(t);
         }
     }
 
@@ -480,13 +486,13 @@ string FunctionConverter::handle_function(
     // Generates a declaration for the base call.
     vector<CFuncDef> defs;
     {
-        CParams params = generate_params(base_tmpl, &_spec.use_by(), dest);
+        CParams params = generate_params(base_template, &_spec.use_by(), dest);
 
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
             FunctionBlockConverter cov(
-                _spec.func(), M_STATEDATA, M_NEWCALLS, M_CONVERTER
+                _spec.func(), M_CONVERTER, M_STATEDATA, M_NEWCALLS
             );
 
             cov.set_for(_spec);
@@ -494,12 +500,12 @@ string FunctionConverter::handle_function(
         }
 
         string base_fname = _spec.name(mods.len());
-        auto id = make_shared<CVarDecl>(_rvtype, move(base_fname), _rvisptr);
+        auto id = make_shared<CVarDecl>(_rv_type, move(base_fname), _rv_is_ptr);
         defs.emplace_back(id, move(params), move(body));
     }
 
     // Generates a declaration for each modifier.
-    CParams const mod_params = generate_params(mod_tmpl, &_spec.use_by(), dest);
+    CParams const mod_params = generate_params(mod_template, &_spec.use_by(), dest);
     for (size_t i = mods.len(); i > 0; --i)
     {
         size_t const IDX = i - 1;
@@ -508,11 +514,11 @@ string FunctionConverter::handle_function(
         if (!M_FWD_DCL)
         {
             body = mods.generate(
-                IDX, M_STATEDATA, M_NEWCALLS, M_CONVERTER
+                IDX, M_CONVERTER, M_STATEDATA, M_NEWCALLS
             ).convert();
         }
 
-        auto id = make_shared<CVarDecl>(_rvtype, _spec.name(IDX), _rvisptr);
+        auto id = make_shared<CVarDecl>(_rv_type, _spec.name(IDX), _rv_is_ptr);
         defs.emplace_back(id, mod_params, move(body));
     }
 

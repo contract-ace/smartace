@@ -38,7 +38,7 @@ public:
         TypeName const* value_type;
     };
 
-    // Either registers _map with the MapDlate lookup, or returns the pre-
+    // Either registers _map with the MapDeflate lookup, or returns the pre-
     // existing entry. When no entry is found, this flatten _map, and registers
     // it in the map lookup. For a Mapping typename of the form
     // mapping(A => mapping(B => mapping(C => ...))). a FlatMap with key

@@ -19,7 +19,7 @@ using namespace std;
 // -------------------------------------------------------------------------- //
 
 // Encodes current state of the program.
-// NONE: no exceptions are propogation
+// NONE: no exceptions are proprogation
 // OUT_OF_DATA: this line was reached do to an out-of-data longjmp
 // REQUIRED_FAIL: this line was reached do to a require failure longjmp.
 enum ExceptionType { NONE, OUT_OF_DATA, REQUIRE_FAILED };
@@ -27,8 +27,8 @@ enum ExceptionType { NONE, OUT_OF_DATA, REQUIRE_FAILED };
 // A global variable which stores the state to restore on exception.
 static jmp_buf Env;
 
-// Global variable used to propogation exceptions. If it is none, no exceptions
-// are being propogated. It should only be set by setjmp, which will raise the
+// Global variable used to proprogation exceptions. If it is none, no exceptions
+// are being proprogated. It should only be set by setjmp, which will raise the
 // current exception flag.
 static ExceptionType exception_type = NONE;
 
@@ -42,7 +42,7 @@ static size_t CounterOfRandData = 0;
 int SetupExploration(void);
 
 // Terminates the current exploration. The program returns to Env, while
-// propogating the current exception type. 
+// proprogating the current exception type. 
 void TerminateExploration(ExceptionType e);
 
 // Moves data to the global libfuzzer array.
@@ -54,13 +54,6 @@ uint8_t tryGetNextRandByte();
 
 // Inputs the data.
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size);
-
-// Entry-point to the c-model.
-//
-// TODO: this cyclic dependency is kind of odd and should be factored out.
-//       the entry-point function should resolve this later so not worth fixing
-//       now
-void run_model(void);
 
 // -------------------------------------------------------------------------- //
 
@@ -111,6 +104,10 @@ void sol_require(sol_raw_uint8_t _cond, const char* _msg)
 
 // -------------------------------------------------------------------------- //
 
+void sol_emit(const char*) {}
+
+// -------------------------------------------------------------------------- //
+
 void ll_assume(sol_raw_uint8_t _cond)
 {
     if (!_cond) TerminateExploration(REQUIRE_FAILED);
@@ -118,7 +115,22 @@ void ll_assume(sol_raw_uint8_t _cond)
 
 // -------------------------------------------------------------------------- //
 
-void sol_emit(const char*) {}
+void on_entry(const char* _type, const char* _msg)
+{
+	// cout << _msg << " [" << _type << "]:";
+}
+
+uint8_t nd_byte(const char* _msg)
+{
+	on_entry("uint8", _msg);
+	return tryGetNextRandByte();
+}
+
+uint8_t nd_range(uint8_t l, uint8_t u, const char* _msg)
+{
+	uint8_t v = nd_byte(_msg);
+	return (v % (u - l)) + l;
+}
 
 // -------------------------------------------------------------------------- //
 
@@ -199,23 +211,6 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size)
 }
 
 // -------------------------------------------------------------------------- //
-
-void on_entry(const char* _type, const char* _msg)
-{
-	// cout << _msg << " [" << _type << "]:";
-}
-
-uint8_t nd_byte(const char* _msg)
-{
-	on_entry("uint8", _msg);
-	return tryGetNextRandByte();
-}
-
-uint8_t nd_range(uint8_t l, uint8_t u, const char* _msg)
-{
-	uint8_t v = nd_byte(_msg);
-	return (v % (u - l)) + l;
-}
 
 sol_raw_int8_t nd_int8_t(const char* _msg)
 {

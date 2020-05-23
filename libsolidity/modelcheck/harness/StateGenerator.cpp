@@ -30,11 +30,11 @@ StateGenerator::StateGenerator(
     TypeConverter const& _converter,
     MapIndexSummary const& _addrdata,
     bool _use_lockstep_time
-): M_USE_LOCKSTEP_TIME(_use_lockstep_time)
+): M_STATEDATA(_statedata)
+ , M_CONVERTER(_converter)
+ , M_MAPDATA(_addrdata)
+ , M_USE_LOCKSTEP_TIME(_use_lockstep_time)
  , M_STEPVAR(make_shared<CVarDecl>("uint8_t", "take_step"))
- , m_statedata(_statedata)
- , m_converter(_converter)
- , m_addrdata(_addrdata)
 {
 }
 
@@ -46,9 +46,9 @@ void StateGenerator::declare(CBlockList & _block) const
     {
         _block.push_back(M_STEPVAR);
     }
-    for (auto const& fld : m_statedata.order())
+    for (auto const& fld : M_STATEDATA.order())
     {
-        auto const DECL = make_shared<CVarDecl>(fld.tname, fld.name);
+        auto const DECL = make_shared<CVarDecl>(fld.type_name, fld.name);
         _block.push_back(DECL);
 
         if (fld.field == CallStateUtilities::Field::Block ||
@@ -56,7 +56,7 @@ void StateGenerator::declare(CBlockList & _block) const
         {
             if (M_USE_LOCKSTEP_TIME)
             {
-                auto nd = m_converter.raw_simple_nd(*fld.type, fld.name);
+                auto nd = M_CONVERTER.raw_simple_nd(*fld.type, fld.name);
                 _block.push_back(
                     DECL->access("v")->assign(nd)->stmt()
                 );
@@ -88,10 +88,10 @@ void StateGenerator::update(CBlockList & _block) const
     }
 
     // Updates the values.
-    for (auto const& fld : m_statedata.order())
+    for (auto const& fld : M_STATEDATA.order())
     {
         auto state = make_shared<CIdentifier>(fld.name, false);
-        auto nd = m_converter.raw_simple_nd(*fld.type, fld.name);
+        auto nd = M_CONVERTER.raw_simple_nd(*fld.type, fld.name);
 
         if (fld.field == CallStateUtilities::Field::Paid) continue;
         if (fld.field == CallStateUtilities::Field::Origin) continue;
@@ -106,8 +106,7 @@ void StateGenerator::update(CBlockList & _block) const
             {
                 _block.push_back(make_shared<CIf>(
                     M_STEPVAR->id(),
-                    make_shared<CBlock>(CBlockList{ move(step) }),
-                    nullptr
+                    make_shared<CBlock>(CBlockList{ move(step) })
                 ));
             }
             else
@@ -122,15 +121,15 @@ void StateGenerator::update(CBlockList & _block) const
         else if (fld.field == CallStateUtilities::Field::Sender)
         {
             // This restricts senders to valid addresses: non-zero clients.
-            size_t minaddr = m_addrdata.contract_count();
-            size_t maxaddr = m_addrdata.size();
-            if (m_addrdata.literals().find(0) != m_addrdata.literals().end())
+            size_t minaddr = M_MAPDATA.contract_count();
+            size_t maxaddr = M_MAPDATA.size();
+            if (M_MAPDATA.literals().find(0) != M_MAPDATA.literals().end())
             {
                 minaddr += 1;
             }
 
-            auto ndaddr = HarnessUtilities::range(minaddr, maxaddr, fld.name);
-            _block.push_back(state->access("v")->assign(ndaddr)->stmt());
+            auto nd_addr = HarnessUtilities::range(minaddr, maxaddr, fld.name);
+            _block.push_back(state->access("v")->assign(nd_addr)->stmt());
         }
         else
         {
@@ -147,7 +146,7 @@ void StateGenerator::pay(CBlockList & _block) const
     auto const VAL_NAME = CallStateUtilities::get_name(VAL_FIELD);
     auto const VAL_TYPE = CallStateUtilities::get_type(VAL_FIELD);
 
-    auto nd = m_converter.raw_simple_nd(*VAL_TYPE, VAL_NAME);
+    auto nd = M_CONVERTER.raw_simple_nd(*VAL_TYPE, VAL_NAME);
     auto state = make_shared<CIdentifier>(VAL_NAME, false);
 
     _block.push_back(state->access("v")->assign(nd)->stmt());

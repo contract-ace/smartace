@@ -7,7 +7,6 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/codegen/Core.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 
@@ -23,8 +22,9 @@ namespace solidity
 namespace modelcheck
 {
 
-class PrimitiveTypeGenerator;
 class CFuncCallBuilder;
+class ContractDependance;
+class PrimitiveTypeGenerator;
 
 // -------------------------------------------------------------------------- //
 
@@ -40,9 +40,8 @@ public:
     {
         CallStateUtilities::Field field;
         std::string name;
-        std::string temp;
         TypePointer type;
-        std::string tname; // TODO(scottwe): this field is redundant now.
+        std::string type_name;
     };
 
     CallState(ContractDependance const& _dependance);

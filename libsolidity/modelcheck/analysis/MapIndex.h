@@ -145,7 +145,7 @@ private:
 
     uint64_t m_client_reps;
     uint64_t m_contract_reps;
-    uint64_t m_max_inteference;
+    uint64_t m_max_interference;
 
     bool m_in_first_pass;
 

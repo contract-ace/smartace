@@ -1,6 +1,7 @@
 /**
+ * Provides utilities for identifying call sites for dynamic smart contract
+ * allocations. This handles reasoning and validation, through static methods.
  * @date 2019
- * First-pass visitor for converting Solidity ADT's into structs in C.
  */
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
@@ -76,9 +77,7 @@ NewCallSummary::CallGroup const& NewCallSummary::violations() const
 
 NewCallSummary::Visitor::Visitor(
     FunctionDefinition const* _context, size_t _depth_limit
-)
-    : M_DEPTH_LIMIT(_depth_limit)
-    , m_context(_context)
+): M_DEPTH_LIMIT(_depth_limit) , m_context(_context)
 {
     if (M_DEPTH_LIMIT == 0)
     {
@@ -99,24 +98,24 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
     if (NEWTYPE)
     {
         // Recursive type analysis for internal calls.
-        ContractDefinition const* newcall_rvtype = nullptr;
+        ContractDefinition const* newcall_rv_type = nullptr;
         if (CALLTYPE->kind() == FunctionType::Kind::Creation)
         {
-            newcall_rvtype = (&NEWTYPE->contractDefinition());
+            newcall_rv_type = (&NEWTYPE->contractDefinition());
         }
         else
         {
-            newcall_rvtype = handle_call_type(*CALLTYPE);
+            newcall_rv_type = handle_call_type(*CALLTYPE);
         }
 
         // If the call lacks a "true" return type, it is not an allocation.
-        if (newcall_rvtype)
+        if (newcall_rv_type)
         {
             calls.emplace_back();
             calls.back().callsite = &_node;
             calls.back().context = m_context;
             calls.back().is_retval = m_return;
-            calls.back().type = newcall_rvtype;
+            calls.back().type = newcall_rv_type;
 
             // Splits returns from assignments. Return dests are implicit.
             if (m_return)
@@ -217,7 +216,7 @@ void NewCallGraph::record(SourceUnit const& _src)
     
         NewCallSummary summary(*contract);
 
-        // Accumates violations.
+        // Accumulates violations.
         auto violations = summary.violations();
         m_violations.splice(m_violations.end(), violations);
 
@@ -300,21 +299,6 @@ NewCallGraph::Label NewCallGraph::reverse_name(string _name) const
     return res->second;
 }
 
-void NewCallGraph::analyze(NewCallGraph::Graph::iterator _neighbourhood)
-{
-    NewCallGraph::Label root = _neighbourhood->first;
-    if (m_reach.find(root) != m_reach.end()) return;
-
-    size_t cost = 1;
-    for (auto neighbour : _neighbourhood->second)
-    {
-        analyze(m_vertices.find(neighbour.type));
-        cost += m_reach[neighbour.type];
-    }
-
-    m_reach[root] = cost;
-}
-
 bool NewCallGraph::retval_is_allocated(VariableDeclaration const& _decl) const
 {
     auto itr = m_truetypes.find(&_decl);
@@ -331,6 +315,21 @@ ContractDefinition const& NewCallGraph::specialize(
         throw runtime_error("Unable to find declaration: " + _decl.name());
     }
     return (*itr->second);
+}
+
+void NewCallGraph::analyze(NewCallGraph::Graph::iterator _neighbourhood)
+{
+    NewCallGraph::Label root = _neighbourhood->first;
+    if (m_reach.find(root) != m_reach.end()) return;
+
+    size_t cost = 1;
+    for (auto neighbour : _neighbourhood->second)
+    {
+        analyze(m_vertices.find(neighbour.type));
+        cost += m_reach[neighbour.type];
+    }
+
+    m_reach[root] = cost;
 }
 
 // -------------------------------------------------------------------------- //

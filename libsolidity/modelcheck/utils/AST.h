@@ -34,14 +34,14 @@ public:
 	);
 
 	// Wraps an AST node from which a node of type T is located.
-	NodeSniffer(Expression const& _expr, bool _fargs = false)
-	: m_expr(_expr), m_fargs(_fargs) {}
+	NodeSniffer(Expression const& _expr, bool _use_func_args = false)
+	: M_EXPR(_expr), M_USE_FUNC_ARGS(_use_func_args) {}
 
 	// Returns the node of type T if possible, or nullptr.
 	T const* find()
 	{
 		m_ret = nullptr;
-		m_expr.accept(*this);
+		M_EXPR.accept(*this);
 		return m_ret;
 	}
 
@@ -61,15 +61,15 @@ protected:
 
 	bool visit(FunctionCall const& _node) override
 	{
-		if (!m_fargs) _node.expression().accept(*this);
-		return m_fargs;
+		if (!M_USE_FUNC_ARGS) _node.expression().accept(*this);
+		return M_USE_FUNC_ARGS;
 	}
 
 	void endVisit(T const& _node) override { m_ret = &_node; }
 
 private:
-    Expression const& m_expr;
-	bool const m_fargs;
+    Expression const& M_EXPR;
+	bool const M_USE_FUNC_ARGS;
     T const* m_ret;
 };
 
@@ -92,13 +92,13 @@ public:
 	);
 
 	// Wraps an AST node from which the LValue is located.
-	LValueSniffer(Expression const& _expr): m_expr(_expr) {}
+	LValueSniffer(Expression const& _expr): M_EXPR(_expr) {}
 
 	// Returns the LValue of type T if possible, or nullptr.
 	T const* find()
 	{
 		m_ret = nullptr;
-		m_expr.accept(*this);
+		M_EXPR.accept(*this);
 		return m_ret;
 	}
 
@@ -124,7 +124,7 @@ protected:
 	void endVisit(T const& _node) override { m_ret = &_node; }
 
 private:
-	Expression const& m_expr;
+	Expression const& M_EXPR;
 	T const* m_ret;
 };
 

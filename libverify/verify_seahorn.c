@@ -28,13 +28,6 @@ void sol_on_transaction(void) {}
 
 // -------------------------------------------------------------------------- //
 
-void ll_assume(sol_raw_uint8_t _cond)
-{
-    assume(_cond);
-}
-
-// -------------------------------------------------------------------------- //
-
 void sol_assert(sol_raw_uint8_t _cond, const char* _msg)
 {
     sassert(_cond);
@@ -54,6 +47,13 @@ void sol_emit(const char* _msg)
 	#ifdef MC_LOG_ALL
     printf("Emit: %s\n", _msg);
 	#endif
+}
+
+// -------------------------------------------------------------------------- //
+
+void ll_assume(sol_raw_uint8_t _cond)
+{
+    assume(_cond);
 }
 
 // -------------------------------------------------------------------------- //

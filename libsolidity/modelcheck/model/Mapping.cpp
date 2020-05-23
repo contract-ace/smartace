@@ -6,8 +6,10 @@
 
 #include <libsolidity/modelcheck/model/Mapping.h>
 
+#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 
 using namespace std;
 
@@ -28,9 +30,9 @@ MapGenerator::MapGenerator(
 ): M_LEN(_ct)
  , M_KEEP_SUM(_keep_sum)
  , M_TYPE(_converter.get_type(_src))
- , M_TYPES(_converter)
- , M_MAP_RECORD(_converter.mapdb().resolve(_src))
- , M_VAL_T(M_TYPES.get_type(*M_MAP_RECORD.value_type))
+ , M_CONVERTER(_converter)
+ , M_MAP_RECORD(_converter.map_db().resolve(_src))
+ , M_VAL_T(_converter.get_type(*M_MAP_RECORD.value_type))
  , M_TMP(make_shared<CVarDecl>(M_TYPE, "tmp", false))
  , M_ARR(make_shared<CVarDecl>(M_TYPE, "arr", true))
  , M_DAT(make_shared<CVarDecl>(M_VAL_T, "dat"))
@@ -39,7 +41,7 @@ MapGenerator::MapGenerator(
     for (auto const* KEY : M_MAP_RECORD.key_types)
     {
         m_keys.push_back(make_shared<CVarDecl>(
-            M_TYPES.get_type(*KEY), "key_" + to_string(m_keys.size()))
+            M_CONVERTER.get_type(*KEY), "key_" + to_string(m_keys.size()))
         );
     }
 
@@ -89,7 +91,7 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto init_val = M_TYPES.get_init_val(*M_MAP_RECORD.value_type);
+        auto init_val = M_CONVERTER.get_init_val(*M_MAP_RECORD.value_type);
         body = expand_init(move(init_val));
     }
 
@@ -165,7 +167,7 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto default_val = M_TYPES.get_init_val(*M_MAP_RECORD.value_type);
+        auto default_val = M_CONVERTER.get_init_val(*M_MAP_RECORD.value_type);
 
         CFuncCallBuilder on_fail("sol_assert");
         on_fail.push(Literals::ZERO);
@@ -260,16 +262,15 @@ CStmtPtr MapGenerator::expand_access(
         for (size_t i = 0; i < M_LEN; ++i)
         {
             auto const SUFFIX = _suffix + "_" + to_string(i);
-            auto const CURR_KEY = M_ARR->access("curr" + SUFFIX)->access("v");
             auto const REQ_KEY = m_keys[_depth]->access("v");
 
-            auto const NEXT = expand_access(
+            auto key = make_shared<CIntLiteral>(i);
+            auto cond = make_shared<CBinaryOp>(move(key), "==", REQ_KEY);
+            auto next = expand_access(
                 _depth + 1, SUFFIX, _is_writer, _maintain_sum
             );
 
-            stmt = make_shared<CIf>(make_shared<CBinaryOp>(
-                make_shared<CIntLiteral>(i), "==", REQ_KEY
-            ), NEXT, stmt);
+            stmt = make_shared<CIf>(move(cond), move(next), move(stmt));
         }
         return make_shared<CBlock>(CBlockList{stmt});
     }
@@ -279,9 +280,7 @@ CStmtPtr MapGenerator::expand_access(
 
 MapGenerator::KeyIterator::KeyIterator(
     size_t _width, size_t _depth
-): M_WIDTH(_width), M_DEPTH(_depth), m_indices({0})
-{
-}
+): M_WIDTH(_width), M_DEPTH(_depth), m_indices({0}) { }
 
 // -------------------------------------------------------------------------- //
 

@@ -27,10 +27,10 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 AddressSpace::AddressSpace(MapIndexSummary const& _addrdata)
-    : MIN_ADDR((_addrdata.literals().find(0) != _addrdata.literals().end()) & 1)
-    , MAX_ADDR(_addrdata.representative_count())
-    , m_next_addr(MIN_ADDR)
-    , m_addrdata(_addrdata)
+ : MIN_ADDR((_addrdata.literals().find(0) != _addrdata.literals().end()) & 1)
+ , MAX_ADDR(_addrdata.representative_count())
+ , M_ADDRDATA(_addrdata)
+ , m_next_addr(MIN_ADDR)
 {
 }
 
@@ -52,11 +52,11 @@ uint64_t AddressSpace::reserve()
 void AddressSpace::map_constants(CBlockList & _block) const
 {
     list<shared_ptr<CIdentifier>> used_so_far;
-    if (m_addrdata.literals().size() > 1)
+    if (M_ADDRDATA.literals().size() > 1)
     {
         HarnessUtilities::log(_block, "[Handling constants]");
     }
-    for (auto lit : m_addrdata.literals())
+    for (auto lit : M_ADDRDATA.literals())
     {
         auto const NAME = modelcheck::Indices::const_global_name(lit);
         auto decl = make_shared<CIdentifier>(NAME, false);

@@ -167,16 +167,15 @@ list<AddressVariables::AddressEntry> const& AddressVariables::access(
 
 MapIndexSummary::MapIndexSummary(
     bool _concrete, uint64_t _clients, uint64_t _contracts
-)
-    : IS_CONCRETE(_concrete)
-    , m_client_reps(_clients)
-    , m_contract_reps(_contracts)
-    , m_max_inteference(0)
-    , m_in_first_pass(false)
-    , m_is_address_cast(false)
-    , m_uses_contract_address(false)
-    , m_context(nullptr)
-    , m_literals({0})
+): IS_CONCRETE(_concrete)
+ , m_client_reps(_clients)
+ , m_contract_reps(_contracts)
+ , m_max_interference(0)
+ , m_in_first_pass(false)
+ , m_is_address_cast(false)
+ , m_uses_contract_address(false)
+ , m_context(nullptr)
+ , m_literals({0})
 {
 }
 
@@ -268,9 +267,9 @@ void MapIndexSummary::compute_interference(ContractDefinition const& _src)
                     }
                 }
 
-                if (potential_interference > m_max_inteference)
+                if (potential_interference > m_max_interference)
                 {
-                    m_max_inteference = potential_interference;
+                    m_max_interference = potential_interference;
                 }
             }
         }
@@ -317,7 +316,7 @@ uint64_t MapIndexSummary::max_interference() const
     }
     else
     {
-        return m_max_inteference;
+        return m_max_interference;
     }
 }
 

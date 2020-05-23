@@ -5,8 +5,9 @@
 
 #include <libsolidity/modelcheck/analysis/Mapping.h>
 
-#include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
+#include <test/libsolidity/AnalysisFramework.h>
+
 #include <sstream>
 
 using namespace std;

@@ -6,7 +6,8 @@
 #include <libsolidity/modelcheck/model/Block.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
@@ -28,38 +29,18 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-void BlockUtilities::add_value_handler(CBlockList & _block)
-{
-	auto const VALUE_SYM = CallStateUtilities::Field::Value;
-	auto const VALUE_FLD = CallStateUtilities::get_name(VALUE_SYM);
-	auto const VALUE = make_shared<CIdentifier>(VALUE_FLD, false)->access("v");
-
-	auto const PAID_SYM = CallStateUtilities::Field::Paid;
-	auto const PAID_FLD = CallStateUtilities::get_name(PAID_SYM);
-	auto const PAID = make_shared<CIdentifier>(PAID_FLD, false)->access("v");
-
-	auto const SELF = make_shared<CIdentifier>("self", true);
-	auto BAL = SELF->access(ContractUtilities::balance_member())->access("v");
-
-	auto CHECKS = make_shared<CBinaryOp>(PAID, "==", Literals::ONE);
-	auto CHANGE = CBinaryOp(BAL, "+=", VALUE).stmt();
-	_block.push_back(make_shared<CIf>(CHECKS, CHANGE, nullptr));
-}
-
-// -------------------------------------------------------------------------- //
-
 GeneralBlockConverter::GeneralBlockConverter(
 	vector<ASTPointer<VariableDeclaration>> const& _args,
 	vector<ASTPointer<VariableDeclaration>> const& _rvs,
 	Block const& _body,
+	TypeConverter const& _converter,
 	CallState const& _statedata,
 	NewCallGraph const& _newcalls,
-	TypeConverter const& _types,
 	bool _manage_pay,
 	bool _is_payable
 ): M_BODY(_body)
+ , M_CONVERTER(_converter)
  , M_STATEDATA(_statedata)
- , M_TYPES(_types)
  , M_MANAGE_PAY(_manage_pay)
  , M_IS_PAYABLE(_is_payable)
  , M_BLOCKTYPE(determine_block_type(_rvs, _newcalls))
@@ -86,12 +67,9 @@ shared_ptr<CBlock> GeneralBlockConverter::convert()
 
 CExprPtr GeneralBlockConverter::expand(Expression const& _expr, bool _ref)
 {
+	bool const IS_INIT = block_type() == BlockType::Initializer;
 	return ExpressionConverter(
-		_expr, M_STATEDATA,
-		M_TYPES,
-		m_decls,
-		_ref,
-		block_type() == BlockType::Initializer
+		_expr, M_CONVERTER, M_STATEDATA, m_decls, _ref, IS_INIT
 	).convert();
 }
 
@@ -137,10 +115,7 @@ bool GeneralBlockConverter::visit(Block const& _node)
 	if (top_level_swap.old())
 	{
 
-		if (M_MANAGE_PAY && M_IS_PAYABLE)
-		{
-			BlockUtilities::add_value_handler(stmts);
-		}
+		if (M_MANAGE_PAY && M_IS_PAYABLE) add_value_handler(stmts);
 		enter(stmts, m_decls);
 	}
 
@@ -251,7 +226,7 @@ bool GeneralBlockConverter::visit(EmitStatement const& _node)
 	auto const& LOC = _node.eventCall().location();
 	auto const& SRC = LOC.source->source();
 	string event = SRC.substr(LOC.start, LOC.end - LOC.start);
-	event.erase(std::remove(event.begin(), event.end(), '\n'), event.end());
+	event.erase(remove(event.begin(), event.end(), '\n'), event.end());
 
 	CFuncCallBuilder sol_emit_call("sol_emit");
 	sol_emit_call.push(make_shared<CStringLiteral>(event));
@@ -287,7 +262,7 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 			val = InitFunction::wrap(*DECL.type(), move(val));
 		}
 
-		auto const TYPE = M_TYPES.get_type(DECL);
+		auto const TYPE = M_CONVERTER.get_type(DECL);
 		new_substmt<CVarDecl>(
 			TYPE, m_decls.resolve_declaration(DECL), IS_REF, val
 		);
@@ -341,6 +316,26 @@ GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
 	{
 		return BlockType::Operation;
 	}
+}
+
+// -------------------------------------------------------------------------- //
+
+void GeneralBlockConverter::add_value_handler(CBlockList & _block)
+{
+	auto const VALUE_SYM = CallStateUtilities::Field::Value;
+	auto const VALUE_FLD = CallStateUtilities::get_name(VALUE_SYM);
+	auto const VALUE = make_shared<CIdentifier>(VALUE_FLD, false)->access("v");
+
+	auto const PAID_SYM = CallStateUtilities::Field::Paid;
+	auto const PAID_FLD = CallStateUtilities::get_name(PAID_SYM);
+	auto const PAID = make_shared<CIdentifier>(PAID_FLD, false)->access("v");
+
+	auto const SELF = make_shared<CIdentifier>("self", true);
+	auto BAL = SELF->access(ContractUtilities::balance_member())->access("v");
+
+	auto CHECKS = make_shared<CBinaryOp>(PAID, "==", Literals::ONE);
+	auto CHANGE = CBinaryOp(BAL, "+=", VALUE).stmt();
+	_block.push_back(make_shared<CIf>(CHECKS, CHANGE));
 }
 
 // -------------------------------------------------------------------------- //

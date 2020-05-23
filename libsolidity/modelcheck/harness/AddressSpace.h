@@ -44,11 +44,11 @@ private:
     // The maximum allocated address.
     const uint64_t MAX_ADDR;
 
+    // Stores all parameters over the address space.
+    MapIndexSummary const& M_ADDRDATA;
+
     // The last allocated address.
     uint64_t m_next_addr;
-
-    // Stores all parameters over the address space.
-    MapIndexSummary const& m_addrdata;
 };
 
 // -------------------------------------------------------------------------- //

@@ -21,7 +21,7 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
- * The class provides an analysis tool, which will determine all primitve types
+ * The class provides an analysis tool, which will determine all primitive types
  * in use, and then produce the primitive type declarations required to
  * translate the given AST into C. 
  */

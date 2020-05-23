@@ -6,8 +6,11 @@
 
 #include <libsolidity/modelcheck/model/Block.h>
 
+#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/model/Expression.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 using namespace std;
@@ -57,9 +60,9 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
 
 ModifierBlockConverter ModifierBlockConverter::Factory::generate(
     size_t _i,
+    TypeConverter const& _converter,
     CallState const& _statedata,
-    NewCallGraph const& _newcalls,
-    TypeConverter const& _types
+    NewCallGraph const& _newcalls
 ) const
 {
     // Checks that _i is in bounds.
@@ -76,9 +79,9 @@ ModifierBlockConverter ModifierBlockConverter::Factory::generate(
         M_SPEC.func(),
         def_invoke_pair.first,
         def_invoke_pair.second,
+        _converter,
         _statedata,
         _newcalls,
-        _types,
         M_SPEC.name(_i + 1),
         _i == 0
     );
@@ -105,22 +108,22 @@ ModifierBlockConverter::ModifierBlockConverter(
     FunctionDefinition const& _func,
     ModifierDefinition const* _def,
     ModifierInvocation const* _curr,
+    TypeConverter const& _converter,
     CallState const& _statedata,
     NewCallGraph const& _newcalls,
-    TypeConverter const& _types,
-    std::string _next,
+    string _next,
     bool _entry
 ): GeneralBlockConverter(
     _def->parameters(),
     _func.returnParameters(),
     _def->body(),
+    _converter,
     _statedata,
     _newcalls,
-    _types,
     _entry,
     _func.isPayable()
-), M_STATEDATA(_statedata)
- , M_TYPES(_types)
+), M_CONVERTER(_converter)
+ , M_STATEDATA(_statedata)
  , M_TRUE_PARAMS(_func.parameters())
  , M_USER_PARAMS(_def->parameters())
  , M_USER_ARGS(_curr->arguments())
@@ -132,7 +135,7 @@ ModifierBlockConverter::ModifierBlockConverter(
 	    // TODO(scottwe): support multiple return types.
         auto const& ARG = *_func.returnParameters()[0];
 		m_rv = make_shared<CVarDecl>(
-            M_TYPES.get_type(ARG),
+            M_CONVERTER.get_type(ARG),
             VariableScopeResolver::rewrite("rv", true, VarContext::FUNCTION)
         );
 	}
@@ -162,15 +165,13 @@ void ModifierBlockConverter::enter(
             auto const& PARAM = *M_USER_PARAMS[i];
             auto const& ARG = *((*M_USER_ARGS)[i]);
 
-            auto const TYPE = M_TYPES.get_type(PARAM);
+            auto const TYPE = M_CONVERTER.get_type(PARAM);
             auto const SYM = _decls.resolve_declaration(PARAM);
 
+            bool const IS_INIT = block_type() == BlockType::Initializer;
+
             ExpressionConverter arg_converter(
-                ARG, M_STATEDATA,
-                M_TYPES,
-                m_shadow_decls,
-                false,
-                block_type() == BlockType::Initializer
+                ARG, M_CONVERTER, M_STATEDATA, m_shadow_decls, false, IS_INIT
             );
 
             auto expr = arg_converter.convert();

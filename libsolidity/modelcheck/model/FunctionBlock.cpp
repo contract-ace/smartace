@@ -6,7 +6,7 @@
 
 #include <libsolidity/modelcheck/model/Block.h>
 
-#include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
@@ -27,19 +27,19 @@ namespace modelcheck
 
 FunctionBlockConverter::FunctionBlockConverter(
     FunctionDefinition const& _func,
+	TypeConverter const& _converter,
 	CallState const& _statedata,
-	NewCallGraph const& _newcalls,
-	TypeConverter const& _types
+	NewCallGraph const& _newcalls
 ): GeneralBlockConverter(
 	_func.parameters(),
 	_func.returnParameters(),
 	_func.body(),
+	_converter,
 	_statedata,
 	_newcalls,
-	_types,
 	_func.modifiers().empty(),
 	_func.isPayable()
-), M_TYPES(_types)
+), M_CONVERTER(_converter)
 {
 	if (has_retval())
 	{
@@ -66,7 +66,7 @@ void FunctionBlockConverter::enter(
 	{
 		_decls.record_declaration(*m_rv);
 		_stmts.push_back(make_shared<CVarDecl>(
-			M_TYPES.get_type(*m_rv), _decls.resolve_declaration(*m_rv)
+			M_CONVERTER.get_type(*m_rv), _decls.resolve_declaration(*m_rv)
 		));
 	}
 }
@@ -78,7 +78,7 @@ void FunctionBlockConverter::exit(
     if (m_rv && !m_rv->name().empty())
     {
 		auto rv = make_shared<CVarDecl>(
-			M_TYPES.get_type(*m_rv), _decls.resolve_declaration(*m_rv)
+			M_CONVERTER.get_type(*m_rv), _decls.resolve_declaration(*m_rv)
 		);
 		_stmts.push_back(make_shared<CReturn>(rv->id()));
     }

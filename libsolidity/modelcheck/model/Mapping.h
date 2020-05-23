@@ -8,7 +8,6 @@
 
 #include <libsolidity/ast/AST.h>
 #include <libsolidity/modelcheck/analysis/Mapping.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <memory>
@@ -20,6 +19,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+class TypeConverter;
 
 // -------------------------------------------------------------------------- //
 
@@ -85,13 +86,13 @@ private:
     std::string const M_TYPE;
 
     // Allows types to be resolved.
-    TypeConverter const& M_TYPES;
+    TypeConverter const& M_CONVERTER;
     MapDeflate::FlatMap const M_MAP_RECORD;
 
     // Const type names to simplify generation.
     std::string const M_VAL_T;
 
-    // Const members to simplfy generation and facilitate reuse.
+    // Const members to simplify generation and facilitate reuse.
     std::shared_ptr<CVarDecl> const M_TMP;
     std::shared_ptr<CVarDecl> const M_ARR;
     std::shared_ptr<CVarDecl> const M_DAT;
@@ -114,6 +115,10 @@ private:
     // meant to disable sum instrumentation when "Set_" is in use.
     std::shared_ptr<CBlock> expand_update(bool _maintain_sum) const;
 
+    // Generate the (_depth)-th block in either a read or write method, for a
+    // nested mapping. _suffix is used to identify the key. _is_writer
+    // distinguishes reads from writes. _maintain_sum specifies whether or not
+    // a sum variable should be updated on write.
     CStmtPtr expand_access(
         size_t _depth,
         std::string const& _suffix,

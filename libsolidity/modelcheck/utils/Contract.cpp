@@ -20,9 +20,11 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-AddressType ContractUtilities::ADDRESS_MEMBER_TYPE(StateMutability::Payable);
+AddressType const ContractUtilities::ADDRESS_MEMBER_TYPE(
+    StateMutability::Payable
+);
 
-IntegerType ContractUtilities::BALANCE_MEMBER_TYPE(256);
+IntegerType const ContractUtilities::BALANCE_MEMBER_TYPE(256);
 
 string ContractUtilities::address_member()
 {

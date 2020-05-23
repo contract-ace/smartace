@@ -321,9 +321,9 @@ void TypeConverter::limit_addresses(uint64_t _count)
 
 // -------------------------------------------------------------------------- //
 
-MapDeflate TypeConverter::mapdb() const
+MapDeflate TypeConverter::map_db() const
 {
-    return m_mapdb;
+    return m_map_db;
 }
 
 // -------------------------------------------------------------------------- //
@@ -379,7 +379,7 @@ bool TypeConverter::visit(FunctionTypeName const& _node)
 
 bool TypeConverter::visit(Mapping const& _node)
 {
-    auto const& record = m_mapdb.query(_node);
+    auto const& record = m_map_db.query(_node);
     m_name_lookup.insert({&_node, record.name});
     m_type_lookup.insert({&_node, "struct " + record.name});
 
@@ -398,7 +398,7 @@ bool TypeConverter::visit(ArrayTypeName const& _node)
 bool TypeConverter::visit(IndexAccess const& _node)
 {
     FlatIndex idx(_node);
-    auto const& record = m_mapdb.resolve(idx.decl());
+    auto const& record = m_map_db.resolve(idx.decl());
 
     m_type_lookup.insert({&_node, get_type(*record.value_type)});
     m_name_lookup.insert({&_node, record.name});

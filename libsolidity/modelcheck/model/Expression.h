@@ -6,16 +6,11 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Mapping.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
-#include <libsolidity/modelcheck/analysis/VariableScope.h>
-#include <libsolidity/modelcheck/codegen/Core.h>
+#include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <string>
 #include <vector>
-#include <type_traits>
 
 namespace dev
 {
@@ -23,6 +18,11 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+class CallState;
+class FunctionCallAnalyzer;
+class TypeConverter;
+class VariableScopeResolver;
 
 // -------------------------------------------------------------------------- //
 
@@ -40,8 +40,8 @@ public:
 	// declaration set. Will also propogate and expose relevant expression data.
     ExpressionConverter(
         Expression const& _expr,
-		CallState const& _statedata,
         TypeConverter const& _converter,
+		CallState const& _statedata,
         VariableScopeResolver const& _decls,
 		bool _is_ref = false,
 		bool _is_init = false
@@ -64,9 +64,9 @@ protected:
 
 private:
     Expression const* M_EXPR;
-	CallState const& m_statedata;
-    TypeConverter const& M_TYPES;
-	VariableScopeResolver const& m_decls;
+    TypeConverter const& M_CONVERTER;
+	CallState const& M_STATEDATA;
+	VariableScopeResolver const& M_DECLS;
 
 	CExprPtr m_subexpr;
 	Identifier const* m_last_assignment;
@@ -119,7 +119,7 @@ private:
 		bool _is_ext
 	);
 
-	// Helpe functions to handle certain member access cases.
+	// Helper functions to handle certain member access cases.
 	void print_address_member(
 		Expression const& _node, std::string const& _member
 	);

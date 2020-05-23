@@ -5,9 +5,10 @@
 
 #include <libsolidity/modelcheck/codegen/Details.h>
 
+#include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
-#include <libsolidity/modelcheck/model/Expression.h>
 
 using namespace std;
 
@@ -45,26 +46,26 @@ void CComment::print_impl(ostream & _out) const
 // -------------------------------------------------------------------------- //
 
 CIdentifier::CIdentifier(string _name, bool _ptr)
-: m_name(move(_name)), m_ptr(_ptr) {}
+: M_NAME(move(_name)), M_IS_PTR(_ptr) {}
 
-void CIdentifier::print(ostream & _out) const { _out << m_name; }
+void CIdentifier::print(ostream & _out) const { _out << M_NAME; }
 
-bool CIdentifier::is_pointer() const { return m_ptr; }
+bool CIdentifier::is_pointer() const { return M_IS_PTR; }
 
 CExprPtr CIdentifier::expr() const
 {
-    return make_shared<CIdentifier>(m_name, m_ptr);
+    return make_shared<CIdentifier>(M_NAME, M_IS_PTR);
 }
 
 // -------------------------------------------------------------------------- //
 
-CIntLiteral::CIntLiteral(long long int _val): m_val(_val) {}
+CIntLiteral::CIntLiteral(long long int _val): M_VAL(_val) {}
 
-void CIntLiteral::print(ostream & _out) const { _out << m_val; }
+void CIntLiteral::print(ostream & _out) const { _out << M_VAL; }
 
 // -------------------------------------------------------------------------- //
 
-CStringLiteral::CStringLiteral(string const& _val)
+string CStringLiteral::escape_cstring(string _val)
 {
     ostringstream stream;
     stream << "\"";
@@ -74,26 +75,31 @@ CStringLiteral::CStringLiteral(string const& _val)
         else stream << c;
     }
     stream << "\"";
-    m_val = stream.str();
+    return stream.str();
 }
 
-void CStringLiteral::print(ostream & _out) const { _out << m_val; }
+CStringLiteral::CStringLiteral(string const& _val)
+ : M_VAL(escape_cstring(move(_val)))
+{
+}
+
+void CStringLiteral::print(ostream & _out) const { _out << M_VAL; }
 
 // -------------------------------------------------------------------------- //
 
 CUnaryOp::CUnaryOp(string _op, CExprPtr _expr, bool _pre)
-: m_op(move(_op)), m_expr(move(_expr)), m_pre(_pre) {}
+: M_OP(move(_op)), M_EXPR(move(_expr)), M_PRE(_pre) {}
 
 void CUnaryOp::print(ostream & _out) const
 {
-    if (m_pre) _out << m_op;
-    _out << "(" << *m_expr << ")";
-    if (!m_pre) _out << m_op;
+    if (M_PRE) _out << M_OP;
+    _out << "(" << *M_EXPR << ")";
+    if (!M_PRE) _out << M_OP;
 }
 
 CStmtPtr CUnaryOp::stmt()
 {
-    return make_shared<CExprStmt>(make_shared<CUnaryOp>(m_op, m_expr, m_pre));
+    return make_shared<CExprStmt>(make_shared<CUnaryOp>(M_OP, M_EXPR, M_PRE));
 }
 
 CReference::CReference(CExprPtr _expr): CUnaryOp("&", move(_expr), true) {}
@@ -105,80 +111,88 @@ CDereference::CDereference(CExprPtr _expr): CUnaryOp("*", move(_expr), true) {}
 // -------------------------------------------------------------------------- //
 
 CBinaryOp::CBinaryOp(CExprPtr _lhs, string _op, CExprPtr _rhs)
-: m_lhs(move(_lhs)), m_rhs(move(_rhs)), m_op(move(_op)) {}
+: M_LHS(move(_lhs)), M_RHS(move(_rhs)), M_OP(move(_op)) {}
 
 CStmtPtr CBinaryOp::stmt()
 {
-    return make_shared<CExprStmt>(make_shared<CBinaryOp>(m_lhs, m_op, m_rhs));
+    return make_shared<CExprStmt>(make_shared<CBinaryOp>(M_LHS, M_OP, M_RHS));
 }
 
 void CBinaryOp::print(ostream & _out) const
 {
-    _out << "(" << *m_lhs << ")" << m_op << "(" << *m_rhs << ")";
+    _out << "(" << *M_LHS << ")" << M_OP << "(" << *M_RHS << ")";
 }
 
 CAssign::CAssign(CExprPtr _lhs, CExprPtr _rhs): CBinaryOp(_lhs, "=", _rhs) {}
 
 // -------------------------------------------------------------------------- //
 
-CCond::CCond(CExprPtr _cond, CExprPtr _tcase, CExprPtr _fcase)
-: m_cond(move(_cond)), m_tcase(move(_tcase)), m_fcase(move(_fcase)) {}
+CCond::CCond(CExprPtr _cond, CExprPtr _true_case, CExprPtr _false_case)
+ : M_COND(move(_cond))
+ , M_TRUE_CASE(move(_true_case))
+ , M_FALSE_CASE(move(_false_case))
+{}
 
 void CCond::print(ostream & _out) const
 {
-    _out << "(" << *m_cond << ")?(" << *m_tcase << "):(" << *m_fcase << ")";
+    _out << "(" << *M_COND << ")";
+    _out << "?";
+    _out << "(" << *M_TRUE_CASE << ")";
+    _out << ":";
+    _out << "(" << *M_FALSE_CASE << ")";
 }
 
-bool CCond::is_pointer() const { return m_tcase->is_pointer(); }
+bool CCond::is_pointer() const { return M_TRUE_CASE->is_pointer(); }
 
 CStmtPtr CCond::stmt()
 {
-    return make_shared<CExprStmt>(make_shared<CCond>(m_cond, m_tcase, m_fcase));
+    auto cond = make_shared<CCond>(M_COND, M_TRUE_CASE, M_FALSE_CASE);
+    return make_shared<CExprStmt>(move(cond));
 }
 
 // -------------------------------------------------------------------------- //
 
 CMemberAccess::CMemberAccess(CExprPtr _expr, string _member)
-: m_expr(move(_expr)), m_member(move(_member)) {}
+ : M_EXPR(move(_expr)), M_MEMBER(move(_member)) {}
 
 void CMemberAccess::print(ostream & _out) const
 {
-    bool is_ptr = m_expr->is_pointer();
-    _out << "(" << *m_expr << ")" << (is_ptr ? "->" : ".") << m_member;
+    bool is_ptr = M_EXPR->is_pointer();
+    _out << "(" << *M_EXPR << ")" << (is_ptr ? "->" : ".") << M_MEMBER;
 }
 
 CExprPtr CMemberAccess::expr() const
 {
-    return make_shared<CMemberAccess>(m_expr, m_member);
+    return make_shared<CMemberAccess>(M_EXPR, M_MEMBER);
 }
 
 // -------------------------------------------------------------------------- //
 
 CCast::CCast(CExprPtr _expr, string _type)
-: m_expr(move(_expr)), m_type(move(_type)) {}
+: M_EXPR(move(_expr)), M_TYPE(move(_type)) {}
 
 void CCast::print(ostream & _out) const
 {
-    _out << "((" << m_type << ")(" << *m_expr << "))";
+    _out << "((" << M_TYPE << ")(" << *M_EXPR << "))";
 }
 
-bool CCast::is_pointer() const { return m_expr->is_pointer(); }
+bool CCast::is_pointer() const { return M_EXPR->is_pointer(); }
 
 // -------------------------------------------------------------------------- //
 
 CFuncCall::CFuncCall(string _name, CArgList _args, bool _rv_is_ref)
-    : m_name(move(_name))
-    , m_rv_is_ref(_rv_is_ref)
-    , m_args(move(_args))
+ : M_NAME(move(_name))
+ , M_RV_IS_REF(_rv_is_ref)
+ , M_ARGS(move(_args))
 {
 }
 
 void CFuncCall::print(ostream & _out) const
 {
-    _out << m_name << "(";
-    for (auto arg = m_args.cbegin(); arg != m_args.cend(); ++arg)
+    _out << M_NAME << "(";
+    for (auto arg = M_ARGS.cbegin(); arg != M_ARGS.cend(); ++arg)
     {
-        if (arg != m_args.cbegin()) _out << ",";
+        if (arg != M_ARGS.cbegin()) _out << ",";
         _out << *(*arg);
     }
     _out << ")";
@@ -186,17 +200,17 @@ void CFuncCall::print(ostream & _out) const
 
 bool CFuncCall::is_pointer() const
 {
-    return m_rv_is_ref;
+    return M_RV_IS_REF;
 }
 
 CStmtPtr CFuncCall::stmt()
 {
-    return make_shared<CExprStmt>(make_shared<CFuncCall>(m_name, m_args));
+    return make_shared<CExprStmt>(make_shared<CFuncCall>(M_NAME, M_ARGS));
 }
 
 CFuncCallBuilder::CFuncCallBuilder(string _name, bool _rv_is_ref)
-    : m_name(move(_name))
-    , m_rv_is_ref(_rv_is_ref)
+ : M_NAME(move(_name))
+ , M_RV_IS_REF(_rv_is_ref)
 {
 }
 
@@ -208,14 +222,14 @@ void CFuncCallBuilder::push(CExprPtr _expr, Type const* _t)
 
 void CFuncCallBuilder::push(
     Expression const& _expr,
-    CallState const& _state,
     TypeConverter const& _converter,
+    CallState const& _state,
     VariableScopeResolver const& _decls,
     bool _is_ref,
     Type const* _t
 )
 {
-    ExpressionConverter converter(_expr, _state, _converter, _decls, _is_ref);
+    ExpressionConverter converter(_expr, _converter, _state, _decls, _is_ref);
 
     if (!_t) _t = _expr.annotation().type;
 
@@ -226,7 +240,7 @@ void CFuncCallBuilder::push(
 
 shared_ptr<CFuncCall> CFuncCallBuilder::merge_and_pop()
 {
-    return make_shared<CFuncCall>(m_name, move(m_args), m_rv_is_ref);
+    return make_shared<CFuncCall>(M_NAME, move(m_args), M_RV_IS_REF);
 }
 
 CStmtPtr CFuncCallBuilder::merge_and_pop_stmt()
@@ -236,25 +250,28 @@ CStmtPtr CFuncCallBuilder::merge_and_pop_stmt()
 
 // -------------------------------------------------------------------------- //
 
-CBlock::CBlock(CBlockList _stmts) : m_stmts(move(_stmts)) { nest(); }
+CBlock::CBlock(CBlockList _stmts) : M_STMTS(move(_stmts)) { nest(); }
 
-void CBlock::print_impl(std::ostream & _out) const
+void CBlock::print_impl(ostream & _out) const
 {
     _out << "{";
-    for (auto stmt : m_stmts) _out << *stmt;
+    for (auto stmt : M_STMTS) _out << *stmt;
     _out << "}";
 }
 
 // -------------------------------------------------------------------------- //
 
-CExprStmt::CExprStmt(CExprPtr _expr): m_expr(move(_expr)) {}
+CExprStmt::CExprStmt(CExprPtr _expr): M_EXPR(move(_expr)) {}
 
-void CExprStmt::print_impl(ostream & _out) const { _out << *m_expr; }
+void CExprStmt::print_impl(ostream & _out) const { _out << *M_EXPR; }
 
 // -------------------------------------------------------------------------- //
 
 CVarDecl::CVarDecl(string _type, string _name, bool _ptr, CExprPtr _init)
-: m_type(move(_type)), m_name(move(_name)), m_ptr(_ptr), m_init(move(_init)) {}
+ : M_TYPE(move(_type))
+ , M_NAME(move(_name))
+ , M_IS_PTR(_ptr)
+ , M_INIT_VAL(move(_init)) {}
 
 CVarDecl::CVarDecl(string _type, string _name, bool _ptr)
 : CVarDecl(move(_type), move(_name), _ptr, nullptr) {}
@@ -264,7 +281,7 @@ CVarDecl::CVarDecl(string _type, string _name)
 
 shared_ptr<CIdentifier> CVarDecl::id() const
 {
-    return make_shared<CIdentifier>(m_name, m_ptr);
+    return make_shared<CIdentifier>(M_NAME, M_IS_PTR);
 }
 
 CExprPtr CVarDecl::expr() const
@@ -274,38 +291,43 @@ CExprPtr CVarDecl::expr() const
 
 void CVarDecl::print_impl(ostream & _out) const
 {
-    _out << m_type << (m_ptr ? "*" : " ") << m_name;
-    if (m_init) _out << "=" << *m_init;
+    _out << M_TYPE << (M_IS_PTR ? "*" : " ") << M_NAME;
+    if (M_INIT_VAL) _out << "=" << *M_INIT_VAL;
 }
 
 // -------------------------------------------------------------------------- //
 
-CIf::CIf(CExprPtr _cond, CStmtPtr _tstmt, CStmtPtr _fstmt)
-: m_cond(move(_cond)), m_tstmt(move(_tstmt)), m_fstmt(move(_fstmt)) { nest(); }
+CIf::CIf(CExprPtr _cond, CStmtPtr _true_stmt, CStmtPtr _false_stmt)
+ : M_COND(move(_cond))
+ , M_TRUE_STMT(move(_true_stmt))
+ , M_FALSE_STMT(move(_false_stmt))
+{
+    nest();
+}
 
 void CIf::print_impl(ostream & _out) const
 {
-    _out << "if(" << *m_cond << ")" << *m_tstmt;
-    if (m_fstmt) _out << "else " << *m_fstmt;
+    _out << "if(" << *M_COND << ")" << *M_TRUE_STMT;
+    if (M_FALSE_STMT) _out << "else " << *M_FALSE_STMT;
 }
 
 // -------------------------------------------------------------------------- //
 
 CWhileLoop::CWhileLoop(CStmtPtr _body, CExprPtr _cond, bool _atleast_once)
-: m_body(move(_body)), m_cond(move(_cond)), m_dowhile(_atleast_once)
+ : M_BODY(move(_body)), M_COND(move(_cond)), M_IS_DO_WHILE(_atleast_once)
 {
     if (!_atleast_once) nest();
 }
 
 void CWhileLoop::print_impl(ostream & _out) const
 {
-    if (m_dowhile)
+    if (M_IS_DO_WHILE)
     {
-        _out << "do" << *m_body << "while(" << *m_cond << ")";
+        _out << "do" << *M_BODY << "while(" << *M_COND << ")";
     }
     else
     {
-        _out << "while(" << *m_cond << ")" << *m_body;
+        _out << "while(" << *M_COND << ")" << *M_BODY;
     }
 }
 
@@ -313,25 +335,25 @@ void CWhileLoop::print_impl(ostream & _out) const
 
 CForLoop::CForLoop(
     CStmtPtr _init, CExprPtr _cond, CStmtPtr _loop, CStmtPtr _body
-): m_init(move(_init)),
-   m_cond(move(_cond)),
-   m_loop(move(_loop)),
-   m_body(move(_body))
+): M_INIT(move(_init)),
+   M_COND(move(_cond)),
+   M_LOOP(move(_loop)),
+   M_BODY(move(_body))
 {
     nest();
-    if (m_init) m_init->nest();
-    if (m_loop) m_loop->nest();
+    if (M_INIT) M_INIT->nest();
+    if (M_LOOP) M_LOOP->nest();
 }
 
 void CForLoop::print_impl(ostream & _out) const
 {
     _out << "for(";
-    if (m_init) _out << *m_init;
+    if (M_INIT) _out << *M_INIT;
     _out << ";";
-    if (m_cond) _out << *m_cond;
+    if (M_COND) _out << *M_COND;
     _out << ";";
-    if (m_loop) _out << *m_loop;
-    _out << ")" << *m_body;
+    if (M_LOOP) _out << *M_LOOP;
+    _out << ")" << *M_BODY;
 }
 
 // -------------------------------------------------------------------------- //
@@ -383,32 +405,32 @@ CFuncDef::CFuncDef(
     CParams _args,
     shared_ptr<CBlock> _body,
     CFuncDef::Modifier _mod
-): m_id(move(_id)), m_args(move(_args)), m_body(move(_body)), m_mod(_mod)
+): M_ID(move(_id)), M_ARGS(move(_args)), M_BODY(move(_body)), M_MOD(_mod)
 {
-    m_id->nest();
-    for (auto arg : m_args) arg->nest();
+    M_ID->nest();
+    for (auto arg : M_ARGS) arg->nest();
 }
 
 void CFuncDef::print(ostream & _out) const
 {
-    if (m_mod == Modifier::INLINE) _out << "static inline ";
-    _out << *m_id << "(";
-    if (m_args.empty())
+    if (M_MOD == Modifier::INLINE) _out << "static inline ";
+    _out << *M_ID << "(";
+    if (M_ARGS.empty())
     {
         _out << "void";
     }
     else
     {
-        for (auto itr = m_args.begin(); itr != m_args.end(); ++itr)
+        for (auto itr = M_ARGS.begin(); itr != M_ARGS.end(); ++itr)
         {
-            if (itr != m_args.begin()) _out << ",";
+            if (itr != M_ARGS.begin()) _out << ",";
             _out << *(*itr);
         }
     }
     _out << ")";
-    if (m_body)
+    if (M_BODY)
     {
-        _out << *m_body;
+        _out << *M_BODY;
     }
     else
     {
@@ -419,23 +441,23 @@ void CFuncDef::print(ostream & _out) const
 // -------------------------------------------------------------------------- //
 
 CTypedef::CTypedef(string _type, string _name)
-: m_type(move(_type)), m_name(move(_name)) {}
+ : M_TYPE(move(_type)), M_NAME(move(_name)) {}
 
 void CTypedef::print(ostream & _out) const
 {
-    _out << "typedef " << m_type << " " << m_name << ";";
+    _out << "typedef " << M_TYPE << " " << M_NAME << ";";
 }
 
 CStructDef::CStructDef(string _name, shared_ptr<CParams> _fields)
-: m_name(move(_name)), m_fields(move(_fields)) {}
+ : M_NAME(move(_name)), M_FIELDS(move(_fields)) {}
 
 void CStructDef::print(ostream & _out) const
 {
-    _out << "struct " << m_name;
-    if (m_fields)
+    _out << "struct " << M_NAME;
+    if (M_FIELDS)
     {
         _out << "{";
-        for (auto field : *m_fields) _out << *field;
+        for (auto field : *M_FIELDS) _out << *field;
         _out << "}";
     }
     _out << ";";
@@ -443,7 +465,7 @@ void CStructDef::print(ostream & _out) const
 
 shared_ptr<CTypedef> CStructDef::make_typedef(string _name)
 {
-    return make_shared<CTypedef>("struct " + m_name, _name);
+    return make_shared<CTypedef>("struct " + M_NAME, _name);
 }
 
 shared_ptr<CVarDecl> CStructDef::decl(string _name)
@@ -453,7 +475,7 @@ shared_ptr<CVarDecl> CStructDef::decl(string _name)
 
 shared_ptr<CVarDecl> CStructDef::decl(string _name, bool _ptr)
 {
-    return make_shared<CVarDecl>("struct " + m_name, _name, _ptr);
+    return make_shared<CVarDecl>("struct " + M_NAME, _name, _ptr);
 }
 
 // -------------------------------------------------------------------------- //

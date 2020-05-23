@@ -5,8 +5,10 @@
 
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
 
-#include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
+#include <test/libsolidity/AnalysisFramework.h>
+
+#include<libsolidity/modelcheck/analysis/AllocationSites.h>
 
 using namespace std;
 

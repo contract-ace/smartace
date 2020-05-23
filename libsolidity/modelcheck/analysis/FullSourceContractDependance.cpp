@@ -21,7 +21,7 @@ namespace modelcheck
 
 FullSourceContractDependance::FullSourceContractDependance(
     SourceUnit const& _srcs
-): DependancyAnalyzer({})
+): DependencyAnalyzer({})
 {
     auto listview = ASTNode::filteredNodes<ContractDefinition>(_srcs.nodes());
 
@@ -35,14 +35,14 @@ FullSourceContractDependance::FullSourceContractDependance(
 
 ContractDependance::FuncInterface
     FullSourceContractDependance::get_interfaces_for(
-        ContractDefinition const*_ctrt
+        ContractDefinition const*_contract
 ) const
 {
     ContractDependance::FuncInterface interface;
 
     // Iterates through each base class of this contract.
     set<string> methods;
-    for (auto base : _ctrt->annotation().linearizedBaseContracts)
+    for (auto base : _contract->annotation().linearizedBaseContracts)
     {
         // If the class is an interface, this is the end of analysis.
         if (base->isInterface()) break;

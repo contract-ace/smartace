@@ -131,7 +131,7 @@ void PrimitiveTypeGenerator::print(ostream& _out) const
 // -------------------------------------------------------------------------- //
 
 void PrimitiveTypeGenerator::declare_integer(
-ostream& _out, uint8_t _bytes, bool _signed
+    ostream& _out, uint8_t _bytes, bool _signed
 )
 {
     ostringstream sym_oss;
@@ -142,7 +142,7 @@ ostream& _out, uint8_t _bytes, bool _signed
 }
 
 void PrimitiveTypeGenerator::declare_fixed(
-    std::ostream& _out, uint8_t _bytes, uint8_t _pt, bool _signed
+    ostream& _out, uint8_t _bytes, uint8_t _pt, bool _signed
 )
 {
     ostringstream sym_oss;

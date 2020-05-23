@@ -6,9 +6,6 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
 
 #include <ostream>
 #include <set>
@@ -19,6 +16,9 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+class NewCallGraph;
+class TypeConverter;
 
 // -------------------------------------------------------------------------- //
 

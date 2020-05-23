@@ -155,15 +155,18 @@ typedef uint64_t sol_raw_uint256_t;
 // TODO(scottwe): this should be 256 but we don't support it.
 #define SOL_UINT256_MAX UINT64_MAX
 #else
-#error An integer model is requried.
+#error An integer model is required.
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+// Forward declares the entry-point to the c-model.
+void run_model(void);
+
 // This method is called once, when the c-model is bootstrapping. It allows
-// application-speicific setup and allocations to be decoupled from the c-model.
+// application-specific setup and allocations to be decoupled from the c-model.
 // It also allows for arbitrary C++ code to be injected into the setup, without
 // the knowledge of the c-model.
 // 

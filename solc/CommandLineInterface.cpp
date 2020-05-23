@@ -40,14 +40,17 @@
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
+
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/analysis/MapIndex.h>
-#include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/analysis/Primitives.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/harness/MainFunction.h>
 #include <libsolidity/modelcheck/model/ADT.h>
 #include <libsolidity/modelcheck/model/Function.h>
-#include <libsolidity/modelcheck/model/Mapping.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Indices.h>
 
 #include <libyul/AssemblyStack.h>

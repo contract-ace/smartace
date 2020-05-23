@@ -5,8 +5,14 @@
 
 #include <libsolidity/modelcheck/model/Function.h>
 
-#include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
+#include <test/libsolidity/AnalysisFramework.h>
+
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
+
 #include <sstream>
 
 using namespace std;

@@ -36,16 +36,15 @@ namespace modelcheck
 MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
     MapIndexSummary const& _addrdata,
-        ContractDependance const& _dependance,
-    NewCallGraph const& _new_graph,
+    ContractDependance const& _dependance,
+    NewCallGraph const& _newcalls,
     CallState const& _statedata,
     TypeConverter const& _converter
-): m_addrspace(_addrdata)
+): M_STATEDATA(_statedata)
+ , M_CONVERTER(_converter)
+ , m_addrspace(_addrdata)
  , m_stategen(_statedata, _converter, _addrdata, _lockstep_time)
- , m_actors(_dependance, _converter, _new_graph, _addrdata)
- , m_addrdata(_addrdata)
- , m_statedata(_statedata)
- , m_converter(_converter)
+ , m_actors(_dependance, _converter, _newcalls, _addrdata)
 {
 }
 
@@ -80,7 +79,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     m_actors.declare(main);
     m_addrspace.map_constants(main);
     m_actors.assign_addresses(main, m_addrspace);
-    m_actors.initialize(main, m_statedata, m_stategen);
+    m_actors.initialize(main, M_STATEDATA, m_stategen);
 
     // Generates transactionals loop.
     CBlockList transactionals;
@@ -137,7 +136,7 @@ CBlockList MainFunctionGenerator::build_case(
 
     CFuncCallBuilder call_builder(_spec.name(0));
     call_builder.push(id);
-    m_statedata.push_state_to(call_builder);
+    M_STATEDATA.push_state_to(call_builder);
 
     if (_spec.func().isPayable())
     {
@@ -145,11 +144,13 @@ CBlockList MainFunctionGenerator::build_case(
     }
     for (auto const arg : _spec.func().parameters())
     {
-        string const MSG = _spec.func().name() + ":" + arg->name();
-        auto const& PDECL = _args[arg.get()];
-        auto const ND_VAL = m_converter.get_nd_val(*arg, MSG);
-        call_body.push_back(PDECL->assign(ND_VAL)->stmt());
-        call_builder.push(PDECL->id());
+        auto const& PARAM_DECL = _args[arg.get()];
+
+        string msg = _spec.func().name() + ":" + arg->name();
+        auto nd_val = M_CONVERTER.get_nd_val(*arg, move(msg));
+        call_body.push_back(PARAM_DECL->assign(nd_val)->stmt());
+
+        call_builder.push(PARAM_DECL->id());
     }
     call_body.push_back(call_builder.merge_and_pop_stmt());
     HarnessUtilities::log(call_body, "[Call successful]");

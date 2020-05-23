@@ -9,6 +9,7 @@
 
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
 
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 
 using namespace std;
@@ -24,7 +25,7 @@ namespace modelcheck
 
 ModelDrivenContractDependance::SuperChainExtractor::SuperChainExtractor(
     FunctionDefinition const& _call
-) : m_superchain({ &_call })
+): m_superchain({ &_call })
 {
     _call.body().accept(*this);
 }
@@ -57,7 +58,7 @@ bool ModelDrivenContractDependance::SuperChainExtractor::visit(
 
 ModelDrivenContractDependance::ModelDrivenContractDependance(
     vector<ContractDefinition const*> _model, NewCallGraph const& _graph
-): DependancyAnalyzer(_model)
+): DependencyAnalyzer(_model)
 {
     // Iterates over each contract in the model, where the model is expanding.
     for (size_t i = 0; i < _model.size(); ++i)
@@ -92,14 +93,14 @@ ModelDrivenContractDependance::ModelDrivenContractDependance(
 
 ContractDependance::FuncInterface
     ModelDrivenContractDependance::get_interfaces_for(
-        ContractDefinition const* _ctrt
+        ContractDefinition const* _contract
 ) const
 {
     ContractDependance::FuncInterface interfaces;
 
     // Iterates through each base class of this contract.
     set<string> methods;
-    for (auto base : _ctrt->annotation().linearizedBaseContracts)
+    for (auto base : _contract->annotation().linearizedBaseContracts)
     {
         // If the class is an interface, this is the end of analysis.
         if (base->isInterface()) break;

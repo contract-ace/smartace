@@ -22,12 +22,6 @@
 #pragma once
 
 #include <libsolidity/interface/CompilerStack.h>
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/MapIndex.h>
-#include <libsolidity/modelcheck/analysis/Primitives.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
 
 #include <libyul/AssemblyStack.h>
 #include <liblangutil/EVMVersion.h>
@@ -44,6 +38,16 @@ namespace solidity
 
 //forward declaration
 enum class DocumentationType: uint8_t;
+
+namespace modelcheck
+{
+class CallState;
+class ContractDependance;
+class MapIndexSummary;
+class NewCallGraph;
+class PrimitiveTypeGenerator;
+class TypeConverter;
+};
 
 class CommandLineInterface
 {

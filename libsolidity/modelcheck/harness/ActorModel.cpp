@@ -7,6 +7,8 @@
 #include <libsolidity/modelcheck/harness/ActorModel.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
@@ -81,10 +83,9 @@ Actor::Actor(
 ActorModel::ActorModel(
     ContractDependance const& _dependance,
     TypeConverter const& _converter,
-    NewCallGraph const& _allocs,
+    NewCallGraph const& _newcalls,
     MapIndexSummary const& _addrdata
-): m_converter(_converter)
- , m_addrdata(_addrdata)
+): M_CONVERTER(_converter)
 {
     // Generates an actor for each client.
     TicketSystem<uint16_t> cids;
@@ -94,16 +95,16 @@ ActorModel::ActorModel(
         if (contract->isLibrary() || contract->isInterface()) continue;
 
         m_actors.emplace_back(
-            m_converter, _dependance, contract, nullptr, cids, fids
+            M_CONVERTER, _dependance, contract, nullptr, cids, fids
         );
 
-        recursive_setup(_allocs, _dependance, m_actors.back() , cids, fids);
+        recursive_setup(_newcalls, _dependance, m_actors.back() , cids, fids);
     }
 
     // Extracts the address variable for each contract.
     for (auto actor : m_actors)
     {
-        for (auto entry : m_addrdata.describe(*actor.contract))
+        for (auto entry : _addrdata.describe(*actor.contract))
         {
             if (entry.paths.empty()) continue;
 
@@ -165,7 +166,7 @@ void ActorModel::initialize(
         HarnessUtilities::log(_block, caselog.str());
 
         // Populates core constructor arguments.
-        auto init_builder = InitFunction(m_converter, *ctx).call_builder();
+        auto init_builder = InitFunction(M_CONVERTER, *ctx).call_builder();
         init_builder.push(make_shared<CReference>(actor.decl->id()));
         _statedata.push_state_to(init_builder);
 
@@ -182,7 +183,7 @@ void ActorModel::initialize(
             for (auto const param : ctor->parameters())
             {
                 string const MSG = ctx->name() + ":" + param->name();
-                init_builder.push(m_converter.get_nd_val(*param, MSG));
+                init_builder.push(M_CONVERTER.get_nd_val(*param, MSG));
             }
         }
 
@@ -257,7 +258,7 @@ void ActorModel::recursive_setup(
         auto const PATH = make_shared<CMemberAccess>(_parent.decl->id(), NAME);
 
         m_actors.emplace_back(
-            m_converter, _dependance, child.type, PATH, _cids, _fids
+            M_CONVERTER, _dependance, child.type, PATH, _cids, _fids
         );
         recursive_setup(_allocs, _dependance, m_actors.back(), _cids, _fids);
     }

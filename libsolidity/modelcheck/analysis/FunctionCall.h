@@ -6,8 +6,7 @@
 
 #pragma once
 
-#include "libsolidity/ast/ASTVisitor.h"
-#include "libsolidity/modelcheck/utils/General.h"
+#include <libsolidity/ast/ASTVisitor.h>
 
 #include <vector>
 

@@ -7,7 +7,6 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 
 #include <libsolidity/modelcheck/analysis/Types.h>
-#include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <sstream>

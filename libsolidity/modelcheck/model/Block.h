@@ -6,14 +6,10 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/utils/Function.h>
 
 #include <ostream>
-#include <type_traits>
 #include <utility>
 
 namespace dev
@@ -23,19 +19,10 @@ namespace solidity
 namespace modelcheck
 {
 
+class CallState;
+class FunctionSpecialization;
 class NewCallGraph;
-
-// -------------------------------------------------------------------------- //
-
-/**
- * Static helper utilities for block-like codeflow generation.
- */
-class BlockUtilities
-{
-public:
-	// Generates the payment call.
-	static void add_value_handler(CBlockList & _block);
-};
+class TypeConverter;
 
 // -------------------------------------------------------------------------- //
 
@@ -59,9 +46,9 @@ public:
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
 		std::vector<ASTPointer<VariableDeclaration>> const& _rvs,
 		Block const& _body,
+		TypeConverter const& _converter,
 		CallState const& _statedata,
 		NewCallGraph const& _newcalls,
-		TypeConverter const& _types,
 		bool _manage_pay,
 		bool _is_payable
 	);
@@ -127,9 +114,12 @@ private:
 		NewCallGraph const& _newcalls
 	);
 
+	// Generates the payment call.
+	static void add_value_handler(CBlockList & _block);
+
 	Block const& M_BODY;
+	TypeConverter const& M_CONVERTER;
 	CallState const& M_STATEDATA;
-	TypeConverter const& M_TYPES;
 
 	bool const M_MANAGE_PAY;
 	bool const M_IS_PAYABLE;
@@ -153,13 +143,13 @@ class FunctionBlockConverter : public GeneralBlockConverter
 {
 public:
 	// Creates a block converter for _func's main body. It is assumed that
-	// _types is able to resolve all types in the AST of the source unit(s)
-	// associated with _func.
+	// _converter is able to resolve all types in the AST of the source
+	// unit(s) associated with _func.
 	FunctionBlockConverter(
 		FunctionDefinition const& _func,
+		TypeConverter const& _converter,
 		CallState const& _statedata,
-		NewCallGraph const& _newcalls,
-		TypeConverter const& _types
+		NewCallGraph const& _newcalls
 	);
 
 	~FunctionBlockConverter() override = default;
@@ -173,7 +163,7 @@ protected:
 	bool visit(Return const& _node) override;
 
 private:
-	TypeConverter const& M_TYPES;
+	TypeConverter const& M_CONVERTER;
 
 	FunctionSpecialization const* m_spec;
 
@@ -208,9 +198,9 @@ public:
 		// Generates the _i-th modifier for _func, where _i is zero-indexed.
 		ModifierBlockConverter generate(
 			size_t _i,
+			TypeConverter const& _converter,
 			CallState const& _statedata,
-			NewCallGraph const& _newcalls,
-			TypeConverter const& _types
+			NewCallGraph const& _newcalls
 		) const;
 
 		// Returns the number of modifiers which were not filtered away.
@@ -239,8 +229,8 @@ protected:
 	void endVisit(PlaceholderStatement const&) override;
 
 private:
+	TypeConverter const& M_CONVERTER;
 	CallState const& M_STATEDATA;
-	TypeConverter const& M_TYPES;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_TRUE_PARAMS;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_USER_PARAMS;
 	std::vector<ASTPointer<Expression>> const* M_USER_ARGS;
@@ -254,9 +244,9 @@ private:
 		FunctionDefinition const& _func,
 		ModifierDefinition const* _def,
 		ModifierInvocation const* _curr,
+		TypeConverter const& _converter,
 		CallState const& _statedata,
 		NewCallGraph const& _newcalls,
-		TypeConverter const& _types,
 		std::string _next,
 		bool _entry
 	);

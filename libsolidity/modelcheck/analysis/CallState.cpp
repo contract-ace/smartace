@@ -6,6 +6,7 @@
 
 #include <libsolidity/modelcheck/analysis/CallState.h>
 
+#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
@@ -58,7 +59,7 @@ CallState::CallState(ContractDependance const& _dependance)
 
 // -------------------------------------------------------------------------- //
 
-void CallState::print(std::ostream& _stream, bool _forward_declare) const
+void CallState::print(ostream& _stream, bool _forward_declare) const
 {
     auto const VALUE_T = TypeConverter::get_simple_ctype(
         *CallStateUtilities::get_type(CallStateUtilities::Field::Value)
@@ -244,9 +245,8 @@ void CallState::add_field(CallStateUtilities::Field _field)
     FieldData f;
     f.field = _field;
     f.name = CallStateUtilities::get_name(_field);
-    f.temp = f.name + "_tmp";
     f.type = CallStateUtilities::get_type(_field);
-    f.tname = TypeConverter::get_simple_ctype(*f.type);
+    f.type_name = TypeConverter::get_simple_ctype(*f.type);
     m_field_order.push_back(move(f));
 }
 

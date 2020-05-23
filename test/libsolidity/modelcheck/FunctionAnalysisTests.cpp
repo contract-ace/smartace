@@ -3,10 +3,12 @@
  * Tests for analyzing comtract references, along with contract allocations.
  */
 
+#include <libsolidity/modelcheck/analysis/FunctionCall.h>
+
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
+
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 
 #include <sstream>

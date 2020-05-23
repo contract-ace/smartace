@@ -7,7 +7,6 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 
 #include <list>
 #include <map>
@@ -21,6 +20,8 @@ namespace solidity
 namespace modelcheck
 {
 
+class NewCallGraph;
+
 // -------------------------------------------------------------------------- //
 
 /**
@@ -33,7 +34,6 @@ public:
     CallReachAnalyzer(FunctionDefinition const& _func);
 
     std::set<FunctionDefinition const*> m_calls;
-
     std::set<VariableDeclaration const*> m_reads;
 
 protected:
@@ -63,18 +63,18 @@ public:
     // A utility used by ContractDependance to expand the entire model. The
     // DependanceAnalyzer handles targeted analysis without concern for how each
     // component will be stitched together by the ContractDependance structure.
-    class DependancyAnalyzer
+    class DependencyAnalyzer
     {
     public:
         // The _model parameter is needed for non-test setups, to list top level
         // contracts in the scheduler.
-        DependancyAnalyzer(ContractDependance::ContractList _model);
+        DependencyAnalyzer(ContractDependance::ContractList _model);
 
-        virtual ~DependancyAnalyzer() = default;
+        virtual ~DependencyAnalyzer() = default;
 
-        // Returns all methods exposed (and used) by _ctrt.
+        // Returns all methods exposed (and used) by _contract.
         virtual FuncInterface get_interfaces_for(
-            ContractDefinition const* _ctrt
+            ContractDefinition const* _contract
         ) const = 0;
 
         // Returns the super call chain for _func.
@@ -89,8 +89,8 @@ public:
         ContractDependance::ContractList m_model;
     };
 
-    // Default constructor used to orchestrate dependancy analysis.
-    ContractDependance(DependancyAnalyzer const& _analyzer);
+    // Default constructor used to orchestrate dependency analysis.
+    ContractDependance(DependencyAnalyzer const& _analyzer);
 
     // Returns all top level contracts in the graph, given the graph is meant
     // to generate a scheduler.
@@ -117,17 +117,13 @@ public:
 
 private:
     ContractSet m_contracts;
-
     ContractList m_model;
 
     FunctionSet m_functions;
 
     std::map<ContractDefinition const*, FuncInterface> m_interfaces;
-
     std::map<FunctionDefinition const*, SuperCalls> m_superchain;
-
     std::map<FunctionDefinition const*, FunctionSet> m_callreach;
-
     std::map<FunctionDefinition const*, VarSet> m_mapreach;
 };
 
@@ -135,11 +131,11 @@ private:
 
 
 /**
- * An implementation of DependancyAnalyzer which expands all calls. This is
+ * An implementation of DependencyAnalyzer which expands all calls. This is
  * meant for codegen testing.
  */
 class FullSourceContractDependance
-    : public ContractDependance::DependancyAnalyzer
+    : public ContractDependance::DependencyAnalyzer
 {
 public:
     // All contracts reachable for _srcs are included.
@@ -148,22 +144,22 @@ public:
     ~FullSourceContractDependance() override = default;
 
     ContractDependance::FuncInterface get_interfaces_for(
-        ContractDefinition const* _ctrt
+        ContractDefinition const* _contract
     ) const override;
 
     ContractDependance::SuperCalls get_superchain_for(
-        FunctionDefinition const* _func
+        FunctionDefinition const* _contract
     ) const override;
 };
 
 // -------------------------------------------------------------------------- //
 
 /**
- * An implementation of DependancyAnalyzer which expands only the calls needed
+ * An implementation of DependencyAnalyzer which expands only the calls needed
  * by a given model, with a given allocation graph.
  */
 class ModelDrivenContractDependance
-    : public ContractDependance::DependancyAnalyzer
+    : public ContractDependance::DependencyAnalyzer
 {
 public:
     // All contracts reachable from _model, taking into account downcasting in
@@ -176,11 +172,11 @@ public:
     ~ModelDrivenContractDependance() override = default;
 
     ContractDependance::FuncInterface get_interfaces_for(
-        ContractDefinition const* _ctrt
+        ContractDefinition const* _contract
     ) const override;
 
     ContractDependance::SuperCalls get_superchain_for(
-        FunctionDefinition const* _func
+        FunctionDefinition const* _contract
     ) const override;
 
 private:
@@ -189,7 +185,6 @@ private:
     {
     public:
         SuperChainExtractor(FunctionDefinition const& _call);
-
         ContractDependance::SuperCalls m_superchain;
 
     protected:

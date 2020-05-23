@@ -9,6 +9,7 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 #include <libsolidity/analysis/GlobalContext.h>
+
 #include <sstream>
 
 using namespace std;

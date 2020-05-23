@@ -95,10 +95,7 @@ bool FlatIndex::visit(Conditional const&)
 
 bool FlatIndex::visit(MemberAccess const& _node)
 {
-    if (auto decl = member_access_to_decl(_node))
-    {
-        m_decl = decl;
-    }
+    if (auto decl = member_access_to_decl(_node)) m_decl = decl;
     return false;
 }
 

@@ -22,13 +22,13 @@ namespace solidity
 namespace modelcheck
 {
 
+// -------------------------------------------------------------------------- //
+
 /*
  * Maintains a dictionary from AST Node addresses to type annotations. The
  * mapping is restricted to AST Nodes for which types are practical, and records
  * must be generated on a per-source-unit basis.
  */
-// -------------------------------------------------------------------------- //
-
 class TypeConverter : public ASTConstVisitor
 {
 public:
@@ -78,7 +78,7 @@ public:
     ) const;
 
     // Provides a view of the map database.
-    MapDeflate mapdb() const;
+    MapDeflate map_db() const;
 
     // Restricts the address range. By default addresses are unbounded.
     void limit_addresses(uint64_t _count);
@@ -106,7 +106,7 @@ private:
 
     uint64_t m_address_count = 0;
 
-    MapDeflate m_mapdb;
+    MapDeflate m_map_db;
 
     std::map<ASTNode const*, std::string> m_name_lookup;
     std::map<ASTNode const*, std::string> m_type_lookup;

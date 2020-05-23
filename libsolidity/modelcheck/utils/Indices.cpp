@@ -22,7 +22,7 @@ namespace modelcheck
     
 // -------------------------------------------------------------------------- //
 
-std::string Indices::const_global_name(dev::u256 _var)
+string Indices::const_global_name(dev::u256 _var)
 {
     ostringstream oss;
     oss << "global_index_const_" << _var;

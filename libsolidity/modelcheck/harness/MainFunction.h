@@ -8,13 +8,11 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/harness/ActorModel.h>
 #include <libsolidity/modelcheck/harness/AddressSpace.h>
 #include <libsolidity/modelcheck/harness/StateGenerator.h>
 
-#include <vector>
 #include <ostream>
 
 namespace dev
@@ -25,6 +23,7 @@ namespace modelcheck
 {
 
 class CallState;
+class ContractDependance;
 class FunctionSpecialization;
 class MapIndexSummary;
 class NewCallGraph;
@@ -44,7 +43,7 @@ public:
         bool _lockstep_time,
 	    MapIndexSummary const& _addrdata,
         ContractDependance const& _dependance,
-        NewCallGraph const& _new_graph,
+        NewCallGraph const& _newcalls,
         CallState const& _statedata,
         TypeConverter const& _converter
     );
@@ -53,6 +52,9 @@ public:
     void print(std::ostream& _stream);
 
 private:
+    CallState const& M_STATEDATA;
+	TypeConverter const& M_CONVERTER;
+
     // Stores data required to handle addresses.
     AddressSpace m_addrspace;
 
@@ -61,12 +63,6 @@ private:
 
     // Stores data required to handle contract instances.
     ActorModel m_actors;
-
-    // Stores all parameters over the address space.
-    MapIndexSummary const& m_addrdata;
-
-    CallState const& m_statedata;
-	TypeConverter const& m_converter;
 
     // For each method on each contract, this will generate a case for the
     // switch block. Note that _args have been initialized first by

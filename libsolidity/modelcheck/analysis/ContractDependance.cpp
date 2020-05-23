@@ -6,6 +6,7 @@
 
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
 
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Mapping.h>
 
@@ -59,7 +60,7 @@ void CallReachAnalyzer::endVisit(FunctionCall const& _node)
     }
 }
 
-ContractDependance::DependancyAnalyzer::DependancyAnalyzer(
+ContractDependance::DependencyAnalyzer::DependencyAnalyzer(
     ContractDependance::ContractList _model
 ): m_model(move(_model))
 {
@@ -68,9 +69,8 @@ ContractDependance::DependancyAnalyzer::DependancyAnalyzer(
 // -------------------------------------------------------------------------- //
 
 ContractDependance::ContractDependance(
-    ContractDependance::DependancyAnalyzer const& _analyzer
-) : m_contracts(_analyzer.m_contracts)
- ,  m_model(_analyzer.m_model)
+    ContractDependance::DependencyAnalyzer const& _analyzer
+): m_contracts(_analyzer.m_contracts), m_model(_analyzer.m_model)
 {
     // Does per-contract analysis.
     for (auto contract : m_contracts)
@@ -92,8 +92,8 @@ ContractDependance::ContractDependance(
             // TODO: reusing partial results would be nice.
             CallReachAnalyzer reach(*interface);
             m_functions.insert(reach.m_calls.begin(), reach.m_calls.end());
-            m_callreach[interface] = std::move(reach.m_calls);
-            m_mapreach[interface] = std::move(reach.m_reads);
+            m_callreach[interface] = move(reach.m_calls);
+            m_mapreach[interface] = move(reach.m_reads);
         }
     }
 }
@@ -104,7 +104,7 @@ ContractDependance::ContractList const& ContractDependance::get_model() const
 {
     if (m_model.empty())
     {
-        throw std::runtime_error("ContractDependance: Model not available.");
+        throw runtime_error("ContractDependance: Model not available.");
     }
     return m_model;
 }
@@ -135,7 +135,7 @@ ContractDependance::SuperCalls const& ContractDependance::get_superchain(
     {
         return res->second;
     }
-    throw std::runtime_error("Superchain requested on out-of-scope function.");
+    throw runtime_error("Superchain requested on out-of-scope function.");
 }
 
 // -------------------------------------------------------------------------- //
@@ -149,7 +149,7 @@ ContractDependance::FuncInterface const& ContractDependance::get_interface(
     {
         return res->second;
     }
-    throw std::runtime_error("Interface requested on out-of-scope contract.");
+    throw runtime_error("Interface requested on out-of-scope contract.");
 }
 
 // -------------------------------------------------------------------------- //
@@ -163,7 +163,7 @@ ContractDependance::FunctionSet const& ContractDependance::get_function_roi(
     {
         return res->second;
     }
-    throw std::runtime_error("Function ROI requested on out-of-scope method.");
+    throw runtime_error("Function ROI requested on out-of-scope method.");
 }
 
 // -------------------------------------------------------------------------- //
@@ -177,7 +177,7 @@ ContractDependance::VarSet const& ContractDependance::get_map_roi(
     {
         return res->second;
     }
-    throw std::runtime_error("Map ROI requested on out-of-scope method.");
+    throw runtime_error("Map ROI requested on out-of-scope method.");
 }
 
 // -------------------------------------------------------------------------- //

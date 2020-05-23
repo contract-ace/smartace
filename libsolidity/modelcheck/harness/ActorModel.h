@@ -7,14 +7,12 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/General.h>
 
 #include <list>
 #include <map>
 #include <memory>
-#include <vector>
 
 namespace dev
 {
@@ -24,6 +22,7 @@ namespace modelcheck
 {
 
 class AddressSpace;
+class ContractDependance;
 class FunctionSpecialization;
 class MapIndexSummary;
 class NewCallGraph;
@@ -86,7 +85,7 @@ public:
     ActorModel(
         ContractDependance const& _dependance,
         TypeConverter const& _converter,
-        NewCallGraph const& _allocs,
+        NewCallGraph const& _newcalls,
         MapIndexSummary const& _addrdata
     );
 
@@ -111,14 +110,13 @@ public:
     std::list<Actor> const& inspect() const;
 
 private:
+	TypeConverter const& M_CONVERTER;
+
     // The list of actors, which is populated after setup.
     std::list<Actor> m_actors;
 
     // An anonymous list of contract address member variables.
     std::list<std::shared_ptr<CMemberAccess>> m_addrvar;
-
-	TypeConverter const& m_converter;
-    MapIndexSummary const& m_addrdata;
 
     // Extends setup to children. _path will accumulate the path to the current
     // parent, starting from a top level contract.

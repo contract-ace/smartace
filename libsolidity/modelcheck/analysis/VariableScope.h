@@ -7,7 +7,6 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
-#include <libsolidity/modelcheck/utils/Function.h>
 
 #include <list>
 #include <set>
@@ -19,6 +18,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+class FunctionSpecialization;
 
 // -------------------------------------------------------------------------- //
 
@@ -50,7 +51,7 @@ public:
     // Records a variable declaration in the top-most scope.
     void record_declaration(VariableDeclaration const& _decl);
 
-    // Maps an indentifer to its C-model name in the present scope.
+    // Maps an identifer to its C-model name in the present scope.
     std::string resolve_identifier(Identifier const& _id) const;
     std::string resolve_declaration(VariableDeclaration const& _decl) const;
 

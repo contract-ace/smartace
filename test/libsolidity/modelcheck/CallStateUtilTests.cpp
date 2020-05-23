@@ -5,8 +5,8 @@
 
 #include <libsolidity/modelcheck/utils/CallState.h>
 
-#include <test/libsolidity/AnalysisFramework.h>
 #include <boost/test/unit_test.hpp>
+#include <test/libsolidity/AnalysisFramework.h>
 
 using namespace std;
 

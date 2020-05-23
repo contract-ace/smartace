@@ -1,7 +1,7 @@
 /**
  * @date 2019
  * A toolkit of low-level, general utilities for use across all translation
- * untis.
+ * utils.
  */
 
 #pragma once
@@ -62,8 +62,8 @@ template <typename T>
 class TicketSystem
 {
 public:
-    static_assert(std::is_integral<T>::value, "Expected integeral type T.");
-    static_assert(std::is_unsigned<T>::value, "Expected unsigned integeral T");
+    static_assert(std::is_integral<T>::value, "Expected integral type T.");
+    static_assert(std::is_unsigned<T>::value, "Expected unsigned integral T");
 
     T next()
     {

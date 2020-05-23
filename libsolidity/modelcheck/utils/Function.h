@@ -7,7 +7,7 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <memory>
@@ -19,6 +19,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+class TypeConverter;
 
 // -------------------------------------------------------------------------- //
 
@@ -83,6 +85,7 @@ private:
     std::string const M_NAME;
     std::string const M_TYPE;
 
+    // Internal function to set _name and _type.
     InitFunction(std::string _name, std::string _type);
 
     // Wrapping call to make_shared<CVarDecl>(M_TYPE, _name).

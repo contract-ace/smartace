@@ -50,7 +50,7 @@ CExprPtr HarnessUtilities::range(uint8_t _l, uint8_t _u, string const& _msg)
 
 // -------------------------------------------------------------------------- //
 
-CExprPtr HarnessUtilities::byte(std::string const& _msg)
+CExprPtr HarnessUtilities::byte(string const& _msg)
 {
     return make_shared<CFuncCall>(
         "nd_byte", CArgList{ make_shared<CStringLiteral>(_msg) }

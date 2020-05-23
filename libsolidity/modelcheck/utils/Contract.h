@@ -43,8 +43,8 @@ public:
     static FunctionDefinition const& fallback(ContractDefinition const& _c);
 
 private:
-    static AddressType ADDRESS_MEMBER_TYPE;
-    static IntegerType BALANCE_MEMBER_TYPE;
+    static AddressType const ADDRESS_MEMBER_TYPE;
+    static IntegerType const BALANCE_MEMBER_TYPE;
 };
 
 // -------------------------------------------------------------------------- //

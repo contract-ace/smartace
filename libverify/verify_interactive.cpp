@@ -167,6 +167,54 @@ uint8_t nd_range(uint8_t _l, uint8_t _u, const char* _msg)
 	return retval;
 }
 
+// -------------------------------------------------------------------------- //
+
+#ifdef MC_USE_STDINT
+__int128_t nd_stdint_uint128_t(void)
+{
+    char input[40];
+    scanf("%s", input);
+
+    __int128_t retval = 0;
+    for (unsigned int i = 0; input[i] != 0; ++i)
+    {
+        retval *= 10;
+        retval += (__int128_t)(input[i] - '0');
+    }
+
+    return retval;
+}
+#endif
+
+sol_raw_uint256_t ll_nd_uint256_t(void)
+{
+    sol_raw_uint256_t retval = 0;
+
+    #ifdef MC_USE_STDINT
+    retval = nd_stdint_uint128_t();
+    #elif defined MC_USE_BOOST_MP
+    std::cin >> retval;
+    #endif
+
+    return retval;
+}
+
+sol_raw_uint256_t nd_increase(
+    sol_raw_uint256_t _curr, uint8_t _strict, const char* _msg
+)
+{
+    stringstream type;
+    type << "uint " << (_strict ? " larger" : " no less") << " than " << _curr;
+    on_entry(type.str().c_str(), _msg);
+
+    sol_raw_uint256_t next = ll_nd_uint256_t();
+	if (_strict) ll_assume(next > _curr);
+	else ll_assume(next >= _curr);
+	return next;
+}
+
+// -------------------------------------------------------------------------- //
+
 sol_raw_int8_t nd_int8_t(const char* _msg)
 {
     on_entry("int8", _msg);
@@ -665,23 +713,6 @@ sol_raw_uint64_t nd_uint64_t(const char* _msg)
     return retval;
 }
 
-#ifdef MC_USE_STDINT
-__int128_t nd_stdint_uint128_t(void)
-{
-    char input[40];
-    scanf("%s", input);
-
-    __int128_t retval = 0;
-    for (unsigned int i = 0; input[i] != 0; ++i)
-    {
-        retval *= 10;
-        retval += (__int128_t)(input[i] - '0');
-    }
-
-    return retval;
-}
-#endif
-
 sol_raw_uint72_t nd_uint72_t(const char* _msg)
 {
     on_entry("uint72", _msg);
@@ -1004,37 +1035,10 @@ sol_raw_uint248_t nd_uint248_t(const char* _msg)
     return retval;
 }
 
-sol_raw_uint256_t ll_nd_uint256_t(void)
-{
-    sol_raw_uint256_t retval = 0;
-
-    #ifdef MC_USE_STDINT
-    retval = nd_stdint_uint128_t();
-    #elif defined MC_USE_BOOST_MP
-    std::cin >> retval;
-    #endif
-
-    return retval;
-}
-
 sol_raw_uint256_t nd_uint256_t(const char* _msg)
 {
     on_entry("uint256", _msg);
     return ll_nd_uint256_t();
-}
-
-sol_raw_uint256_t nd_increase(
-    sol_raw_uint256_t _curr, uint8_t _strict, const char* _msg
-)
-{
-    stringstream type;
-    type << "uint " << (_strict ? " larger" : " no less") << " than " << _curr;
-    on_entry(type.str().c_str(), _msg);
-
-    sol_raw_uint256_t next = ll_nd_uint256_t();
-	if (_strict) ll_assume(next > _curr);
-	else ll_assume(next >= _curr);
-	return next;
 }
 
 // -------------------------------------------------------------------------- //

@@ -7,9 +7,12 @@
 
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
+
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 
 #include <sstream>
 
@@ -59,7 +62,7 @@ BOOST_AUTO_TEST_CASE(argument_registration)
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expect << "{";
     expect << "(func_user_a).v;";
@@ -110,7 +113,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
 
     ostringstream actual_if, expected_if;
     actual_if << *FunctionBlockConverter(
-        *if_stmt, statedata, newcalls, converter
+        *if_stmt, converter, statedata, newcalls
     ).convert();
     expected_if << "{";
     expected_if << "if(((self->user_a).v)==(1))";
@@ -126,7 +129,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
 
     ostringstream actual_else, expected_else;
     actual_else << *FunctionBlockConverter(
-        *else_stmt, statedata, newcalls, converter
+        *else_stmt, converter, statedata, newcalls
     ).convert();
     expected_else << "{";
     expected_else << "if(((self->user_a).v)==(1)){}";
@@ -179,7 +182,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     auto while_stmt = (fncs[0]->name() == "while_stmt") ? fncs[0] : fncs[1];
     ostringstream actual_while, expected_while;
     actual_while << *FunctionBlockConverter(
-        *while_stmt, statedata, newcalls, converter
+        *while_stmt, converter, statedata, newcalls
     ).convert();
     expected_while << "{";
     expected_while << "while(((self->user_a).v)!=((self->user_a).v)){}";
@@ -192,7 +195,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     auto for_stmt = (fncs[0]->name() == "while_stmt") ? fncs[1] : fncs[0];
     ostringstream actual_for, expected_for;
     actual_for << *FunctionBlockConverter(
-        *for_stmt, statedata, newcalls, converter
+        *for_stmt, converter, statedata, newcalls
     ).convert();
     expected_for << "{";
     expected_for << "for(;((self->user_a).v)<(10);++((self->user_a).v))"
@@ -237,7 +240,7 @@ BOOST_AUTO_TEST_CASE(continue_statement)
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expect << "{";
     expect << "while(0){continue;}";
@@ -273,7 +276,7 @@ BOOST_AUTO_TEST_CASE(break_statement)
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expect << "{";
     expect << "while(0){break;}";
@@ -309,7 +312,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
     auto void_func = (fncs[0]->name() == "void_func") ? fncs[0] : fncs[1];
     ostringstream actual_void, expect_void;
     actual_void << *FunctionBlockConverter(
-        *void_func, statedata, newcalls, converter
+        *void_func, converter, statedata, newcalls
     ).convert();
     expect_void << "{";
     expect_void << "return;";
@@ -319,7 +322,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
     auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int, expect_int;
     actual_int << *FunctionBlockConverter(
-        *int_func, statedata, newcalls, converter
+        *int_func, converter, statedata, newcalls
     ).convert();
     expect_int << "{";
     expect_int << "return Init_sol_int256_t((10)+(5));";
@@ -366,7 +369,7 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "sol_int256_t func_user_b;";
@@ -415,7 +418,7 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
 
     ostringstream actual_named, expected_named;
     actual_named << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected_named << "{";
     expected_named << "sol_int256_t func_user_a;";
@@ -467,7 +470,7 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "if(((paid).v)==(1))(((self)->model_balance).v)+=((value).v);";
@@ -527,7 +530,7 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
         {
             ostringstream actual, expected;
             FunctionBlockConverter fbc(
-                *func_ptr, statedata, newcalls, converter
+                *func_ptr, converter, statedata, newcalls
             );
             fbc.set_for(FunctionSpecialization(*func_ptr));
             actual << *fbc.convert();
@@ -597,7 +600,7 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
         {
             ostringstream actual, expected;
             FunctionBlockConverter fbc(
-                *func_ptr, statedata, newcalls, converter
+                *func_ptr, converter, statedata, newcalls
             );
             fbc.set_for(FunctionSpecialization(*func_ptr));
             actual << *fbc.convert();
@@ -655,7 +658,7 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "sol_transfer(&((self)->model_balance),Init_sol_address_t("
@@ -699,7 +702,7 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "sol_require(1,0);";
@@ -741,7 +744,7 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "Init_A_Struct_B();";
@@ -790,7 +793,7 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "Init_A(&(self->user_a),(self)->model_address"
@@ -840,7 +843,7 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "(Read_Map_1(&((self->user_b).user_arr2),"
@@ -892,7 +895,7 @@ BOOST_AUTO_TEST_CASE(map_assignment)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "Write_Map_2(&(self->user_a),Init_sol_int256_t(1),"
@@ -948,7 +951,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "((int)(global_index_const_5));";
@@ -999,7 +1002,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_resolution)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "struct A_Struct_B*func_user_b__ref=&(self->user_b);";
@@ -1040,7 +1043,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "struct A_Struct_B*func_user_b__ref=&(self->user_b);";
@@ -1077,7 +1080,7 @@ BOOST_AUTO_TEST_CASE(else_if_formatting_regression)
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(
-        func, statedata, newcalls, converter
+        func, converter, statedata, newcalls
     ).convert();
     expected << "{";
     expected << "if(1){}";
@@ -1114,7 +1117,7 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
     CallState statedata(deps);
 
     ostringstream actual, expect;
-    FunctionBlockConverter fbc(*func, statedata, newcalls, converter);
+    FunctionBlockConverter fbc(*func, converter, statedata, newcalls);
     fbc.set_for(FunctionSpecialization(*func));
     actual << *fbc.convert();
     expect << "{"
@@ -1167,7 +1170,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
 
     ostringstream f0_actual, f0_expect;
     f0_actual << *f_factory.generate(
-        0, statedata, newcalls, converter
+        0, converter, statedata, newcalls
     ).convert();
     f0_expect << "{"
               << "A_Method_1_f(self,sender,value,blocknum,timestamp"
@@ -1180,7 +1183,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
 
     ostringstream g0_actual, g0_expect;
     g0_actual << *g_factory.generate(
-        0, statedata, newcalls, converter
+        0, converter, statedata, newcalls
     ).convert();
     g0_expect << "{";
     g0_expect << "A_Method_1_g(self,sender,value,blocknum,timestamp"
@@ -1193,7 +1196,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
 
     ostringstream f1_actual, f1_expect;
     f1_actual << *f_factory.generate(
-        1, statedata, newcalls, converter
+        1, converter, statedata, newcalls
     ).convert();
     f1_expect << "{";
     f1_expect << "A_Method_2_f(self,sender,value,blocknum,timestamp"
@@ -1204,7 +1207,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
 
     ostringstream g1_actual, g1_expect;
     g1_actual << *g_factory.generate(
-        1, statedata, newcalls, converter
+        1, converter, statedata, newcalls
     ).convert();
     g1_expect << "{";
     g1_expect << "A_Method_2_g(self,sender,value,blocknum,timestamp"
@@ -1245,7 +1248,7 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
     ostringstream expected, actual;
     FunctionSpecialization spec(func);
     ModifierBlockConverter::Factory factory(spec);
-    actual << *factory.generate(0, statedata, newcalls, converter).convert();
+    actual << *factory.generate(0, converter, statedata, newcalls).convert();
     expected << "{";
     expected << "sol_int256_t func_model_rv;";
     expected << "(func_model_rv)=(A_Method_1_f(self,sender,value,blocknum,"
@@ -1289,7 +1292,7 @@ BOOST_AUTO_TEST_CASE(modifier_args)
     ostringstream expected, actual;
     FunctionSpecialization spec(func);
     ModifierBlockConverter::Factory factory(spec);
-    actual << *factory.generate(0, statedata, newcalls, converter).convert();
+    actual << *factory.generate(0, converter, statedata, newcalls).convert();
     expected << "{";
     expected << "sol_int256_t func_user_a=Init_sol_int256_t("
              << "((func_model_b).v)+(5));";

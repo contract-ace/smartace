@@ -7,7 +7,6 @@
 
 #include <libsolidity/modelcheck/codegen/Details.h>
 
-#include <list>
 #include <memory>
 #include <string>
 
@@ -47,15 +46,15 @@ public:
     void pay(CBlockList & _block) const;
 
 private:
+    CallState const& M_STATEDATA;
+	TypeConverter const& M_CONVERTER;
+    MapIndexSummary const& M_MAPDATA;
+
     // When true, time and blocknumber advance in lockstep.
-    const bool M_USE_LOCKSTEP_TIME;
+    bool const M_USE_LOCKSTEP_TIME;
 
     // State variable used to signal when time should proceed (in lockstep).
-    std::shared_ptr<CVarDecl> M_STEPVAR;
-
-    CallState const& m_statedata;
-	TypeConverter const& m_converter;
-    MapIndexSummary const& m_addrdata;
+    std::shared_ptr<CVarDecl> const M_STEPVAR;
 };
 
 // -------------------------------------------------------------------------- //
