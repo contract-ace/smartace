@@ -7,7 +7,8 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
-#include <libsolidity/modelcheck/codegen/Core.h>
+#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <memory>
 #include <string>
@@ -22,20 +23,78 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
- * Utilities to move a function from the Solidity representation to the c-model
- * representation.
+ * This class manages calls to, and specializations of, initialization calls. In
+ * the SmartACE model we distinguish constructors from initializers. All types
+ * have initializers, which follow the convention `Init_{TYPENAME}`, or in the
+ * case of derived contract initializers, `INIT_{BASE_NAME}_For_{DERIVED_NAME}`.
  */
-class FunctionUtilities
+class InitFunction
 {
 public:
-    // It is assumed that _e is a raw value, meant to be interpreted as type _t.
-    // If _t is a wrapper, then the wrap initialization function must be invoked
-    // on _e. Otherwise, _e is passed reflectively. This function implements
-    // such logic.
-    static CExprPtr try_to_wrap(Type const& _type, CExprPtr _expr);
+    // Represents an initialization call for _base, as specialized for _derived.
+    // Type names are resolved using _converter.
+    InitFunction(
+        TypeConverter const& _converter,
+        ContractDefinition const& _base,
+        ContractDefinition const& _derived
+    );
 
-    // Returns the name for the destination used in contract initialization.
-    static std::string init_var();
+    // Represents an initialization call for entities of _node's type. Type
+    // names are resolved using _converter.
+    InitFunction(TypeConverter const& _converter, ASTNode const& _node);
+
+    // Represents an initialization call for the mapping built from _mapping.
+    // Type names are resolved using _converter.
+    InitFunction(MapDeflate::FlatMap const& _mapping);
+
+    // An initialization call for a structure type-defined as _type.
+    InitFunction(std::string _type);
+
+    // Returns a call builder, configured for the standard initializer.
+    CFuncCallBuilder call_builder() const;
+
+    // Returns the variable declaration for the standard initializer function def.
+    std::shared_ptr<CVarDecl> call_id() const;
+
+    // Returns the name of the standard initializer.
+    std::string call_name() const;
+
+    // Returns a call to the zero initializer.
+    CExprPtr defaulted() const;
+
+    // Returns the variable declaration for the zero initializer function def.
+    std::shared_ptr<CVarDecl> default_id() const;
+
+    // Returns the name of the zero initializer.
+    std::string default_name() const;
+
+    // For a simple type, _type, this returns a call to the initializer of _type.
+    // against _expr. Otherwise, _expr is returned unmodified.
+    static CExprPtr wrap(Type const& _type, CExprPtr _expr);
+
+    // The variable name reserved for initializers to set return values by ref.
+    static std::string const INIT_VAR;
+
+private:
+    // The prefixes used to distinguish initialization calls, i.e., `Init_`.
+    static std::string const PREFIX;
+    static std::string const DEFAULT_PREFIX;
+
+    std::string const M_NAME;
+    std::string const M_TYPE;
+
+    InitFunction(std::string _name, std::string _type);
+
+    // Wrapping call to make_shared<CVarDecl>(M_TYPE, _name).
+    std::shared_ptr<CVarDecl> make_id(std::string _name) const;
+
+    // Returns `Init_{BASE_NAME}`, or `Init_{BASE_NAME}_For_{DERIVED_NAME}` when
+    // _base is not _derived.
+    static std::string specialize_name(
+        TypeConverter const& _converter,
+        ContractDefinition const& _base,
+        ContractDefinition const& _derived
+    );
 };
 
 // -------------------------------------------------------------------------- //
@@ -81,7 +140,7 @@ public:
     ContractDefinition const& source() const;
 
     // Returns the contract using this method.
-    ContractDefinition const& useBy() const;
+    ContractDefinition const& use_by() const;
 
     // Returns the declaration of this method.
     FunctionDefinition const& func() const;

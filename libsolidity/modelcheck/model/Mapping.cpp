@@ -86,13 +86,15 @@ CStructDef MapGenerator::declare(bool _forward_declare) const
 
 CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
 {
-    const auto INIT_VAL = M_TYPES.get_init_val(*M_MAP_RECORD.value_type);
-    auto fid = make_shared<CVarDecl>(M_TYPE, "ZeroInit_" + M_MAP_RECORD.name);
-
     shared_ptr<CBlock> body;
-    if (!_forward_declare) body = expand_init(INIT_VAL);
+    if (!_forward_declare)
+    {
+        auto init_val = M_TYPES.get_init_val(*M_MAP_RECORD.value_type);
+        body = expand_init(move(init_val));
+    }
 
-    return CFuncDef(move(fid), {}, move(body));
+    auto id = InitFunction(M_MAP_RECORD).default_id();
+    return CFuncDef(move(id), {}, move(body));
 }
 
 // -------------------------------------------------------------------------- //
@@ -163,13 +165,16 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        CFuncCallBuilder onfail("sol_assert");
-        onfail.push(Literals::ZERO);
-        onfail.push(Literals::ZERO);
+        auto default_val = M_TYPES.get_init_val(*M_MAP_RECORD.value_type);
+
+        CFuncCallBuilder on_fail("sol_assert");
+        on_fail.push(Literals::ZERO);
+        on_fail.push(Literals::ZERO);
+
         body = make_shared<CBlock>(CBlockList{
             expand_access(0, "", false, false),
-            onfail.merge_and_pop_stmt(),
-            make_shared<CReturn>(M_TYPES.get_init_val(*M_MAP_RECORD.value_type))
+            on_fail.merge_and_pop_stmt(),
+            make_shared<CReturn>(move(default_val))
         });
     }
 
@@ -178,7 +183,7 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
 
 // -------------------------------------------------------------------------- //
 
-shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr const& _init_data) const
+shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr _init_data) const
 {
     CBlockList block;
     block.push_back(M_TMP);

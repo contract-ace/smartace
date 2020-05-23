@@ -174,7 +174,7 @@ void ModifierBlockConverter::enter(
             );
 
             auto expr = arg_converter.convert();
-            expr = FunctionUtilities::try_to_wrap(*PARAM.type(), move(expr));
+            expr = InitFunction::wrap(*PARAM.type(), move(expr));
             _stmts.push_back(make_shared<CVarDecl>(TYPE, SYM, false, expr));
         }
     }
@@ -217,9 +217,7 @@ void ModifierBlockConverter::endVisit(PlaceholderStatement const&)
 
     if (block_type() == BlockType::Initializer)
     {
-        builder.push(
-            make_shared<CIdentifier>(FunctionUtilities::init_var(), true)
-        );
+        builder.push(make_shared<CIdentifier>(InitFunction::INIT_VAR, true));
     }
 
     CExprPtr call = builder.merge_and_pop();

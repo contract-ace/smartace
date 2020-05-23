@@ -232,8 +232,7 @@ CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
     {
         throw ("init_val_by_simple_type expects a simple type.");
     }
-
-    return FunctionUtilities::try_to_wrap(_type, Literals::ZERO);
+    return InitFunction::wrap(_type, Literals::ZERO);
 }
 
 CExprPtr TypeConverter::raw_simple_nd(
@@ -271,7 +270,7 @@ CExprPtr TypeConverter::nd_val_by_simple_type(
 ) const
 {
     auto nd_val = raw_simple_nd(_type, _msg);
-    return FunctionUtilities::try_to_wrap(_type, move(nd_val));
+    return InitFunction::wrap(_type, move(nd_val));
 }
 
 CExprPtr TypeConverter::get_init_val(TypeName const& _typename) const
@@ -282,13 +281,13 @@ CExprPtr TypeConverter::get_init_val(TypeName const& _typename) const
             *_typename.annotation().type
         );
     }
-    return make_shared<CFuncCall>("ZeroInit_" + get_name(_typename), CArgList{});
+    return InitFunction(*this, _typename).defaulted();
 }
 
 CExprPtr TypeConverter::get_init_val(Declaration const& _decl) const
 {
     if (has_simple_type(_decl)) return init_val_by_simple_type(*_decl.type());
-    return make_shared<CFuncCall>("ZeroInit_" + get_name(_decl), CArgList{});
+    return InitFunction(*this, _decl).defaulted();
 }
 
 CExprPtr TypeConverter::get_nd_val(

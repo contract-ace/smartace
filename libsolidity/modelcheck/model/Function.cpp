@@ -105,8 +105,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 {
     if (M_VIEW == View::EXT) return false;
 
-    string const STRCT_NAME = M_CONVERTER.get_name(_node);
-    string const STRCT_TYPE = M_CONVERTER.get_type(_node);
+    InitFunction initdata(M_CONVERTER, _node);
 
     vector<FunctionConverter::ParamTmpl> initializable_members;
     {
@@ -124,16 +123,15 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         }
     }
 
-    auto zero_id = make_shared<CVarDecl>(STRCT_TYPE, "ZeroInit_" + STRCT_NAME);
-    auto init_id = make_shared<CVarDecl>(STRCT_TYPE, "Init_" + STRCT_NAME);
-
     auto init_params = generate_params(initializable_members, nullptr, nullptr);
 
     shared_ptr<CBlock> zero_body, init_body;
     if (!M_FWD_DCL)
     {
+        string const STRUCT_T = M_CONVERTER.get_type(_node);
+
         CBlockList stmts;
-        stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp"));
+        stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp"));
         for (auto decl : _node.members())
         {
             string const NAME = VariableScopeResolver::rewrite(
@@ -147,8 +145,8 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         stmts.push_back(make_shared<CReturn>(TMP));
         zero_body = make_shared<CBlock>(move(stmts));
 
-        auto zinit = make_shared<CFuncCall>("ZeroInit_" + STRCT_NAME, CArgList{});
-        stmts.push_back(make_shared<CVarDecl>(STRCT_TYPE, "tmp", false, zinit));
+        auto zinit = initdata.defaulted();
+        stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp", false, zinit));
         for (auto m : initializable_members)
         {
             string const NAME = VariableScopeResolver::rewrite(
@@ -163,8 +161,8 @@ bool FunctionConverter::visit(StructDefinition const& _node)
         init_body = make_shared<CBlock>(move(stmts));
     }
 
-    CFuncDef zero(zero_id, CParams{}, move(zero_body));
-    CFuncDef init(init_id, move(init_params), move(init_body));
+    CFuncDef zero(initdata.default_id(), CParams{}, move(zero_body));
+    CFuncDef init(initdata.call_id(), move(init_params), move(init_body));
 
     (*m_ostream) << zero << init;
 
@@ -234,7 +232,7 @@ CParams FunctionConverter::generate_params(
     {
         params.push_back(make_shared<CVarDecl>(
             M_CONVERTER.get_type(M_NEWCALLS.specialize(*_dest)),
-            FunctionUtilities::init_var(),
+            InitFunction::INIT_VAR,
             true
         ));
     }
@@ -291,19 +289,11 @@ string FunctionConverter::handle_contract_initializer(
     ContractDefinition const& _initialized, ContractDefinition const& _for
 )
 {
-    bool const IS_TOP_INIT_CALL = (_initialized.name() == _for.name());
-    string const INIT_NAME = M_CONVERTER.get_name(_initialized);
-    string const FOR_NAME = M_CONVERTER.get_name(_for);
+    auto const NAME = InitFunction(M_CONVERTER, _initialized, _for).call_name();
     auto const* LOCAL_CTOR = _initialized.constructor();
 
-    string fname = "Init_" + INIT_NAME;
-    if (!IS_TOP_INIT_CALL)
-    {
-        fname += "_For_" + FOR_NAME;
-    }
-
     // Ensures this specialization is new.
-    if (!record_pair(_initialized, _for)) return fname;
+    if (!record_pair(_initialized, _for)) return NAME;
 
     CParams params;
     string ctor_name;
@@ -384,7 +374,7 @@ string FunctionConverter::handle_contract_initializer(
     if (!M_FWD_DCL)
     {
         CBlockList stmts;
-        if (IS_TOP_INIT_CALL)
+        if (&_initialized == &_for)
         {
             auto const NAME = ContractUtilities::balance_member();
             auto const* TYPE = ContractUtilities::balance_type();
@@ -412,7 +402,7 @@ string FunctionConverter::handle_contract_initializer(
                     *decl->value(), M_STATEDATA, {}, {}
                 );
                 v0 = init_expr.convert();
-                v0 = FunctionUtilities::try_to_wrap(*decl->type(), move(v0));
+                v0 = InitFunction::wrap(*decl->type(), move(v0));
             }
             else
             {
@@ -441,11 +431,11 @@ string FunctionConverter::handle_contract_initializer(
         body = make_shared<CBlock>(move(stmts));
     }
 
-    auto id = make_shared<CVarDecl>("void", fname);
+    auto id = make_shared<CVarDecl>("void", NAME);
     CFuncDef init(id, move(params), move(body));
     (*m_ostream) << init;
 
-    return fname;
+    return NAME;
 }
 
 // -------------------------------------------------------------------------- //
@@ -456,7 +446,7 @@ string FunctionConverter::handle_function(
 {
     // Ensures this specialization is new.
     string fname = _spec.name(0);
-    if (!record_pair(_spec.func(), _spec.useBy())) return fname;
+    if (!record_pair(_spec.func(), _spec.use_by())) return fname;
 
     // Generates parameter list for all levels.
     vector<FunctionConverter::ParamTmpl> base_tmpl, mod_tmpl;
@@ -490,7 +480,7 @@ string FunctionConverter::handle_function(
     // Generates a declaration for the base call.
     vector<CFuncDef> defs;
     {
-        CParams params = generate_params(base_tmpl, &_spec.useBy(), dest);
+        CParams params = generate_params(base_tmpl, &_spec.use_by(), dest);
 
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
@@ -509,7 +499,7 @@ string FunctionConverter::handle_function(
     }
 
     // Generates a declaration for each modifier.
-    CParams const mod_params = generate_params(mod_tmpl, &_spec.useBy(), dest);
+    CParams const mod_params = generate_params(mod_tmpl, &_spec.use_by(), dest);
     for (size_t i = mods.len(); i > 0; --i)
     {
         size_t const IDX = i - 1;

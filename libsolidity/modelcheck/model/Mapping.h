@@ -108,7 +108,7 @@ private:
     // _key == curr{i}. If an empty slot is found, that index is used instead.
     // In either case, once a match has been found, _exec is inlined. _last is
     // taken to be either null, or the {i-1}-th term.
-    std::shared_ptr<CBlock> expand_init(CExprPtr const& _init_data) const;
+    std::shared_ptr<CBlock> expand_init(CExprPtr _init_data) const;
 
     // Helper method to generate update functions. The _maintain_sum field is
     // meant to disable sum instrumentation when "Set_" is in use.

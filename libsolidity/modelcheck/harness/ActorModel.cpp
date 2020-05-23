@@ -165,7 +165,7 @@ void ActorModel::initialize(
         HarnessUtilities::log(_block, caselog.str());
 
         // Populates core constructor arguments.
-        CFuncCallBuilder init_builder("Init_" + m_converter.get_name(*ctx));
+        auto init_builder = InitFunction(m_converter, *ctx).call_builder();
         init_builder.push(make_shared<CReference>(actor.decl->id()));
         _statedata.push_state_to(init_builder);
 

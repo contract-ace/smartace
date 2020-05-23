@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 
 #include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
 
 #include <sstream>
@@ -177,18 +178,18 @@ void PrimitiveTypeGenerator::declare_primitive(
 
     string const TYPEDEF = _type + "_t";
 
-    auto id = make_shared<CVarDecl>(TYPEDEF, "Init_" + TYPEDEF);
-    auto input_dcl = make_shared<CVarDecl>(_data, "v");
+    auto id = InitFunction(TYPEDEF).call_id();
+    auto raw_val = make_shared<CVarDecl>(_data, "v");
     auto tmp_dcl = make_shared<CVarDecl>(TYPEDEF, "tmp");
 
     auto block = make_shared<CBlock>(CBlockList{
         tmp_dcl,
-        tmp_dcl->access("v")->assign(input_dcl->id())->stmt(),
+        tmp_dcl->access("v")->assign(raw_val->id())->stmt(),
         make_shared<CReturn>(tmp_dcl->id())
     });
 
     _out << decl << *decl.make_typedef(TYPEDEF)
-         << CFuncDef(id, {input_dcl}, block, CFuncDef::Modifier::INLINE);
+         << CFuncDef(id, {raw_val}, block, CFuncDef::Modifier::INLINE);
 }
 
 // -------------------------------------------------------------------------- //

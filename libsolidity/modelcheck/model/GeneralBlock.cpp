@@ -284,7 +284,7 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 		if (_node.initialValue())
 		{
 			val = expand(*_node.initialValue(), IS_REF);
-			val = FunctionUtilities::try_to_wrap(*DECL.type(), move(val));
+			val = InitFunction::wrap(*DECL.type(), move(val));
 		}
 
 		auto const TYPE = M_TYPES.get_type(DECL);

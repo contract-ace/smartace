@@ -23,19 +23,96 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-CExprPtr FunctionUtilities::try_to_wrap(Type const& _type, CExprPtr _expr)
+string const InitFunction::INIT_VAR = "dest";
+string const InitFunction::PREFIX = "Init_";
+string const InitFunction::DEFAULT_PREFIX = "ZeroInit_";
+
+string InitFunction::specialize_name(
+    TypeConverter const& _converter,
+    ContractDefinition const& _base,
+    ContractDefinition const& _derived
+)
+{
+    string name = _converter.get_name(_base);
+    if (&_base != &_derived)
+    {
+        name += "_For_" + _converter.get_name(_derived);
+    }
+    return name;
+}
+
+InitFunction::InitFunction(
+    TypeConverter const& _converter,
+    ContractDefinition const& _base,
+    ContractDefinition const& _derived
+): InitFunction(specialize_name(_converter, _base, _derived), "void")
+{
+}
+
+InitFunction::InitFunction(
+    TypeConverter const& _converter, ASTNode const& _node
+): InitFunction(_converter.get_name(_node), _converter.get_type(_node))
+{
+}
+
+InitFunction::InitFunction(MapDeflate::FlatMap const& _mapping)
+ : InitFunction(_mapping.name, "struct " + _mapping.name)
+{
+}
+
+InitFunction::InitFunction(string _type)
+ : InitFunction(_type, _type)
+{
+}
+
+CFuncCallBuilder InitFunction::call_builder() const
+{
+    return CFuncCallBuilder(call_name());
+}
+
+shared_ptr<CVarDecl> InitFunction::call_id() const
+{
+    return make_id(call_name());
+}
+
+string InitFunction::call_name() const
+{
+    return PREFIX + M_NAME;
+}
+
+CExprPtr InitFunction::defaulted() const
+{
+    return make_shared<CFuncCall>(default_name(), CArgList{});
+}
+
+shared_ptr<CVarDecl> InitFunction::default_id() const
+{
+    return make_id(default_name());
+}
+
+string InitFunction::default_name() const
+{
+    return DEFAULT_PREFIX + M_NAME;
+}
+
+CExprPtr InitFunction::wrap(Type const& _type, CExprPtr _expr)
 {
     if (is_wrapped_type(_type))
     {
-        string const WRAP = "Init_" + TypeConverter::get_simple_ctype(_type);
+        string const WRAP = PREFIX + TypeConverter::get_simple_ctype(_type);
         return make_shared<CFuncCall>( WRAP, CArgList{ move(_expr) } );
     }
     return _expr;
 }
 
-string FunctionUtilities::init_var()
+InitFunction::InitFunction(string _name, string _type)
+ : M_NAME(move(_name)), M_TYPE(move(_type))
 {
-    return "dest";
+}
+
+shared_ptr<CVarDecl> InitFunction::make_id(string _name) const
+{
+    return make_shared<CVarDecl>(M_TYPE, move(_name));
 }
 
 // -------------------------------------------------------------------------- //
@@ -58,7 +135,7 @@ unique_ptr<FunctionSpecialization> FunctionSpecialization::super() const
     {
         if (superfunc->isImplemented())
         {
-            return make_unique<FunctionSpecialization>(*superfunc, useBy());
+            return make_unique<FunctionSpecialization>(*superfunc, use_by());
         }
     }
     return nullptr;
@@ -110,7 +187,7 @@ ContractDefinition const& FunctionSpecialization::source() const
     return (*M_SRC);
 }
 
-ContractDefinition const& FunctionSpecialization::useBy() const
+ContractDefinition const& FunctionSpecialization::use_by() const
 {
     return (*M_USER);
 }

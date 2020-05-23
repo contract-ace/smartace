@@ -402,7 +402,7 @@ CExprPtr ExpressionConverter::get_initializer_context() const
 	}
 	else
 	{
-		return make_shared<CIdentifier>(FunctionUtilities::init_var(), true);
+		return make_shared<CIdentifier>(InitFunction::INIT_VAR, true);
 	}
 }
 
@@ -410,17 +410,17 @@ CExprPtr ExpressionConverter::get_initializer_context() const
 
 void ExpressionConverter::print_struct_ctor(FunctionCall const& _call)
 {
-	if (auto struct_ref = NodeSniffer<Identifier>(_call.expression()).find())
+	if (auto id = NodeSniffer<Identifier>(_call.expression()).find())
 	{
-		auto const* struct_def = dynamic_cast<StructDefinition const*>(
-			struct_ref->annotation().referencedDeclaration
+		auto const& solstruct = dynamic_cast<StructDefinition const&>(
+			*id->annotation().referencedDeclaration
 		);
 
-		CFuncCallBuilder builder("Init_" + M_TYPES.get_name(*struct_ref));
+		auto builder = InitFunction(M_TYPES, solstruct).call_builder();
 		for (unsigned int i = 0; i < _call.arguments().size(); ++i)
 		{
 			auto const& ARG = *(_call.arguments()[i]);
-			auto const* TYPE = struct_def->members()[i]->type();
+			auto const* TYPE = solstruct.members()[i]->type();
 			builder.push(ARG, m_statedata, M_TYPES, m_decls, false, TYPE);
 		}
 		m_subexpr = builder.merge_and_pop();
@@ -688,7 +688,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		{
 			// TODO: reuse earlier analysis?
 			auto const& hierarchy
-				= m_decls.spec()->useBy().annotation().linearizedBaseContracts;
+				= m_decls.spec()->use_by().annotation().linearizedBaseContracts;
 
 			// The compiler accepted the call so a match exists on some base.
 			FunctionDefinition const* override = nullptr;
@@ -705,7 +705,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 				if (override) break;
 			}
 
-			call = FunctionSpecialization(*override, m_decls.spec()->useBy());
+			call = FunctionSpecialization(*override, m_decls.spec()->use_by());
 		}
 		callname = call.name(0);
 	}
@@ -803,10 +803,10 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 
 void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 {
-	if (auto contract_type = NodeSniffer<UserDefinedTypeName>(_call).find())
+	if (auto user_type = NodeSniffer<UserDefinedTypeName>(_call).find())
 	{
-		CFuncCallBuilder builder("Init_" + M_TYPES.get_name(*contract_type));
-		auto const DECL = contract_type->annotation().referencedDeclaration;
+		auto builder = InitFunction(M_TYPES, *user_type).call_builder();
+		auto const DECL = user_type->annotation().referencedDeclaration;
 		if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
 		{	
 			builder.push(get_initializer_context());
@@ -942,7 +942,7 @@ void ExpressionConverter::pass_next_call_state(
 		value = ExpressionConverter(
 			*_call.value(), m_statedata, M_TYPES, m_decls, false, m_is_init
 		).convert();
-		value = FunctionUtilities::try_to_wrap(
+		value = InitFunction::wrap(
 			*ContractUtilities::balance_type(), move(value)
 		);
 	}

@@ -202,7 +202,7 @@ CFuncCallBuilder::CFuncCallBuilder(string _name, bool _rv_is_ref)
 
 void CFuncCallBuilder::push(CExprPtr _expr, Type const* _t)
 {
-    if (_t) _expr = FunctionUtilities::try_to_wrap(*_t, move(_expr));
+    if (_t) _expr = InitFunction::wrap(*_t, move(_expr));
     m_args.push_back(move(_expr));
 }
 
@@ -219,9 +219,9 @@ void CFuncCallBuilder::push(
 
     if (!_t) _t = _expr.annotation().type;
 
-    auto cexpr = converter.convert();
-    if (_t) cexpr = FunctionUtilities::try_to_wrap(*_t, move(cexpr));
-    m_args.push_back(move(cexpr));
+    auto c_expr = converter.convert();
+    if (_t) c_expr = InitFunction::wrap(*_t, move(c_expr));
+    m_args.push_back(move(c_expr));
 }
 
 shared_ptr<CFuncCall> CFuncCallBuilder::merge_and_pop()

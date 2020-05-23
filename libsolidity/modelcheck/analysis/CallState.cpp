@@ -205,7 +205,7 @@ void CallState::compute_next_state_for(
 		else if (f.field == CallStateUtilities::Field::Paid)
 		{
 			auto const& PAID_RAW = _external ? Literals::ONE : Literals::ZERO;
-			_builder.push(FunctionUtilities::try_to_wrap(*f.type, PAID_RAW));
+			_builder.push(InitFunction::wrap(*f.type, PAID_RAW));
 		}
 		else
 		{

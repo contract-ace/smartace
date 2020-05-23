@@ -97,7 +97,7 @@ bool FunctionBlockConverter::visit(Return const& _node)
 	case BlockType::Operation:
 	case BlockType::AddressRef:
 		rv = expand(*_node.expression());
-		rv = FunctionUtilities::try_to_wrap(*m_rv->annotation().type, move(rv));
+		rv = InitFunction::wrap(*m_rv->annotation().type, move(rv));
 		if (block_type() == BlockType::AddressRef)
 		{
 			rv = make_shared<CReference>(rv);
