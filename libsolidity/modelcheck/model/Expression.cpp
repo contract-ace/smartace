@@ -692,46 +692,18 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	FunctionSpecialization call(_calldata.decl());
 
 	// Determines call name and locality of call.
-	string callname;
-	bool is_ext_call = false;
+	bool is_ext_call = (!_calldata.is_super() && _calldata.context());
 	if (_calldata.is_super())
 	{
-		if (auto super = M_DECLS.spec()->super())
-		{
-			callname = super->name(0);
-		}
-		else
-		{
-			throw runtime_error("Usage of `super` keyword without super data.");
-		}
+		call = FunctionSpecialization(call.func(), M_DECLS.spec()->use_by());
 	}
-	else
+	else if (!is_ext_call)
 	{
-		is_ext_call = (_calldata.context() != nullptr);
-		if (!is_ext_call)
-		{
-			// TODO: reuse earlier analysis?
-			auto const& hierarchy
-				= M_DECLS.spec()->use_by().annotation().linearizedBaseContracts;
-
-			// The compiler accepted the call so a match exists on some base.
-			FunctionDefinition const* override = nullptr;
-			for (auto DERIVED : hierarchy)
-			{
-				for (auto MEMBER_FUNC : DERIVED->definedFunctions())
-				{
-					if (MEMBER_FUNC->name() == call.func().name())
-					{
-						override = MEMBER_FUNC;
-						break;
-					}
-				}
-				if (override) break;
-			}
-
-			call = FunctionSpecialization(*override, M_DECLS.spec()->use_by());
-		}
-		callname = call.name(0);
+        auto const& user = M_DECLS.spec()->use_by();
+        string const& target = call.func().name();
+		
+		auto match = find_named_match<FunctionDefinition>(&user, target);
+		call = FunctionSpecialization(*match, user);
 	}
 
 	// Determines if builder's method produces return value by pointer.
@@ -743,7 +715,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		rv_is_wrapped = is_wrapped_type(rv);
 		rv_is_ptr = (rv.category() == Type::Category::Contract);
 	}
-	CFuncCallBuilder builder(callname, rv_is_ptr);	
+	CFuncCallBuilder builder(call.name(0), rv_is_ptr);	
 
 	// Sets state for the next call.
 	size_t param_idx = 0;

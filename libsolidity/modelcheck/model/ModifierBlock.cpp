@@ -11,6 +11,7 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+#include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 using namespace std;
@@ -30,26 +31,10 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
 {
     for (auto mod : _spec.func().modifiers())
     {
-        ModifierDefinition const* match = nullptr;
-        string const& target_name = mod->name()->name();
+        auto contract = &_spec.source();
+        string const& target = mod->name()->name();
 
-        // This function must be concrete else the compiler would fail.
-        for (auto contract : _spec.source().annotation().linearizedBaseContracts)
-        {
-            for (auto candidate : contract->functionModifiers())
-            {
-                if (target_name == candidate->name())
-                {
-                    match = candidate;
-                    break;
-                }
-            }
-
-            if (match) break;
-        }
-
-        // Captures the match if found.
-        if (match)
+        if (auto match = find_named_match<ModifierDefinition>(contract, target))
         {
             m_filtered_mods.push_back(make_pair(match, mod.get()));
         }

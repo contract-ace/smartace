@@ -8,6 +8,8 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 
+#include <libsolidity/modelcheck/utils/Function.h>
+
 #include <list>
 #include <map>
 #include <set>
@@ -57,7 +59,6 @@ public:
     using ContractList = std::vector<ContractDefinition const*>;
     using FunctionSet = std::set<FunctionDefinition const*>;
     using FuncInterface = std::list<FunctionDefinition const*>;
-    using SuperCalls = std::vector<FunctionDefinition const*>;
     using VarSet = std::set<VariableDeclaration const*>;
 
     // A utility used by ContractDependance to expand the entire model. The
@@ -77,8 +78,10 @@ public:
             ContractDefinition const* _contract
         ) const = 0;
 
-        // Returns the super call chain for _func.
-        virtual SuperCalls get_superchain_for(
+        // Returns the super call chain for _func, as taken from the interface
+        // list _interfaces.
+        virtual FunctionSet get_superchain_for(
+            ContractDependance::FuncInterface _interfaces,
             FunctionDefinition const* _func
         ) const = 0;
 
@@ -107,7 +110,9 @@ public:
     FuncInterface const& get_interface(ContractDefinition const* _actor) const;
 
     // Returns all super calls for a given method.
-    SuperCalls const& get_superchain(FunctionDefinition const* _func) const;
+    FunctionSet const& get_superchain(
+        ContractDefinition const* _contract, FunctionDefinition const* _func
+    ) const;
 
     // Returns all methods invoked by this call.
     FunctionSet const& get_function_roi(FunctionDefinition const* _func) const;
@@ -116,13 +121,19 @@ public:
     VarSet const& get_map_roi(FunctionDefinition const* _func) const;
 
 private:
-    ContractSet m_contracts;
-    ContractList m_model;
+    // Stores interfaces and inheritance chains, with respect to a given
+    // contract.
+    struct ContractRecord
+    {
+        FuncInterface interfaces;
+        std::map<FunctionDefinition const*, FunctionSet> superchain;
+    };
 
+    ContractList m_model;
     FunctionSet m_functions;
 
-    std::map<ContractDefinition const*, FuncInterface> m_interfaces;
-    std::map<FunctionDefinition const*, SuperCalls> m_superchain;
+    std::map<ContractDefinition const*, ContractRecord> m_function_data;
+
     std::map<FunctionDefinition const*, FunctionSet> m_callreach;
     std::map<FunctionDefinition const*, VarSet> m_mapreach;
 };
@@ -147,8 +158,9 @@ public:
         ContractDefinition const* _contract
     ) const override;
 
-    ContractDependance::SuperCalls get_superchain_for(
-        FunctionDefinition const* _contract
+    ContractDependance::FunctionSet get_superchain_for(
+        ContractDependance::FuncInterface _interface,
+        FunctionDefinition const* _func
     ) const override;
 };
 
@@ -175,8 +187,9 @@ public:
         ContractDefinition const* _contract
     ) const override;
 
-    ContractDependance::SuperCalls get_superchain_for(
-        FunctionDefinition const* _contract
+    ContractDependance::FunctionSet get_superchain_for(
+        ContractDependance::FuncInterface _interfaces,
+        FunctionDefinition const* _func
     ) const override;
 
 private:
@@ -185,10 +198,11 @@ private:
     {
     public:
         SuperChainExtractor(FunctionDefinition const& _call);
-        ContractDependance::SuperCalls m_superchain;
+        ContractDependance::FunctionSet m_superchain;
+        FunctionSpecialization m_base;
 
     protected:
-	    bool visit(FunctionCall const& _node) override;
+	    void endVisit(FunctionCall const& _node) override;
     };
 };
 

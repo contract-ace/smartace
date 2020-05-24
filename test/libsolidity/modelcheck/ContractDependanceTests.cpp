@@ -128,15 +128,64 @@ BOOST_AUTO_TEST_CASE(supercalls)
 
     ContractDependance deps(ModelDrivenContractDependance({ ctrt_r }, graph));
 
-    auto const& supers = deps.get_superchain(ctrt_r->definedFunctions()[0]);
+    auto & supers = deps.get_superchain(ctrt_r, ctrt_r->definedFunctions()[0]);
     BOOST_CHECK_EQUAL(ctrt_r->definedFunctions()[0]->name(), "f");
     BOOST_CHECK_EQUAL(ctrt_z->definedFunctions()[0]->name(), "f");
     BOOST_CHECK_EQUAL(ctrt_y->definedFunctions()[0]->name(), "f");
     BOOST_CHECK_EQUAL(supers.size(), 3);
 
-    BOOST_CHECK(supers[0] == ctrt_r->definedFunctions()[0]);
-    BOOST_CHECK(supers[1] == ctrt_z->definedFunctions()[0]);
-    BOOST_CHECK(supers[2] == ctrt_y->definedFunctions()[0]);
+    BOOST_CHECK(supers.find(ctrt_r->definedFunctions()[0]) != supers.end());
+    BOOST_CHECK(supers.find(ctrt_z->definedFunctions()[0]) != supers.end());
+    BOOST_CHECK(supers.find(ctrt_y->definedFunctions()[0]) != supers.end());
+}
+
+BOOST_AUTO_TEST_CASE(mixed_supercalls)
+{
+    char const* text = R"(
+        contract X {
+            function f() public pure returns (int a) { a = 5; }
+            function g() public pure returns (int a) { a = 10; }
+        }
+        contract Y is X {
+            function f() public pure returns (int a) { a = 5; }
+            function g() public pure returns (int a) { a = 5; }
+            function h() public pure {
+                assert(super.f() != super.g());
+            }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const* ctrt_x = retrieveContractByName(unit, "X");
+    auto const* ctrt_y = retrieveContractByName(unit, "Y");
+
+    NewCallGraph graph;
+    graph.record(unit);
+    graph.finalize();
+
+    vector<ContractDefinition const*> model = { ctrt_x, ctrt_y };
+    ContractDependance deps(ModelDrivenContractDependance(model, graph));
+
+    auto x_func_f = ctrt_x->definedFunctions()[0];
+    auto x_func_g = ctrt_x->definedFunctions()[1];
+    auto y_func_f = ctrt_y->definedFunctions()[0];
+    auto y_func_g = ctrt_y->definedFunctions()[1];
+    auto y_func_h = ctrt_y->definedFunctions()[2];
+
+    BOOST_CHECK_EQUAL(x_func_f->name(), "f");
+    BOOST_CHECK_EQUAL(x_func_g->name(), "g");
+    BOOST_CHECK_EQUAL(y_func_f->name(), "f");
+    BOOST_CHECK_EQUAL(y_func_g->name(), "g");
+    BOOST_CHECK_EQUAL(y_func_h->name(), "h");
+
+    BOOST_CHECK_EQUAL(deps.get_interface(ctrt_x).size(), 2);
+    BOOST_CHECK_EQUAL(deps.get_interface(ctrt_y).size(), 3);
+
+    BOOST_CHECK_EQUAL(deps.get_superchain(ctrt_x, x_func_f).size(), 1);
+    BOOST_CHECK_EQUAL(deps.get_superchain(ctrt_x, x_func_g).size(), 1);
+    BOOST_CHECK_EQUAL(deps.get_superchain(ctrt_y, y_func_f).size(), 2);
+    BOOST_CHECK_EQUAL(deps.get_superchain(ctrt_y, y_func_g).size(), 2);
+    BOOST_CHECK_EQUAL(deps.get_superchain(ctrt_y, y_func_h).size(), 1);
 }
 
 BOOST_AUTO_TEST_CASE(roi_for_calls)

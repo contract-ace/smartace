@@ -25,33 +25,34 @@ namespace modelcheck
 
 ModelDrivenContractDependance::SuperChainExtractor::SuperChainExtractor(
     FunctionDefinition const& _call
-): m_superchain({ &_call })
+): m_superchain({ &_call }), m_base(_call)
 {
-    _call.body().accept(*this);
 }
 
 // -------------------------------------------------------------------------- //
 
-bool ModelDrivenContractDependance::SuperChainExtractor::visit(
+void ModelDrivenContractDependance::SuperChainExtractor::endVisit(
     FunctionCall const& _node
 )
 {
     // If the type isn't a function this isn't a super call.
 	FunctionCallKind const KIND = _node.annotation().kind;
-	if (KIND != FunctionCallKind::FunctionCall) return true;
+	if (KIND != FunctionCallKind::FunctionCall) return;
 
     // Otherwise checks if this is a contract method call.
-	FunctionCallAnalyzer calldata(_node);
+    FunctionCallAnalyzer calldata(_node);
     if (calldata.classify() == FunctionCallAnalyzer::CallGroup::Method)
     {
+        // If the name doesn't match, move on.
+        if (m_base.func().name() != calldata.decl().name()) return;
+
+        // Otherwise, handles the super call.
         if (calldata.is_super())
         {
-            m_superchain.push_back(&calldata.decl());
+            m_superchain.insert(&calldata.decl());
             calldata.decl().body().accept(*this);
-            return false;
         }
     }
-    return false;
 }
 
 // -------------------------------------------------------------------------- //
@@ -108,7 +109,10 @@ ContractDependance::FuncInterface
         // Otherwise, analyze each function.
         for (auto func : base->definedFunctions())
         {
-            // If this name has already been seen, this is a superclass.
+            // Skips over unimplemented methods.
+            if (!func->isImplemented()) continue;
+    
+            // If this name has already been seen, it's a base implementation.
             if (!methods.insert(func->name()).second) continue;
 
             interfaces.push_back(func);
@@ -120,12 +124,14 @@ ContractDependance::FuncInterface
 
 // -------------------------------------------------------------------------- //
 
-ContractDependance::SuperCalls
+ContractDependance::FunctionSet
     ModelDrivenContractDependance::get_superchain_for(
+        ContractDependance::FuncInterface _interfaces,
         FunctionDefinition const* _func
 ) const
 {
     SuperChainExtractor extractor(*_func);
+    for (auto func : _interfaces) func->accept(extractor);
     return extractor.m_superchain;
 }
 

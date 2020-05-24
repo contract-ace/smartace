@@ -27,8 +27,6 @@ CallReachAnalyzer::CallReachAnalyzer(FunctionDefinition const& _func)
     _func.body().accept(*this);
 }
 
-// -------------------------------------------------------------------------- //
-
 bool CallReachAnalyzer::visit(IndexAccess const& _node)
 {
     FlatIndex idx(_node);
@@ -70,23 +68,19 @@ ContractDependance::DependencyAnalyzer::DependencyAnalyzer(
 
 ContractDependance::ContractDependance(
     ContractDependance::DependencyAnalyzer const& _analyzer
-): m_contracts(_analyzer.m_contracts), m_model(_analyzer.m_model)
+): m_model(_analyzer.m_model)
 {
     // Does per-contract analysis.
-    for (auto contract : m_contracts)
+    for (auto contract : _analyzer.m_contracts)
     {
-        // Finds all interfaces of this contract.
-        m_interfaces[contract] = _analyzer.get_interfaces_for(contract);
+        auto & record = m_function_data[contract];
+        record.interfaces = _analyzer.get_interfaces_for(contract);
 
         // Does per-interface analysis.
-        for (auto interface : m_interfaces[contract])
+        for (auto interface : record.interfaces)
         {
-            // Finds supercalls if not already populated.
-            if (m_superchain.find(interface) == m_superchain.end())
-            {
-                m_superchain[interface]
-                    = _analyzer.get_superchain_for(interface);
-            }
+            record.superchain[interface]
+                = _analyzer.get_superchain_for(record.interfaces, interface);
 
             // Computes ROI of the given interface.
             // TODO: reusing partial results would be nice.
@@ -121,21 +115,26 @@ ContractDependance::FunctionSet const&
 
 bool ContractDependance::is_deployed(ContractDefinition const* _actor) const
 {
-    return (m_contracts.find(_actor) != m_contracts.end());
+    return (m_function_data.find(_actor) != m_function_data.end());
 }
 
 // -------------------------------------------------------------------------- //
 
-ContractDependance::SuperCalls const& ContractDependance::get_superchain(
-    FunctionDefinition const* _func
+ContractDependance::FunctionSet const& ContractDependance::get_superchain(
+    ContractDefinition const* _contract, FunctionDefinition const* _func
 ) const
 {
-    auto res = m_superchain.find(_func);
-    if (res != m_superchain.end())
+    auto record = m_function_data.find(_contract);
+    if (record != m_function_data.end())
     {
-        return res->second;
+        auto res = record->second.superchain.find(_func);
+        if (res != record->second.superchain.end())
+        {
+            return res->second;
+        }
+        throw runtime_error("Superchain requested on out-of-scope function.");
     }
-    throw runtime_error("Superchain requested on out-of-scope function.");
+    throw runtime_error("Superchain requested on out-of-scope contract.");
 }
 
 // -------------------------------------------------------------------------- //
@@ -144,10 +143,10 @@ ContractDependance::FuncInterface const& ContractDependance::get_interface(
     ContractDefinition const* _actor
 ) const
 {
-    auto res = m_interfaces.find(_actor);
-    if (res != m_interfaces.end())
+    auto res = m_function_data.find(_actor);
+    if (res != m_function_data.end())
     {
-        return res->second;
+        return res->second.interfaces;
     }
     throw runtime_error("Interface requested on out-of-scope contract.");
 }

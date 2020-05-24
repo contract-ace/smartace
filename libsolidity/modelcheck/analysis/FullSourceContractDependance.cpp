@@ -65,16 +65,18 @@ ContractDependance::FuncInterface
 
 // -------------------------------------------------------------------------- //
 
-ContractDependance::SuperCalls FullSourceContractDependance::get_superchain_for(
-    FunctionDefinition const* _func
+ContractDependance::FunctionSet
+    FullSourceContractDependance::get_superchain_for(
+        ContractDependance::FuncInterface,
+        FunctionDefinition const* _func
 ) const
 {
-    ContractDependance::SuperCalls chain;
+    ContractDependance::FunctionSet chain;
 
     auto const* supercall = _func;
     while (supercall != nullptr && supercall->isImplemented())
     {
-        chain.push_back(supercall);
+        chain.insert(supercall);
         supercall = supercall->annotation().superFunction;
     }
 

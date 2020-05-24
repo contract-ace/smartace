@@ -94,10 +94,9 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         // Generates the dependance-specified interface for the contract.
         for (auto func : M_DEPENDANCE.get_interface(&_node))
         {
-            auto const& supers = M_DEPENDANCE.get_superchain(func);
-            for (auto func = supers.rbegin(); func != supers.rend(); func++)
+            for (auto func : M_DEPENDANCE.get_superchain(&_node, func))
             {
-                generate_function(FunctionSpecialization(**func, _node));
+                generate_function(FunctionSpecialization(*func, _node));
             }
         }
     }

@@ -20,6 +20,28 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
+ * This searches the inheritance hierarchy of _base to find instances of T with
+ * the name _target. The top instance is returned. If no matches are found, the
+ * nullptr is returned.
+ */
+template <class T>
+T const* find_named_match(
+	ContractDefinition const* _base, std::string const& _target
+)
+{
+	for (auto contract : _base->annotation().linearizedBaseContracts)
+	{
+		for (auto callable : ASTNode::filteredNodes<T>(contract->subNodes()))
+		{
+			if (callable->name() == _target) return callable;
+		}
+	}
+	return nullptr;
+}
+
+// -------------------------------------------------------------------------- //
+
+/**
  * Utility to find the top-most instance of T along some branch of an
  * expression AST. Sub-expressions used in decisions shell be pruned from the
  * tree.
