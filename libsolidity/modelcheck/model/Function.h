@@ -29,6 +29,8 @@ class TypeConverter;
 
 // -------------------------------------------------------------------------- //
 
+using SolDeclList = std::vector<ASTPointer<VariableDeclaration>>;
+
 /**
  * Prints a forward declaration for each explicit (member function) and implicit
  * (default constructor, map accessor, etc.) Solidity function, according to the
@@ -84,22 +86,15 @@ private:
 	View const M_VIEW;
 	bool const M_FWD_DCL;
 
-	// Helper structure to communicate parameters to the parameter generator.
-	struct ParamTemplate
-	{
-		VarContext context;
-		bool instrumentation;
-		ASTPointer<const VariableDeclaration> decl;
-	};
-
-	// Formats all declarations as a C-function argument list. The given order
-	// of arguments is maintained. If a scope is provided, then the arguments
-	// are assumed to be of a stateful Solidity method, bound to structures of
-	// the given type.
+	// Formats all Solidity arguments (_decls) as a c-function argument list.
+	// If _scope is set, the function is assumed to be a method of _scope. The
+	// _context and _instrumented pass to VariableScopeDeclaration::rewrite.
 	CParams generate_params(
-		std::vector<ParamTemplate> const& _args,
+		SolDeclList const& _decls,
 		ContractDefinition const* _scope,
-		ASTPointer<VariableDeclaration> _dest
+		ASTPointer<VariableDeclaration> _dest,
+		VarContext _context = VarContext::STRUCT,
+		bool _instrumeneted = false
 	);
 
 	// Helper function to avoid duplicate visits to a single specialization. If

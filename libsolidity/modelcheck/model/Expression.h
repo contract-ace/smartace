@@ -20,6 +20,7 @@ namespace modelcheck
 {
 
 class CallState;
+class CFuncCallBuilder;
 class FunctionCallAnalyzer;
 class TypeConverter;
 class VariableScopeResolver;
@@ -27,6 +28,7 @@ class VariableScopeResolver;
 // -------------------------------------------------------------------------- //
 
 using SolArgList = std::vector<ASTPointer<Expression const>>;
+using SolDeclList = std::vector<ASTPointer<VariableDeclaration>>;
 
 /**
  * A utility visitor, designed to convert Solidity statements into executable
@@ -85,9 +87,7 @@ private:
 	// Helper to format binary calls. Unlike unary calls, binary calls appear in
 	// multiple cases.
 	void generate_binary_op(
-		Expression const& _lhs,
-		Token _op,
-		Expression const& _rhs
+		Expression const& _lhs, Token _op, Expression const& _rhs
 	);
 
 	// Helper to format mapping operations.
@@ -103,6 +103,24 @@ private:
 	// used recursively in another initializer, the correct location
 	// is the `dest` parameter.
 	CExprPtr get_initializer_context() const;
+
+	// Assumes (_args[_offset+i], _decls[i]) gives the i-th argument of some
+	// Solidity method, and the declaration it is passed into. All such pairs
+	// are added to _builder.
+	void push_arglist(
+		SolArgList const& _args,
+		SolDeclList const& _decls,
+		CFuncCallBuilder & _builder,
+		size_t _offset = 0
+	) const;
+
+	// Assumes (_arg, _decl) gives the argument of some Solidity method, and the
+	// declaration it is passed into. The pair is added to _builder.
+	void push_arg(
+		Expression const& _arg,
+		VariableDeclaration const& _decl,
+		CFuncCallBuilder & _builder
+	) const;
 
 	// Helper functions to produce specialized function calls.
 	void print_struct_ctor(FunctionCall const& _call);
@@ -126,9 +144,9 @@ private:
 	void print_array_member(
 		Expression const& _node, std::string const& _member
 	);
-	void print_adt_member(Expression const& _node, std::string const& _member);
-	void print_magic_member(TypePointer _type, std::string const& _member);
-	void print_enum_member(TypePointer _type, std::string const& _member);
+	void print_adt_member(Expression const& _node, std::string _member);
+	void print_magic_member(TypePointer _t, std::string _member);
+	void print_enum_member(TypePointer _t, std::string const& _member);
 };
 
 // -------------------------------------------------------------------------- //

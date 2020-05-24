@@ -111,23 +111,13 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 
     InitFunction initdata(M_CONVERTER, _node);
 
-    vector<FunctionConverter::ParamTemplate> initializable_members;
+    SolDeclList basic_decls;
+    for (auto const& member : _node.members())
     {
-        FunctionConverter::ParamTemplate t;
-        t.context = VarContext::STRUCT;
-        t.instrumentation = false;
-
-        for (auto const& member : _node.members())
-        {
-            if (has_simple_type(*member))
-            {
-                t.decl = member;
-                initializable_members.push_back(t);
-            }
-        }
+        if (has_simple_type(*member)) basic_decls.push_back(member);
     }
 
-    auto init_params = generate_params(initializable_members, nullptr, nullptr);
+    auto init_params = generate_params(basic_decls, nullptr, nullptr);
 
     shared_ptr<CBlock> zero_body, init_body;
     if (!M_FWD_DCL)
@@ -151,10 +141,10 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 
         auto zinit = initdata.defaulted();
         stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp", false, zinit));
-        for (auto m : initializable_members)
+        for (auto decl : basic_decls)
         {
             string const NAME = VariableScopeResolver::rewrite(
-                m.decl->name(), false, VarContext::STRUCT
+                decl->name(), false, VarContext::STRUCT
             );
 
             auto member = TMP->access(NAME);
@@ -193,9 +183,11 @@ bool FunctionConverter::visit(Mapping const& _node)
 // -------------------------------------------------------------------------- //
 
 CParams FunctionConverter::generate_params(
-    vector<FunctionConverter::ParamTemplate> const& _args,
+    SolDeclList const& _decls,
     ContractDefinition const* _scope,
-    ASTPointer<VariableDeclaration> _dest
+    ASTPointer<VariableDeclaration> _dest,
+    VarContext _context,
+    bool _instrumeneted
 )
 {
     CParams params;
@@ -210,29 +202,18 @@ CParams FunctionConverter::generate_params(
             ));
         }
     }
-    for (size_t i = 0; i < _args.size(); ++i)
+    for (size_t i = 0; i < _decls.size(); ++i)
     {
-        auto const& ARGS = _args[i];
+        auto const& DECL = *_decls[i];
     
-		bool const IS_REF
-			= ARGS.decl->referenceLocation() == VariableDeclaration::Storage;
+        string type = M_CONVERTER.get_type(DECL);
+    
+        string name = DECL.name();
+        if (name.empty()) name = "var" + to_string(i);
+        name = VariableScopeResolver::rewrite(name, _instrumeneted, _context);
 
-        string const ARG_TYPE = M_CONVERTER.get_type(*ARGS.decl);
-        string argname = ARGS.decl->name();
-        if (argname.empty())
-        {
-            argname = VariableScopeResolver::rewrite(
-                "var" + to_string(i), ARGS.instrumentation, ARGS.context
-            );
-        }
-        else
-        {
-            argname = VariableScopeResolver::rewrite(
-                argname, ARGS.instrumentation, ARGS.context
-            );
-        }
-
-        params.push_back(make_shared<CVarDecl>(ARG_TYPE, argname, IS_REF));
+		bool is_ref = DECL.referenceLocation() == VariableDeclaration::Storage;
+        params.push_back(make_shared<CVarDecl>(move(type), move(name), is_ref));
     }
     if (_dest)
     {
@@ -304,24 +285,16 @@ string FunctionConverter::handle_contract_initializer(
     CParams params;
     string ctor_name;
     {
-        vector<FunctionConverter::ParamTemplate> local_param_template;
+        SolDeclList decls;
         if (LOCAL_CTOR)
         {
-            FunctionConverter::ParamTemplate t;
-            t.context = VarContext::STRUCT;
-            t.instrumentation = false;
-
-            for (auto arg : LOCAL_CTOR->parameters())
-            {
-                t.decl = arg;
-                local_param_template.push_back(t);
-            }
+            decls = LOCAL_CTOR->parameters();
 
             ctor_name = handle_function(
                 FunctionSpecialization(*LOCAL_CTOR, _for), "void", false
             );
         }
-        params = generate_params(local_param_template, &_for, nullptr);
+        params = generate_params(decls, &_for, nullptr);
     }
 
     auto self_ptr = params[0]->id();
@@ -454,24 +427,6 @@ string FunctionConverter::handle_function(
     string fname = _spec.name(0);
     if (!record_pair(_spec.func(), _spec.use_by())) return fname;
 
-    // Generates parameter list for all levels.
-    vector<FunctionConverter::ParamTemplate> base_template, mod_template;
-    {
-        FunctionConverter::ParamTemplate t;
-        t.context = VarContext::FUNCTION;
-
-        for (auto arg : _spec.func().parameters())
-        {
-            t.decl = arg;
-
-            t.instrumentation = false;
-            base_template.push_back(t);
-
-            t.instrumentation = true;
-            mod_template.push_back(t);
-        }
-    }
-
     // Determines if a contract initialization destination is required.
     ASTPointer<VariableDeclaration> dest;
     auto rvs = _spec.func().returnParameters();
@@ -484,9 +439,12 @@ string FunctionConverter::handle_function(
     ModifierBlockConverter::Factory mods(_spec);
 
     // Generates a declaration for the base call.
+    auto const CONTEXT = VarContext::FUNCTION;
     vector<CFuncDef> defs;
     {
-        CParams params = generate_params(base_template, &_spec.use_by(), dest);
+        CParams params = generate_params(
+            _spec.func().parameters(), &_spec.use_by(), dest, CONTEXT
+        );
 
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
@@ -505,7 +463,9 @@ string FunctionConverter::handle_function(
     }
 
     // Generates a declaration for each modifier.
-    CParams const mod_params = generate_params(mod_template, &_spec.use_by(), dest);
+    CParams const mod_params = generate_params(
+        _spec.func().parameters(), &_spec.use_by(), dest, CONTEXT, true
+    );
     for (size_t i = mods.len(); i > 0; --i)
     {
         size_t const IDX = i - 1;

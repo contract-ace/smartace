@@ -62,11 +62,11 @@ CExprPtr ExpressionConverter::convert()
 bool ExpressionConverter::visit(Conditional const& _node)
 {
 	_node.condition().accept(*this);
-	auto subexpr1 = m_subexpr;
+	auto subexpr_1 = m_subexpr;
 	_node.trueExpression().accept(*this);
-	auto subexpr2 = m_subexpr;
+	auto subexpr_2 = m_subexpr;
 	_node.falseExpression().accept(*this);
-	m_subexpr = make_shared<CCond>(subexpr1, subexpr2, m_subexpr);
+	m_subexpr = make_shared<CCond>(move(subexpr_1), move(subexpr_2), move(m_subexpr));
 	return false;
 }
 
@@ -107,12 +107,12 @@ bool ExpressionConverter::visit(Assignment const& _node)
 			// TODO: "Write" should not be hard-coded.
 			FlatIndex idx(*map);
 			auto record = M_CONVERTER.map_db().resolve(idx.decl());
-			generate_mapping_call("Write", record, idx, rhs);
+			generate_mapping_call("Write", move(record), move(idx), move(rhs));
 		}
 		else
 		{
 			_node.leftHandSide().accept(*this);
-			m_subexpr = make_shared<CBinaryOp>(m_subexpr, "=", rhs);
+			m_subexpr = make_shared<CBinaryOp>(m_subexpr, "=", move(rhs));
 		}
 	}
 
@@ -151,7 +151,7 @@ bool ExpressionConverter::visit(UnaryOperation const& _node)
 	else
 	{
 		string const OP = TokenTraits::friendlyName(_node.getOperator());
-		m_subexpr = make_shared<CUnaryOp>(OP, m_subexpr, IS_PREFIX);
+		m_subexpr = make_shared<CUnaryOp>(OP, move(m_subexpr), IS_PREFIX);
 	}
 
 	return false;
@@ -220,11 +220,11 @@ bool ExpressionConverter::visit(MemberAccess const& _node)
 
 	if (find_ref.old())
 	{
-		m_subexpr = make_shared<CReference>(m_subexpr);
+		m_subexpr = make_shared<CReference>(move(m_subexpr));
 	}
 	else if (is_wrapped_type(*_node.annotation().type) && !auto_unwrapped)
 	{
-		m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
+		m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), "v");
 	}
 
 	return false;
@@ -253,7 +253,7 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 
 			if (is_wrapped_type(*_node.annotation().type))
 			{
-				m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
+				m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), "v");
 			}
 		}
 		break;
@@ -272,13 +272,14 @@ bool ExpressionConverter::visit(Identifier const& _node)
 		M_DECLS.resolve_identifier(_node), IS_REF
 	);
 
+	// TODO: this code is duplicated
 	if (m_find_ref && !IS_REF)
 	{
-		m_subexpr = make_shared<CReference>(m_subexpr);
+		m_subexpr = make_shared<CReference>(move(m_subexpr));
 	}
 	else if (is_wrapped_type(*_node.annotation().type))
 	{
-		m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
+		m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), "v");
 	}
 
 	return false;
@@ -350,13 +351,11 @@ long long int ExpressionConverter::literal_to_number(Literal const& _node)
 // -------------------------------------------------------------------------- //
 
 void ExpressionConverter::generate_binary_op(
-	Expression const& _lhs,
-	Token _op,
-	Expression const& _rhs
+	Expression const& _lhs, Token _op, Expression const& _rhs
 )
 {
 	_lhs.accept(*this);
-	auto subexpr1 = m_subexpr;
+	auto subexpr_1 = m_subexpr;
 	_rhs.accept(*this);
 
 	string const OP = TokenTraits::friendlyName(_op);
@@ -365,7 +364,7 @@ void ExpressionConverter::generate_binary_op(
 		throw runtime_error("Unsupported binary operator:" + OP);
 	}
 
-	m_subexpr = make_shared<CBinaryOp>(subexpr1, OP, m_subexpr);
+	m_subexpr = make_shared<CBinaryOp>(move(subexpr_1), OP, move(m_subexpr));
 }
 
 void ExpressionConverter::generate_mapping_call(
@@ -380,15 +379,15 @@ void ExpressionConverter::generate_mapping_call(
 	builder.push(_idx.base(), M_CONVERTER, M_STATEDATA, M_DECLS, true);
 
 	{
-		auto iitr = _idx.indices().begin();
-		auto mitr = _map.key_types.begin();
-		while (iitr != _idx.indices().end() && mitr != _map.key_types.end())
+		auto idx_itr = _idx.indices().begin();
+		auto key_itr = _map.key_types.begin();
+		while (idx_itr != _idx.indices().end() && key_itr != _map.key_types.end())
 		{
-			auto const& idx = (**iitr);
-			auto const* type = (*mitr)->annotation().type;
+			auto const& idx = (**idx_itr);
+			auto const* type = (*key_itr)->annotation().type;
 			builder.push(idx, M_CONVERTER, M_STATEDATA, M_DECLS, false, type);
-			++iitr;
-			++mitr;
+			++idx_itr;
+			++key_itr;
 		}
 	}
 
@@ -412,6 +411,32 @@ CExprPtr ExpressionConverter::get_initializer_context() const
 
 // -------------------------------------------------------------------------- //
 
+void ExpressionConverter::push_arglist(
+	SolArgList const& _args,
+	SolDeclList const& _decls,
+	CFuncCallBuilder & _builder,
+	size_t _offset
+) const
+{
+	for (size_t i = 0; i < _args.size(); ++i)
+	{
+		push_arg(*_args[i], *_decls[_offset + i], _builder);
+	}
+}
+
+void ExpressionConverter::push_arg(
+	Expression const& _arg,
+	VariableDeclaration const& _decl,
+	CFuncCallBuilder & _builder
+) const
+{
+	auto const TYPE = _decl.type();
+	bool is_ref = (_decl.referenceLocation() == VariableDeclaration::Storage);
+	_builder.push(_arg, M_CONVERTER, M_STATEDATA, M_DECLS, is_ref, TYPE);
+}
+
+// -------------------------------------------------------------------------- //
+
 void ExpressionConverter::print_struct_ctor(FunctionCall const& _call)
 {
 	if (auto id = NodeSniffer<Identifier>(_call.expression()).find())
@@ -421,12 +446,7 @@ void ExpressionConverter::print_struct_ctor(FunctionCall const& _call)
 		);
 
 		auto builder = InitFunction(M_CONVERTER, solstruct).call_builder();
-		for (unsigned int i = 0; i < _call.arguments().size(); ++i)
-		{
-			auto const& ARG = *(_call.arguments()[i]);
-			auto const* TYPE = solstruct.members()[i]->type();
-			builder.push(ARG, M_CONVERTER, M_STATEDATA, M_DECLS, false, TYPE);
-		}
+		push_arglist(_call.arguments(), solstruct.members(), builder);
 		m_subexpr = builder.merge_and_pop();
 	}
 	else
@@ -477,7 +497,7 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 			}
 			else
 			{
-				m_subexpr = make_shared<CCast>(m_subexpr, "unsigned int");
+				m_subexpr = make_shared<CCast>(move(m_subexpr), "unsigned int");
 			}
 		}
 		else if (cast_type->category() == Type::Category::Enum)
@@ -500,11 +520,11 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 			{
 				if (cast_int->isSigned())
 				{
-					m_subexpr = make_shared<CCast>(m_subexpr, "int");
+					m_subexpr = make_shared<CCast>(move(m_subexpr), "int");
 				}
 				else
 				{
-					m_subexpr = make_shared<CCast>(m_subexpr, "unsigned int");
+					m_subexpr = make_shared<CCast>(move(m_subexpr), "unsigned int");
 				}
 			}
 		}
@@ -512,7 +532,7 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		{
 			if (!base_int->isSigned())
 			{
-				m_subexpr = make_shared<CCast>(m_subexpr, "int");
+				m_subexpr = make_shared<CCast>(move(m_subexpr), "int");
 			}
 		}
 		else if (cast_type->category() == Type::Category::Enum)
@@ -558,8 +578,8 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		else if (cast_type->category() == Type::Category::Address)
 		{
 			string const FIELD = ContractUtilities::address_member();
-			m_subexpr = make_shared<CMemberAccess>(m_subexpr, FIELD);
-			m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
+			m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), FIELD);
+			m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), "v");
 		}
 		else
 		{
@@ -731,22 +751,8 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	{
 		if (_calldata.context())
 		{
-			// TODO: this is duplicated further down.
-			auto const ARG = call.func().parameters()[param_idx];
-			auto const* ARGTYPE = ARG->type();
-
-			bool const IS_REF
-				= ARG->referenceLocation() == VariableDeclaration::Storage;
-
-			builder.push(
-				*_calldata.context(),
-				M_CONVERTER,
-				M_STATEDATA,
-				M_DECLS,
-				IS_REF,
-				ARGTYPE
-			);
-
+			auto const DECL = call.func().parameters()[param_idx];
+			push_arg(*_calldata.context(), *DECL, builder);
 			++param_idx;
 		}
 	}
@@ -762,11 +768,11 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 				// Checks if the context is by retval (implicitly a pointer).
 				if (!dynamic_cast<FunctionCall const*>(_calldata.context()))
 				{
-					m_subexpr = make_shared<CReference>(m_subexpr);
+					m_subexpr = make_shared<CReference>(move(m_subexpr));
 				}
 			}
 
-			builder.push(m_subexpr);
+			builder.push(move(m_subexpr));
 		}
 		else
 		{
@@ -776,37 +782,16 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	}
 
 	// Passes dest if contract construction is in use.
-	if (m_is_init)
-	{
-		builder.push(get_initializer_context());
-	}
+	if (m_is_init) builder.push(get_initializer_context());
 
-	// Pushes all user provided arguments.
-	for (size_t i = 0; i < _calldata.args().size(); ++i)
-	{
-		auto const ARG = call.func().parameters()[param_idx + i];
-		auto const* ARGTYPE = ARG->type();
-
-		bool const IS_REF
-			= ARG->referenceLocation() == VariableDeclaration::Storage;
-	
-		builder.push(
-			*_calldata.args()[i],
-			M_CONVERTER,
-			M_STATEDATA,
-			M_DECLS,
-			IS_REF,
-			ARGTYPE
-		);
-	}
-
-	// Generates the function call.
+	// Pushes all user provided arguments and generates the function call.
+	push_arglist(_calldata.args(), call.func().parameters(), builder, param_idx);
 	m_subexpr = builder.merge_and_pop();
 
-	// Unwraps the return value, if it is a wraped type.
+	// Unwraps the return value, if it is a wrapped type.
 	if (rv_is_wrapped)
 	{
-		m_subexpr = make_shared<CMemberAccess>(m_subexpr, "v");
+		m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), "v");
 	}
 }
 
@@ -823,19 +808,7 @@ void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 
 			if (auto const& ctor = contract->constructor())
 			{
-				auto const& args = _call.arguments();
-				for (unsigned int i = 0; i < args.size(); ++i)
-				{
-					auto const* ARG_TYPE = ctor->parameters()[i]->type();
-					builder.push(
-						*args[i],
-						M_CONVERTER,
-						M_STATEDATA,
-						M_DECLS,
-						false,
-						ARG_TYPE
-					);
-				}
+				push_arglist(_call.arguments(), ctor->parameters(), builder);
 			}
 		}
 		else
@@ -989,7 +962,7 @@ void ExpressionConverter::print_address_member(
 		
 		base->accept(*this);
 		string const FIELD = ContractUtilities::balance_member();
-		m_subexpr = make_shared<CMemberAccess>(m_subexpr, FIELD);
+		m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), FIELD);
 	}
 	else
 	{
@@ -1013,31 +986,25 @@ void ExpressionConverter::print_array_member(
 	}
 }
 
-void ExpressionConverter::print_adt_member(
-	Expression const& _node, string const& _member
-)
+void ExpressionConverter::print_adt_member(Expression const& _node, string _member)
 {
 	_node.accept(*this);
-	m_subexpr = make_shared<CMemberAccess>(
-		m_subexpr,
-		VariableScopeResolver::rewrite(_member, false, VarContext::STRUCT)
-	);
+	auto name = M_DECLS.rewrite(move(_member), false, VarContext::STRUCT);
+	m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), move(name));
 }
 
-void ExpressionConverter::print_magic_member(
-	TypePointer _type, string const& _member
-)
+void ExpressionConverter::print_magic_member(TypePointer _t, string _member)
 {
-	auto const TYPE = CallStateUtilities::parse_magic_type(*_type, _member);
-	auto const NAME = CallStateUtilities::get_name(TYPE);
-	m_subexpr = make_shared<CIdentifier>(NAME, false);
+	auto const TYPE = CallStateUtilities::parse_magic_type(*_t, move(_member));
+	auto name = CallStateUtilities::get_name(TYPE);
+	m_subexpr = make_shared<CIdentifier>(move(name), false);
 }
 
 void ExpressionConverter::print_enum_member(
-	TypePointer _type, string const& _member
+	TypePointer _t, string const& _member
 )
 {
-	const auto* WRAPPED_T = dynamic_cast<TypeType const*>(_type);
+	const auto* WRAPPED_T = dynamic_cast<TypeType const*>(_t);
 	const auto* ENUM_T = dynamic_cast<EnumType const*>(WRAPPED_T->actualType());
 	if (!ENUM_T)
 	{
