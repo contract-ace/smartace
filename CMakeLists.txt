@@ -60,7 +60,11 @@ add_subdirectory(libsolc)
 add_subdirectory(libverify)
 
 install(DIRECTORY libverify/ DESTINATION include/solc/libverify)
-install(DIRECTORY cmodelres/ DESTINATION share/solc/project)
+install(FILES cmodelres/CMakeLists.txt DESTINATION share/solc/project)
+install(FILES cmodelres/Klee.cmake DESTINATION share/solc/project/cmake)
+install(FILES cmodelres/Interactive.cmake DESTINATION share/solc/project/cmake)
+install(FILES cmodelres/LibFuzzer.cmake DESTINATION share/solc/project/cmake)
+install(FILES cmodelres/Seahorn.cmake DESTINATION share/solc/project/cmake)
 install(FILES cmake/McOptions.cmake DESTINATION share/solc/project/cmake)
 
 if (NOT EMSCRIPTEN)

@@ -173,12 +173,20 @@ void MainFunctionGenerator::log_call(
     FunctionSpecialization const& _call
 )
 {
-    stringstream caselog;
+    stringstream caselog("[");
+    caselog << "Calling " << _call.func().name() << "(";
 
-    caselog << "["
-            << "Calling " << _call.func().name() << "() "
-            << "on " << _id
-            << "]";
+    auto const& PARAMS = _call.func().parameters();
+    for (size_t i = 0; i < PARAMS.size(); ++i)
+    {
+        if (i != 0) caselog << ", ";
+
+        auto const& NAME = PARAMS[i]->name();
+        caselog << (NAME.empty() ? "0" : NAME);
+    }
+
+    caselog << ") on " << _id;
+    caselog << "]";
 
     HarnessUtilities::log(_block, caselog.str());
 }
