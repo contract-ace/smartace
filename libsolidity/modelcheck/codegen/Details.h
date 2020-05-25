@@ -487,7 +487,8 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * Corresponds to an integral switch statement in C. Each case is scoped.
+ * Corresponds to an integral switch statement in C. Each case is scoped and a
+ * default case is required.
  */
 class CSwitch : public CStmt
 {
@@ -499,6 +500,9 @@ public:
 
     // Adds a case `case _val: _body`.
     void add_case(int64_t _val, CBlockList _body);
+
+    // Returns the number of cases, excluding default.
+    size_t size() const;
 
     ~CSwitch() = default;
 

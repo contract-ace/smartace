@@ -8,7 +8,6 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/utils/General.h>
 
 #include <list>
 #include <map>
@@ -41,26 +40,18 @@ struct Actor
         TypeConverter const& _converter,
         ContractDependance const& _dependance,
         ContractDefinition const* _contract,
-        CExprPtr _path,
-        TicketSystem<uint16_t> & _cids,
-        TicketSystem<uint16_t> & _fids
+        size_t _id,
+        CExprPtr _path
     );
 
     // The underlying contract.
     ContractDefinition const* contract;
 
-    // Specializations of all member funtions
-    std::list<FunctionSpecialization> specs;
-
     // A variable declaration used to maintain the actor in the harness.
     std::shared_ptr<CVarDecl> decl;
 
-    // Assigns a unique number to each function (relative to all other actors).
-    std::map<FunctionDefinition const*, size_t> fnums;
-
-    // Associates each function parameter with the variable used to store its
-    // parameters.
-    std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> fparams;
+    // Specializations of all member funtions
+    std::list<FunctionSpecialization> specs;
 
     // Maintains a path of accesses, from parent contract decl to child contract
     // decl.
@@ -89,18 +80,22 @@ public:
         MapIndexSummary const& _addrdata
     );
 
-    // Writes a declaration for each actor.
+    // Appends a declaration for each actor onto _block.
     void declare(CBlockList & _block) const;
 
-    // Writes an initialization call to _block, for each actor. Calls are
-    // performed with non-deterministic parameters.
+    // Writes an initialization call to _block, for each actor. Nested actors
+    // are not initialized at this level. Initialization is performed with
+    // non-deterministic parameters. _statedata and _stategen are used to set
+    // the block and message state.
     void initialize(
         CBlockList & _block,
-        CallState const& m_statedata,
-        StateGenerator const& m_stategen
+        CallState const& _statedata,
+        StateGenerator const& _stategen
     ) const;
 
-    // Generates statements to allocate addresses for each actor.
+    // Appends statements onto _block to allocate addresses for each actor. The
+    // addresses are requested from _addrspace. The call throws if
+    // m_actors.size() exceeds the number of available addresses.
     void assign_addresses(CBlockList & _block, AddressSpace & _addrspace) const;
 
     // Returns a list of contract address declarations.
@@ -119,13 +114,12 @@ private:
     std::list<std::shared_ptr<CMemberAccess>> m_addrvar;
 
     // Extends setup to children. _path will accumulate the path to the current
-    // parent, starting from a top level contract.
+    // parent, starting from a top level contract. _allocs is used to find all
+    // children while _dependance is used to populate interface methods.
     void recursive_setup(
         NewCallGraph const& _allocs,
         ContractDependance const& _dependance,
-        Actor & _parent,
-        TicketSystem<uint16_t> & _cids,
-        TicketSystem<uint16_t> & _fids
+        Actor & _parent
     );
 };
 

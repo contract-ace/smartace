@@ -34,17 +34,14 @@ Actor::Actor(
     TypeConverter const& _converter,
     ContractDependance const& _dependance,
     ContractDefinition const* _contract,
-    CExprPtr _path,
-    TicketSystem<uint16_t> & _cids,
-    TicketSystem<uint16_t> & _fids
-): contract(_contract)
- , path(_path)
+    size_t _id,
+    CExprPtr _path
+): contract(_contract), path(_path)
 {
     // Reserves a unique identifier for the actor.
-    uint16_t cid = _cids.next();
     decl = make_shared<CVarDecl>(
         _converter.get_type(*_contract),
-        "contract_" + to_string(cid),
+        "contract_" + to_string(_id),
         _path != nullptr
     );
 
@@ -54,22 +51,7 @@ Actor::Actor(
         if (method->isConstructor()) continue;
         if (!method->isPublic()) continue;
 
-        auto fnum = _fids.next();
-        fnums[method] = fnum;
         specs.emplace_back(*method, *contract);
-
-        for (size_t pidx = 0; pidx < method->parameters().size(); ++pidx)
-        {
-            auto PARAM = method->parameters()[pidx];
-
-            ostringstream pname;
-            pname << "c" << cid << "_f" << fnum << "_a" << pidx;
-            if (!PARAM->name().empty()) pname << "_" << PARAM->name();
-
-            fparams[PARAM.get()] = make_shared<CVarDecl>(
-                _converter.get_type(*PARAM), pname.str()
-            );
-        }
 
         if (!_dependance.get_map_roi(method).empty())
         {
@@ -88,17 +70,15 @@ ActorModel::ActorModel(
 ): M_CONVERTER(_converter)
 {
     // Generates an actor for each client.
-    TicketSystem<uint16_t> cids;
-    TicketSystem<uint16_t> fids;
     for (auto const contract : _dependance.get_model())
     {
         if (contract->isLibrary() || contract->isInterface()) continue;
 
         m_actors.emplace_back(
-            M_CONVERTER, _dependance, contract, nullptr, cids, fids
+            M_CONVERTER, _dependance, contract, m_actors.size(), nullptr
         );
 
-        recursive_setup(_newcalls, _dependance, m_actors.back() , cids, fids);
+        recursive_setup(_newcalls, _dependance, m_actors.back());
     }
 
     // Extracts the address variable for each contract.
@@ -137,10 +117,6 @@ void ActorModel::declare(CBlockList & _block) const
     for (auto const& actor : m_actors)
     {
         _block.push_back(actor.decl);
-        for (auto param_pair : actor.fparams)
-        {
-            _block.push_back(param_pair.second);
-        }
     }
 }
 
@@ -242,9 +218,7 @@ list<Actor> const& ActorModel::inspect() const
 void ActorModel::recursive_setup(
     NewCallGraph const& _allocs,
     ContractDependance const& _dependance,
-    Actor & _parent,
-    TicketSystem<uint16_t> & _cids,
-    TicketSystem<uint16_t> & _fids
+    Actor & _parent
 )
 {
     for (auto const& child : _allocs.children_of(_parent.contract))
@@ -258,9 +232,9 @@ void ActorModel::recursive_setup(
         auto const PATH = make_shared<CMemberAccess>(_parent.decl->id(), NAME);
 
         m_actors.emplace_back(
-            M_CONVERTER, _dependance, child.type, PATH, _cids, _fids
+            M_CONVERTER, _dependance, child.type, m_actors.size(), PATH
         );
-        recursive_setup(_allocs, _dependance, m_actors.back(), _cids, _fids);
+        recursive_setup(_allocs, _dependance, m_actors.back());
     }
 }
 

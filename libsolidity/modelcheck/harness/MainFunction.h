@@ -69,9 +69,17 @@ private:
     // analyze_decls.
     CBlockList build_case(
         FunctionSpecialization const& _spec,
-        std::map<VariableDeclaration const*, std::shared_ptr<CVarDecl>> & _args,
-        std::shared_ptr<const CVarDecl> _id,
+        std::shared_ptr<CVarDecl const> _id,
         bool uses_maps
+    );
+
+    // Helper method to format and log a call selection. The log statement is
+    // appended to _block and describes an invocation of _call using _id as the
+    // context.
+    static void log_call(
+        CBlockList & _block,
+        CIdentifier const& _id,
+        FunctionSpecialization const& _call
     );
 };
 

@@ -372,6 +372,8 @@ void CSwitch::add_case(int64_t _val, CBlockList _body)
     m_cases.emplace(make_pair(_val, move(_body)));
 }
 
+size_t CSwitch::size() const { return m_cases.size(); }
+
 void CSwitch::print_impl(ostream & _out) const
 {
     _out << "switch(" << m_cond << "){";

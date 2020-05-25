@@ -53,7 +53,6 @@ MainFunctionGenerator::MainFunctionGenerator(
 void MainFunctionGenerator::print(ostream& _stream)
 {
     // Generates function switch.
-    size_t case_count = 0;
     auto next_case = make_shared<CVarDecl>("uint8_t", "next_call");
 
     CBlockList default_case;
@@ -65,11 +64,8 @@ void MainFunctionGenerator::print(ostream& _stream)
         for (auto const& spec : actor.specs)
         {
             bool uses_maps = actor.uses_maps[&spec.func()];
-            auto call_body = build_case(
-                spec, actor.fparams, actor.decl, uses_maps
-            );
-            call_cases->add_case(actor.fnums[&spec.func()], move(call_body));
-            ++case_count;
+            auto call_body = build_case(spec, actor.decl, uses_maps);
+            call_cases->add_case(call_cases->size(), move(call_body));
         }
     }
 
@@ -89,7 +85,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     m_stategen.update(transactionals);
     transactionals.push_back(next_case);
     transactionals.push_back(next_case->assign(
-        HarnessUtilities::range(0, case_count, "next_call")
+        HarnessUtilities::range(0, call_cases->size(), "next_call")
     )->stmt());
     transactionals.push_back(call_cases);
 
@@ -110,23 +106,18 @@ void MainFunctionGenerator::print(ostream& _stream)
 
 CBlockList MainFunctionGenerator::build_case(
     FunctionSpecialization const& _spec,
-    map<VariableDeclaration const*, shared_ptr<CVarDecl>> & _args,
-    shared_ptr<const CVarDecl> _id,
+    shared_ptr<CVarDecl const> _id,
     bool uses_maps
 )
 {
+    CBlockList call_body;
     CExprPtr id = _id->id();
     if (!id->is_pointer())
     {
         id = make_shared<CReference>(id);
     }
 
-    CBlockList call_body;
-
-    stringstream caselog;
-    caselog << "[Calling " << _spec.func().name()
-            << "() on " << (*_id->id()) << "]";
-    HarnessUtilities::log(call_body, caselog.str());
+    log_call(call_body, (*_id->id()), _spec);
 
     // TODO: actually populate maps.
     if (uses_maps)
@@ -137,26 +128,59 @@ CBlockList MainFunctionGenerator::build_case(
     CFuncCallBuilder call_builder(_spec.name(0));
     call_builder.push(id);
     M_STATEDATA.push_state_to(call_builder);
-
     if (_spec.func().isPayable())
     {
         m_stategen.pay(call_body);
     }
+
+    size_t placeholder_count = 0;
     for (auto const arg : _spec.func().parameters())
     {
-        auto const& PARAM_DECL = _args[arg.get()];
+        // Handles the case of unnamed (i.e., unused) inputs.
+        string argname;
+        CExprPtr value = nullptr;
+        if (arg->name().empty())
+        {
+            argname = "placeholder_" + to_string(placeholder_count);
+            placeholder_count += 1;
+        }
+        else
+        {
+            argname = "arg_" + arg->name();
+            value = M_CONVERTER.get_nd_val(*arg, arg->name());
+        }
 
-        string msg = _spec.func().name() + ":" + arg->name();
-        auto nd_val = M_CONVERTER.get_nd_val(*arg, move(msg));
-        call_body.push_back(PARAM_DECL->assign(nd_val)->stmt());
+        auto input = make_shared<CVarDecl>(
+            M_CONVERTER.get_type(*arg), argname, false, value
+        );
 
-        call_builder.push(PARAM_DECL->id());
+        call_body.push_back(input);
+        call_builder.push(input->id());
     }
+
     call_body.push_back(call_builder.merge_and_pop_stmt());
     HarnessUtilities::log(call_body, "[Call successful]");
     call_body.push_back(make_shared<CBreak>());
 
     return call_body;
+}
+
+// -------------------------------------------------------------------------- //
+
+void MainFunctionGenerator::log_call(
+    CBlockList & _block,
+    CIdentifier const& _id,
+    FunctionSpecialization const& _call
+)
+{
+    stringstream caselog;
+
+    caselog << "["
+            << "Calling " << _call.func().name() << "() "
+            << "on " << _id
+            << "]";
+
+    HarnessUtilities::log(_block, caselog.str());
 }
 
 // -------------------------------------------------------------------------- //
