@@ -19,6 +19,26 @@ else()
     message(WARNING "Failed to find sea. See -DSEA_PATH.")
 endif()
 
+# Attempts to find llvm-dis to aid humans in interpreting invariants.
+set(LLVM_DIS_PATH "" CACHE STRING "A path to the llvm disassembler, llvm-dis.")
+
+if (LLVM_DIS_PATH)
+    find_program(
+        LLVM_DIS_EXE
+        NAMES llvm-dis
+        PATHS ${LLVM_DIS_PATH}
+        NO_DEFAULT_PATH
+    )
+else()
+    find_program(LLVM_DIS_EXE NAMES llvm-dis)
+endif()
+
+if(LLVM_DIS_EXE)
+    message(STATUS "llvm-dis found: ${LLVM_DIS_EXE}")
+else()
+    message(WARNING "Failed to find llvm-dis. See -DLLVM_DIS_PATH.")
+endif()
+
 # Locates the model files requried by Seahorn.
 set(SEAHORN_DEPS "")
 list(APPEND SEAHORN_DEPS "${CMAKE_CURRENT_SOURCE_DIR}/libverify/verify_seahorn.c")
@@ -34,18 +54,18 @@ foreach(d ${CMODEL_COMPILE_DEFS_RAW})
 endforeach(d)
 
 set(SEA_ARGS "" CACHE STRING "Additional arguments to pass to Seahorn.")
-set(CMODEL_SEA_ARGS "${SEA_ARGS}")
-list(APPEND CMODEL_SEA_ARGS "--inline")
-list(APPEND CMODEL_SEA_ARGS "--sea-dsa=cs")
-list(APPEND CMODEL_SEA_ARGS "--dsa=sea-cs")
-list(APPEND CMODEL_SEA_ARGS "--enable-indvar")
-list(APPEND CMODEL_SEA_ARGS "--horn-global-constraints=true")
-list(APPEND CMODEL_SEA_ARGS "--horn-singleton-aliases=true")
-list(APPEND CMODEL_SEA_ARGS "--horn-use-write=true")
+set(SEA_CMODEL_ARGS "${SEA_ARGS}")
+list(APPEND SEA_CMODEL_ARGS "--inline")
+list(APPEND SEA_CMODEL_ARGS "--sea-dsa=cs")
+list(APPEND SEA_CMODEL_ARGS "--dsa=sea-cs")
+list(APPEND SEA_CMODEL_ARGS "--enable-indvar")
+list(APPEND SEA_CMODEL_ARGS "--horn-global-constraints=true")
+list(APPEND SEA_CMODEL_ARGS "--horn-singleton-aliases=true")
+list(APPEND SEA_CMODEL_ARGS "--horn-use-write=true")
 
 set(SEA_DEBUG OFF CACHE BOOL "Compiles Seahorn executables for debugging.")
 if(SEA_DEBUG)
-    list(APPEND CMODEL_SEA_ARGS "-g")
+    list(APPEND SEA_CMODEL_ARGS "-g")
 endif()
 
 set(SEA_EXELOG OFF CACHE BOOL "Allows Seahorn executables to log input traces.")
@@ -55,21 +75,50 @@ endif()
 
 # If all dependancies were located, adds all Seahorn targets.
 if(SEA_EXE)
+    # Merges arguments to sea.
+    set(SEA_FULL_ARGS "")
+    list(APPEND SEA_FULL_ARGS ${CMODEL_COMPILE_DEFS})
+    list(APPEND SEA_FULL_ARGS ${SEA_CMODEL_ARGS})
+
+    # Adds pipeline to produce optimized LLVM bytecode and dot diagram.
+    if(LLVM_DIS_EXE)
+        set(SEA_INSPECT_TEMP_REL "sea_temps")
+        set(SEA_INSPECT_TEMP_ABS "${CMAKE_BINARY_DIR}/${SEA_INSPECT_TEMP_REL}")
+        set(SEA_FINAL_BC "merged.pp.ms.o.bc")
+        set(SEA_FINAL_LL "merged.pp.ms.o.ll")
+        add_custom_command(
+            OUTPUT "${SEA_INSPECT_TEMP_REL}/${SEA_FINAL_BC}"
+            COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --save-temps --temp-dir ${SEA_INSPECT_TEMP_ABS}
+            DEPENDS ${SEAHORN_DEPS}
+            COMMAND_EXPAND_LISTS
+        )
+        add_custom_command(
+            OUTPUT ${SEA_FINAL_LL}
+            COMMAND ${LLVM_DIS_EXE} "${SEA_INSPECT_TEMP_ABS}/${SEA_FINAL_BC}" -o "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
+            DEPENDS "${SEA_INSPECT_TEMP_ABS}/${SEA_FINAL_BC}"
+        )
+        add_custom_target(
+            sea_inspect
+            COMMAND ${SEA_EXE} inspect --cfg-dot "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
+            SOURCES "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
+        )
+    endif()
+
     add_custom_target(
         verify
-        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --show-invars
+        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --show-invars
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         cex
-        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} --cex=cex.ll
+        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --cex=cex.ll
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         witness
-        COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${CMODEL_COMPILE_DEFS} ${CMODEL_SEA_ARGS} -o witness
+        COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${SEA_FULL_ARGS} -o witness
         COMMAND_EXPAND_LISTS
     )
 endif()
