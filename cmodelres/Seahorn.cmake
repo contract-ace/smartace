@@ -20,18 +20,11 @@ else()
 endif()
 
 # Attempts to find llvm-dis to aid humans in interpreting invariants.
-set(LLVM_DIS_PATH "" CACHE STRING "A path to the llvm disassembler, llvm-dis.")
-
-if (LLVM_DIS_PATH)
-    find_program(
-        LLVM_DIS_EXE
-        NAMES llvm-dis
-        PATHS ${LLVM_DIS_PATH}
-        NO_DEFAULT_PATH
-    )
-else()
-    find_program(LLVM_DIS_EXE NAMES llvm-dis)
-endif()
+find_program(
+    LLVM_DIS_EXE
+    NAMES "llvm-dis-10" "llvm-dis"
+    DOC "The disassembler for LLVM(-10)"
+)
 
 if(LLVM_DIS_EXE)
     message(STATUS "llvm-dis found: ${LLVM_DIS_EXE}")
@@ -56,7 +49,6 @@ endforeach(d)
 set(SEA_ARGS "" CACHE STRING "Additional arguments to pass to Seahorn.")
 set(SEA_CMODEL_ARGS "${SEA_ARGS}")
 list(APPEND SEA_CMODEL_ARGS "--inline")
-list(APPEND SEA_CMODEL_ARGS "--sea-dsa=cs")
 list(APPEND SEA_CMODEL_ARGS "--dsa=sea-cs")
 list(APPEND SEA_CMODEL_ARGS "--enable-indvar")
 list(APPEND SEA_CMODEL_ARGS "--horn-global-constraints=true")
