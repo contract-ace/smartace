@@ -3,35 +3,8 @@ cmake_minimum_required(VERSION 3.1.0)
 project(cmodel VERSION "1.0.0" LANGUAGES CXX C)
 set(CMAKE_C_STANDARD 99)
 
-# Finds some instance of clang.
-find_program(
-    CLANG_EXE
-    NAMES "clang-10" "clang"
-    DOC "The path to clang"
-)
-
-if(CLANG_EXE)
-    message(STATUS "clang(-10) found: ${CLANG_EXE}")
-else()
-    message(FATAL_ERROR "clang(-10) not found.")
-endif()
-
-set(CMAKE_C_COMPILER ${CLANG_EXE})
-
-# Finds some instance of clang++.
-find_program(
-    CLANGXX_EXE
-    NAMES "clang++-10" "clang++"
-    DOC "The path to clang++"
-)
-
-if(CLANGXX_EXE)
-    message(STATUS "clang++(-10) found: ${CLANGXX_EXE}")
-else()
-    message(FATAL_ERROR "clang++(-10) not found.")
-endif()
-
-set(CMAKE_CXX_COMPILER ${CLANGXX_EXE})
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
 
 find_package(Boost 1.65.0 QUIET REQUIRED COMPONENTS program_options)
 
@@ -50,7 +23,7 @@ configure_mc()
 # Locates clang-format, if possible.
 find_program(
     CLANG_FORMAT_EXE
-    NAMES "clang-format-10" "clang-format"
+    NAMES "clang-format-10" "clang-format-mp-10" "clang-format"
     DOC "Path to clang-format executable"
 )
 

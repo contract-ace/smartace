@@ -31,7 +31,7 @@ endif()
 # Locates llvm-link, as required by KLEE.
 find_program(
     LLVM_LINK_EXE
-    NAMES "llvm-link-10" "llvm-link"
+    NAMES "llvm-link-10" "llvm-link-mp-10" "llvm-link"
     DOC "The linker for llvm(-10)."
 )
 

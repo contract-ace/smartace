@@ -22,7 +22,7 @@ endif()
 # Attempts to find llvm-dis to aid humans in interpreting invariants.
 find_program(
     LLVM_DIS_EXE
-    NAMES "llvm-dis-10" "llvm-dis"
+    NAMES "llvm-dis-10" "llvm-dis-mp-10" "llvm-dis"
     DOC "The disassembler for LLVM(-10)"
 )
 
