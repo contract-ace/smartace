@@ -10,17 +10,7 @@ set(prefix "${CMAKE_BINARY_DIR}/deps")
 set(JSONCPP_LIBRARY "${prefix}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}jsoncpp${CMAKE_STATIC_LIBRARY_SUFFIX}")
 set(JSONCPP_INCLUDE_DIR "${prefix}/include")
 
-# TODO: Investigate why this breaks some emscripten builds and
-# check whether this can be removed after updating the emscripten
-# versions used in the CI runs.
-if(EMSCRIPTEN)
-    # Do not include all flags in CMAKE_CXX_FLAGS for emscripten,
-    # but only use -std=c++14. Using all flags causes build failures
-    # at the moment.
-    set(JSONCPP_CXX_FLAGS -std=c++14)
-else()
-    set(JSONCPP_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-endif()
+set(JSONCPP_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 
 set(byproducts "")
 if(CMAKE_VERSION VERSION_GREATER 3.1)

@@ -63,10 +63,16 @@ bool ExpressionConverter::visit(Conditional const& _node)
 {
 	_node.condition().accept(*this);
 	auto subexpr_1 = m_subexpr;
+
 	_node.trueExpression().accept(*this);
 	auto subexpr_2 = m_subexpr;
+
 	_node.falseExpression().accept(*this);
-	m_subexpr = make_shared<CCond>(move(subexpr_1), move(subexpr_2), move(m_subexpr));
+
+	m_subexpr = make_shared<CCond>(
+		move(subexpr_1), move(subexpr_2), move(m_subexpr)
+	);
+
 	return false;
 }
 
@@ -379,13 +385,17 @@ void ExpressionConverter::generate_mapping_call(
 	builder.push(_idx.base(), M_CONVERTER, M_STATEDATA, M_DECLS, true);
 
 	{
+		auto const& IDX_END = _idx.indices().end();
+		auto const& KEY_END = _map.key_types.end();
+
 		auto idx_itr = _idx.indices().begin();
 		auto key_itr = _map.key_types.begin();
-		while (idx_itr != _idx.indices().end() && key_itr != _map.key_types.end())
+
+		while (idx_itr != IDX_END && key_itr != KEY_END)
 		{
-			auto const& idx = (**idx_itr);
+			auto const& IDX = (**idx_itr);
 			auto const* type = (*key_itr)->annotation().type;
-			builder.push(idx, M_CONVERTER, M_STATEDATA, M_DECLS, false, type);
+			builder.push(IDX, M_CONVERTER, M_STATEDATA, M_DECLS, false, type);
 			++idx_itr;
 			++key_itr;
 		}
@@ -890,6 +900,8 @@ void ExpressionConverter::print_revert(SolArgList const&)
 	builder.push(Literals::ZERO);
 	m_subexpr = builder.merge_and_pop();
 }
+
+// -------------------------------------------------------------------------- //
 
 void ExpressionConverter::pass_next_call_state(
 	FunctionCallAnalyzer const& _call, CFuncCallBuilder & _builder, bool _is_ext

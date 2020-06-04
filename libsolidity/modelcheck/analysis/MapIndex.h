@@ -147,8 +147,6 @@ private:
     uint64_t m_contract_reps;
     uint64_t m_max_interference;
 
-    bool m_in_first_pass;
-
     bool m_is_address_cast;
     bool m_uses_contract_address;
     

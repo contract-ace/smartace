@@ -17,8 +17,8 @@ set(
 )
 list(APPEND CMAKE_MODULE_PATH ${MC_CMAKE_DIR})
 
-include(McOptions)
-configure_mc()
+include(SmartAceOptions)
+configure_smartace()
 
 # Locates clang-format, if possible.
 find_program(

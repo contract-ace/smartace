@@ -171,7 +171,6 @@ MapIndexSummary::MapIndexSummary(
  , m_client_reps(_clients)
  , m_contract_reps(_contracts)
  , m_max_interference(0)
- , m_in_first_pass(false)
  , m_is_address_cast(false)
  , m_uses_contract_address(false)
  , m_context(nullptr)

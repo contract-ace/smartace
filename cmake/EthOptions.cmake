@@ -10,7 +10,6 @@ macro(configure_project)
 
 	# components
 	eth_default_option(TESTS ON)
-	eth_default_option(TOOLS ON)
 
 	# Define a matching property name of each of the "features".
 	foreach(FEATURE ${ARGN})
@@ -35,9 +34,6 @@ macro(print_config NAME)
 	message("------------------------------------------------------------- components")
 if (SUPPORT_TESTS)
 	message("-- TESTS            Build tests                              ${TESTS}")
-endif()
-if (SUPPORT_TOOLS)
-	message("-- TOOLS            Build tools                              ${TOOLS}")
 endif()
 	message("------------------------------------------------------------------ flags")
 	message("-- OSSFUZZ                                                   ${OSSFUZZ}")

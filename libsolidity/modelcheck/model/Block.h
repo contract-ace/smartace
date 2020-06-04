@@ -8,6 +8,7 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/utils/CompilerMacros.h>
 
 #include <ostream>
 #include <utility>
@@ -135,6 +136,9 @@ private:
 
 // -------------------------------------------------------------------------- //
 
+// Issue with overding ASTConstVisitor from libsolidity/ast/AST_Visitor.h
+CLANG_SUPPRCESS_COMPILER_WARNING_CLANG(CLANG_OVERLOADED_VIRTUAL)
+
 /**
  * Specializes GeneralBlockConverter for FunctionDefinitions, adding support for
  * named and unnamed return values.
@@ -170,7 +174,12 @@ private:
 	ASTPointer<VariableDeclaration> m_rv = nullptr;
 };
 
+CLANG_ENABLE_COMPILER_WARNING()
+
 // -------------------------------------------------------------------------- //
+
+// Issue with overding ASTConstVisitor from libsolidity/ast/AST_Visitor.h
+CLANG_SUPPRCESS_COMPILER_WARNING_CLANG(CLANG_OVERLOADED_VIRTUAL)
 
 /**
  * Specializes GeneralBlockConverter to handle ModifierDefinition semantics.
@@ -251,6 +260,8 @@ private:
 		bool _entry
 	);
 };
+
+CLANG_ENABLE_COMPILER_WARNING()
 
 // -------------------------------------------------------------------------- //
 

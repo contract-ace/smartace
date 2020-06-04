@@ -114,7 +114,6 @@ private:
 
     ContractDefinition const* m_curr_contract = nullptr;
     VariableDeclaration const* m_curr_decl = nullptr;
-    unsigned int m_rectype_depth = 0;
     bool m_is_retval = false;
 };
 

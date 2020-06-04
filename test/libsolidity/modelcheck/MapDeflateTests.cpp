@@ -38,7 +38,6 @@ BOOST_AUTO_TEST_CASE(basic_lookup)
 
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& fncs = ctrt.definedFunctions();
 
     MapDeflate lookup;
 

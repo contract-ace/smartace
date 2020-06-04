@@ -80,36 +80,6 @@ if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MA
 			# into errors, which makes sense.
 			# http://stackoverflow.com/questions/21617158/how-to-silence-unused-command-line-argument-error-with-clang-without-disabling-i
 			add_compile_options(-Qunused-arguments)
-		elseif(EMSCRIPTEN)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --memory-init-file 0")
-			# Leave only exported symbols as public and aggressively remove others
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections -ffunction-sections -Wl,--gc-sections -fvisibility=hidden")
-			# Optimisation level
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-			# Re-enable exception catching (optimisations above -O1 disable it)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0")
-			# Remove any code related to exit (such as atexit)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s NO_EXIT_RUNTIME=1")
-			# Remove any code related to filesystem access
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s NO_FILESYSTEM=1")
-			# Remove variables even if it needs to be duplicated (can improve speed at the cost of size)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s AGGRESSIVE_VARIABLE_ELIMINATION=1")
-			# Allow memory growth, but disable some optimisations
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ALLOW_MEMORY_GROWTH=1")
-			# Disable eval()
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s NO_DYNAMIC_EXECUTION=1")
-			# Disable greedy exception catcher
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s NODEJS_CATCH_EXIT=0")
-			# Abort if linking results in any undefined symbols
-			# Note: this is on by default in the CMake Emscripten module which we aren't using
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ERROR_ON_UNDEFINED_SYMBOLS=1")
-			# Disallow deprecated emscripten build options.
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s STRICT=1")
-			# Export the Emscripten-generated auxiliary methods which are needed by solc-js.
-			# Which methods of libsolc itself are exported is specified in libsolc/CMakeLists.txt.
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS=['cwrap','addFunction','removeFunction','Pointer_stringify','lengthBytesUTF8','_malloc','stringToUTF8','setValue']")
-			# Do not build as a WebAssembly target - we need an asm.js output.
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s WASM=0")
 		endif()
 	endif()
 

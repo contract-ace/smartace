@@ -15,11 +15,6 @@ project(solidity VERSION ${PROJECT_VERSION} LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# option(LLL "Build LLL" OFF)
-option(SOLC_LINK_STATIC "Link solc executable statically on supported platforms" OFF)
-# option(LLLC_LINK_STATIC "Link lllc executable statically on supported platforms" OFF)
-# option(INSTALL_LLLC "Include lllc executable in installation" ${LLL})
-
 # Setup cccache.
 include(EthCcache)
 
@@ -48,8 +43,8 @@ configure_file("${CMAKE_SOURCE_DIR}/cmake/templates/license.h.in" include/licens
 include(EthOptions)
 configure_project(TESTS)
 
-include(McOptions)
-configure_mc()
+include(SmartAceOptions)
+configure_smartace()
 
 add_subdirectory(libdevcore)
 add_subdirectory(liblangutil)
@@ -58,6 +53,7 @@ add_subdirectory(libyul)
 add_subdirectory(libsolidity)
 add_subdirectory(libsolc)
 add_subdirectory(libverify)
+add_subdirectory(solc)
 
 install(DIRECTORY libverify/ DESTINATION include/solc/libverify)
 install(FILES cmodelres/CMakeLists.txt DESTINATION share/solc/project)
@@ -65,16 +61,8 @@ install(FILES cmodelres/Klee.cmake DESTINATION share/solc/project/cmake)
 install(FILES cmodelres/Interactive.cmake DESTINATION share/solc/project/cmake)
 install(FILES cmodelres/LibFuzzer.cmake DESTINATION share/solc/project/cmake)
 install(FILES cmodelres/Seahorn.cmake DESTINATION share/solc/project/cmake)
-install(FILES cmake/McOptions.cmake DESTINATION share/solc/project/cmake)
+install(FILES cmake/SmartAceOptions.cmake DESTINATION share/solc/project/cmake)
 
-if (NOT EMSCRIPTEN)
-	add_subdirectory(solc)
-	# if (LLL)
-	# 	add_subdirectory(liblll)
-	# 	add_subdirectory(lllc)
-	# endif()
-endif()
-
-if (TESTS AND NOT EMSCRIPTEN)
+if (TESTS)
 	add_subdirectory(test)
 endif()
