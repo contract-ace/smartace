@@ -3,9 +3,6 @@ cmake_minimum_required(VERSION 3.1.0)
 project(cmodel VERSION "1.0.0" LANGUAGES CXX C)
 set(CMAKE_C_STANDARD 99)
 
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
-
 find_package(Boost 1.65.0 QUIET REQUIRED COMPONENTS program_options)
 
 # Loads in configurations.

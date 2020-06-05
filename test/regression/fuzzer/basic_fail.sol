@@ -1,7 +1,7 @@
 // RUN: %solc %s --c-model --output-dir=%t
 // RUN: cd %t
-// RUN: cmake -DSEA_PATH=%seapath
-// RUN: make fuzz
+// RUN: cmake . -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DSEA_PATH=%seapath
+// RUN: cmake --build . --target fuzz
 // XFAIL: true
 
 /*

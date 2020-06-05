@@ -137,7 +137,7 @@ void ActorModel::initialize(
 
         stringstream caselog;
         caselog << "[Initializing " << (*actor.decl->id());
-        if (actor.has_children) caselog << " and children.";
+        if (actor.has_children) caselog << " and children";
         caselog << "]";
         HarnessUtilities::log(_block, caselog.str());
 

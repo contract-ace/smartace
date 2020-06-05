@@ -173,8 +173,8 @@ void MainFunctionGenerator::log_call(
     FunctionSpecialization const& _call
 )
 {
-    stringstream caselog("[");
-    caselog << "Calling " << _call.func().name() << "(";
+    stringstream caselog;
+    caselog << "[" << "Calling " << _call.func().name() << "(";
 
     auto const& PARAMS = _call.func().parameters();
     for (size_t i = 0; i < PARAMS.size(); ++i)
