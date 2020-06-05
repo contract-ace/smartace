@@ -22,7 +22,7 @@ list(APPEND CMODEL_FUZZ_ARGS "-print_final_stats=1")
 add_custom_target(
     fuzz
     COMMAND "${CMAKE_BINARY_DIR}/fuzztest" ${CORPUS_DIR} ${CMODEL_FUZZ_ARGS}
-    SOURCES ${CORPUS_DIR}
+    DEPENDS ${CORPUS_DIR}
     COMMAND_EXPAND_LISTS
 )
 add_dependencies(fuzz fuzztest)

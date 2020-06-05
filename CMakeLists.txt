@@ -66,3 +66,10 @@ install(FILES cmake/SmartAceOptions.cmake DESTINATION share/solc/project/cmake)
 if (TESTS)
 	add_subdirectory(test)
 endif()
+
+# Sets up CPack for distributions.
+set(CPACK_PACKAGE_VENDOR "SmartACE")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "SmartACE")
+set(CPACK_PACKAGE_VERSION "arak")
+set(CPACK_PACKAGE_FILE_NAME "smartace-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}")
+include(CPack)
