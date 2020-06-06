@@ -1,11 +1,16 @@
 # Attempts to find KLEE from the user provided KLEE_PATH.
 # If no path is found, cmake will search for the command `klee`.
-set(KLEE_PATH "" CACHE STRING "A path to the KLEE executable, klee.")
+set(
+    KLEE_PATH
+    ""
+    CACHE STRING
+    "A path to the KLEE executable, klee."
+)
 
 if(KLEE_PATH)
     find_program(
-	    KLEE_EXE
-	    NAMES klee
+        KLEE_EXE
+        NAMES klee
         PATHS ${KLEE_PATH}
         NO_DEFAULT_PATH
     )
@@ -20,7 +25,12 @@ else()
 endif()
 
 # Requires the KLEE include path from the user.
-set(KLEE_LIB "/home/klee/klee_src/include" CACHE STRING "A path to the KLEE include directory.")
+set(
+    KLEE_LIB
+    "/home/usea/klee/include"
+    CACHE STRING
+    "A path to the KLEE include directory."
+)
 
 if(EXISTS "${KLEE_LIB}")
     message(STATUS "klee include found: ${KLEE_LIB}")
