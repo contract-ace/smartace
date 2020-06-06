@@ -57,4 +57,5 @@ CMakeLists.txt.user
 /.project
 
 # place to put local temporary files
+*.tar.gz
 tmp
