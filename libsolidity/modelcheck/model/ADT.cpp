@@ -30,7 +30,7 @@ namespace modelcheck
 ADTConverter::ADTConverter(
     ASTNode const& _ast,
     NewCallGraph const& _newcalls,
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     bool _add_sums,
     size_t _map_k,
     bool _forward_declare
@@ -71,14 +71,14 @@ bool ADTConverter::visit(ContractDefinition const& _node)
             fields = make_shared<CParams>();
             {
                 TypePointer TYPE = ContractUtilities::address_type();
-                string const TYPE_NAME = TypeConverter::get_simple_ctype(*TYPE);
+                string const TYPE_NAME = TypeAnalyzer::get_simple_ctype(*TYPE);
                 string const NAME = ContractUtilities::address_member();
 
                 fields->push_back(make_shared<CVarDecl>(TYPE_NAME, NAME));
             }
             {
                 TypePointer TYPE = ContractUtilities::balance_type();
-                string const TYPE_NAME = TypeConverter::get_simple_ctype(*TYPE);
+                string const TYPE_NAME = TypeAnalyzer::get_simple_ctype(*TYPE);
                 string const NAME = ContractUtilities::balance_member();
 
                 fields->push_back(make_shared<CVarDecl>(TYPE_NAME, NAME));

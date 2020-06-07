@@ -27,7 +27,7 @@ string const InitFunction::PREFIX = "Init_";
 string const InitFunction::DEFAULT_PREFIX = "ZeroInit_";
 
 string InitFunction::specialize_name(
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     ContractDefinition const& _base,
     ContractDefinition const& _derived
 )
@@ -41,7 +41,7 @@ string InitFunction::specialize_name(
 }
 
 InitFunction::InitFunction(
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     ContractDefinition const& _base,
     ContractDefinition const& _derived
 ): InitFunction(specialize_name(_converter, _base, _derived), "void")
@@ -49,7 +49,7 @@ InitFunction::InitFunction(
 }
 
 InitFunction::InitFunction(
-    TypeConverter const& _converter, ASTNode const& _node
+    TypeAnalyzer const& _converter, ASTNode const& _node
 ): InitFunction(_converter.get_name(_node), _converter.get_type(_node))
 {
 }
@@ -98,7 +98,7 @@ CExprPtr InitFunction::wrap(Type const& _type, CExprPtr _expr)
 {
     if (is_wrapped_type(_type))
     {
-        string const WRAP = PREFIX + TypeConverter::get_simple_ctype(_type);
+        string const WRAP = PREFIX + TypeAnalyzer::get_simple_ctype(_type);
         return make_shared<CFuncCall>( WRAP, CArgList{ move(_expr) } );
     }
     return _expr;

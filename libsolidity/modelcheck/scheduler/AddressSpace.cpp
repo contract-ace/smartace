@@ -1,16 +1,16 @@
 /**
- * Decouples address logic from the harness. This allows for address models to
- * be interchanged or maintained without analysis of the entire harness.
+ * Decouples address logic from the scheduler. This allows for address models to
+ * be interchanged or maintained without analysis of the entire scheduler.
  * @date 2020
  */
 
-#include <libsolidity/modelcheck/harness/AddressSpace.h>
+#include <libsolidity/modelcheck/scheduler/AddressSpace.h>
 
 #include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
-#include <libsolidity/modelcheck/utils/Harness.h>
 #include <libsolidity/modelcheck/utils/Indices.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
 
 #include <list>
 #include <memory>
@@ -54,7 +54,7 @@ void AddressSpace::map_constants(CBlockList & _block) const
     list<shared_ptr<CIdentifier>> used_so_far;
     if (M_ADDRDATA.literals().size() > 1)
     {
-        HarnessUtilities::log(_block, "[Handling constants]");
+        LibVerify::log(_block, "[Handling constants]");
     }
     for (auto lit : M_ADDRDATA.literals())
     {
@@ -68,7 +68,7 @@ void AddressSpace::map_constants(CBlockList & _block) const
         else
         {
             _block.push_back(decl->assign(
-                HarnessUtilities::range(MIN_ADDR, MAX_ADDR, NAME)
+                LibVerify::range(MIN_ADDR, MAX_ADDR, NAME)
             )->stmt());
 
             for (auto otr : used_so_far)

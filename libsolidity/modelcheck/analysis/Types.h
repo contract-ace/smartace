@@ -25,21 +25,20 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /*
- * Maintains a dictionary from AST Node addresses to type annotations. The
+ * Maintains a dictionary from AST Node addresses to type encoding metadata. The
  * mapping is restricted to AST Nodes for which types are practical, and records
  * must be generated on a per-source-unit basis.
  */
-class TypeConverter : public ASTConstVisitor
+class TypeAnalyzer : public ASTConstVisitor
 {
 public:
-    // Generates type annotations for all relevant members of _unit. The type
-    // annotations may be recovered using the translate method.
-    void record(SourceUnit const& _unit);
+    // Creates a type analyzer with _addrs addresses. Zero addresses is taken to
+    // denote unbounded addresses.
+    TypeAnalyzer(uint64_t _addrs = 0);
 
-    // Returns true if this node was found in the AST, and that it has been
-    // recorded with a type. If it is not a simple type, then it should also
-    // have a name.
-    bool has_record(ASTNode const& _node) const;
+    // Generates type encoding metadata for all relevant members of _unit. The
+    // type annotations may be recovered using the translate method.
+    void record(SourceUnit const& _unit);
 
     // Returns the CType used to model _node, given that has_record has returned
     // true for _node.
@@ -79,9 +78,6 @@ public:
 
     // Provides a view of the map database.
     MapDeflate map_db() const;
-
-    // Restricts the address range. By default addresses are unbounded.
-    void limit_addresses(uint64_t _count);
 
 protected:
     bool visit(VariableDeclaration const& _node) override;

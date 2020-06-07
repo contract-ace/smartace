@@ -46,7 +46,7 @@ class ContractDependance;
 class MapIndexSummary;
 class NewCallGraph;
 class PrimitiveTypeGenerator;
-class TypeConverter;
+class TypeAnalyzer;
 };
 
 class CommandLineInterface
@@ -84,7 +84,7 @@ private:
 		modelcheck::ContractDependance const& _dependance,
 		modelcheck::MapIndexSummary const& _addrdata,
 		modelcheck::NewCallGraph const& _newcalls,
-		modelcheck::TypeConverter const& _types,
+		modelcheck::TypeAnalyzer const& _types,
 		modelcheck::CallState const& _callstate,
 		std::ostream& _os
 	);
@@ -93,7 +93,7 @@ private:
 		modelcheck::ContractDependance const& _dependance,
 		modelcheck::MapIndexSummary const& _addrdata,
 		modelcheck::NewCallGraph const& _newcalls,
-		modelcheck::TypeConverter const& _types,
+		modelcheck::TypeAnalyzer const& _types,
 		modelcheck::CallState const& _callstate,
 		std::ostream & _os
 	);

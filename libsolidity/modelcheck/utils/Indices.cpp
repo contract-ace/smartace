@@ -25,7 +25,7 @@ namespace modelcheck
 string Indices::const_global_name(dev::u256 _var)
 {
     ostringstream oss;
-    oss << "global_index_const_" << _var;
+    oss << "g_literal_address_" << _var;
     return oss.str();
 }
 

@@ -1,10 +1,9 @@
 /**
- * Provides interfaces to describe contract-based actors, and to maintain the
- * corresponding model in code.
+ * Provides interfaces to describe and control contract-based actors.
  * @date 2020
  */
 
-#include <libsolidity/modelcheck/harness/ActorModel.h>
+#include <libsolidity/modelcheck/scheduler/ActorModel.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
@@ -13,11 +12,11 @@
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
-#include <libsolidity/modelcheck/harness/AddressSpace.h>
-#include <libsolidity/modelcheck/harness/StateGenerator.h>
+#include <libsolidity/modelcheck/scheduler/AddressSpace.h>
+#include <libsolidity/modelcheck/scheduler/StateGenerator.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
-#include <libsolidity/modelcheck/utils/Harness.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
 
 using namespace std;
 
@@ -31,7 +30,7 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 Actor::Actor(
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     ContractDependance const& _dependance,
     ContractDefinition const* _contract,
     size_t _id,
@@ -64,7 +63,7 @@ Actor::Actor(
 
 ActorModel::ActorModel(
     ContractDependance const& _dependance,
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     NewCallGraph const& _newcalls,
     MapIndexSummary const& _addrdata
 ): M_CONVERTER(_converter)
@@ -139,7 +138,7 @@ void ActorModel::initialize(
         caselog << "[Initializing " << (*actor.decl->id());
         if (actor.has_children) caselog << " and children";
         caselog << "]";
-        HarnessUtilities::log(_block, caselog.str());
+        LibVerify::log(_block, caselog.str());
 
         // Populates core constructor arguments.
         auto init_builder = InitFunction(M_CONVERTER, *ctx).call_builder();

@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(simple_func)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -320,7 +320,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -388,7 +388,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -462,7 +462,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -527,7 +527,7 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -605,7 +605,7 @@ BOOST_AUTO_TEST_CASE(reproducible)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;

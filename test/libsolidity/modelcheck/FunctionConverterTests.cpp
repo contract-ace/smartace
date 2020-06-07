@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph graph;
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(payable_method)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph graph;
@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph graph;
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph graph;
@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph graph;
@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph graph;
@@ -451,7 +451,7 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph graph;

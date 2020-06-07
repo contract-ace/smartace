@@ -14,8 +14,8 @@
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
-#include <libsolidity/modelcheck/utils/Harness.h>
 #include <libsolidity/modelcheck/utils/General.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
 
 #include <sstream>
 
@@ -61,13 +61,13 @@ CallState::CallState(ContractDependance const& _dependance)
 
 void CallState::print(ostream& _stream, bool _forward_declare) const
 {
-    auto const VALUE_T = TypeConverter::get_simple_ctype(
+    auto const VALUE_T = TypeAnalyzer::get_simple_ctype(
         *CallStateUtilities::get_type(CallStateUtilities::Field::Value)
     );
-    auto const SENDER_T = TypeConverter::get_simple_ctype(
+    auto const SENDER_T = TypeAnalyzer::get_simple_ctype(
         *CallStateUtilities::get_type(CallStateUtilities::Field::Sender)
     );
-    auto const PAID_T = TypeConverter::get_simple_ctype(
+    auto const PAID_T = TypeAnalyzer::get_simple_ctype(
         *CallStateUtilities::get_type(CallStateUtilities::Field::Paid)
     );
 
@@ -82,7 +82,7 @@ void CallState::print(ostream& _stream, bool _forward_declare) const
     if (!_forward_declare)
     {
         // TODO: restrict to [0, 1]
-        auto nd_result = HarnessUtilities::byte("Return value for send.");
+        auto nd_result = LibVerify::byte("Return value for send.");
         auto bal_cond = make_shared<CBinaryOp>(
             bal_var->access("v"), ">=", amt_var->access("v")
         );
@@ -200,7 +200,7 @@ void CallState::compute_next_state_for(
 			}
 			else
 			{
-				_builder.push(TypeConverter::init_val_by_simple_type(*f.type));
+				_builder.push(TypeAnalyzer::init_val_by_simple_type(*f.type));
 			}
 		}
 		else if (f.field == CallStateUtilities::Field::Paid)
@@ -246,7 +246,7 @@ void CallState::add_field(CallStateUtilities::Field _field)
     f.field = _field;
     f.name = CallStateUtilities::get_name(_field);
     f.type = CallStateUtilities::get_type(_field);
-    f.type_name = TypeConverter::get_simple_ctype(*f.type);
+    f.type_name = TypeAnalyzer::get_simple_ctype(*f.type);
     m_field_order.push_back(move(f));
 }
 

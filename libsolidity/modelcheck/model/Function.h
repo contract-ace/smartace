@@ -25,7 +25,7 @@ class CallState;
 class ContractDependance;
 class FunctionSpecialization;
 class NewCallGraph;
-class TypeConverter;
+class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -48,7 +48,7 @@ public:
 		ContractDependance const& _dependance,
 		CallState const& _statedata,
 		NewCallGraph const& _newcalls,
-		TypeConverter const& _converter,
+		TypeAnalyzer const& _converter,
 		bool _add_sums,
 		size_t _map_k,
 		View _view,
@@ -78,7 +78,7 @@ private:
 	ContractDependance const& M_DEPENDANCE;
 	CallState const& M_STATEDATA;
 	NewCallGraph const& M_NEWCALLS;
-	TypeConverter const& M_CONVERTER;
+	TypeAnalyzer const& M_CONVERTER;
 
 	bool const M_ADD_SUMS;
 	size_t const M_MAP_K;

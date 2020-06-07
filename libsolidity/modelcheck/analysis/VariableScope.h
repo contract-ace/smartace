@@ -1,7 +1,7 @@
-/*
+/**
  * @date 2019
- * Provides analysis utilities to determine if a variable is a local (to a
- * function), a member (of a contract), or global (within the EVM).
+ * Provides analysis utilities to determine the SmartACE identifiers which map
+ * to Solidity identifiers.
  */
 
 #pragma once
@@ -26,16 +26,15 @@ class FunctionSpecialization;
 enum class VarContext { STRUCT, FUNCTION };
 enum class CodeType { SOLBLOCK, SHADOWBLOCK, INITBLOCK };
 
-/*
- * Maintains a hierarchy of scopes and their declaration names. Allows variable
- * names to be mapped to their names within the C-model, given the present
- * scope.
+/**
+ * Takes into account the current code context, and uses this information to map
+ * Solidity identifiers to their cooresponding SmartACE identifiers.
  */
 class VariableScopeResolver
 {
 public:
-    // When false, the variable scope maps to user variables. Otherwise, acts as
-    // a shadow scope for instrumentation variables.
+    // Generates a mapping from Solidity identifiers, to SmartACE identifiers,
+    // given the Solidity Identifier came from the context of _code_type.
     VariableScopeResolver(CodeType _code_type = CodeType::SOLBLOCK);
 
     // Associates the scope with some contract scope.
@@ -56,11 +55,11 @@ public:
     std::string resolve_declaration(VariableDeclaration const& _decl) const;
 
     // Automatically rewrites identifier names, to avoid variable aliasing. A
-    // rewrite has form ("func_","mod_","")("client_","model_")escape(_sym).
-    // This allows for disambiguating between...
+    // rewrite has form ("func_","")("client_","model_")escape(_sym). This
+    // allows for disambiguating between...
     // 1. modifier variables and function variables after inlining.
-    // 2. local variables and global symbols (function names, etc).
-    // 3. client variables and tooling generated instrumentation variables.
+    // 2. state variables and local variables.
+    // 3. code variables and instrumented variables.
     static std::string rewrite(std::string _sym, bool _gen, VarContext _ctx);
 
 private:
@@ -70,7 +69,8 @@ private:
 
     std::list<std::set<std::string>> m_scopes;
 
-    // Resolves any string within the resolver.
+    // Consumes the string representation of an identifier, _sym, and maps it to
+    // a SmartACE identifier.
     std::string resolve_sym(std::string const& _sym) const;
 };
 

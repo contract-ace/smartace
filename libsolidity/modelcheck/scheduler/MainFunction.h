@@ -1,7 +1,7 @@
 /**
- * First-pass visitor for generating Solidity the first part of main function,
- * which consist of the decalaration of contract, globalstate, nextGS
- * and every input parameters of functions in main function.
+ * Used to generate the main function scheduler. This constructs actors in the
+ * model, initializes the restricted address space, manages the global state of
+ * the simulation, and schedules the order of transactions.
  * @date 2019
  */
 
@@ -9,9 +9,9 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/harness/ActorModel.h>
-#include <libsolidity/modelcheck/harness/AddressSpace.h>
-#include <libsolidity/modelcheck/harness/StateGenerator.h>
+#include <libsolidity/modelcheck/scheduler/ActorModel.h>
+#include <libsolidity/modelcheck/scheduler/AddressSpace.h>
+#include <libsolidity/modelcheck/scheduler/StateGenerator.h>
 
 #include <ostream>
 
@@ -27,7 +27,7 @@ class ContractDependance;
 class FunctionSpecialization;
 class MapIndexSummary;
 class NewCallGraph;
-class TypeConverter;
+class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -35,7 +35,7 @@ class TypeConverter;
  * Prints a forward declaration for the variable decalarations of contract,
  * globalstate and nextGS in main function.
  */
-class MainFunctionGenerator: public ASTConstVisitor
+class MainFunctionGenerator
 {
 public:
     // Constructs a printer for all function forward decl's required by the ast.
@@ -45,7 +45,7 @@ public:
         ContractDependance const& _dependance,
         NewCallGraph const& _newcalls,
         CallState const& _statedata,
-        TypeConverter const& _converter
+        TypeAnalyzer const& _converter
     );
 
     // Prints the main function.
@@ -53,7 +53,7 @@ public:
 
 private:
     CallState const& M_STATEDATA;
-	TypeConverter const& M_CONVERTER;
+	TypeAnalyzer const& M_CONVERTER;
 
     // Stores data required to handle addresses.
     AddressSpace m_addrspace;

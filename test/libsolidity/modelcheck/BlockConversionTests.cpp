@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(argument_registration)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     auto if_stmt = (fncs[0]->name() == "if_stmt") ? fncs[0] : fncs[1];
     auto else_stmt = (fncs[0]->name() == "if_stmt") ? fncs[1] : fncs[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& fncs = ctrt.definedFunctions();
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(continue_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE(break_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -298,7 +298,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& fncs = ctrt.definedFunctions();
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -356,7 +356,7 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
     const auto &ctrt = *retrieveContractByName(unit, "A");
     const auto &func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -405,7 +405,7 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -457,7 +457,7 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -513,7 +513,7 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt = *retrieveContractByName(unit, "A");
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -583,7 +583,7 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt = *retrieveContractByName(unit, "B");
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -645,7 +645,7 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -689,7 +689,7 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -731,7 +731,7 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -780,7 +780,7 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
     const auto& ctrt = *retrieveContractByName(unit, "C");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -830,7 +830,7 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -882,7 +882,7 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -938,7 +938,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -954,7 +954,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
         func, converter, statedata, newcalls
     ).convert();
     expected << "{";
-    expected << "((int)(global_index_const_5));";
+    expected << "((int)(g_address_literal_5));";
     expected << "(self->user_a).v;";
     expected << "(self->user_a).v;";
     expected << "((unsigned int)((self->user_a).v));";
@@ -989,7 +989,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_resolution)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -1030,7 +1030,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -1067,7 +1067,7 @@ BOOST_AUTO_TEST_CASE(else_if_formatting_regression)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -1105,7 +1105,7 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
 
     auto func = (fncs[0]->name() == "g") ? fncs[0] : fncs[1];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -1152,7 +1152,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     auto const& func_f = (fncs[0]->name() == "f") ? *fncs[0] : *fncs[1];
     auto const& func_g = (fncs[0]->name() == "f") ? *fncs[1] : *fncs[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -1234,7 +1234,7 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;
@@ -1278,7 +1278,7 @@ BOOST_AUTO_TEST_CASE(modifier_args)
     const auto& ctrt = *retrieveContractByName(unit, "A");
     const auto& func = *ctrt.definedFunctions()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph newcalls;

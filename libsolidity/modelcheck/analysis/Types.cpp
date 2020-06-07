@@ -12,7 +12,7 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/General.h>
-#include <libsolidity/modelcheck/utils/Harness.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <sstream>
@@ -29,7 +29,7 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-map<string, string> const TypeConverter::m_global_context_types({
+map<string, string> const TypeAnalyzer::m_global_context_types({
     {"abi", ""}, {"addmod", "unsigned int"}, {"assert", "void"}, {"block", ""},
     {"blockhash", ""/*TODO(scottwe): byte32*/}, {"ecrecover", "int"},
     {"gasleft", "unsigned int"}, {"keccak256", ""/*TODO(scottwe): byte32*/},
@@ -41,11 +41,15 @@ map<string, string> const TypeConverter::m_global_context_types({
     {"sha3", ""/*TODO(scottwe): byte32*/}, {"suicide", "void"}
 });
 
-set<string> const TypeConverter::m_global_context_simple_values({"now"});
+set<string> const TypeAnalyzer::m_global_context_simple_values({"now"});
 
 // -------------------------------------------------------------------------- //
 
-void TypeConverter::record(SourceUnit const& _unit)
+TypeAnalyzer::TypeAnalyzer(uint64_t _addrs): m_address_count(_addrs) {}
+
+// -------------------------------------------------------------------------- //
+
+void TypeAnalyzer::record(SourceUnit const& _unit)
 {
     auto contracts = ASTNode::filteredNodes<ContractDefinition>(_unit.nodes());
 
@@ -141,20 +145,15 @@ void TypeConverter::record(SourceUnit const& _unit)
 
 // -------------------------------------------------------------------------- //
 
-bool TypeConverter::is_pointer(Identifier const& _id) const
+bool TypeAnalyzer::is_pointer(Identifier const& _id) const
 {
     auto const& RES = m_in_storage.find(&_id);
     return RES != m_in_storage.end() && RES->second;
 }
 
-bool TypeConverter::has_record(ASTNode const& _node) const
+string TypeAnalyzer::get_type(ASTNode const& _node) const
 {
-    return m_type_lookup.find(&_node) != m_type_lookup.end();
-}
-
-string TypeConverter::get_type(ASTNode const& _node) const
-{
-    if (!has_record(_node))
+    if (m_type_lookup.find(&_node) == m_type_lookup.end())
     {
         string name = "unknown";
         if (auto DECL = dynamic_cast<Declaration const*>(&_node))
@@ -166,7 +165,7 @@ string TypeConverter::get_type(ASTNode const& _node) const
     return m_type_lookup.find(&_node)->second;
 }
 
-string TypeConverter::get_name(ASTNode const& _node) const
+string TypeAnalyzer::get_name(ASTNode const& _node) const
 {
     auto const& RES = m_name_lookup.find(&_node);
     if (RES == m_name_lookup.end())
@@ -191,7 +190,7 @@ string TypeConverter::get_name(ASTNode const& _node) const
 
 // -------------------------------------------------------------------------- //
 
-string TypeConverter::get_simple_ctype(Type const& _type)
+string TypeAnalyzer::get_simple_ctype(Type const& _type)
 {
     Type const& type = unwrap(_type);
 
@@ -226,7 +225,7 @@ string TypeConverter::get_simple_ctype(Type const& _type)
 
 // -------------------------------------------------------------------------- //
 
-CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
+CExprPtr TypeAnalyzer::init_val_by_simple_type(Type const& _type)
 {
     if (!is_simple_type(_type))
     {
@@ -235,9 +234,7 @@ CExprPtr TypeConverter::init_val_by_simple_type(Type const& _type)
     return InitFunction::wrap(_type, Literals::ZERO);
 }
 
-CExprPtr TypeConverter::raw_simple_nd(
-    Type const& _type, string const& _msg
-) const
+CExprPtr TypeAnalyzer::raw_simple_nd(Type const& _type, string const& _msg) const
 {
     if (!is_simple_type(_type))
     {
@@ -245,13 +242,12 @@ CExprPtr TypeConverter::raw_simple_nd(
     }
 
     auto const CATEGORY = unwrap(_type).category();
-    if (CATEGORY == Type::Category::Bool)
-    {
-        return HarnessUtilities::range(0, 2, _msg);
+    if (CATEGORY == Type::Category::Bool) {
+        return LibVerify::range(0, 2, _msg);
     }
     else if (CATEGORY == Type::Category::Address)
     {
-        return HarnessUtilities::range(0, m_address_count, _msg);
+        return LibVerify::range(0, m_address_count, _msg);
     }
     else
     {
@@ -265,7 +261,7 @@ CExprPtr TypeConverter::raw_simple_nd(
     }
 }
 
-CExprPtr TypeConverter::nd_val_by_simple_type(
+CExprPtr TypeAnalyzer::nd_val_by_simple_type(
     Type const& _type, string const& _msg
 ) const
 {
@@ -273,24 +269,22 @@ CExprPtr TypeConverter::nd_val_by_simple_type(
     return InitFunction::wrap(_type, move(nd_val));
 }
 
-CExprPtr TypeConverter::get_init_val(TypeName const& _typename) const
+CExprPtr TypeAnalyzer::get_init_val(TypeName const& _typename) const
 {
     if (has_simple_type(_typename))
     {
-        return TypeConverter::init_val_by_simple_type(
-            *_typename.annotation().type
-        );
+        return init_val_by_simple_type(*_typename.annotation().type);
     }
     return InitFunction(*this, _typename).defaulted();
 }
 
-CExprPtr TypeConverter::get_init_val(Declaration const& _decl) const
+CExprPtr TypeAnalyzer::get_init_val(Declaration const& _decl) const
 {
     if (has_simple_type(_decl)) return init_val_by_simple_type(*_decl.type());
     return InitFunction(*this, _decl).defaulted();
 }
 
-CExprPtr TypeConverter::get_nd_val(
+CExprPtr TypeAnalyzer::get_nd_val(
     TypeName const& _typename, string const& _msg
 ) const
 {
@@ -301,7 +295,7 @@ CExprPtr TypeConverter::get_nd_val(
     return make_shared<CFuncCall>("ND_" + get_name(_typename), CArgList{});
 }
 
-CExprPtr TypeConverter::get_nd_val(
+CExprPtr TypeAnalyzer::get_nd_val(
     Declaration const& _decl, string const& _msg
 ) const
 {
@@ -314,21 +308,11 @@ CExprPtr TypeConverter::get_nd_val(
 
 // -------------------------------------------------------------------------- //
 
-void TypeConverter::limit_addresses(uint64_t _count)
-{
-    m_address_count = _count;
-}
+MapDeflate TypeAnalyzer::map_db() const { return m_map_db; }
 
 // -------------------------------------------------------------------------- //
 
-MapDeflate TypeConverter::map_db() const
-{
-    return m_map_db;
-}
-
-// -------------------------------------------------------------------------- //
-
-bool TypeConverter::visit(VariableDeclaration const& _node)
+bool TypeAnalyzer::visit(VariableDeclaration const& _node)
 {
     if (!_node.typeName())
     {
@@ -354,13 +338,13 @@ bool TypeConverter::visit(VariableDeclaration const& _node)
     return false;
 }
 
-bool TypeConverter::visit(ElementaryTypeName const& _node)
+bool TypeAnalyzer::visit(ElementaryTypeName const& _node)
 {
     m_type_lookup.insert({&_node, get_simple_ctype(*_node.annotation().type)});
     return false;
 }
 
-bool TypeConverter::visit(UserDefinedTypeName const& _node)
+bool TypeAnalyzer::visit(UserDefinedTypeName const& _node)
 {
     auto const& REF = *_node.annotation().referencedDeclaration;
     m_type_lookup.insert({&_node, get_type(REF)});
@@ -371,13 +355,13 @@ bool TypeConverter::visit(UserDefinedTypeName const& _node)
     return false;
 }
 
-bool TypeConverter::visit(FunctionTypeName const& _node)
+bool TypeAnalyzer::visit(FunctionTypeName const& _node)
 {
     (void) _node;
     throw runtime_error("Function type unsupported.");
 }
 
-bool TypeConverter::visit(Mapping const& _node)
+bool TypeAnalyzer::visit(Mapping const& _node)
 {
     auto const& record = m_map_db.query(_node);
     m_name_lookup.insert({&_node, record.name});
@@ -389,13 +373,13 @@ bool TypeConverter::visit(Mapping const& _node)
     return false;
 }
 
-bool TypeConverter::visit(ArrayTypeName const& _node)
+bool TypeAnalyzer::visit(ArrayTypeName const& _node)
 {
     (void) _node;
     throw runtime_error("Array type unsupported.");
 }
 
-bool TypeConverter::visit(IndexAccess const& _node)
+bool TypeAnalyzer::visit(IndexAccess const& _node)
 {
     FlatIndex idx(_node);
     auto const& record = m_map_db.resolve(idx.decl());
@@ -409,19 +393,19 @@ bool TypeConverter::visit(IndexAccess const& _node)
     return false;
 }
 
-bool TypeConverter::visit(EmitStatement const&)
+bool TypeAnalyzer::visit(EmitStatement const&)
 {
     return false;
 }
 
-bool TypeConverter::visit(EventDefinition const&)
+bool TypeAnalyzer::visit(EventDefinition const&)
 {
     return false;
 }
 
 // -------------------------------------------------------------------------- //
 
-void TypeConverter::endVisit(ParameterList const& _node)
+void TypeAnalyzer::endVisit(ParameterList const& _node)
 {
     if (m_is_retval)
     {
@@ -447,7 +431,7 @@ void TypeConverter::endVisit(ParameterList const& _node)
     }
 }
 
-void TypeConverter::endVisit(MemberAccess const& _node)
+void TypeAnalyzer::endVisit(MemberAccess const& _node)
 {
     if (auto decl = member_access_to_decl(_node))
     {
@@ -459,7 +443,7 @@ void TypeConverter::endVisit(MemberAccess const& _node)
     }
 }
 
-void TypeConverter::endVisit(Identifier const& _node)
+void TypeAnalyzer::endVisit(Identifier const& _node)
 {
     auto const& NODE_NAME = _node.name();
     if (NODE_NAME == "super") return;

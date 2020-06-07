@@ -22,7 +22,7 @@ namespace modelcheck
 class CallState;
 class CFuncCallBuilder;
 class FunctionCallAnalyzer;
-class TypeConverter;
+class TypeAnalyzer;
 class VariableScopeResolver;
 
 // -------------------------------------------------------------------------- //
@@ -42,7 +42,7 @@ public:
 	// declaration set. Will also propogate and expose relevant expression data.
     ExpressionConverter(
         Expression const& _expr,
-        TypeConverter const& _converter,
+        TypeAnalyzer const& _converter,
 		CallState const& _statedata,
         VariableScopeResolver const& _decls,
 		bool _is_ref = false,
@@ -66,7 +66,7 @@ protected:
 
 private:
     Expression const* M_EXPR;
-    TypeConverter const& M_CONVERTER;
+    TypeAnalyzer const& M_CONVERTER;
 	CallState const& M_STATEDATA;
 	VariableScopeResolver const& M_DECLS;
 

@@ -33,13 +33,13 @@ GeneralBlockConverter::GeneralBlockConverter(
 	vector<ASTPointer<VariableDeclaration>> const& _args,
 	vector<ASTPointer<VariableDeclaration>> const& _rvs,
 	Block const& _body,
-	TypeConverter const& _converter,
+	TypeAnalyzer const& _converter,
 	CallState const& _statedata,
 	NewCallGraph const& _newcalls,
 	bool _manage_pay,
 	bool _is_payable
-): M_BODY(_body)
- , M_CONVERTER(_converter)
+): M_CONVERTER(_converter)
+ , M_BODY(_body)
  , M_STATEDATA(_statedata)
  , M_MANAGE_PAY(_manage_pay)
  , M_IS_PAYABLE(_is_payable)

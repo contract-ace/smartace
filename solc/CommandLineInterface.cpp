@@ -47,9 +47,9 @@
 #include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
-#include <libsolidity/modelcheck/harness/MainFunction.h>
 #include <libsolidity/modelcheck/model/ADT.h>
 #include <libsolidity/modelcheck/model/Function.h>
+#include <libsolidity/modelcheck/scheduler/MainFunction.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Indices.h>
 
@@ -1281,12 +1281,10 @@ void CommandLineInterface::handleCModel()
 	}
 
 	// A first pass over the Solidity sources to aggregate type data.
-	modelcheck::TypeConverter converter;
 	modelcheck::PrimitiveTypeGenerator primitive_set;
 	modelcheck::NewCallGraph newcall_graph;
 	for (auto const* ast: asts)
 	{
-		converter.record(*ast);
 		primitive_set.record(*ast);
 		newcall_graph.record(*ast);
 	}
@@ -1350,21 +1348,27 @@ void CommandLineInterface::handleCModel()
 	modelcheck::MapIndexSummary index_summary(concrete_addrs, client_count, actor_count);
 	for (auto const* ast: asts)
 	{
-		auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-		for (auto ctrt : ctrts)
+		auto contracts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
+		for (auto contract : contracts)
 		{
-			index_summary.extract_literals(*ctrt);
+			index_summary.extract_literals(*contract);
 		}
 	}
 	for (auto const* ast: asts)
 	{
-		auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-		for (auto ctrt : ctrts)
+		auto contracts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
+		for (auto contract : contracts)
 		{
-			index_summary.compute_interference(*ctrt);
+			index_summary.compute_interference(*contract);
 		}
 	}
-	converter.limit_addresses(index_summary.size());
+
+	// Generates type metadata.
+	modelcheck::TypeAnalyzer converter(index_summary.size());
+	for (auto const* ast : asts)
+	{
+		converter.record(*ast);
+	}
 
 	// Checks for violations in the index summary
 	if (!index_summary.violations().empty())
@@ -1464,7 +1468,7 @@ void CommandLineInterface::handleCModelHeaders(
 	modelcheck::ContractDependance const& _dependance,
 	modelcheck::MapIndexSummary const& _addrdata,
 	modelcheck::NewCallGraph const& _newcalls,
-	modelcheck::TypeConverter const& _types,
+	modelcheck::TypeAnalyzer const& _types,
 	modelcheck::CallState const& _callstate,
 	ostream& _os
 )
@@ -1513,7 +1517,7 @@ void CommandLineInterface::handleCModelBody(
 	modelcheck::ContractDependance const& _dependance,
 	modelcheck::MapIndexSummary const& _addrdata,
 	modelcheck::NewCallGraph const& _newcalls,
-	modelcheck::TypeConverter const& _types,
+	modelcheck::TypeAnalyzer const& _types,
 	modelcheck::CallState const& _callstate,
 	ostream& _os
 )

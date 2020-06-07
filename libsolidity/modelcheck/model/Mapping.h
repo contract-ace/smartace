@@ -20,7 +20,7 @@ namespace solidity
 namespace modelcheck
 {
 
-class TypeConverter;
+class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -29,13 +29,13 @@ class MapGenerator
 public:
     // Constructs a new map. The map models AST node _src. The map will model
     // _ct entries. Its key and value types are converted using _converter,
-    // along iwth the map itself. Is _keep_sum is set, the sum aggregator is
+    // along with the map itself. Is _keep_sum is set, the sum aggregator is
     // instrumented by default.
     MapGenerator(
         Mapping const& _src,
         bool _keep_sum,
         size_t _ct,
-        TypeConverter const& _converter
+        TypeAnalyzer const& _converter
     );
 
     // Declares all structures and functions used by a map.
@@ -86,7 +86,7 @@ private:
     std::string const M_TYPE;
 
     // Allows types to be resolved.
-    TypeConverter const& M_CONVERTER;
+    TypeAnalyzer const& M_CONVERTER;
     MapDeflate::FlatMap const M_MAP_RECORD;
 
     // Const type names to simplify generation.

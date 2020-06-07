@@ -97,15 +97,26 @@ string VariableScopeResolver::rewrite(string _sym, bool _gen, VarContext _ctx)
 
 string VariableScopeResolver::resolve_sym(string const& _sym) const
 {
+    // Handles reserved identifiers and special contexes.
     if (M_CODE_TYPE == CodeType::INITBLOCK)
     {
         return rewrite(_sym, false, VarContext::STRUCT);
     }
+    else if (_sym.empty())
+    {
+        return _sym;
+    }
+    else if (_sym == "now")
+    {
+        return CallStateUtilities::get_name(CallStateUtilities::Field::Timestamp);
+    }
+    else if (_sym == "this")
+    {
+        return "self";
+    }
 
-    if (_sym.empty()) return _sym;
-
+    // This is not a special case, so scope resolution is applied.
     bool shadow = (M_CODE_TYPE == CodeType::SHADOWBLOCK);
-
     for (auto scope = m_scopes.crbegin(); scope != m_scopes.crend(); scope++)
     {
         if (scope->find(_sym) != scope->cend())
@@ -113,19 +124,7 @@ string VariableScopeResolver::resolve_sym(string const& _sym) const
             return rewrite(_sym, shadow, VarContext::FUNCTION);
         }
     }
-
-    if (_sym == "this")
-    {
-        return "self";
-    }
-    else if (_sym == "now")
-    {
-        return CallStateUtilities::get_name(CallStateUtilities::Field::Timestamp);
-    }
-    else
-    {
-        return "self->" + rewrite(_sym, shadow, VarContext::STRUCT);
-    }
+    return "self->" + rewrite(_sym, shadow, VarContext::STRUCT);
 }
 
 // -------------------------------------------------------------------------- //

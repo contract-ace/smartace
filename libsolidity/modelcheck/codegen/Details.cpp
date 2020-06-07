@@ -222,7 +222,7 @@ void CFuncCallBuilder::push(CExprPtr _expr, Type const* _t)
 
 void CFuncCallBuilder::push(
     Expression const& _expr,
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     CallState const& _state,
     VariableScopeResolver const& _decls,
     bool _is_ref,

@@ -27,7 +27,7 @@ namespace modelcheck
 
 FunctionBlockConverter::FunctionBlockConverter(
     FunctionDefinition const& _func,
-	TypeConverter const& _converter,
+	TypeAnalyzer const& _converter,
 	CallState const& _statedata,
 	NewCallGraph const& _newcalls
 ): GeneralBlockConverter(
@@ -39,7 +39,7 @@ FunctionBlockConverter::FunctionBlockConverter(
 	_newcalls,
 	_func.modifiers().empty(),
 	_func.isPayable()
-), M_CONVERTER(_converter)
+)
 {
 	if (has_retval())
 	{

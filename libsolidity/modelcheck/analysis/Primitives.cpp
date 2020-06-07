@@ -194,10 +194,7 @@ void PrimitiveTypeGenerator::declare_primitive(
 
 // -------------------------------------------------------------------------- //
 
-void PrimitiveTypeGenerator::endVisit(Mapping const&)
-{
-    record_bool();
-}
+void PrimitiveTypeGenerator::endVisit(Mapping const&) { record_bool(); }
 
 void PrimitiveTypeGenerator::endVisit(UsingForDirective const& _node)
 {
@@ -240,7 +237,8 @@ void PrimitiveTypeGenerator::endVisit(FunctionCall const& _node)
                 record_address();
                 record_uint(256);
                 break;
-            default: break;
+            default:
+                break;
             }
         }
     }

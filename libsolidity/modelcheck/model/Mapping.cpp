@@ -26,7 +26,7 @@ MapGenerator::MapGenerator(
     Mapping const& _src,
     bool _keep_sum,
     size_t _ct,
-    TypeConverter const& _converter
+    TypeAnalyzer const& _converter
 ): M_LEN(_ct)
  , M_KEEP_SUM(_keep_sum)
  , M_TYPE(_converter.get_type(_src))

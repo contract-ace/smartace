@@ -5,7 +5,7 @@
  * @date 2019
  */
 
-#include <libsolidity/modelcheck/harness/MainFunction.h>
+#include <libsolidity/modelcheck/scheduler/MainFunction.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
@@ -17,7 +17,7 @@
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
-#include <libsolidity/modelcheck/utils/Harness.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/utils/Indices.h>
 
 #include <set>
@@ -39,7 +39,7 @@ MainFunctionGenerator::MainFunctionGenerator(
     ContractDependance const& _dependance,
     NewCallGraph const& _newcalls,
     CallState const& _statedata,
-    TypeConverter const& _converter
+    TypeAnalyzer const& _converter
 ): M_STATEDATA(_statedata)
  , M_CONVERTER(_converter)
  , m_addrspace(_addrdata)
@@ -56,7 +56,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     auto next_case = make_shared<CVarDecl>("uint8_t", "next_call");
 
     CBlockList default_case;
-    HarnessUtilities::require(default_case, Literals::ZERO);
+    LibVerify::require(default_case, Literals::ZERO);
 
     auto call_cases = make_shared<CSwitch>(next_case->id(), move(default_case));
     for (auto actor : m_actors.inspect())
@@ -85,12 +85,12 @@ void MainFunctionGenerator::print(ostream& _stream)
     m_stategen.update(transactionals);
     transactionals.push_back(next_case);
     transactionals.push_back(next_case->assign(
-        HarnessUtilities::range(0, call_cases->size(), "next_call")
+        LibVerify::range(0, call_cases->size(), "next_call")
     )->stmt());
     transactionals.push_back(call_cases);
 
     // Adds transactional loop to end of body.
-    HarnessUtilities::log(main, "[Entering transaction loop]");
+    LibVerify::log(main, "[Entering transaction loop]");
     main.push_back(make_shared<CWhileLoop>(
         make_shared<CBlock>(move(transactionals)),
         make_shared<CFuncCall>("sol_continue", CArgList{}),
@@ -159,7 +159,7 @@ CBlockList MainFunctionGenerator::build_case(
     }
 
     call_body.push_back(call_builder.merge_and_pop_stmt());
-    HarnessUtilities::log(call_body, "[Call successful]");
+    LibVerify::log(call_body, "[Call successful]");
     call_body.push_back(make_shared<CBreak>());
 
     return call_body;
@@ -188,7 +188,7 @@ void MainFunctionGenerator::log_call(
     caselog << ") on " << _id;
     caselog << "]";
 
-    HarnessUtilities::log(_block, caselog.str());
+    LibVerify::log(_block, caselog.str());
 }
 
 // -------------------------------------------------------------------------- //

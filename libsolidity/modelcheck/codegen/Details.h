@@ -22,7 +22,7 @@ namespace modelcheck
 {
 
 class CallState;
-class TypeConverter;
+class TypeAnalyzer;
 class VariableScopeResolver;
 
 // -------------------------------------------------------------------------- //
@@ -329,7 +329,7 @@ public:
     // of implicitly casting raw types.
     void push(
         Expression const& _expr,
-        TypeConverter const& _converter,
+        TypeAnalyzer const& _converter,
         CallState const& _state,
         VariableScopeResolver const& _decls,
         bool _is_ref,

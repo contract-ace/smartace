@@ -1,6 +1,5 @@
 /**
- * Provides interfaces to describe contract-based actors, and to maintain the
- * corresponding model in code.
+ * Provides interfaces to describe and control contract-based actors.
  * @date 2020
  */
 
@@ -26,7 +25,7 @@ class FunctionSpecialization;
 class MapIndexSummary;
 class NewCallGraph;
 class StateGenerator;
-class TypeConverter;
+class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -37,7 +36,7 @@ class TypeConverter;
 struct Actor
 {
     Actor(
-        TypeConverter const& _converter,
+        TypeAnalyzer const& _converter,
         ContractDependance const& _dependance,
         ContractDefinition const* _contract,
         size_t _id,
@@ -75,7 +74,7 @@ class ActorModel
 public:
     ActorModel(
         ContractDependance const& _dependance,
-        TypeConverter const& _converter,
+        TypeAnalyzer const& _converter,
         NewCallGraph const& _newcalls,
         MapIndexSummary const& _addrdata
     );
@@ -105,7 +104,7 @@ public:
     std::list<Actor> const& inspect() const;
 
 private:
-	TypeConverter const& M_CONVERTER;
+	TypeAnalyzer const& M_CONVERTER;
 
     // The list of actors, which is populated after setup.
     std::list<Actor> m_actors;

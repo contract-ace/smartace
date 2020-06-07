@@ -47,20 +47,17 @@ BOOST_AUTO_TEST_CASE(contract_and_structs)
     auto const& ctrt_a = *retrieveContractByName(ast, "A");
     auto const& ctrt_b = *retrieveContractByName(ast, "B");
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
-    BOOST_CHECK(converter.has_record(ctrt_a));
     BOOST_CHECK_EQUAL(converter.get_name(ctrt_a), "A");
     BOOST_CHECK_EQUAL(converter.get_type(ctrt_a), "struct A");
-    BOOST_CHECK(converter.has_record(ctrt_b));
     BOOST_CHECK_EQUAL(converter.get_name(ctrt_b), "B");
     BOOST_CHECK_EQUAL(converter.get_type(ctrt_b), "struct B");
     for (auto structure : ctrt_a.definedStructs())
     {
         string expt_name = ctrt_a.name() + "_Struct_" + structure->name();
         string expt_type = "struct " + expt_name;
-        BOOST_CHECK(converter.has_record(*structure));
         BOOST_CHECK_EQUAL(converter.get_name(*structure), expt_name);
         BOOST_CHECK_EQUAL(converter.get_type(*structure), expt_type);
     }
@@ -99,7 +96,7 @@ BOOST_AUTO_TEST_CASE(simple_types)
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     for (auto member : ctrt.stateVariables())
@@ -117,12 +114,11 @@ BOOST_AUTO_TEST_CASE(contract_state_variable)
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     for (auto decl : ctrt.stateVariables())
     {
-        BOOST_CHECK(converter.has_record(*decl));
         BOOST_CHECK_EQUAL(converter.get_type(*decl), "sol_int256_t");
         BOOST_CHECK_THROW(converter.get_name(*decl), runtime_error);
     }
@@ -140,14 +136,13 @@ BOOST_AUTO_TEST_CASE(struct_member_variable)
 
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
-    auto const& strt = *ctrt.definedStructs()[0];
+    auto const& structs = *ctrt.definedStructs()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
-    for (auto decl : strt.members())
+    for (auto decl : structs.members())
     {
-        BOOST_CHECK(converter.has_record(*decl));
         BOOST_CHECK_EQUAL(converter.get_type(*decl), "sol_fixed128X8_t");
         BOOST_CHECK_THROW(converter.get_name(*decl), runtime_error);
     }
@@ -168,7 +163,7 @@ BOOST_AUTO_TEST_CASE(map_variable)
 
     const auto& map_var = *ctrt.stateVariables()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.get_name(map_var), "Map_1");
@@ -187,17 +182,15 @@ BOOST_AUTO_TEST_CASE(function)
 
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
-    auto const& funs = ctrt.definedFunctions();
+    auto const& funcs = ctrt.definedFunctions();
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
-    auto const& f1 = (funs[0]->name() == "f") ? *funs[0] : *funs[1];
-    BOOST_CHECK(converter.has_record(f1));
+    auto const& f1 = (funcs[0]->name() == "f") ? *funcs[0] : *funcs[1];
     BOOST_CHECK_EQUAL(converter.get_type(f1), "sol_int256_t");
 
-    auto const& f2 = (funs[0]->name() != "f") ? *funs[0] : *funs[1];
-    BOOST_CHECK(converter.has_record(f2));
+    auto const& f2 = (funcs[0]->name() != "f") ? *funcs[0] : *funcs[1];
     BOOST_CHECK_EQUAL(converter.get_type(f2), "void");
 }
 
@@ -258,7 +251,7 @@ BOOST_AUTO_TEST_CASE(global_context_ids)
     SourceUnit unit(SourceLocation(), {contract});
     BOOST_CHECK_EQUAL(unit.nodes().size(), 1);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 }
 
@@ -284,7 +277,7 @@ BOOST_AUTO_TEST_CASE(this_keyword_ids)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& iden = *dynamic_cast<IdenExprPtr>(&expr);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.get_name(iden), "A");
@@ -313,7 +306,7 @@ BOOST_AUTO_TEST_CASE(regular_id)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& iden = *dynamic_cast<IdenExprPtr>(&expr);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.get_type(iden), "sol_uint256_t");
@@ -344,7 +337,7 @@ BOOST_AUTO_TEST_CASE(contract_access)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& mmbr = *dynamic_cast<MmbrExprPtr>(&expr);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.get_type(mmbr), "sol_uint256_t");
@@ -375,7 +368,7 @@ BOOST_AUTO_TEST_CASE(struct_access)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& mmbr = *dynamic_cast<MmbrExprPtr>(&expr);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.get_name(mmbr), "Map_1");
@@ -413,7 +406,7 @@ BOOST_AUTO_TEST_CASE(identifiers_as_pointers)
     auto const& expr_4 = dynamic_cast<ExprStmtPtr>(&stmt_4)->expression();
     auto const& idx2 = *dynamic_cast<IndnExprPtr>(&expr_4);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.is_pointer(idx1), true);
@@ -436,7 +429,7 @@ BOOST_AUTO_TEST_CASE(name_escape)
     auto const& strt = *ctrt.definedStructs()[0];
     auto const& mapv = *ctrt.stateVariables()[0];
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     BOOST_CHECK_EQUAL(converter.get_name(ctrt), "A__B");
@@ -446,8 +439,7 @@ BOOST_AUTO_TEST_CASE(name_escape)
 
 BOOST_AUTO_TEST_CASE(bounded_addr)
 {
-    TypeConverter converter;
-    converter.limit_addresses(10);
+    TypeAnalyzer converter(10);
 
     AddressType type(StateMutability::Payable);
     auto raw_nd = converter.raw_simple_nd(type, "Blah");
@@ -459,7 +451,7 @@ BOOST_AUTO_TEST_CASE(bounded_addr)
 
 BOOST_AUTO_TEST_CASE(bounded_bool)
 {
-    TypeConverter converter;
+    TypeAnalyzer converter;
 
     BoolType type;
     auto raw_nd = converter.raw_simple_nd(type, "Blah");

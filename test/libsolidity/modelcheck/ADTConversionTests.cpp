@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
 
     auto const &ast = *parseAndAnalyse(text);
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(ast);
 
     NewCallGraph callgraph;
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     auto const &unit = *parseAndAnalyse(text);
     auto const &ctrt = *retrieveContractByName(unit, "C");
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph callgraph;
@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     auto const &unit = *parseAndAnalyse(text);
     auto const &ctrt = *retrieveContractByName(unit, "Test");
 
-    TypeConverter converter;
+    TypeAnalyzer converter;
     converter.record(unit);
 
     NewCallGraph callgraph;

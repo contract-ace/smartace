@@ -1,6 +1,6 @@
 /**
- * Decouples address logic from the harness. This allows for address models to
- * be interchanged or maintained without analysis of the entire harness.
+ * Decouples address logic from the scheduler. This allows for address models to
+ * be interchanged or maintained without analysis of the entire scheduler.
  * @date 2020
  */
 

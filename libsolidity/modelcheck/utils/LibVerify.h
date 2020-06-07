@@ -1,7 +1,6 @@
 /**
  * @date 2020
- * Data and helper functions for generating the harness. This is meant to reduce
- * code duplication.
+ * Provides an interface with libverify.
  */
 
 #pragma once
@@ -21,9 +20,9 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
- * Utilities to genereate generic harness elements.
+ * Generates interface code to libverify.
  */
-class HarnessUtilities
+class LibVerify
 {
 public:
     // Appends a require statement to _block, conditioned on _cond.

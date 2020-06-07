@@ -33,7 +33,7 @@ namespace modelcheck
 
 ExpressionConverter::ExpressionConverter(
 	Expression const& _expr,
-	TypeConverter const& _converter,
+	TypeAnalyzer const& _converter,
 	CallState const& _statedata,
 	VariableScopeResolver const& _decls,
 	bool _is_ref,

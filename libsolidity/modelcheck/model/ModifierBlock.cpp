@@ -45,7 +45,7 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
 
 ModifierBlockConverter ModifierBlockConverter::Factory::generate(
     size_t _i,
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     CallState const& _statedata,
     NewCallGraph const& _newcalls
 ) const
@@ -93,7 +93,7 @@ ModifierBlockConverter::ModifierBlockConverter(
     FunctionDefinition const& _func,
     ModifierDefinition const* _def,
     ModifierInvocation const* _curr,
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     CallState const& _statedata,
     NewCallGraph const& _newcalls,
     string _next,
@@ -107,8 +107,7 @@ ModifierBlockConverter::ModifierBlockConverter(
     _newcalls,
     _entry,
     _func.isPayable()
-), M_CONVERTER(_converter)
- , M_STATEDATA(_statedata)
+), M_STATEDATA(_statedata)
  , M_TRUE_PARAMS(_func.parameters())
  , M_USER_PARAMS(_def->parameters())
  , M_USER_ARGS(_curr->arguments())

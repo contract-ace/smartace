@@ -1,16 +1,16 @@
 /**
- * Utility to generate the next global state, from within the harness.
+ * Utility to generate the next global state, from within the scheduler.
  * @date 2020
  */
 
-#include <libsolidity/modelcheck/harness/StateGenerator.h>
+#include <libsolidity/modelcheck/scheduler/StateGenerator.h>
 
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/analysis/Types.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
-#include <libsolidity/modelcheck/utils/Harness.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
 
 #include <memory>
 
@@ -27,7 +27,7 @@ namespace modelcheck
 
 StateGenerator::StateGenerator(
     CallState const& _statedata,
-    TypeConverter const& _converter,
+    TypeAnalyzer const& _converter,
     MapIndexSummary const& _addrdata,
     bool _use_lockstep_time
 ): M_STATEDATA(_statedata)
@@ -83,7 +83,7 @@ void StateGenerator::update(CBlockList & _block) const
     if (M_USE_LOCKSTEP_TIME)
     {
         _block.push_back(M_STEPVAR->id()->assign(
-            HarnessUtilities::range(0, 2, "take_step"))->stmt()
+            LibVerify::range(0, 2, "take_step"))->stmt()
         );
     }
 
@@ -99,7 +99,7 @@ void StateGenerator::update(CBlockList & _block) const
         if (fld.field == CallStateUtilities::Field::Block ||
             fld.field == CallStateUtilities::Field::Timestamp)
         {
-            auto step = state->access("v")->assign(HarnessUtilities::increase(
+            auto step = state->access("v")->assign(LibVerify::increase(
                 state->access("v"), M_USE_LOCKSTEP_TIME, fld.name
             ))->stmt();
             if (M_USE_LOCKSTEP_TIME)
@@ -128,7 +128,7 @@ void StateGenerator::update(CBlockList & _block) const
                 minaddr += 1;
             }
 
-            auto nd_addr = HarnessUtilities::range(minaddr, maxaddr, fld.name);
+            auto nd_addr = LibVerify::range(minaddr, maxaddr, fld.name);
             _block.push_back(state->access("v")->assign(nd_addr)->stmt());
         }
         else

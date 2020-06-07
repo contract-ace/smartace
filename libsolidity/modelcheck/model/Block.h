@@ -23,7 +23,7 @@ namespace modelcheck
 class CallState;
 class FunctionSpecialization;
 class NewCallGraph;
-class TypeConverter;
+class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -47,7 +47,7 @@ public:
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
 		std::vector<ASTPointer<VariableDeclaration>> const& _rvs,
 		Block const& _body,
-		TypeConverter const& _converter,
+		TypeAnalyzer const& _converter,
 		CallState const& _statedata,
 		NewCallGraph const& _newcalls,
 		bool _manage_pay,
@@ -60,6 +60,8 @@ public:
 	std::shared_ptr<CBlock> convert();
 
 protected:
+	TypeAnalyzer const& M_CONVERTER;
+
 	// A taxonomy of block translations.
 	// - Initializer: wraps and returns a constructor call
 	// - Action: function without a return parameter.
@@ -119,7 +121,6 @@ private:
 	static void add_value_handler(CBlockList & _block);
 
 	Block const& M_BODY;
-	TypeConverter const& M_CONVERTER;
 	CallState const& M_STATEDATA;
 
 	bool const M_MANAGE_PAY;
@@ -151,7 +152,7 @@ public:
 	// unit(s) associated with _func.
 	FunctionBlockConverter(
 		FunctionDefinition const& _func,
-		TypeConverter const& _converter,
+		TypeAnalyzer const& _converter,
 		CallState const& _statedata,
 		NewCallGraph const& _newcalls
 	);
@@ -167,8 +168,6 @@ protected:
 	bool visit(Return const& _node) override;
 
 private:
-	TypeConverter const& M_CONVERTER;
-
 	FunctionSpecialization const* m_spec;
 
 	ASTPointer<VariableDeclaration> m_rv = nullptr;
@@ -207,7 +206,7 @@ public:
 		// Generates the _i-th modifier for _func, where _i is zero-indexed.
 		ModifierBlockConverter generate(
 			size_t _i,
-			TypeConverter const& _converter,
+			TypeAnalyzer const& _converter,
 			CallState const& _statedata,
 			NewCallGraph const& _newcalls
 		) const;
@@ -238,7 +237,6 @@ protected:
 	void endVisit(PlaceholderStatement const&) override;
 
 private:
-	TypeConverter const& M_CONVERTER;
 	CallState const& M_STATEDATA;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_TRUE_PARAMS;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_USER_PARAMS;
@@ -253,7 +251,7 @@ private:
 		FunctionDefinition const& _func,
 		ModifierDefinition const* _def,
 		ModifierInvocation const* _curr,
-		TypeConverter const& _converter,
+		TypeAnalyzer const& _converter,
 		CallState const& _statedata,
 		NewCallGraph const& _newcalls,
 		std::string _next,

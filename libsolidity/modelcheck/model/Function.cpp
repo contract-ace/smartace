@@ -41,7 +41,7 @@ FunctionConverter::FunctionConverter(
     ContractDependance const& _dependance,
     CallState const& _statedata,
     NewCallGraph const& _newcalls,
-	TypeConverter const& _converter,
+	TypeAnalyzer const& _converter,
     bool _add_sums,
     size_t _map_k,
     View _view,
@@ -357,7 +357,7 @@ string FunctionConverter::handle_contract_initializer(
             auto const NAME = ContractUtilities::balance_member();
             auto const* TYPE = ContractUtilities::balance_type();
             stmts.push_back(self_ptr->access(NAME)->assign(
-                TypeConverter::init_val_by_simple_type(*TYPE)
+                TypeAnalyzer::init_val_by_simple_type(*TYPE)
             )->stmt());
         }
         for (auto initializer : parent_initializers)

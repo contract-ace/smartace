@@ -20,7 +20,7 @@ namespace solidity
 namespace modelcheck
 {
 
-class TypeConverter;
+class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -36,14 +36,14 @@ public:
     // Represents an initialization call for _base, as specialized for _derived.
     // Type names are resolved using _converter.
     InitFunction(
-        TypeConverter const& _converter,
+        TypeAnalyzer const& _converter,
         ContractDefinition const& _base,
         ContractDefinition const& _derived
     );
 
     // Represents an initialization call for entities of _node's type. Type
     // names are resolved using _converter.
-    InitFunction(TypeConverter const& _converter, ASTNode const& _node);
+    InitFunction(TypeAnalyzer const& _converter, ASTNode const& _node);
 
     // Represents an initialization call for the mapping built from _mapping.
     // Type names are resolved using _converter.
@@ -94,7 +94,7 @@ private:
     // Returns `Init_{BASE_NAME}`, or `Init_{BASE_NAME}_For_{DERIVED_NAME}` when
     // _base is not _derived.
     static std::string specialize_name(
-        TypeConverter const& _converter,
+        TypeAnalyzer const& _converter,
         ContractDefinition const& _base,
         ContractDefinition const& _derived
     );

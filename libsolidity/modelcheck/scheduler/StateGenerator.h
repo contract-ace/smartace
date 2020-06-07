@@ -1,5 +1,5 @@
 /**
- * Utility to generate the next global state, from within the harness.
+ * Utility to generate the next global state, from within the scheduler.
  * @date 2020
  */
 
@@ -19,7 +19,7 @@ namespace modelcheck
 
 class CallState;
 class MapIndexSummary;
-class TypeConverter;
+class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -31,7 +31,7 @@ class StateGenerator
 public:
     StateGenerator(
         CallState const& _statedata,
-        TypeConverter const& _converter,
+        TypeAnalyzer const& _converter,
         MapIndexSummary const& _addrdata,
         bool _use_lockstep_time
     );
@@ -47,7 +47,7 @@ public:
 
 private:
     CallState const& M_STATEDATA;
-	TypeConverter const& M_CONVERTER;
+	TypeAnalyzer const& M_CONVERTER;
     MapIndexSummary const& M_MAPDATA;
 
     // When true, time and blocknumber advance in lockstep.

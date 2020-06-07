@@ -132,14 +132,6 @@ set(sources
 	modelcheck/codegen/Details.h
 	modelcheck/codegen/Literals.cpp
 	modelcheck/codegen/Literals.h
-	modelcheck/harness/ActorModel.cpp
-	modelcheck/harness/ActorModel.h
-	modelcheck/harness/AddressSpace.cpp
-	modelcheck/harness/AddressSpace.h
-	modelcheck/harness/MainFunction.cpp
-	modelcheck/harness/MainFunction.h
-	modelcheck/harness/StateGenerator.cpp
-	modelcheck/harness/StateGenerator.h
 	modelcheck/model/ADT.cpp
 	modelcheck/model/ADT.h
 	modelcheck/model/Block.h
@@ -152,6 +144,14 @@ set(sources
 	modelcheck/model/FunctionBlock.cpp
 	modelcheck/model/GeneralBlock.cpp
 	modelcheck/model/ModifierBlock.cpp
+	modelcheck/scheduler/ActorModel.cpp
+	modelcheck/scheduler/ActorModel.h
+	modelcheck/scheduler/AddressSpace.cpp
+	modelcheck/scheduler/AddressSpace.h
+	modelcheck/scheduler/MainFunction.cpp
+	modelcheck/scheduler/MainFunction.h
+	modelcheck/scheduler/StateGenerator.cpp
+	modelcheck/scheduler/StateGenerator.h
 	modelcheck/utils/AST.cpp
 	modelcheck/utils/AST.h
 	modelcheck/utils/CallState.cpp
@@ -160,10 +160,10 @@ set(sources
 	modelcheck/utils/Contract.h
 	modelcheck/utils/Function.cpp
 	modelcheck/utils/Function.h
-	modelcheck/utils/Harness.cpp
-	modelcheck/utils/Harness.h
 	modelcheck/utils/Indices.cpp
 	modelcheck/utils/Indices.h
+	modelcheck/utils/LibVerify.cpp
+	modelcheck/utils/LibVerify.h
 	modelcheck/utils/Types.cpp
 	modelcheck/utils/Types.h
 	parsing/DocStringParser.cpp
