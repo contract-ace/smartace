@@ -15,4 +15,3 @@ contract Contract {
 		counter = counter + 1;
 	}
 }
-

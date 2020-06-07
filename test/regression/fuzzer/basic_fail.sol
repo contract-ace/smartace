@@ -16,4 +16,3 @@ contract Contract {
 		assert(counter < 2);
 	}
 }
-
