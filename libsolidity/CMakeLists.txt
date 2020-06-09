@@ -117,6 +117,8 @@ set(sources
 	modelcheck/analysis/FullSourceContractDependance.cpp
 	modelcheck/analysis/FunctionCall.cpp
 	modelcheck/analysis/FunctionCall.h
+	modelcheck/analysis/Inheritance.cpp
+	modelcheck/analysis/Inheritance.h
 	modelcheck/analysis/Mapping.cpp
 	modelcheck/analysis/Mapping.h
 	modelcheck/analysis/ModelDrivenContractDependance.cpp

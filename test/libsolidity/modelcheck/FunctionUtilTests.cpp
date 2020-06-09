@@ -1,6 +1,6 @@
 /**
  * @date 2019
- * Test suite targeting AST manipulation utilities.
+ * Test suite targeting function manipulation utilities.
  */
 
 #include <libsolidity/modelcheck/utils/Function.h>
@@ -57,7 +57,6 @@ BOOST_AUTO_TEST_CASE(function_collision)
         BOOST_CHECK(collid(*func_b_i, *func_b_i));
         for (unsigned int j = 0; j < 4; ++j)
         {
-            auto func_a_j = ctrt_a.definedFunctions()[j];
             auto func_b_j = ctrt_b.definedFunctions()[j];
             if (i != j) BOOST_CHECK(!collid(*func_a_i, *func_b_j));
         }
