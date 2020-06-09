@@ -1,8 +1,10 @@
-/*
+/**
+ * SmartACE maps every Solidity type to some generated C-type. For primitive
+ * types, these are singleton structures. For Solidity structures and contracts,
+ * these are synthesized C-structs. These utilities allow for translation from
+ * Solidity to C.
+ * 
  * @date 2019
- * This model maps each Solidity type to a C-type. For structures and contracts,
- * these are synthesized C-structs. This translation unit provides utilities for
- * performing such conversions.
  */
 
 #pragma once
@@ -24,7 +26,7 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-/*
+/**
  * Maintains a dictionary from AST Node addresses to type encoding metadata. The
  * mapping is restricted to AST Nodes for which types are practical, and records
  * must be generated on a per-source-unit basis.

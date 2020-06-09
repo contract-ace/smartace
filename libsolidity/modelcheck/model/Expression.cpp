@@ -1,21 +1,16 @@
-/**
- * @date 2019
- * Utility visitor to convert Solidity expressions into verifiable code.
- */
-
 #include <libsolidity/modelcheck/model/Expression.h>
 
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/AST.h>
+#include <libsolidity/modelcheck/utils/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
-#include <libsolidity/modelcheck/utils/Indices.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <stdexcept>
@@ -304,9 +299,9 @@ bool ExpressionConverter::visit(Literal const& _node)
 	case Token::Number:
 		if (m_is_address_cast)
 		{
-			m_subexpr = make_shared<CIdentifier>(Indices::const_global_name(
-				_node.annotation().type->literalValue(&_node)
-			), false);
+			auto lit = _node.annotation().type->literalValue(&_node);
+			auto const& lit_name = AbstractAddressDomain::literal_name(lit);
+			m_subexpr = make_shared<CIdentifier>(lit_name, false);
 		}
 		else
 		{

@@ -1,7 +1,8 @@
 /**
- * @date 2020
  * A set of tools to analyze the dependance between contracts, their methods and
  * their structs.
+ * 
+ * @date 2020
  */
 
 #pragma once

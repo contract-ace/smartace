@@ -1,7 +1,10 @@
 /**
+ * SmartACE wraps all primitive Solidity types in singleton structures. This
+ * allows for more flexability in analysis (the compiler is aware of these types
+ * now). This file analyzes source units to determine which primitives are in
+ * use.
+ * 
  * @date 2019
- * Visitor used to generate all primitive type declarations. This will produce
- * a header-only library for arithmetic operations.
  */
 
 #pragma once

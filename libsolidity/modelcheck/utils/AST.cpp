@@ -1,9 +1,3 @@
-/**
- * @date 2019
- * This file operators utilities for traversing the Solidity AST. This is a
- * header-only library, consisting of simple, generative utilities.
- */
-
 #include <libsolidity/modelcheck/utils/AST.h>
 
 namespace dev

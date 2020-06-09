@@ -1,6 +1,7 @@
 /**
+ * Provides an interface to generate libverify code.
+ * 
  * @date 2020
- * Provides an interface with libverify.
  */
 
 #pragma once

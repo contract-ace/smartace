@@ -1,8 +1,3 @@
-/**
- * @date 2019
- * Data and helper functions for generating CallState arguments.
- */
-
 #include <libsolidity/modelcheck/utils/CallState.h>
 
 #include <stdexcept>

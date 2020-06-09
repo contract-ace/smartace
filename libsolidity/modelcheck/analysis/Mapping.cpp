@@ -1,10 +1,3 @@
-/**
- * Provides utilities for analzing a map declaration, and then flattening it to
- * a single structure. This will allow map types to be resolved to lists of
- * types.
- * @date 2019
- */
-
 #include <libsolidity/modelcheck/analysis/Mapping.h>
 
 #include <libsolidity/modelcheck/utils/AST.h>

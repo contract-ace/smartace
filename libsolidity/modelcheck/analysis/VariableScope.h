@@ -1,7 +1,8 @@
 /**
- * @date 2019
  * Provides analysis utilities to determine the SmartACE identifiers which map
  * to Solidity identifiers.
+ * 
+ * @date 2019
  */
 
 #pragma once

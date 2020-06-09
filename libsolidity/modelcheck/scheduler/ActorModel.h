@@ -1,5 +1,6 @@
 /**
- * Provides interfaces to describe and control contract-based actors.
+ * Generates the scheduler code required to instantiate and manage actors.
+ * 
  * @date 2020
  */
 
@@ -55,9 +56,6 @@ struct Actor
     // Maintains a path of accesses, from parent contract decl to child contract
     // decl.
     CExprPtr path;
-
-    // If true the given call makes use of some map in the model.
-    std::map<FunctionDefinition const*, bool> uses_maps;
 
     // If true, the actor has been used to spawn a child contract.
     bool has_children;

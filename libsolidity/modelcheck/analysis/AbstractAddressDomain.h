@@ -1,6 +1,10 @@
 /**
+ * SmartACE makes use of sound, abstract address domains (relative to the bundle
+ * under analysis). This domain is driven by the distinguishability of addresses
+ * in the bundle, and also by the usage of mappings in the bundle. This file
+ * provides utilities to construct the abstract address domain.
+ * 
  * @date 2020
- * Provides utilities for generating an abstract address space for map indices.
  */
 
 #pragma once

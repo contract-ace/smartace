@@ -1,9 +1,3 @@
-/**
- * Provides utilities for identifying call sites for dynamic smart contract
- * allocations. This handles reasoning and validation, through static methods.
- * @date 2019
- */
-
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 
 #include <libsolidity/modelcheck/utils/AST.h>

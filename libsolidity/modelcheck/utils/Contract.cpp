@@ -1,9 +1,3 @@
-/**
- * @date 2019
- * Data and helper functions for generating contracts. This is meant to reduce
- * code duplication.
- */
-
 #include <libsolidity/modelcheck/utils/Contract.h>
 
 #include <libsolidity/modelcheck/analysis/VariableScope.h>

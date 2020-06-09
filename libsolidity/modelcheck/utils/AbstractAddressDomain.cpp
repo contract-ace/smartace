@@ -1,13 +1,10 @@
 /**
- * @date 2020
  * Data and helper functions for generating indices.
+ * 
+ * @date 2020
  */
 
-#include <libsolidity/modelcheck/utils/Indices.h>
-
-#include <libsolidity/modelcheck/analysis/Types.h>
-#include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/utils/Types.h>
+#include <libsolidity/modelcheck/utils/AbstractAddressDomain.h>
 
 #include <sstream>
 
@@ -22,7 +19,7 @@ namespace modelcheck
     
 // -------------------------------------------------------------------------- //
 
-string Indices::const_global_name(dev::u256 _var)
+string AbstractAddressDomain::literal_name(dev::u256 _var)
 {
     ostringstream oss;
     oss << "g_literal_address_" << _var;

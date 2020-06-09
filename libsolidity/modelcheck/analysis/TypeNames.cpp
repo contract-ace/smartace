@@ -1,11 +1,4 @@
-/*
- * @date 2019
- * This model maps each Solidity type to a C-type. For structures and contracts,
- * these are synthesized C-structs. This translation unit provides utilities for
- * performing such conversions.
- */
-
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>

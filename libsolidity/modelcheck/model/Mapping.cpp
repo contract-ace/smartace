@@ -1,12 +1,6 @@
-/**
- * @date 2019
- * Data and helper functions for generating mappings. This is meant to reduce
- * code duplication.
- */
-
 #include <libsolidity/modelcheck/model/Mapping.h>
 
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Function.h>

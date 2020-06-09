@@ -1,13 +1,8 @@
-/**
- * Utility to generate the next global state, from within the scheduler.
- * @date 2020
- */
-
 #include <libsolidity/modelcheck/scheduler/StateGenerator.h>
 
+#include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/MapIndex.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>

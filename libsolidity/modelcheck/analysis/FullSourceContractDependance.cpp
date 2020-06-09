@@ -1,9 +1,10 @@
 /**
- * @date 2020
  * A set of tools to analyze the dependance between contracts, their methods and
  * their structs.
  * 
  * Implements the testing focused (full source unit) specialization.
+ * 
+ * @date 2020
  */
 
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>

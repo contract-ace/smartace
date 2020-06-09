@@ -1,8 +1,3 @@
-/**
- * @date 2019
- * Declares the core interface to SimpleCGenerator.cpp
- */
-
 #include <libsolidity/modelcheck/codegen/Core.h>
 
 using namespace std;

@@ -1,9 +1,10 @@
 /**
- * @date 2020
  * A set of tools to analyze the dependance between contracts, their methods and
  * their structs.
  * 
  * Implements the model-driven specialization.
+ * 
+ * @date 2020
  */
 
 

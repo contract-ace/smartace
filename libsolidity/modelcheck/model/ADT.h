@@ -1,6 +1,8 @@
 /**
+ * Converter from Solidity contracts, structures and mappings into SmartACE C
+ * structs.
+ * 
  * @date 2019
- * First-pass visitor for converting Solidity ADT's into structs in C.
  */
 
 #pragma once

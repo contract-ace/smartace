@@ -1,15 +1,10 @@
-/**
- * Provides interfaces to describe and control contract-based actors.
- * @date 2020
- */
-
 #include <libsolidity/modelcheck/scheduler/ActorModel.h>
 
+#include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/MapIndex.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/scheduler/AddressSpace.h>
@@ -51,11 +46,6 @@ Actor::Actor(
         if (!method->isPublic()) continue;
 
         specs.emplace_back(*method, *contract);
-
-        if (!_dependance.get_map_roi(method).empty())
-        {
-            uses_maps[method] = true;
-        }
     }
 }
 

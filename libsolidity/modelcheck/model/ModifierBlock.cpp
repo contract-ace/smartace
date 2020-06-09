@@ -1,14 +1,8 @@
-/**
- * @date 2019
- * Utility visitor to convert Solidity blocks into verifiable code. This code
- * handles cases specific to function blocks.
- */
-
 #include <libsolidity/modelcheck/model/Block.h>
 
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/AST.h>

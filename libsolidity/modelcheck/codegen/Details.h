@@ -1,6 +1,7 @@
 /**
- * @date 2019
  * A limited, AST-like library specialized for transpiling Solidity into C.
+ * 
+ * @date 2019
  */
 
 #pragma once
@@ -312,8 +313,10 @@ private:
     CArgList const M_ARGS;
 };
 
-// Wraps the name of a function, and then allows calls to said function be built
-// online.
+/**
+ *  Wraps the name of a function, and then allows calls to said function be built
+ * online.
+ */
 class CFuncCallBuilder
 {
 public:

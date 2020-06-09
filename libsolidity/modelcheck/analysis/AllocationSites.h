@@ -1,6 +1,16 @@
 /**
- * Provides utilities for identifying call sites for dynamic smart contract
- * allocations. This handles reasoning and validation, through static methods.
+ * In SmartACE, we statically resolve contract types, to avoid dynamic dispatch.
+ * As a part of this analysis we must know the "true" types of all contract
+ * variables, and we must know whether or not a contract return value is given
+ * as a reference, or allocated on demand.
+ * 
+ * This file implements (ad-hoc) flow analysis to determine the flow radius of
+ * all new calls. This analysis is conservative.
+ * 
+ * @todo(scottwe): perhaps we could make this analysis more "rigorous". Right
+ *                 now the MiniSol dialect require bundles where the assumptions
+ *                 of this analysis are met, so it should be fine for now.
+ * 
  * @date 2019
  */
 

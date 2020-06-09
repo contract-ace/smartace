@@ -1,6 +1,7 @@
 /**
+ * Converter from Solidity blocks to SmartACE C blocks.
+ * 
  * @date 2019
- * Utility visitor to convert Solidity blocks into verifiable code.
  */
 
 #pragma once

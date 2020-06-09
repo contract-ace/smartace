@@ -1,14 +1,9 @@
-/**
- * @date 2019
- * First-pass visitor for converting Solidity methods into functions in C.
- */
-
 #include <libsolidity/modelcheck/model/Function.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/model/Block.h>
 #include <libsolidity/modelcheck/model/Mapping.h>
 #include <libsolidity/modelcheck/model/Expression.h>

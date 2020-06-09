@@ -1,15 +1,9 @@
-/**
- * Decouples address logic from the scheduler. This allows for address models to
- * be interchanged or maintained without analysis of the entire scheduler.
- * @date 2020
- */
-
 #include <libsolidity/modelcheck/scheduler/AddressSpace.h>
 
-#include <libsolidity/modelcheck/analysis/MapIndex.h>
+#include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/utils/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
-#include <libsolidity/modelcheck/utils/Indices.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 
 #include <list>
@@ -58,7 +52,7 @@ void AddressSpace::map_constants(CBlockList & _block) const
     }
     for (auto lit : M_ADDRDATA.literals())
     {
-        auto const NAME = modelcheck::Indices::const_global_name(lit);
+        auto const NAME = AbstractAddressDomain::literal_name(lit);
         auto decl = make_shared<CIdentifier>(NAME, false);
 
         if (lit == 0)

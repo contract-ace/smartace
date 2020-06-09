@@ -1,7 +1,8 @@
 /**
- * @date 2019
  * Data and helper functions for generating contracts. This is meant to reduce
  * code duplication.
+ * 
+ * @date 2019
  */
 
 #pragma once

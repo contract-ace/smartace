@@ -1,9 +1,3 @@
-/**
- * @date 2019
- * Visitor used to generate all primitive type declarations. This will produce
- * a header-only library for arithmetic operations.
- */
-
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 
 #include <libsolidity/modelcheck/codegen/Details.h>

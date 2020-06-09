@@ -1,13 +1,3 @@
-/**
- * @date 2019
- * Certain values (ie. CIntLiteral(0), CIntLiteral(1)) are immutable, and used
- * across many points in the code. These values are usually required in heap
- * memory. To reduce the number of instances, this file provides definitive and
- * static locations for all such literals. This is also good, as should the
- * encoding of such literals change, the changes will be reflected across the
- * codebase.
- */
-
 #include <libsolidity/modelcheck/codegen/Literals.h>
 
 #include <libsolidity/modelcheck/codegen/Details.h>

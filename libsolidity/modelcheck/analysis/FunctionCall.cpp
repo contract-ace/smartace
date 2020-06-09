@@ -1,9 +1,3 @@
-/**
- * @date 2019
- * Utilities to extract the parameters of a function call. This includes gas,
- * value, and context.
- */
-
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 
 #include <iostream>

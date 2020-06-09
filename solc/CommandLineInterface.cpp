@@ -41,17 +41,17 @@
 #include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/GasEstimator.h>
 
+#include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/MapIndex.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/model/ADT.h>
 #include <libsolidity/modelcheck/model/Function.h>
 #include <libsolidity/modelcheck/scheduler/MainFunction.h>
+#include <libsolidity/modelcheck/utils/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/utils/Function.h>
-#include <libsolidity/modelcheck/utils/Indices.h>
 
 #include <libyul/AssemblyStack.h>
 
@@ -1534,7 +1534,7 @@ void CommandLineInterface::handleCModelBody(
 	_os << "#include \"cmodel.h\"" << endl;
 	for (auto lit : _addrdata.literals())
 	{
-		auto const NAME = modelcheck::Indices::const_global_name(lit);
+		auto const NAME = modelcheck::AbstractAddressDomain::literal_name(lit);
 		_os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
 	}
 

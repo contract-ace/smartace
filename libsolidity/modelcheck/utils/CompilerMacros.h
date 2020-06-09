@@ -1,6 +1,7 @@
 /**
- * @date 2020
  * Compiler-specific preprocessor macros.
+ * 
+ * @date 2020
  */
 
 #pragma once

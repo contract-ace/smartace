@@ -1,9 +1,3 @@
-/**
- * @date 2020
- * A set of tools to analyze the dependance between contracts, their methods and
- * their structs.
- */
-
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>

@@ -11,7 +11,7 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 
 #include <sstream>
@@ -954,7 +954,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
         func, converter, statedata, newcalls
     ).convert();
     expected << "{";
-    expected << "((int)(g_address_literal_5));";
+    expected << "((int)(g_literal_address_5));";
     expected << "(self->user_a).v;";
     expected << "(self->user_a).v;";
     expected << "((unsigned int)((self->user_a).v));";

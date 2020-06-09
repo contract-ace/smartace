@@ -1,15 +1,9 @@
-/**
- * @date 2019
- * First-pass visitor for generating the CallState of Solidity in C models,
- * which consist of the struct of CallState.
- */
-
 #include <libsolidity/modelcheck/analysis/CallState.h>
 
 #include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Contract.h>

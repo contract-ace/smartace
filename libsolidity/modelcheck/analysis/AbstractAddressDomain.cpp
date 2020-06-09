@@ -1,9 +1,10 @@
 /**
- * @date 2020
  * Provides utilities for generating an abstract address space for map indices.
+ * 
+ * @date 2020
  */
 
-#include <libsolidity/modelcheck/analysis/MapIndex.h>
+#include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 
 #include <libsolidity/modelcheck/utils/General.h>
 

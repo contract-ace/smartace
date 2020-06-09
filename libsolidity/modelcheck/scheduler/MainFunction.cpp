@@ -1,16 +1,9 @@
-/**
- * First-pass visitor for generating Solidity the first part of main function,
- * which consist of the decalaration of contract, globalstate, nextGS
- * and every input parameters of functions in main function.
- * @date 2019
- */
-
 #include <libsolidity/modelcheck/scheduler/MainFunction.h>
 
+#include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/MapIndex.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/Mapping.h>
@@ -18,7 +11,6 @@
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
-#include <libsolidity/modelcheck/utils/Indices.h>
 
 #include <set>
 
@@ -63,8 +55,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     {
         for (auto const& spec : actor.specs)
         {
-            bool uses_maps = actor.uses_maps[&spec.func()];
-            auto call_body = build_case(spec, actor.decl, uses_maps);
+            auto call_body = build_case(spec, actor.decl);
             call_cases->add_case(call_cases->size(), move(call_body));
         }
     }
@@ -105,9 +96,7 @@ void MainFunctionGenerator::print(ostream& _stream)
 // -------------------------------------------------------------------------- //
 
 CBlockList MainFunctionGenerator::build_case(
-    FunctionSpecialization const& _spec,
-    shared_ptr<CVarDecl const> _id,
-    bool uses_maps
+    FunctionSpecialization const& _spec, shared_ptr<CVarDecl const> _id
 )
 {
     CBlockList call_body;
@@ -118,12 +107,6 @@ CBlockList MainFunctionGenerator::build_case(
     }
 
     log_call(call_body, (*_id->id()), _spec);
-
-    // TODO: actually populate maps.
-    if (uses_maps)
-    {
-        call_body.push_back(make_shared<CComment>("Uses maps."));
-    }
 
     CFuncCallBuilder call_builder(_spec.name(0));
     call_builder.push(id);

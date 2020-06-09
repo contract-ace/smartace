@@ -1,7 +1,7 @@
 /**
- * Provides utilities for analzing a map declaration, and then flattening it to
- * a single structure. This will allow map types to be resolved to lists of
- * types.
+ * Provides utilities for summarizing map declarations, and flattening those
+ * declarations into single mappings with multi-dimensional keys.
+ * 
  * @date 2019
  */
 

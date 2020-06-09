@@ -1,7 +1,7 @@
 /**
+ * This file implements utilities for traversing the Solidity AST.
+ * 
  * @date 2019
- * This file operators utilities for traversing the Solidity AST. This is a
- * header-only library, consisting of simple, generative utilities.
  */
 
 #pragma once

@@ -1,7 +1,11 @@
 /**
+ * Analyzes method calls to determine what we must model with respect to the
+ * global state.
+ * 
+ * @todo(scottwe): could we dynamically restrict global variables while
+ *                 maintaining soundless (relative to the MiniSol dialect).
+ * 
  * @date 2019
- * First-pass visitor for aggregating call state data. This data may then be
- * used to generate a call state abstraction for use by a C model.
  */
 
 #pragma once

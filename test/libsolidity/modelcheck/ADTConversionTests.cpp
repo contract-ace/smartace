@@ -9,7 +9,7 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 
 #include <map>
 #include <sstream>

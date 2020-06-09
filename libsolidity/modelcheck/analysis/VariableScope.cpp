@@ -1,9 +1,3 @@
-/*
- * @date 2019
- * Provides analysis utilities to determine if a variable is a local (to a
- * function), a member (of a contract), or global (within the EVM).
- */
-
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 
 #include <libsolidity/modelcheck/utils/CallState.h>

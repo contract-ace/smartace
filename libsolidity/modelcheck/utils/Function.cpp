@@ -1,12 +1,6 @@
-/**
- * @date 2019
- * Data and helper functions for generating functions. This is meant to reduce
- * code duplication.
- */
-
 #include <libsolidity/modelcheck/utils/Function.h>
 
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <sstream>

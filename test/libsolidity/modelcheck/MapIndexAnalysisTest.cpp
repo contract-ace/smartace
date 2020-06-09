@@ -4,7 +4,7 @@
  * parameters are computed correctly.
  */
 
-#include <libsolidity/modelcheck/analysis/MapIndex.h>
+#include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>

@@ -1,12 +1,7 @@
-/**
- * @date 2019
- * First-pass visitor for converting Solidity AST's to models in C.
- */
-
 #include <libsolidity/modelcheck/model/ADT.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/model/Mapping.h>

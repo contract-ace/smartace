@@ -1,6 +1,7 @@
 /**
+ * Converter from Solidity expressions to SmartACE expressions.
+ * 
  * @date 2019
- * Utility visitor to convert Solidity expressions into verifiable code.
  */
 
 #pragma once

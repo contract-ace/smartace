@@ -1,10 +1,3 @@
-/**
- * @date 2019
- * A collection of mostly free functions, which allow for categorizing AST nodes
- * into C-struct groups. These are direct translations of the type analysis
- * specifications.
- */
-
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <libsolidity/modelcheck/utils/General.h>

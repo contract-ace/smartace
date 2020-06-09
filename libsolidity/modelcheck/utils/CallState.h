@@ -1,6 +1,7 @@
 /**
- * @date 2019
  * Data and helper functions for generating CallState arguments.
+ * 
+ * @date 2019
  */
 
 #pragma once

@@ -1,7 +1,8 @@
 /**
- * @date 2019
  * Utilities to extract the parameters of a function call. This includes gas,
  * value, and context.
+ * 
+ * @date 2019
  */
 
 #pragma once
@@ -19,6 +20,9 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+/**
+ * Utilities to extract the parameters of function calls.
+ */
 class FunctionCallAnalyzer: public ASTConstVisitor
 {
 public:

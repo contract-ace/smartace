@@ -1,6 +1,7 @@
 /**
+ * Converter from Solidity methods to SmartACE C functions.
+ * 
  * @date 2019
- * First-pass visitor for converting Solidity methods into functions in C.
  */
 
 #pragma once

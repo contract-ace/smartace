@@ -1,7 +1,8 @@
 /**
- * @date 2019
  * Data and helper functions for generating mappings. This is meant to reduce
  * code duplication.
+ * 
+ * @date 2019
  */
 
 #pragma once
@@ -24,6 +25,9 @@ class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
+/**
+ * Converts Solidity mappings into SmartACE C structs and C functions.
+ */
 class MapGenerator
 {
 public:

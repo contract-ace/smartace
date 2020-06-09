@@ -1,8 +1,3 @@
-/**
- * @date 2019
- * A limited, AST-like library specialized for transpiling Solidity into C.
- */
-
 #include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <libsolidity/modelcheck/analysis/CallState.h>

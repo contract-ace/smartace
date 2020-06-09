@@ -106,6 +106,8 @@ set(sources
 	interface/StandardCompiler.h
 	interface/Version.cpp
 	interface/Version.h
+	modelcheck/analysis/AbstractAddressDomain.cpp
+	modelcheck/analysis/AbstractAddressDomain.h
 	modelcheck/analysis/AllocationSites.cpp
 	modelcheck/analysis/AllocationSites.h
 	modelcheck/analysis/CallState.cpp
@@ -115,15 +117,13 @@ set(sources
 	modelcheck/analysis/FullSourceContractDependance.cpp
 	modelcheck/analysis/FunctionCall.cpp
 	modelcheck/analysis/FunctionCall.h
-	modelcheck/analysis/MapIndex.cpp
-	modelcheck/analysis/MapIndex.h
 	modelcheck/analysis/Mapping.cpp
 	modelcheck/analysis/Mapping.h
 	modelcheck/analysis/ModelDrivenContractDependance.cpp
 	modelcheck/analysis/Primitives.cpp
 	modelcheck/analysis/Primitives.h
-	modelcheck/analysis/Types.cpp
-	modelcheck/analysis/Types.h
+	modelcheck/analysis/TypeNames.cpp
+	modelcheck/analysis/TypeNames.h
 	modelcheck/analysis/VariableScope.cpp
 	modelcheck/analysis/VariableScope.h
 	modelcheck/codegen/Core.cpp
@@ -152,6 +152,8 @@ set(sources
 	modelcheck/scheduler/MainFunction.h
 	modelcheck/scheduler/StateGenerator.cpp
 	modelcheck/scheduler/StateGenerator.h
+	modelcheck/utils/AbstractAddressDomain.cpp
+	modelcheck/utils/AbstractAddressDomain.h
 	modelcheck/utils/AST.cpp
 	modelcheck/utils/AST.h
 	modelcheck/utils/CallState.cpp
@@ -160,8 +162,6 @@ set(sources
 	modelcheck/utils/Contract.h
 	modelcheck/utils/Function.cpp
 	modelcheck/utils/Function.h
-	modelcheck/utils/Indices.cpp
-	modelcheck/utils/Indices.h
 	modelcheck/utils/LibVerify.cpp
 	modelcheck/utils/LibVerify.h
 	modelcheck/utils/Types.cpp

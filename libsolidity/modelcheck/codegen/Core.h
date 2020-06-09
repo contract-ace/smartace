@@ -1,6 +1,7 @@
 /**
- * @date 2019
  * Declares the core interface to SimpleCGenerator.cpp
+ * 
+ * @date 2019
  */
 
 #pragma once

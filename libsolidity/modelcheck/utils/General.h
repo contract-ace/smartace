@@ -1,7 +1,7 @@
 /**
+ * A toolkit of simple and general utilities for use across all modules.
+ * 
  * @date 2019
- * A toolkit of low-level, general utilities for use across all translation
- * utils.
  */
 
 #pragma once
@@ -50,34 +50,6 @@ public:
 private:
 	T const M_INIT;
 	T &m_ref;
-};
-
-// -------------------------------------------------------------------------- //
-
-/**
- * Simple monotonic counter with overflow detection. It is assumed that tickets
- * are unsigned integers.
- */
-template <typename T>
-class TicketSystem
-{
-public:
-    static_assert(std::is_integral<T>::value, "Expected integral type T.");
-    static_assert(std::is_unsigned<T>::value, "Expected unsigned integral T");
-
-    T next()
-    {
-        T next = m_counter;
-        ++m_counter;
-        if (m_counter == 0)
-        {
-            throw std::runtime_error("TicketSystem has detected overflow.");
-        }
-        return next;
-    }
-
-private:
-    T m_counter = 0;
 };
 
 // -------------------------------------------------------------------------- //

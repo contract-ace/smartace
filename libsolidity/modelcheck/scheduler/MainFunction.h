@@ -2,6 +2,7 @@
  * Used to generate the main function scheduler. This constructs actors in the
  * model, initializes the restricted address space, manages the global state of
  * the simulation, and schedules the order of transactions.
+ * 
  * @date 2019
  */
 
@@ -68,9 +69,7 @@ private:
     // switch block. Note that _args have been initialized first by
     // analyze_decls.
     CBlockList build_case(
-        FunctionSpecialization const& _spec,
-        std::shared_ptr<CVarDecl const> _id,
-        bool uses_maps
+        FunctionSpecialization const& _spec, std::shared_ptr<CVarDecl const> _id
     );
 
     // Helper method to format and log a call selection. The log statement is

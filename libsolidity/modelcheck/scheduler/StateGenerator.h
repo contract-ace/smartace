@@ -1,5 +1,6 @@
 /**
  * Utility to generate the next global state, from within the scheduler.
+ * 
  * @date 2020
  */
 

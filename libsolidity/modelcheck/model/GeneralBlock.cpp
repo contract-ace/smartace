@@ -1,13 +1,8 @@
-/**
- * @date 2019
- * Utility visitor to convert Solidity blocks into verifiable code.
- */
-
 #include <libsolidity/modelcheck/model/Block.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/Types.h>
+#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Contract.h>

@@ -1,6 +1,7 @@
 /**
+ * Utilities for interacting with the abstract address domain.
+ * 
  * @date 2020
- * Data and helper functions for generating indices.
  */
 
 #pragma once
@@ -21,11 +22,11 @@ namespace modelcheck
 /**
  * Tools for generating constants.
  */
-class Indices
+class AbstractAddressDomain
 {
 public:
     // Generates the name of a constant address global variable.
-    static std::string const_global_name(dev::u256 _var);
+    static std::string literal_name(dev::u256 _var);
 };
 
 // -------------------------------------------------------------------------- //

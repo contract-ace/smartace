@@ -1,8 +1,8 @@
 /**
+ * A collection of free functions, which allow for categorizing AST nodes into
+ * SmartACE groups.
+ * 
  * @date 2019
- * A collection of mostly free functions, which allow for categorizing AST nodes
- * into C-struct groups. These are direct translations of the type analysis
- * specifications.
  */
 
 #pragma once
@@ -28,12 +28,12 @@ Type const& unwrap(Type const& _type);
 
 // -------------------------------------------------------------------------- //
 
-/*
+/**
  * Determines the number of bits needed to represent _type.
  */
 int simple_bit_count(Type const& _type);
 
-/*
+/**
  * Determines if _type uses a signed type.
  */
 bool simple_is_signed(Type const& _type);
