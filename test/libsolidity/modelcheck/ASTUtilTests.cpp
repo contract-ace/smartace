@@ -6,6 +6,7 @@
 #include <libsolidity/modelcheck/utils/AST.h>
 
 #include <boost/test/unit_test.hpp>
+#include <test/libsolidity/AnalysisFramework.h>
 
 using namespace std;
 using namespace langutil;
@@ -23,7 +24,10 @@ namespace test
 
 using SubD = Literal::SubDenomination;
 
-BOOST_AUTO_TEST_SUITE(ASTUtils)
+BOOST_FIXTURE_TEST_SUITE(
+    ASTUtils,
+    ::dev::solidity::test::AnalysisFramework
+)
 
 // Tests the node sniffer utility with several types. Ensures that it ignores
 // control-flow sub-expressions.
@@ -86,7 +90,7 @@ BOOST_AUTO_TEST_CASE(lvalue_sniffer)
     BOOST_CHECK_EQUAL(LValueSniffer<IndexAccess>(indx).find(), &indx);
     BOOST_CHECK_EQUAL(LValueSniffer<Identifier>(*id).find(), id.get());
 
-    // Ensur1es that only the first l-value is checked.
+    // Ensures that only the first l-value is checked.
     BOOST_CHECK_EQUAL(LValueSniffer<Identifier>(*m1).find(), nullptr);
     BOOST_CHECK_EQUAL(LValueSniffer<Identifier>(indx).find(), nullptr);
 

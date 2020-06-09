@@ -16,6 +16,28 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+bool collid(FunctionDefinition const& _f1, FunctionDefinition const& _f2)
+{
+    // The names must match.
+    if (_f1.name() != _f2.name()) return false;
+
+    // The number of arguments must match.
+    auto const& params_1 = _f1.parameters();
+    auto const& params_2 = _f2.parameters();
+    if (params_1.size() != params_2.size()) return false;
+
+    // The parameter types must match.
+    for (size_t i = 0; i < params_1.size(); ++i)
+    {
+        auto const& id_1 = params_1[i]->type()->identifier();
+        auto const& id_2 = params_2[i]->type()->identifier();
+        if (id_1 != id_2) return false;
+    }
+    return true;
+}
+
+// -------------------------------------------------------------------------- //
+
 string const InitFunction::INIT_VAR = "dest";
 string const InitFunction::PREFIX = "Init_";
 string const InitFunction::DEFAULT_PREFIX = "ZeroInit_";

@@ -26,6 +26,14 @@ class TypeAnalyzer;
 // -------------------------------------------------------------------------- //
 
 /**
+ * Returns true if _f1 and _f2 can collid. That is, if the two functions share
+ * names and argument types.
+ */
+bool collid(FunctionDefinition const& _f1, FunctionDefinition const& _f2);
+
+// -------------------------------------------------------------------------- //
+
+/**
  * This class manages calls to, and specializations of, initialization calls. In
  * the SmartACE model we distinguish constructors from initializers. All types
  * have initializers, which follow the convention `Init_{TYPENAME}`, or in the
