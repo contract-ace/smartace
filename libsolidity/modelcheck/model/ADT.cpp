@@ -24,13 +24,13 @@ namespace modelcheck
 
 ADTConverter::ADTConverter(
     ASTNode const& _ast,
-    NewCallGraph const& _newcalls,
+    AllocationGraph const& _alloc_graph,
     TypeAnalyzer const& _converter,
     bool _add_sums,
     size_t _map_k,
     bool _forward_declare
 ): M_AST(_ast)
- , M_CALLGRAPH(_newcalls)
+ , M_ALLOC_GRAPH(_alloc_graph)
  , M_CONVERTER(_converter)
  , M_ADD_SUMS(_add_sums)
  , M_MAP_K(_map_k)
@@ -90,7 +90,7 @@ bool ADTConverter::visit(ContractDefinition const& _node)
                     string type;
                     if (DECL->annotation().type->category() == Type::Category::Contract)
                     {
-                        type = M_CONVERTER.get_type(M_CALLGRAPH.specialize(*DECL));
+                        type = M_CONVERTER.get_type(M_ALLOC_GRAPH.specialize(*DECL));
                     }
                     else
                     {

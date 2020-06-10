@@ -35,7 +35,7 @@ namespace modelcheck
  * Analyzes a single contract to identify how many "valid" contracts it
  * allocates, along with instances of invalid allocations (under our model).
  */
-class NewCallSummary
+class AllocationSummary
 {
 public:
     // Types of violations.
@@ -59,7 +59,7 @@ public:
 
     // Summarizes all allocations across all functions in _src. Only direct
     // children are represented in the summary.
-    NewCallSummary(ContractDefinition const& _src);
+    AllocationSummary(ContractDefinition const& _src);
 
     // Returns a summary of all children spawned by this contract.
     CallGroup const& children() const;
@@ -117,48 +117,44 @@ private:
  * A has 10 descendants. Note that each contract is considered to be its own
  * descendant.
  */
-class NewCallGraph
+class AllocationGraph
 {
 public:
     using Label = ContractDefinition const*;
 
+    // Constructs the allocation graph for _model.
+    AllocationGraph(std::vector<ContractDefinition const*> _model);
+
     // Records the NewCallSummary of each contract in _src.
     void record(SourceUnit const& _src);
-
-    // Determines the number of contracts allocated by instantiating each
-    // contract encountered through record(). If a cycle is detected, finalize()
-    // terminates early, and exposes said cycle. After calling finalize(), then
-    // record() must not be called again.
-    void finalize();
 
     // Assuming finalize() has been called, returns the cost of a given
     // contract.
     size_t cost_of(Label _vertex) const;
 
     // Returns all direct children of a contract.
-    NewCallSummary::CallGroup const& children_of(Label _vertex) const;
+    AllocationSummary::CallGroup const& children_of(Label _vertex) const;
 
     // Returns all violations found within the graph.
-    NewCallSummary::CallGroup const& violations() const;
+    AllocationSummary::CallGroup const& violations() const;
 
-    // Performs a reverse lookup from contract name to contract address.
-    Label reverse_name(std::string _name) const;
+    // Returns true if _var has been mapped to a new call.
+    bool retval_is_allocated(VariableDeclaration const& _var) const;
 
-    // Returns true if the given return value has been mapped to a new call.
-    bool retval_is_allocated(VariableDeclaration const& _decl) const;
+    // Returns a more precise contract type for _var. This takes into account
+    // upcasting. Throws if the variable was not recorded, or if it was not of a
+    // contract type.
+    ContractDefinition const& specialize(VariableDeclaration const& _var) const;
 
-    // Returns a more precise contract type for a given contract variable. This
-    // takes into account upcasting. Throws if the variable was not recorded, or
-    // if it was not of a contract type.
-    ContractDefinition const& specialize(VariableDeclaration const& _decl) const;
+    // Returns a more precise contract type for _expr. This takes into account
+    // upcasting. Throws if the expression cannot be mapped to a recorded
+    // declaration.
+    ContractDefinition const& resolve(Expression const& _expr) const;
 
 private:
     using VarTyping = std::map<VariableDeclaration const*, Label>;
-    using Graph = std::map<Label, NewCallSummary::CallGroup>;
+    using Graph = std::map<Label, AllocationSummary::CallGroup>;
     using Reach = std::map<Label, size_t>;
-    using Alias = std::map<std::string, Label>;
-
-    bool m_finalized = false;
 
     // Computes and caches the cost of constructing each neighbour. Cost is
     // defined as the number of instantiated constracts
@@ -166,9 +162,8 @@ private:
 
     Graph m_vertices;
     Reach m_reach;
-    Alias m_names;
     VarTyping m_truetypes;
-    NewCallSummary::CallGroup m_violations;
+    AllocationSummary::CallGroup m_violations;
 };
 
 // -------------------------------------------------------------------------- //

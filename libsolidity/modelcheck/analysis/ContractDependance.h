@@ -23,7 +23,7 @@ namespace solidity
 namespace modelcheck
 {
 
-class NewCallGraph;
+class AllocationGraph;
 
 // -------------------------------------------------------------------------- //
 
@@ -179,7 +179,7 @@ public:
     // _graph, are included.
     ModelDrivenContractDependance(
         std::vector<ContractDefinition const*> _model,
-        NewCallGraph const& _graph
+        AllocationGraph const& _graph
     );
 
     ~ModelDrivenContractDependance() override = default;

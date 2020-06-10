@@ -59,7 +59,7 @@ void ModelDrivenContractDependance::SuperChainExtractor::endVisit(
 // -------------------------------------------------------------------------- //
 
 ModelDrivenContractDependance::ModelDrivenContractDependance(
-    vector<ContractDefinition const*> _model, NewCallGraph const& _graph
+    vector<ContractDefinition const*> _model, AllocationGraph const& _graph
 ): DependencyAnalyzer(_model)
 {
     // Iterates over each contract in the model, where the model is expanding.

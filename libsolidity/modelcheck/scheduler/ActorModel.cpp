@@ -54,7 +54,7 @@ Actor::Actor(
 ActorModel::ActorModel(
     ContractDependance const& _dependance,
     TypeAnalyzer const& _converter,
-    NewCallGraph const& _newcalls,
+    AllocationGraph const& _alloc_graph,
     MapIndexSummary const& _addrdata
 ): M_CONVERTER(_converter)
 {
@@ -67,7 +67,7 @@ ActorModel::ActorModel(
             M_CONVERTER, _dependance, contract, m_actors.size(), nullptr
         );
 
-        recursive_setup(_newcalls, _dependance, m_actors.back());
+        recursive_setup(_alloc_graph, _dependance, m_actors.back());
     }
 
     // Extracts the address variable for each contract.
@@ -205,12 +205,12 @@ list<Actor> const& ActorModel::inspect() const
 // -------------------------------------------------------------------------- //
 
 void ActorModel::recursive_setup(
-    NewCallGraph const& _allocs,
+    AllocationGraph const& _alloc_graph,
     ContractDependance const& _dependance,
     Actor & _parent
 )
 {
-    for (auto const& child : _allocs.children_of(_parent.contract))
+    for (auto const& child : _alloc_graph.children_of(_parent.contract))
     {
         if (child.is_retval) continue;
         _parent.has_children = true;
@@ -223,7 +223,7 @@ void ActorModel::recursive_setup(
         m_actors.emplace_back(
             M_CONVERTER, _dependance, child.type, m_actors.size(), PATH
         );
-        recursive_setup(_allocs, _dependance, m_actors.back());
+        recursive_setup(_alloc_graph, _dependance, m_actors.back());
     }
 }
 

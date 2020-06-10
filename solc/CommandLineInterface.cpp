@@ -1280,18 +1280,56 @@ void CommandLineInterface::handleCModel()
 		asts.push_back(&ast);
 	}
 
-	// A first pass over the Solidity sources to aggregate type data.
-	modelcheck::PrimitiveTypeGenerator primitive_set;
-	modelcheck::NewCallGraph newcall_graph;
-	for (auto const* ast: asts)
+	// Converts the bundle list into a model.
+	// TODO(scottwe): factor out this analysis.
+	vector<ContractDefinition const*> major_actors;
+	if (!m_args[g_argModelActor].empty())
 	{
-		primitive_set.record(*ast);
-		newcall_graph.record(*ast);
-	}
-	newcall_graph.finalize();
+		// Maps names to contracts.
+		map<string, ContractDefinition const*> contract_names;
+		for (auto const* ast : asts)
+		{
+			auto actors = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
+			for (auto actor : actors)
+			{
+				contract_names[actor->name()] = actor;
+			}
+		}
 
-	// Checks for violations in the NewCallGraph.
-	if (!newcall_graph.violations().empty())
+		// Resolves bundle names.
+		auto const& actor_names = m_args[g_argModelActor].as<vector<string>>();
+		major_actors.reserve(actor_names.size());
+		for (auto name : actor_names)
+		{
+			if (contract_names[name] == nullptr)
+			{
+				m_error = true;
+				serr() << "Contract " << name << " does not exist." << endl;
+				return;
+			}
+			major_actors.push_back(contract_names[name]);
+		}
+	}
+	else
+	{
+		// Aggregates all instantiable contracts.
+		for (auto const* ast : asts)
+		{
+			auto actors = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
+			major_actors.reserve(major_actors.size() + actors.size());
+			for (auto actor : actors)
+			{
+				if (!(actor->isInterface() || actor->isLibrary()))
+				{
+					major_actors.push_back(actor);
+				}
+			}
+		}
+	}
+
+	// Expands the model into a call graph.
+	modelcheck::AllocationGraph alloc_graph(major_actors);
+	if (!alloc_graph.violations().empty())
 	{
 		// TODO: report violations.
 		m_error = true;
@@ -1299,45 +1337,23 @@ void CommandLineInterface::handleCModel()
 		return;
 	}
 
-	// Determines major actors (contracts not spawned by other contracts) in model.
-	vector<ContractDefinition const*> major_actors;
-	if (!m_args[g_argModelActor].empty())
+	// A first pass over the Solidity sources to aggregate type data.
+	modelcheck::PrimitiveTypeGenerator primitive_set;
+	for (auto const* ast: asts)
 	{
-		auto const& actor_names = m_args[g_argModelActor].as<vector<string>>();
-
-		major_actors.reserve(actor_names.size());
-		for (auto actor_name : actor_names)
-		{
-			auto const* actor = newcall_graph.reverse_name(actor_name);
-			if (!actor)
-			{
-				m_error = true;
-				serr() << "Contract " << actor_name << " not in source units." << endl;
-				return;
-			}
-			major_actors.push_back(actor);
-		}
-	}
-	else
-	{
-		for (auto const* ast: asts)
-		{
-			auto ctrts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-			major_actors.reserve(ctrts.size());
-			major_actors.insert(major_actors.begin(), ctrts.begin(), ctrts.end());
-		}
+		primitive_set.record(*ast);
 	}
 
 	// Determines total number of actors.
 	size_t actor_count = 0;
 	for (auto actor : major_actors)
 	{
-		actor_count += newcall_graph.cost_of(actor);
+		actor_count += alloc_graph.cost_of(actor);
 	}
 
 	// Determines actor dependencies.
 	modelcheck::ContractDependance dependance(
-		modelcheck::ModelDrivenContractDependance(major_actors, newcall_graph)
+		modelcheck::ModelDrivenContractDependance(major_actors, alloc_graph)
 	);
 	modelcheck::CallState callstate(dependance);
 	callstate.register_primitives(primitive_set);
@@ -1394,7 +1410,7 @@ void CommandLineInterface::handleCModel()
 			asts,
 			dependance,
 			index_summary,
-			newcall_graph,
+			alloc_graph,
 			converter,
 			callstate,
 			cmodel_h_data
@@ -1403,7 +1419,7 @@ void CommandLineInterface::handleCModel()
 			asts,
 			dependance,
 			index_summary,
-			newcall_graph,
+			alloc_graph,
 			converter,
 			callstate,
 			cmodel_cpp_data
@@ -1425,7 +1441,7 @@ void CommandLineInterface::handleCModel()
 			asts,
 			dependance,
 			index_summary,
-			newcall_graph,
+			alloc_graph,
 			converter,
 			callstate,
 			sout()
@@ -1435,7 +1451,7 @@ void CommandLineInterface::handleCModel()
 			asts,
 			dependance,
 			index_summary,
-			newcall_graph,
+			alloc_graph,
 			converter,
 			callstate,
 			sout()
@@ -1467,7 +1483,7 @@ void CommandLineInterface::handleCModelHeaders(
 	vector<SourceUnit const*> const& _parsed_contracts,
 	modelcheck::ContractDependance const& _dependance,
 	modelcheck::MapIndexSummary const& _addrdata,
-	modelcheck::NewCallGraph const& _newcalls,
+	modelcheck::AllocationGraph const& _alloc_graph,
 	modelcheck::TypeAnalyzer const& _types,
 	modelcheck::CallState const& _callstate,
 	ostream& _os
@@ -1487,7 +1503,7 @@ void CommandLineInterface::handleCModelHeaders(
 	{
 		ADTConverter cov(
 			*ast,
-			_newcalls,
+			_alloc_graph,
 			_types,
 			sum_maps,
 			_addrdata.size(),
@@ -1501,7 +1517,7 @@ void CommandLineInterface::handleCModelHeaders(
 			*ast,
 			_dependance,
 			_callstate,
-			_newcalls,
+			_alloc_graph,
 			_types,
 			sum_maps,
 			_addrdata.size(),
@@ -1516,7 +1532,7 @@ void CommandLineInterface::handleCModelBody(
 	vector<SourceUnit const*> const& _parsed_contracts,
 	modelcheck::ContractDependance const& _dependance,
 	modelcheck::MapIndexSummary const& _addrdata,
-	modelcheck::NewCallGraph const& _newcalls,
+	modelcheck::AllocationGraph const& _alloc_graph,
 	modelcheck::TypeAnalyzer const& _types,
 	modelcheck::CallState const& _callstate,
 	ostream& _os
@@ -1543,7 +1559,7 @@ void CommandLineInterface::handleCModelBody(
 	{
 		ADTConverter cov(
 			*ast,
-			_newcalls,
+			_alloc_graph,
 			_types,
 			sum_maps,
 			_addrdata.size(),
@@ -1557,7 +1573,7 @@ void CommandLineInterface::handleCModelBody(
 			*ast,
 			_dependance,
 			_callstate,
-			_newcalls,
+			_alloc_graph,
 			_types,
 			sum_maps,
 			_addrdata.size(),
@@ -1572,7 +1588,7 @@ void CommandLineInterface::handleCModelBody(
 			*ast,
 			_dependance,
 			_callstate,
-			_newcalls,
+			_alloc_graph,
 			_types,
 			sum_maps,
 			_addrdata.size(),
@@ -1586,7 +1602,7 @@ void CommandLineInterface::handleCModelBody(
 		lockstep_time,
 		_addrdata,
 		_dependance,
-		_newcalls,
+		_alloc_graph,
 		_callstate,
 		_types
 	);

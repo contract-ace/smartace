@@ -23,14 +23,14 @@ FunctionBlockConverter::FunctionBlockConverter(
     FunctionDefinition const& _func,
 	TypeAnalyzer const& _converter,
 	CallState const& _statedata,
-	NewCallGraph const& _newcalls
+	AllocationGraph const& _alloc_graph
 ): GeneralBlockConverter(
 	_func.parameters(),
 	_func.returnParameters(),
 	_func.body(),
 	_converter,
 	_statedata,
-	_newcalls,
+	_alloc_graph,
 	_func.modifiers().empty(),
 	_func.isPayable()
 )

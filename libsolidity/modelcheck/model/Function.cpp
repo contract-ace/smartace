@@ -35,7 +35,7 @@ FunctionConverter::FunctionConverter(
     ASTNode const& _ast,
     ContractDependance const& _dependance,
     CallState const& _statedata,
-    NewCallGraph const& _newcalls,
+    AllocationGraph const& _alloc_graph,
 	TypeAnalyzer const& _converter,
     bool _add_sums,
     size_t _map_k,
@@ -44,7 +44,7 @@ FunctionConverter::FunctionConverter(
 ): M_AST(_ast)
  , M_DEPENDANCE(_dependance)
  , M_STATEDATA(_statedata)
- , M_NEWCALLS(_newcalls)
+ , M_ALLOC_GRAPH(_alloc_graph)
  , M_CONVERTER(_converter)
  , M_ADD_SUMS(_add_sums)
  , M_MAP_K(_map_k)
@@ -212,7 +212,7 @@ CParams FunctionConverter::generate_params(
     if (_dest)
     {
         params.push_back(make_shared<CVarDecl>(
-            M_CONVERTER.get_type(M_NEWCALLS.specialize(*_dest)),
+            M_CONVERTER.get_type(M_ALLOC_GRAPH.specialize(*_dest)),
             InitFunction::INIT_VAR,
             true
         ));
@@ -249,7 +249,7 @@ void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
     auto rvs = FUNC.returnParameters();
     if (!rvs.empty() && rvs[0]->type()->category() == Type::Category::Contract)
     {
-        if (M_NEWCALLS.retval_is_allocated(*rvs[0]))
+        if (M_ALLOC_GRAPH.retval_is_allocated(*rvs[0]))
         {
             handle_function(_spec, "void", false);
         }
@@ -424,7 +424,7 @@ string FunctionConverter::handle_function(
     // Determines if a contract initialization destination is required.
     ASTPointer<VariableDeclaration> dest;
     auto rvs = _spec.func().returnParameters();
-    if (!rvs.empty() && M_NEWCALLS.retval_is_allocated(*rvs[0]))
+    if (!rvs.empty() && M_ALLOC_GRAPH.retval_is_allocated(*rvs[0]))
     {
         dest = rvs[0];
     }
@@ -444,7 +444,7 @@ string FunctionConverter::handle_function(
         if (!M_FWD_DCL)
         {
             FunctionBlockConverter cov(
-                _spec.func(), M_CONVERTER, M_STATEDATA, M_NEWCALLS
+                _spec.func(), M_CONVERTER, M_STATEDATA, M_ALLOC_GRAPH
             );
 
             cov.set_for(_spec);
@@ -468,7 +468,7 @@ string FunctionConverter::handle_function(
         if (!M_FWD_DCL)
         {
             body = mods.generate(
-                IDX, M_CONVERTER, M_STATEDATA, M_NEWCALLS
+                IDX, M_CONVERTER, M_STATEDATA, M_ALLOC_GRAPH
             ).convert();
         }
 

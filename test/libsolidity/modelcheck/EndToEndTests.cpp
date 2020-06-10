@@ -47,9 +47,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -57,12 +55,12 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -94,9 +92,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -104,12 +100,12 @@ BOOST_AUTO_TEST_CASE(simple_map)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -155,9 +151,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -165,12 +159,12 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -209,9 +203,7 @@ BOOST_AUTO_TEST_CASE(simple_func)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -219,12 +211,12 @@ BOOST_AUTO_TEST_CASE(simple_func)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -266,9 +258,7 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -276,12 +266,12 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -323,9 +313,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -333,12 +321,12 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -391,9 +379,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -401,12 +387,12 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -465,9 +451,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -475,12 +459,12 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -530,9 +514,7 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -540,12 +522,12 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     CallState statedata(deps);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, callgraph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -608,9 +590,7 @@ BOOST_AUTO_TEST_CASE(reproducible)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph callgraph;
-    callgraph.record(ast);
-    callgraph.finalize();
+    AllocationGraph alloc_graph({});
 
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
@@ -618,13 +598,13 @@ BOOST_AUTO_TEST_CASE(reproducible)
     CallState statedata(deps);
 
     ostringstream adt_1, adt_2, func_1, func_2;
-    ADTConverter(ast, callgraph, converter, false, 1, false).print(adt_1);
-    ADTConverter(ast, callgraph, converter, false, 1, false).print(adt_2);
+    ADTConverter(ast, alloc_graph, converter, false, 1, false).print(adt_1);
+    ADTConverter(ast, alloc_graph, converter, false, 1, false).print(adt_2);
     FunctionConverter(
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,
@@ -635,7 +615,7 @@ BOOST_AUTO_TEST_CASE(reproducible)
         ast,
         deps,
         statedata,
-        callgraph,
+        alloc_graph,
         converter,
         false,
         1,

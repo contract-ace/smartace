@@ -129,25 +129,25 @@ BOOST_AUTO_TEST_CASE(valid_alloc_tests)
     auto const& test2 = *retrieveContractByName(unit, "Test2");
     auto const& test3 = *retrieveContractByName(unit, "Test3");
 
-    NewCallSummary app1(test1);
+    AllocationSummary app1(test1);
     auto const& actviolations1 = app1.violations();
     auto const& actchild1 = app1.children();
 
     BOOST_CHECK(actviolations1.empty());
     BOOST_CHECK(actchild1.empty());
 
-    NewCallSummary app2(test2);
+    AllocationSummary app2(test2);
     auto const& actviolations2 = app2.violations();
     auto const& actchild2 = app2.children();
 
-    NewCallSummary::NewCall c1, c2, c3, c4, c5, c6;
+    AllocationSummary::NewCall c1, c2, c3, c4, c5, c6;
     c1.type = child_x;
     c2.type = child_y;
     c3.type = child_y;
     c4.type = child_z;
     c5.type = child_z;
     c6.type = child_z;
-    NewCallSummary::CallGroup expchild2({ c1, c2, c3, c4, c5, c6 });
+    AllocationSummary::CallGroup expchild2({ c1, c2, c3, c4, c5, c6 });
 
     BOOST_CHECK(actviolations2.empty());
 
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(valid_alloc_tests)
         BOOST_CHECK(match);
     }
 
-    NewCallSummary app3(test3);
+    AllocationSummary app3(test3);
     BOOST_CHECK_EQUAL(app3.children().size(), 1);
     if (app3.children().size() == 1)
     {
@@ -206,15 +206,15 @@ BOOST_AUTO_TEST_CASE(invalid_alloc_tests)
 
     auto const& test = *retrieveContractByName(unit, "Test");
 
-    NewCallSummary app(test);
+    AllocationSummary app(test);
     BOOST_CHECK(app.children().empty());
 
-    NewCallSummary::NewCall v1, v2, v3, v4;
+    AllocationSummary::NewCall v1, v2, v3, v4;
     v1.type = child_q; v1.context = test.definedFunctions()[0];
     v2.type = child_x; v2.context = test.definedFunctions()[1];
     v3.type = child_y; v3.context = test.definedFunctions()[2];
     v4.type = child_z; v4.context = test.definedFunctions()[3];
-    list<NewCallSummary::NewCall> expect({ v1, v2, v3, v4 });
+    list<AllocationSummary::NewCall> expect({ v1, v2, v3, v4 });
 
     auto const& actual = app.violations();
 
@@ -280,9 +280,7 @@ BOOST_AUTO_TEST_CASE(cost_analysis_test)
     auto const* child_q = retrieveContractByName(unit, "Q");
     auto const* child_r = retrieveContractByName(unit, "R");
 
-    NewCallGraph graph;
-    graph.record(unit);
-    graph.finalize();
+    AllocationGraph graph({ child_r });
 
     BOOST_CHECK_EQUAL(graph.cost_of(child_x), 1);
     BOOST_CHECK_EQUAL(graph.cost_of(child_y), 3);
@@ -311,18 +309,16 @@ BOOST_AUTO_TEST_CASE(aggregate_exploit_test)
 
     const auto& unit = *parseAndAnalyse(text);
 
-    auto const* child_x = retrieveContractByName(unit, "X");
-    auto const& child_y = *retrieveContractByName(unit, "Y");
-    auto const& child_z = *retrieveContractByName(unit, "Z");
+    auto child_x = retrieveContractByName(unit, "X");
+    auto child_y = retrieveContractByName(unit, "Y");
+    auto child_z = retrieveContractByName(unit, "Z");
 
-    NewCallGraph graph;
-    graph.record(unit);
-    graph.finalize();
+    AllocationGraph graph({ child_y, child_z });
 
-    NewCallSummary::NewCall v1, v2;
-    v1.type = child_x; v1.context = child_y.definedFunctions()[0];
-    v2.type = child_x; v2.context = child_z.definedFunctions()[0];
-    list<NewCallSummary::NewCall> expect({v1, v2});
+    AllocationSummary::NewCall v1, v2;
+    v1.type = child_x; v1.context = child_y->definedFunctions()[0];
+    v2.type = child_x; v2.context = child_z->definedFunctions()[0];
+    list<AllocationSummary::NewCall> expect({v1, v2});
 
     auto const& actual = graph.violations();
 
@@ -370,9 +366,7 @@ BOOST_AUTO_TEST_CASE(family_analysis_test)
     auto const* y = retrieveContractByName(unit, "Y");
     auto const* z = retrieveContractByName(unit, "Z");
 
-    NewCallGraph graph;
-    graph.record(unit);
-    graph.finalize();
+    AllocationGraph graph({ z });
 
     BOOST_CHECK(graph.children_of(x).empty());
     BOOST_CHECK_EQUAL(graph.children_of(y).size(), 2);
@@ -486,24 +480,23 @@ BOOST_AUTO_TEST_CASE(upcast_at_callsite_test)
     const auto& unit = *parseAndAnalyse(text);
     auto const* ctrt = retrieveContractByName(unit, "Test");
 
-    NewCallGraph callgraph;
-    callgraph.record(unit);
+    AllocationGraph graph({ ctrt });
 
     for (auto var : ctrt->stateVariables())
     {
         if (var->name() == "x1")
         {
-            auto const& derv = callgraph.specialize(*var);
+            auto const& derv = graph.specialize(*var);
             BOOST_CHECK_EQUAL(derv.name(), "X");
         }
         else if (var->name() == "x2")
         {
-            auto const& derv = callgraph.specialize(*var);
+            auto const& derv = graph.specialize(*var);
             BOOST_CHECK_EQUAL(derv.name(), "Y");
         }
         else if (var->name() == "y")
         {
-            auto const& derv = callgraph.specialize(*var);
+            auto const& derv = graph.specialize(*var);
             BOOST_CHECK_EQUAL(derv.name(), "Y");
         }
     }
@@ -543,25 +536,35 @@ BOOST_AUTO_TEST_CASE(indirect_internal_assignment)
                 x = good_internal();
             }
         }
+        contract Test5 {
+            X x;
+            function bad_external() external {
+                x = new X();
+            }
+        }
     )";
 
     const auto& unit = *parseAndAnalyse(text);
 
     auto const* test1 = retrieveContractByName(unit, "Test1");
-    NewCallSummary summary1(*test1);
+    AllocationSummary summary1(*test1);
     BOOST_CHECK(summary1.violations().empty());
 
     auto const* test2 = retrieveContractByName(unit, "Test2");
-    NewCallSummary summary2(*test2);
+    AllocationSummary summary2(*test2);
     BOOST_CHECK(!summary2.violations().empty());
 
     auto const* test3 = retrieveContractByName(unit, "Test3");
-    NewCallSummary summary3(*test3);
+    AllocationSummary summary3(*test3);
     BOOST_CHECK(summary3.violations().empty());
 
     auto const* test4 = retrieveContractByName(unit, "Test4");
-    NewCallSummary summary4(*test4);
+    AllocationSummary summary4(*test4);
     BOOST_CHECK(!summary4.violations().empty());
+
+    auto const* test5 = retrieveContractByName(unit, "Test5");
+    AllocationSummary summary5(*test5);
+    BOOST_CHECK(!summary5.violations().empty());
 }
 
 BOOST_AUTO_TEST_CASE(specialization_by_inderection)
@@ -586,14 +589,56 @@ BOOST_AUTO_TEST_CASE(specialization_by_inderection)
     )";
 
     const auto& unit = *parseAndAnalyse(text);
-
-    NewCallGraph g;
-    g.record(unit);
-    g.finalize();
-
     auto const* ctrt = retrieveContractByName(unit, "Test");
+
+    AllocationGraph g({ ctrt });
     BOOST_CHECK_EQUAL(g.specialize(*ctrt->stateVariables()[0]).name(), "Y");
     BOOST_CHECK_EQUAL(g.specialize(*ctrt->stateVariables()[1]).name(), "X");
+}
+
+BOOST_AUTO_TEST_CASE(resolve_id)
+{
+    char const* text = R"(
+        contract X {}
+        contract Y {}
+        contract Test {
+            X x;
+            Y y;
+            constructor() public {
+                x = new X();
+                y = new Y();
+            }
+            function f() public view { x; }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "Test");
+    
+    auto stmt = ctrt->definedFunctions()[0]->body().statements()[0];
+    auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
+
+    AllocationGraph g({ ctrt });
+    BOOST_CHECK_EQUAL(g.resolve(expr_stmt->expression()).name(), "X");
+}
+
+BOOST_AUTO_TEST_CASE(member_access_to_contracts)
+{
+    char const* text = R"(
+        contract X {}
+        contract Test {
+            struct S { X x; }
+            S s;
+            constructor() public { s.x = new X(); }
+            function f() public view { s.x; }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto const* ctrt = retrieveContractByName(unit, "Test");
+
+    // TODO(scott): implement this.
+    BOOST_CHECK_THROW(AllocationGraph g({ ctrt }), runtime_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

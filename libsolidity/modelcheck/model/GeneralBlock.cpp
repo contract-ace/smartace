@@ -30,7 +30,7 @@ GeneralBlockConverter::GeneralBlockConverter(
 	Block const& _body,
 	TypeAnalyzer const& _converter,
 	CallState const& _statedata,
-	NewCallGraph const& _newcalls,
+	AllocationGraph const& _alloc_graph,
 	bool _manage_pay,
 	bool _is_payable
 ): M_CONVERTER(_converter)
@@ -38,7 +38,7 @@ GeneralBlockConverter::GeneralBlockConverter(
  , M_STATEDATA(_statedata)
  , M_MANAGE_PAY(_manage_pay)
  , M_IS_PAYABLE(_is_payable)
- , M_BLOCKTYPE(determine_block_type(_rvs, _newcalls))
+ , M_BLOCKTYPE(determine_block_type(_rvs, _alloc_graph))
 {
 	m_decls.enter();
 	for (auto const& arg : _args)
@@ -288,7 +288,7 @@ void GeneralBlockConverter::endVisit(Break const&)
 
 GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
 	vector<ASTPointer<VariableDeclaration>> const& _rvs,
-	NewCallGraph const& _newcalls
+	AllocationGraph const& _alloc_graph
 )
 {
 	if (_rvs.empty())
@@ -299,7 +299,7 @@ GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
 	{
 		throw runtime_error("Multiple return values not yet supported.");
 	}
-	else if (_newcalls.retval_is_allocated(*_rvs[0]))
+	else if (_alloc_graph.retval_is_allocated(*_rvs[0]))
 	{
 		return BlockType::Initializer;
 	}

@@ -22,10 +22,10 @@ namespace solidity
 namespace modelcheck
 {
 
+class AllocationGraph;
 class CallState;
 class ContractDependance;
 class FunctionSpecialization;
-class NewCallGraph;
 class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
@@ -48,7 +48,7 @@ public:
         ASTNode const& _ast,
 		ContractDependance const& _dependance,
 		CallState const& _statedata,
-		NewCallGraph const& _newcalls,
+		AllocationGraph const& _alloc_graph,
 		TypeAnalyzer const& _converter,
 		bool _add_sums,
 		size_t _map_k,
@@ -78,7 +78,7 @@ private:
 	ASTNode const& M_AST;
 	ContractDependance const& M_DEPENDANCE;
 	CallState const& M_STATEDATA;
-	NewCallGraph const& M_NEWCALLS;
+	AllocationGraph const& M_ALLOC_GRAPH;
 	TypeAnalyzer const& M_CONVERTER;
 
 	bool const M_ADD_SUMS;

@@ -41,7 +41,7 @@ ModifierBlockConverter ModifierBlockConverter::Factory::generate(
     size_t _i,
     TypeAnalyzer const& _converter,
     CallState const& _statedata,
-    NewCallGraph const& _newcalls
+    AllocationGraph const& _alloc_graph
 ) const
 {
     // Checks that _i is in bounds.
@@ -60,7 +60,7 @@ ModifierBlockConverter ModifierBlockConverter::Factory::generate(
         def_invoke_pair.second,
         _converter,
         _statedata,
-        _newcalls,
+        _alloc_graph,
         M_SPEC.name(_i + 1),
         _i == 0
     );
@@ -89,7 +89,7 @@ ModifierBlockConverter::ModifierBlockConverter(
     ModifierInvocation const* _curr,
     TypeAnalyzer const& _converter,
     CallState const& _statedata,
-    NewCallGraph const& _newcalls,
+    AllocationGraph const& _alloc_graph,
     string _next,
     bool _entry
 ): GeneralBlockConverter(
@@ -98,7 +98,7 @@ ModifierBlockConverter::ModifierBlockConverter(
     _def->body(),
     _converter,
     _statedata,
-    _newcalls,
+    _alloc_graph,
     _entry,
     _func.isPayable()
 ), M_STATEDATA(_statedata)

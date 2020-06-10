@@ -47,10 +47,7 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
+    AllocationGraph graph({});
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
 
@@ -100,10 +97,7 @@ BOOST_AUTO_TEST_CASE(payable_method)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
+    AllocationGraph graph({});
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
 
@@ -159,10 +153,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
+    AllocationGraph graph({});
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
 
@@ -227,10 +218,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
+    AllocationGraph graph({});
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
 
@@ -294,10 +282,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
+    AllocationGraph graph({});
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
 
@@ -380,10 +365,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
+    AllocationGraph graph({});
     FullSourceContractDependance analyzer(ast);
     ContractDependance deps(analyzer);
 
@@ -450,14 +432,12 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto test = retrieveContractByName(ast, "C");
 
     TypeAnalyzer converter;
     converter.record(ast);
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
+    AllocationGraph graph({ test });
     auto contracts = ASTNode::filteredNodes<ContractDefinition>(ast.nodes());
     ContractDependance deps(
         ModelDrivenContractDependance({ contracts.back() }, graph)

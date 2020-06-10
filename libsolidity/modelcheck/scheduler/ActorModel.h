@@ -20,11 +20,11 @@ namespace solidity
 namespace modelcheck
 {
 
+class AllocationGraph;
 class AddressSpace;
 class ContractDependance;
 class FunctionSpecialization;
 class MapIndexSummary;
-class NewCallGraph;
 class StateGenerator;
 class TypeAnalyzer;
 
@@ -73,7 +73,7 @@ public:
     ActorModel(
         ContractDependance const& _dependance,
         TypeAnalyzer const& _converter,
-        NewCallGraph const& _newcalls,
+        AllocationGraph const& _alloc_graph,
         MapIndexSummary const& _addrdata
     );
 
@@ -114,7 +114,7 @@ private:
     // parent, starting from a top level contract. _allocs is used to find all
     // children while _dependance is used to populate interface methods.
     void recursive_setup(
-        NewCallGraph const& _allocs,
+        AllocationGraph const& _alloc_graph,
         ContractDependance const& _dependance,
         Actor & _parent
     );

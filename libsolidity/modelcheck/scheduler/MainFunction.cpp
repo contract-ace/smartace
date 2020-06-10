@@ -29,14 +29,14 @@ MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
     MapIndexSummary const& _addrdata,
     ContractDependance const& _dependance,
-    NewCallGraph const& _newcalls,
+    AllocationGraph const& _alloc_graph,
     CallState const& _statedata,
     TypeAnalyzer const& _converter
 ): M_STATEDATA(_statedata)
  , M_CONVERTER(_converter)
  , m_addrspace(_addrdata)
  , m_stategen(_statedata, _converter, _addrdata, _lockstep_time)
- , m_actors(_dependance, _converter, _newcalls, _addrdata)
+ , m_actors(_dependance, _converter, _alloc_graph, _addrdata)
 {
 }
 

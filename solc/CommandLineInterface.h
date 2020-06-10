@@ -41,10 +41,10 @@ enum class DocumentationType: uint8_t;
 
 namespace modelcheck
 {
+class AllocationGraph;
 class CallState;
 class ContractDependance;
 class MapIndexSummary;
-class NewCallGraph;
 class PrimitiveTypeGenerator;
 class TypeAnalyzer;
 };
@@ -83,7 +83,7 @@ private:
 		std::vector<SourceUnit const*> const& _parsed_contracts,
 		modelcheck::ContractDependance const& _dependance,
 		modelcheck::MapIndexSummary const& _addrdata,
-		modelcheck::NewCallGraph const& _newcalls,
+		modelcheck::AllocationGraph const& _alloc_graph,
 		modelcheck::TypeAnalyzer const& _types,
 		modelcheck::CallState const& _callstate,
 		std::ostream& _os
@@ -92,7 +92,7 @@ private:
 		std::vector<SourceUnit const*> const& _parsed_contracts,
 		modelcheck::ContractDependance const& _dependance,
 		modelcheck::MapIndexSummary const& _addrdata,
-		modelcheck::NewCallGraph const& _newcalls,
+		modelcheck::AllocationGraph const& _alloc_graph,
 		modelcheck::TypeAnalyzer const& _types,
 		modelcheck::CallState const& _callstate,
 		std::ostream & _os

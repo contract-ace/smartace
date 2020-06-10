@@ -16,7 +16,7 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-NewCallSummary::NewCallSummary(ContractDefinition const& _src)
+AllocationSummary::AllocationSummary(ContractDefinition const& _src)
 {
     for (auto func : _src.definedFunctions())
     {
@@ -38,7 +38,7 @@ NewCallSummary::NewCallSummary(ContractDefinition const& _src)
         }
         else if (func->functionType(false) == nullptr)
         {
-            for (auto const& call :visitor.calls)
+            for (auto const& call : visitor.calls)
             {
                 if (call.is_retval)
                 {
@@ -59,17 +59,17 @@ NewCallSummary::NewCallSummary(ContractDefinition const& _src)
     }
 }
 
-NewCallSummary::CallGroup const& NewCallSummary::children() const
+AllocationSummary::CallGroup const& AllocationSummary::children() const
 {
     return m_children;
 }
 
-NewCallSummary::CallGroup const& NewCallSummary::violations() const
+AllocationSummary::CallGroup const& AllocationSummary::violations() const
 {
     return m_violations;
 }
 
-NewCallSummary::Visitor::Visitor(
+AllocationSummary::Visitor::Visitor(
     FunctionDefinition const* _context, size_t _depth_limit
 ): M_DEPTH_LIMIT(_depth_limit) , m_context(_context)
 {
@@ -80,7 +80,7 @@ NewCallSummary::Visitor::Visitor(
     _context->accept(*this);
 }
 
-bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
+bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
 {
     auto const* NEWTYPE = dynamic_cast<ContractType const*>(
         _node.annotation().type
@@ -131,9 +131,16 @@ bool NewCallSummary::Visitor::visit(FunctionCall const& _node)
     return false;
 }
 
-bool NewCallSummary::Visitor::visit(Assignment const& _node)
+bool AllocationSummary::Visitor::visit(Assignment const& _node)
 {
     VariableDeclaration const* dest = nullptr;
+
+    // TODO(scottwe): support structures.
+    auto const* access = LValueSniffer<MemberAccess>(_node).find();
+    if (access)
+    {
+        throw runtime_error("Member access to contracts not yet allowed.");
+    }
 
     auto const* id = LValueSniffer<Identifier>(_node).find();
     if (id)
@@ -149,7 +156,7 @@ bool NewCallSummary::Visitor::visit(Assignment const& _node)
     return false;
 }
 
-bool NewCallSummary::Visitor::visit(Return const& _node)
+bool AllocationSummary::Visitor::visit(Return const& _node)
 {
     ScopedSwap<bool> scope(m_return, true);
     if (auto const* expr = _node.expression())
@@ -159,7 +166,7 @@ bool NewCallSummary::Visitor::visit(Return const& _node)
     return false;
 }
 
-ContractDefinition const* NewCallSummary::Visitor::handle_call_type(
+ContractDefinition const* AllocationSummary::Visitor::handle_call_type(
     FunctionType const& _ftype
 )
 {
@@ -194,21 +201,18 @@ ContractDefinition const* NewCallSummary::Visitor::handle_call_type(
 
 // -------------------------------------------------------------------------- //
 
-void NewCallGraph::record(SourceUnit const& _src)
+AllocationGraph::AllocationGraph(vector<ContractDefinition const*> _model)
 {
-    // Enforces record is called in the unfinalized state.
-    if (m_finalized)
+    // Analyzes the model, while building out its graph.
+    set<ContractDefinition const*> visited;
+    for (size_t i = 0; i < _model.size(); ++i)
     {
-        throw runtime_error("NewCallGraph mutated after finalization.");
-    }
+        // Ensures this is a new contract.
+        auto contract = _model[i];
+        if (!visited.insert(contract).second) continue;
 
-    // Analyzes children and violations for all contracts.
-    auto contracts = ASTNode::filteredNodes<ContractDefinition>(_src.nodes());
-    for (auto contract : contracts)
-    {
-        if (contract->isLibrary() || contract->isInterface()) continue;
-    
-        NewCallSummary summary(*contract);
+        // Runs analysis.
+        AllocationSummary summary(*contract);
 
         // Accumulates violations.
         auto violations = summary.violations();
@@ -224,6 +228,7 @@ void NewCallGraph::record(SourceUnit const& _src)
                 // Caches the first "true type" for the contract.
                 m_truetypes[child.dest] = child.type;
                 m_vertices[contract].push_back(move(child));
+                _model.push_back(child.type);
             }
             else if (typedata->second == child.type)
             {
@@ -233,46 +238,29 @@ void NewCallGraph::record(SourceUnit const& _src)
             else
             {
                 // The contract is initialized as at least two distinct types.
-                child.status = NewCallSummary::ViolationType::TypeConfusion;
+                child.status = AllocationSummary::ViolationType::TypeConfusion;
                 m_violations.push_back(move(child));
             }
         }
-
-        // Updates name-to-contract lookup.
-        m_names[contract->name()] = contract;
     }
-}
 
-void NewCallGraph::finalize()
-{
-    if (m_finalized) return;
-    m_finalized = true;
-
+    // Computes cost of each vertex.
     for (auto itr = m_vertices.begin(); itr != m_vertices.end(); ++itr)
     {
         analyze(itr);
     }
 }
 
-size_t NewCallGraph::cost_of(Label _vertex) const
+size_t AllocationGraph::cost_of(Label _vertex) const
 {
-    if (!m_finalized)
-    {
-        throw runtime_error("NewCallGraph mutated after finalization.");
-    }
-
     auto itr = m_reach.find(_vertex);
     if (itr != m_reach.end()) return itr->second;
     return 0;
 }
 
-NewCallSummary::CallGroup const& NewCallGraph::children_of(Label _vertex) const
+AllocationSummary::CallGroup const&
+    AllocationGraph::children_of(Label _vertex) const
 {
-    if (!m_finalized)
-    {
-        throw runtime_error("NewCallGraph mutated after finalization.");
-    }
-
     auto itr = m_vertices.find(_vertex);
     if (itr == m_vertices.end())
     {
@@ -281,39 +269,59 @@ NewCallSummary::CallGroup const& NewCallGraph::children_of(Label _vertex) const
     return itr->second;
 }
 
-NewCallSummary::CallGroup const& NewCallGraph::violations() const
+AllocationSummary::CallGroup const& AllocationGraph::violations() const
 {
     return m_violations;
 }
 
-NewCallGraph::Label NewCallGraph::reverse_name(string _name) const
+bool AllocationGraph::retval_is_allocated(VariableDeclaration const& _var) const
 {
-    auto res = m_names.find(_name);
-    if (res == m_names.end()) return nullptr;
-    return res->second;
-}
-
-bool NewCallGraph::retval_is_allocated(VariableDeclaration const& _decl) const
-{
-    auto itr = m_truetypes.find(&_decl);
+    auto itr = m_truetypes.find(&_var);
     return ((itr != m_truetypes.end()) && (itr->second != nullptr));
 }
 
-ContractDefinition const& NewCallGraph::specialize(
-    VariableDeclaration const& _decl
-) const
+ContractDefinition const&
+    AllocationGraph::specialize(VariableDeclaration const& _var) const
 {
-    auto itr = m_truetypes.find(&_decl);
+    auto itr = m_truetypes.find(&_var);
     if ((itr == m_truetypes.end()) || (itr->second == nullptr))
     {
-        throw runtime_error("Unable to find declaration: " + _decl.name());
+        throw runtime_error("Unable to find declaration: " + _var.name());
     }
     return (*itr->second);
 }
 
-void NewCallGraph::analyze(NewCallGraph::Graph::iterator _neighbourhood)
+ContractDefinition const&
+    AllocationGraph::resolve(Expression const& _expr) const
 {
-    NewCallGraph::Label root = _neighbourhood->first;
+    // TODO(scottwe): support structures.
+    auto const* access = LValueSniffer<MemberAccess>(_expr).find();
+    if (access)
+    {
+        throw runtime_error("Member access to contracts not yet allowed.");
+    }
+
+    // TODO(scottwe): generalize analysis and reuse in earlier case.
+    VariableDeclaration const* dest = nullptr;
+    auto const* id = LValueSniffer<Identifier>(_expr).find();
+    if (id)
+    {
+        dest = dynamic_cast<VariableDeclaration const*>(
+            id->annotation().referencedDeclaration
+        );
+    }
+
+    if (!dest)
+    {
+        throw runtime_error("Unable to resolve expression.");
+    }
+
+    return specialize(*dest);
+}
+
+void AllocationGraph::analyze(AllocationGraph::Graph::iterator _neighbourhood)
+{
+    AllocationGraph::Label root = _neighbourhood->first;
     if (m_reach.find(root) != m_reach.end()) return;
 
     size_t cost = 1;

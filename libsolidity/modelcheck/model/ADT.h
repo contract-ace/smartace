@@ -19,7 +19,7 @@ namespace solidity
 namespace modelcheck
 {
 
-class NewCallGraph;
+class AllocationGraph;
 class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
@@ -36,7 +36,7 @@ public:
 	// declare is set, then the structure bodies are not generated.
     ADTConverter(
         ASTNode const& _ast,
-		NewCallGraph const& _newcalls,
+		AllocationGraph const& _alloc_graph,
 		TypeAnalyzer const& _converter,
 		bool _add_sums,
 		size_t _map_k,
@@ -55,7 +55,7 @@ protected:
 
 private:
 	ASTNode const& M_AST;
-	NewCallGraph const& M_CALLGRAPH;
+	AllocationGraph const& M_ALLOC_GRAPH;
 	TypeAnalyzer const& M_CONVERTER;
 
 	bool const M_ADD_SUMS;

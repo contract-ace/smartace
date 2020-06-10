@@ -23,11 +23,11 @@ namespace solidity
 namespace modelcheck
 {
 
+class AllocationGraph;
 class CallState;
 class ContractDependance;
 class FunctionSpecialization;
 class MapIndexSummary;
-class NewCallGraph;
 class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
@@ -44,7 +44,7 @@ public:
         bool _lockstep_time,
 	    MapIndexSummary const& _addrdata,
         ContractDependance const& _dependance,
-        NewCallGraph const& _newcalls,
+        AllocationGraph const& _alloc_graph,
         CallState const& _statedata,
         TypeAnalyzer const& _converter
     );

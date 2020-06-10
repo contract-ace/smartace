@@ -60,7 +60,7 @@ string _convert_assignment(Token tok)
     Assignment assign(SourceLocation(), id, tok, op);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {}));
+    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
     auto resolver = _prime_resolver(id_name);
     oss << *ExpressionConverter(assign, {}, {deps}, resolver).convert();
     return oss.str();
@@ -80,7 +80,7 @@ string _convert_bin_op(Token tok)
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {}));
+    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
     auto resolver = _prime_resolver(name_a);
     oss << *ExpressionConverter(op, {}, {deps}, resolver).convert();
     return oss.str();
@@ -92,7 +92,7 @@ string _convert_unary_op(Token tok, shared_ptr<Expression> expr, bool prefix)
 
     ostringstream oss;
     auto resolver = _prime_resolver(make_shared<string>("a"));
-    ContractDependance deps(ModelDrivenContractDependance({}, {}));
+    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
     oss << *ExpressionConverter(op, {}, {deps}, resolver).convert();
     return oss.str();
 }
@@ -102,7 +102,7 @@ string _convert_literal(Token tok, string src, SubD subdom = SubD::None)
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {}));
+    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
     oss << *ExpressionConverter(lit, {}, {deps}, {}).convert();
     return oss.str();
 }
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
     Conditional cond(SourceLocation(), var_a, var_b, var_c);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {}));
+    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
     auto resolver = _prime_resolver(name_a);
     oss << *ExpressionConverter(cond, {}, {deps}, resolver).convert();
     BOOST_CHECK_EQUAL(
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
     // TODO(scottwe): n element array, large n
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {}));
+    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
     oss << *ExpressionConverter(one_tuple, {}, {deps}, {}).convert();
     BOOST_CHECK_EQUAL(oss.str(), "(self->user_a).v");
 }
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
     id_a.annotation().type = new IntegerType(32);
     id_b.annotation().type = new IntegerType(32);
 
-    ContractDependance deps(ModelDrivenContractDependance({}, {}));
+    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
     auto resolver = _prime_resolver(name_a);
 
     ostringstream a_oss, b_oss, msg_oss;

@@ -46,13 +46,9 @@ BOOST_AUTO_TEST_CASE(prunes_contracts)
     auto const* ctrt_z = retrieveContractByName(ast, "Z");
     auto const* ctrt_wx = retrieveContractByName(ast, "WithX");
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
-    ContractDependance deps(
-        ModelDrivenContractDependance({ ctrt_wx, ctrt_y }, graph)
-    );
+    vector<ContractDefinition const*> model({ ctrt_wx, ctrt_y });
+    AllocationGraph graph(model);
+    ContractDependance deps(ModelDrivenContractDependance(model, graph));
 
     BOOST_CHECK(!deps.is_deployed(ctrt_x));
     BOOST_CHECK(deps.is_deployed(ctrt_xx));
@@ -83,11 +79,9 @@ BOOST_AUTO_TEST_CASE(interfaces)
     auto const& ast = *parseAndAnalyse(text);
     auto const* ctrt = retrieveContractByName(ast, "Z");
 
-    NewCallGraph graph;
-    graph.record(ast);
-    graph.finalize();
-
-    ContractDependance deps(ModelDrivenContractDependance({ ctrt }, graph));
+    vector<ContractDefinition const*> model({ ctrt });
+    AllocationGraph graph(model);
+    ContractDependance deps(ModelDrivenContractDependance(model, graph));
 
     BOOST_CHECK_EQUAL(deps.get_interface(ctrt).size(), 4);
 }
@@ -122,11 +116,9 @@ BOOST_AUTO_TEST_CASE(supercalls)
     auto const* ctrt_z = retrieveContractByName(unit, "Z");
     auto const* ctrt_y = retrieveContractByName(unit, "Y");
 
-    NewCallGraph graph;
-    graph.record(unit);
-    graph.finalize();
-
-    ContractDependance deps(ModelDrivenContractDependance({ ctrt_r }, graph));
+    vector<ContractDefinition const*> model({ ctrt_r });
+    AllocationGraph graph(model);
+    ContractDependance deps(ModelDrivenContractDependance(model, graph));
 
     auto & supers = deps.get_superchain(ctrt_r, ctrt_r->definedFunctions()[0]);
     BOOST_CHECK_EQUAL(ctrt_r->definedFunctions()[0]->name(), "f");
@@ -159,11 +151,8 @@ BOOST_AUTO_TEST_CASE(mixed_supercalls)
     auto const* ctrt_x = retrieveContractByName(unit, "X");
     auto const* ctrt_y = retrieveContractByName(unit, "Y");
 
-    NewCallGraph graph;
-    graph.record(unit);
-    graph.finalize();
-
     vector<ContractDefinition const*> model = { ctrt_x, ctrt_y };
+    AllocationGraph graph(model);
     ContractDependance deps(ModelDrivenContractDependance(model, graph));
 
     auto x_func_f = ctrt_x->definedFunctions()[0];
@@ -215,11 +204,9 @@ BOOST_AUTO_TEST_CASE(roi_for_calls)
     auto const& unit = *parseAndAnalyse(text);
     auto const* ctrt = retrieveContractByName(unit, "Z");
 
-    NewCallGraph graph;
-    graph.record(unit);
-    graph.finalize();
-
-    ContractDependance deps(ModelDrivenContractDependance({ ctrt }, graph));
+    vector<ContractDefinition const*> model({ ctrt });
+    AllocationGraph graph(model);
+    ContractDependance deps(ModelDrivenContractDependance(model, graph));
 
     BOOST_CHECK_EQUAL(ctrt->definedFunctions()[1]->name(), "f");
     BOOST_CHECK_EQUAL(ctrt->definedFunctions()[2]->name(), "g");
@@ -261,11 +248,9 @@ BOOST_AUTO_TEST_CASE(roi_for_map)
     auto const& unit = *parseAndAnalyse(text);
     auto const* ctrt = retrieveContractByName(unit, "Y");
 
-    NewCallGraph graph;
-    graph.record(unit);
-    graph.finalize();
-
-    ContractDependance deps(ModelDrivenContractDependance({ ctrt }, graph));
+    vector<ContractDefinition const*> model({ ctrt });
+    AllocationGraph graph(model);
+    ContractDependance deps(ModelDrivenContractDependance(model, graph));
 
     BOOST_CHECK_EQUAL(ctrt->definedFunctions()[1]->name(), "calls_1a");
     BOOST_CHECK_EQUAL(ctrt->definedFunctions()[2]->name(), "calls_1b");
@@ -308,10 +293,7 @@ BOOST_AUTO_TEST_CASE(executable_code)
     auto const* ctrt_y = retrieveContractByName(unit, "Y");
     auto const* ctrt_z = retrieveContractByName(unit, "Z");
 
-    NewCallGraph graph;
-    graph.record(unit);
-    graph.finalize();
-
+    AllocationGraph graph({ ctrt_x, ctrt_y, ctrt_z });
     ContractDependance deps_x(ModelDrivenContractDependance({ ctrt_x }, graph));
     ContractDependance deps_y(ModelDrivenContractDependance({ ctrt_y }, graph));
     ContractDependance deps_z(ModelDrivenContractDependance({ ctrt_z }, graph));

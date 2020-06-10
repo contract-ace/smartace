@@ -21,9 +21,9 @@ namespace solidity
 namespace modelcheck
 {
 
+class AllocationGraph;
 class CallState;
 class FunctionSpecialization;
-class NewCallGraph;
 class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
@@ -50,7 +50,7 @@ public:
 		Block const& _body,
 		TypeAnalyzer const& _converter,
 		CallState const& _statedata,
-		NewCallGraph const& _newcalls,
+		AllocationGraph const& _newcalls,
 		bool _manage_pay,
 		bool _is_payable
 	);
@@ -115,7 +115,7 @@ private:
 	// Analyzes the return values to classify the block type of this block.
 	static BlockType determine_block_type(
 		std::vector<ASTPointer<VariableDeclaration>> const& _rvs,
-		NewCallGraph const& _newcalls
+		AllocationGraph const& _alloc_graph
 	);
 
 	// Generates the payment call.
@@ -155,7 +155,7 @@ public:
 		FunctionDefinition const& _func,
 		TypeAnalyzer const& _converter,
 		CallState const& _statedata,
-		NewCallGraph const& _newcalls
+		AllocationGraph const& _alloc_graph
 	);
 
 	~FunctionBlockConverter() override = default;
@@ -209,7 +209,7 @@ public:
 			size_t _i,
 			TypeAnalyzer const& _converter,
 			CallState const& _statedata,
-			NewCallGraph const& _newcalls
+			AllocationGraph const& _alloc_graph
 		) const;
 
 		// Returns the number of modifiers which were not filtered away.
@@ -254,7 +254,7 @@ private:
 		ModifierInvocation const* _curr,
 		TypeAnalyzer const& _converter,
 		CallState const& _statedata,
-		NewCallGraph const& _newcalls,
+		AllocationGraph const& _alloc_graph,
 		std::string _next,
 		bool _entry
 	);
