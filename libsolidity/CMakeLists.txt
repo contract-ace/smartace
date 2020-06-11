@@ -110,6 +110,8 @@ set(sources
 	modelcheck/analysis/AbstractAddressDomain.h
 	modelcheck/analysis/AllocationSites.cpp
 	modelcheck/analysis/AllocationSites.h
+	modelcheck/analysis/CallGraph.cpp
+	modelcheck/analysis/CallGraph.h
 	modelcheck/analysis/CallState.cpp
 	modelcheck/analysis/CallState.h
 	modelcheck/analysis/ContractDependance.cpp
