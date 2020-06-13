@@ -50,13 +50,13 @@ public:
     // Returns the context used to invoke the method, if provided.
     Expression const* context() const;
 
-    // Returns the identifier at the root of the call.
-    Identifier const* id() const;
-
     // If true, this method is a call to a super method.
     bool is_super() const;
 
-    // Returns the type metadata for the underlying method..
+    // If true, this is a library call.
+    bool is_in_library() const;
+
+    // Returns the type metadata for the underlying method.
     FunctionType const& type() const;
 
     // Returns the declaration of the method being called.
@@ -81,7 +81,7 @@ private:
     ASTPointer<Expression const> m_value = nullptr;
     ASTPointer<Expression const> m_gas = nullptr;
     Expression const* m_context = nullptr;
-    Identifier const* m_id = nullptr;
+    Identifier const* m_root = nullptr;
 };
 
 // -------------------------------------------------------------------------- //

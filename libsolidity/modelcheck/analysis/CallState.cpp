@@ -1,6 +1,6 @@
 #include <libsolidity/modelcheck/analysis/CallState.h>
 
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
+#include <libsolidity/modelcheck/analysis/CallGraph.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
@@ -30,10 +30,10 @@ string const CallState::PAY = "sol_pay";
 
 // -------------------------------------------------------------------------- //
 
-CallState::CallState(ContractDependance const& _dependance)
+CallState::CallState(CallGraph const& _graph)
 {
     // TODO: separate analysis from codegen.
-    for (auto call : _dependance.get_executed_code())
+    for (auto call : _graph.executed_code())
     {
         if (call->isPayable())
         {

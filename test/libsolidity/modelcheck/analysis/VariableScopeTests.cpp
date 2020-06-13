@@ -1,6 +1,7 @@
 /**
+ * Tests for libsolidity/modelcheck/analysis/VariableScope.
+ * 
  * @date 2019
- * Targets libsolidity/modelcheck/VariableScopeResolver.{cpp,h}.
  */
 
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
@@ -22,9 +23,10 @@ namespace modelcheck
 namespace test
 {
 
+// -------------------------------------------------------------------------- //
+
 BOOST_FIXTURE_TEST_SUITE(
-    VariableScopeResolution,
-    ::dev::solidity::test::AnalysisFramework
+    Analysis_VariableScopeResolution, ::dev::solidity::test::AnalysisFramework
 )
 
 // Tests that without a scope, resolution is exception free. The variable `var`
@@ -202,6 +204,8 @@ BOOST_AUTO_TEST_CASE(shadow_scope)
 }
 
 BOOST_AUTO_TEST_SUITE_END();
+
+// -------------------------------------------------------------------------- //
 
 }
 }

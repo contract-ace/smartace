@@ -6,7 +6,6 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <boost/test/unit_test.hpp>
-#include <test/libsolidity/AnalysisFramework.h>
 
 #include <sstream>
 
@@ -56,10 +55,7 @@ void test_switch_case(CSwitch & switch_stmt, string const& default_case)
 
 // -------------------------------------------------------------------------- //
 
-BOOST_FIXTURE_TEST_SUITE(
-    CGeneratorTests,
-    ::dev::solidity::test::AnalysisFramework
-)
+BOOST_AUTO_TEST_SUITE(Codegen_DetailsTests)
 
 // Tests that the switch is built properly, without a default.
 BOOST_AUTO_TEST_CASE(switch_without_default)

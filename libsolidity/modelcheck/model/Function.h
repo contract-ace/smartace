@@ -22,11 +22,8 @@ namespace solidity
 namespace modelcheck
 {
 
-class AllocationGraph;
-class CallState;
-class ContractDependance;
+class AnalysisStack;
 class FunctionSpecialization;
-class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -46,14 +43,11 @@ public:
     // Constructs a printer for all function forward decl's required by the ast.
     FunctionConverter(
         ASTNode const& _ast,
-		ContractDependance const& _dependance,
-		CallState const& _statedata,
-		AllocationGraph const& _alloc_graph,
-		TypeAnalyzer const& _converter,
+		std::shared_ptr<AnalysisStack> _stack,
 		bool _add_sums,
 		size_t _map_k,
 		View _view,
-		bool _fwd_dcl
+		bool _forward_declare
     );
 
     // Prints each function-like declaration once, in some order. Special
@@ -76,16 +70,14 @@ private:
 	std::ostream* m_ostream = nullptr;
 
 	ASTNode const& M_AST;
-	ContractDependance const& M_DEPENDANCE;
-	CallState const& M_STATEDATA;
-	AllocationGraph const& M_ALLOC_GRAPH;
-	TypeAnalyzer const& M_CONVERTER;
 
 	bool const M_ADD_SUMS;
 	size_t const M_MAP_K;
 
 	View const M_VIEW;
 	bool const M_FWD_DCL;
+
+	std::shared_ptr<AnalysisStack> m_stack;
 
 	// Formats all Solidity arguments (_decls) as a c-function argument list.
 	// If _scope is set, the function is assumed to be a method of _scope. The

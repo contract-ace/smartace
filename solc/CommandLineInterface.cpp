@@ -42,11 +42,9 @@
 #include <libsolidity/interface/GasEstimator.h>
 
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/model/ADT.h>
 #include <libsolidity/modelcheck/model/Function.h>
 #include <libsolidity/modelcheck/scheduler/MainFunction.h>
@@ -1292,6 +1290,7 @@ void CommandLineInterface::handleCModel()
 			auto actors = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
 			for (auto actor : actors)
 			{
+				if (actor->isLibrary() || actor->isInterface()) continue;
 				contract_names[actor->name()] = actor;
 			}
 		}
@@ -1327,76 +1326,23 @@ void CommandLineInterface::handleCModel()
 		}
 	}
 
-	// Expands the model into a call graph.
-	modelcheck::AllocationGraph alloc_graph(major_actors);
-	if (!alloc_graph.violations().empty())
-	{
-		// TODO: report violations.
-		m_error = true;
-		serr() << "Disallowed allocation detected in AST." << endl;
-		return;
-	}
+	// Runs full analysis stack.
+	size_t client_count = m_args[g_argModelMapLen].as<size_t>();
+	bool concrete_addrs = (m_args.count(g_argModelConcrete) > 0);
+	auto analysis_stack = make_shared<modelcheck::AnalysisStack>(
+		major_actors, asts, client_count, concrete_addrs
+	);
 
-	// A first pass over the Solidity sources to aggregate type data.
+	// Aggregates primitive types.
+	// TODO(scottwe): use flat model and move to model.
 	modelcheck::PrimitiveTypeGenerator primitive_set;
 	for (auto const* ast: asts)
 	{
 		primitive_set.record(*ast);
 	}
+	analysis_stack->environment()->register_primitives(primitive_set);
 
-	// Determines total number of actors.
-	size_t actor_count = 0;
-	for (auto actor : major_actors)
-	{
-		actor_count += alloc_graph.cost_of(actor);
-	}
-
-	// Determines actor dependencies.
-	modelcheck::ContractDependance dependance(
-		modelcheck::ModelDrivenContractDependance(major_actors, alloc_graph)
-	);
-	modelcheck::CallState callstate(dependance);
-	callstate.register_primitives(primitive_set);
-
-	// Extracts identifiers from contracts.
-	size_t client_count = m_args[g_argModelMapLen].as<size_t>();
-	bool concrete_addrs = (m_args.count(g_argModelConcrete) > 0);
-	modelcheck::MapIndexSummary index_summary(concrete_addrs, client_count, actor_count);
-	for (auto const* ast: asts)
-	{
-		auto contracts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-		for (auto contract : contracts)
-		{
-			index_summary.extract_literals(*contract);
-		}
-	}
-	for (auto const* ast: asts)
-	{
-		auto contracts = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-		for (auto contract : contracts)
-		{
-			index_summary.compute_interference(*contract);
-		}
-	}
-
-	// Generates type metadata.
-	modelcheck::TypeAnalyzer converter(index_summary.size());
-	for (auto const* ast : asts)
-	{
-		converter.record(*ast);
-	}
-
-	// Checks for violations in the index summary
-	if (!index_summary.violations().empty())
-	{
-		// TODO: report violations.
-		m_error = true;
-		serr() << "Unsupported map index manipulation." << endl;
-		return;
-	}
-
-	// TODO(scottwe): This was quick to set up, but it leads to the same AST
-	//                evaluations being repeated...
+	// Outputs model.
 	if (m_args.count(g_argOutputDir))
 	{
 		namespace fs = boost::filesystem;
@@ -1406,24 +1352,8 @@ void CommandLineInterface::handleCModel()
 
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data, harness_data;
 		handleCModelHarness(harness_data);
-		handleCModelHeaders(
-			asts,
-			dependance,
-			index_summary,
-			alloc_graph,
-			converter,
-			callstate,
-			cmodel_h_data
-		);
-		handleCModelBody(
-			asts,
-			dependance,
-			index_summary,
-			alloc_graph,
-			converter,
-			callstate,
-			cmodel_cpp_data
-		);
+		handleCModelHeaders(asts, analysis_stack, cmodel_h_data);
+		handleCModelBody(asts, analysis_stack, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1437,25 +1367,9 @@ void CommandLineInterface::handleCModel()
 		sout() << "====== primitive.h =====" << endl;
 		handleCModelPrimitives(primitive_set, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
-		handleCModelHeaders(
-			asts,
-			dependance,
-			index_summary,
-			alloc_graph,
-			converter,
-			callstate,
-			sout()
-		);
+		handleCModelHeaders(asts, analysis_stack, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(
-			asts,
-			dependance,
-			index_summary,
-			alloc_graph,
-			converter,
-			callstate,
-			sout()
-		);
+		handleCModelBody(asts, analysis_stack, sout());
 		sout() << endl;
 	}
 }
@@ -1481,11 +1395,7 @@ void CommandLineInterface::handleCModelPrimitives(
 
 void CommandLineInterface::handleCModelHeaders(
 	vector<SourceUnit const*> const& _parsed_contracts,
-	modelcheck::ContractDependance const& _dependance,
-	modelcheck::MapIndexSummary const& _addrdata,
-	modelcheck::AllocationGraph const& _alloc_graph,
-	modelcheck::TypeAnalyzer const& _types,
-	modelcheck::CallState const& _callstate,
+	shared_ptr<modelcheck::AnalysisStack> _stack,
 	ostream& _os
 )
 {
@@ -1498,15 +1408,14 @@ void CommandLineInterface::handleCModelHeaders(
 	    << "#include \"primitive.h\"" << endl;
 	_os << "void run_model(void);";
 
-	_callstate.print(_os, true);
+	_stack->environment()->print(_os, true);
 	for (auto const* ast : _parsed_contracts)
 	{
 		ADTConverter cov(
 			*ast,
-			_alloc_graph,
-			_types,
+			_stack,
 			sum_maps,
-			_addrdata.size(),
+			_stack->addresses()->size(),
 			true
 		);
 		cov.print(_os);
@@ -1515,12 +1424,9 @@ void CommandLineInterface::handleCModelHeaders(
 	{
 		FunctionConverter cov(
 			*ast,
-			_dependance,
-			_callstate,
-			_alloc_graph,
-			_types,
+			_stack,
 			sum_maps,
-			_addrdata.size(),
+			_stack->addresses()->size(),
 			FunctionConverter::View::EXT,
 			true
 		);
@@ -1530,39 +1436,32 @@ void CommandLineInterface::handleCModelHeaders(
 
 void CommandLineInterface::handleCModelBody(
 	vector<SourceUnit const*> const& _parsed_contracts,
-	modelcheck::ContractDependance const& _dependance,
-	modelcheck::MapIndexSummary const& _addrdata,
-	modelcheck::AllocationGraph const& _alloc_graph,
-	modelcheck::TypeAnalyzer const& _types,
-	modelcheck::CallState const& _callstate,
+	shared_ptr<modelcheck::AnalysisStack> _stack,
 	ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
-	using dev::solidity::modelcheck::ContractDependance;
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
-	using dev::solidity::modelcheck::ModelDrivenContractDependance;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 
 	_os << "#include \"cmodel.h\"" << endl;
-	for (auto lit : _addrdata.literals())
+	for (auto lit : _stack->addresses()->literals())
 	{
 		auto const NAME = modelcheck::AbstractAddressDomain::literal_name(lit);
 		_os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
 	}
 
-	_callstate.print(_os, false);
+	_stack->environment()->print(_os, false);
 	for (auto const* ast : _parsed_contracts)
 	{
 		ADTConverter cov(
 			*ast,
-			_alloc_graph,
-			_types,
+			_stack,
 			sum_maps,
-			_addrdata.size(),
+			_stack->addresses()->size(),
 			false
 		);
 		cov.print(_os);
@@ -1571,12 +1470,9 @@ void CommandLineInterface::handleCModelBody(
 	{
 		FunctionConverter cov(
 			*ast,
-			_dependance,
-			_callstate,
-			_alloc_graph,
-			_types,
+			_stack,
 			sum_maps,
-			_addrdata.size(),
+			_stack->addresses()->size(),
 			FunctionConverter::View::INT,
 			true
 		);
@@ -1586,26 +1482,16 @@ void CommandLineInterface::handleCModelBody(
 	{
 		FunctionConverter cov(
 			*ast,
-			_dependance,
-			_callstate,
-			_alloc_graph,
-			_types,
+			_stack,
 			sum_maps,
-			_addrdata.size(),
+			_stack->addresses()->size(),
 			FunctionConverter::View::FULL,
 			false
 		);
 		cov.print(_os);
 	}
 
-	modelcheck::MainFunctionGenerator main_gen(
-		lockstep_time,
-		_addrdata,
-		_dependance,
-		_alloc_graph,
-		_callstate,
-		_types
-	);
+	modelcheck::MainFunctionGenerator main_gen(lockstep_time, _stack);
 	main_gen.print(_os);
 }
 

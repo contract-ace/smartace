@@ -1,18 +1,13 @@
 /**
- * @date 2019
- * Performs end-to-end tests. Test inputs are contracts, and test outputs are
- * all converted components of a C header or body.
+ * End-to-end tests for libsolidity/modelcheck.
  * 
- * These are tests which apply to both ADTConverter and FunctionConverter.
+ * @date 2019
  */
 
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
 
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/model/ADT.h>
 #include <libsolidity/modelcheck/model/Function.h>
 
@@ -29,7 +24,11 @@ namespace modelcheck
 namespace test
 {
 
-BOOST_FIXTURE_TEST_SUITE(EndToEndTests, ::dev::solidity::test::AnalysisFramework)
+// -------------------------------------------------------------------------- //
+
+BOOST_FIXTURE_TEST_SUITE(
+    EndToEndTests, ::dev::solidity::test::AnalysisFramework
+)
 
 // Ensures a single contract with state will generate a single structure type
 // with the name of said contract, and an initializer for said structure.
@@ -43,25 +42,17 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 	)";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -83,30 +74,22 @@ BOOST_AUTO_TEST_CASE(simple_map)
 {
     char const* text = R"(
         contract A {
-            mapping (uint => uint) a;
+            mapping (address => uint) a;
         }
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -115,17 +98,17 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct Map_1;" << "struct A;";
+    func_expect << "struct Map_1 ZeroInit_Map_1(void);";
+    func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
+                << ",sol_address_t key_0);";
+    func_expect << "void Write_Map_1(struct Map_1*arr,sol_address_t key_0"
+                << ",sol_uint256_t dat);";
+    func_expect << "void Set_Map_1(struct Map_1*arr,sol_address_t key_0"
+                << ",sol_uint256_t dat);";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct Map_1 ZeroInit_Map_1(void);";
-    func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
-                << ",sol_uint256_t key_0);";
-    func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_0"
-                << ",sol_uint256_t dat);";
-    func_expect << "void Set_Map_1(struct Map_1*arr,sol_uint256_t key_0"
-                << ",sol_uint256_t dat);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -147,25 +130,17 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -174,13 +149,13 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_Struct_B;" << "struct A;";
+    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    func_expect << "struct A_Struct_B Init_A_Struct_B"
+                << "(sol_uint256_t user_a,sol_uint256_t user_b);";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
-    func_expect << "struct A_Struct_B Init_A_Struct_B"
-                << "(sol_uint256_t user_a,sol_uint256_t user_b);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -199,25 +174,17 @@ BOOST_AUTO_TEST_CASE(simple_func)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -254,25 +221,17 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -309,25 +268,17 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 	)";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -338,10 +289,6 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     adt_expect << "struct Map_1;";
     adt_expect << "struct A_Struct_B;";
     adt_expect << "struct A;";
-    func_expect << "void Init_A(struct A*self,sol_address_t sender"
-                << ",sol_uint256_t value,sol_uint256_t blocknum"
-                << ",sol_uint256_t timestamp,sol_bool_t paid"
-                << ",sol_address_t origin);";
     func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
     func_expect << "struct A_Struct_B Init_A_Struct_B(void);";
     func_expect << "struct Map_1 ZeroInit_Map_1(void);";
@@ -351,6 +298,10 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
                 << ",sol_uint256_t key_1,sol_uint256_t dat);";
     func_expect << "void Set_Map_1(struct Map_1*arr,sol_uint256_t key_0"
                 << ",sol_uint256_t key_1,sol_uint256_t dat);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender"
+                << ",sol_uint256_t value,sol_uint256_t blocknum"
+                << ",sol_uint256_t timestamp,sol_bool_t paid"
+                << ",sol_address_t origin);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -365,35 +316,28 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 			uint a;
             uint b;
             struct B {
-                mapping (uint => uint) a;
+                mapping (address => uint) a;
             }
 		}
         contract C {
             uint a;
-            mapping (uint => uint) b;
+            mapping (address => uint) b;
         }
 	)";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(ast, "A");
+    auto ctrt_c = retrieveContractByName(ast, "C");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt_a, ctrt_c });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -406,30 +350,30 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct A;";
     adt_expect << "struct Map_2;";
     adt_expect << "struct C;";
-    func_expect << "void Init_A(struct A*self,sol_address_t sender"
-                << ",sol_uint256_t value,sol_uint256_t blocknum"
-                << ",sol_uint256_t timestamp,sol_bool_t paid"
-                << ",sol_address_t origin);";
     func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
     func_expect << "struct A_Struct_B Init_A_Struct_B(void);";
     func_expect << "struct Map_1 ZeroInit_Map_1(void);";
     func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
-                << ",sol_uint256_t key_0);";
-    func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_0"
+                << ",sol_address_t key_0);";
+    func_expect << "void Write_Map_1(struct Map_1*arr,sol_address_t key_0"
                 << ",sol_uint256_t dat);";
-    func_expect << "void Set_Map_1(struct Map_1*arr,sol_uint256_t key_0"
+    func_expect << "void Set_Map_1(struct Map_1*arr,sol_address_t key_0"
                 << ",sol_uint256_t dat);";
+    func_expect << "struct Map_2 ZeroInit_Map_2(void);";
+    func_expect << "sol_uint256_t Read_Map_2(struct Map_2*arr"
+                << ",sol_address_t key_0);";
+    func_expect << "void Write_Map_2(struct Map_2*arr,sol_address_t key_0"
+                << ",sol_uint256_t dat);";
+    func_expect << "void Set_Map_2(struct Map_2*arr,sol_address_t key_0"
+                << ",sol_uint256_t dat);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender"
+                << ",sol_uint256_t value,sol_uint256_t blocknum"
+                << ",sol_uint256_t timestamp,sol_bool_t paid"
+                << ",sol_address_t origin);";
     func_expect << "void Init_C(struct C*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct Map_2 ZeroInit_Map_2(void);";
-    func_expect << "sol_uint256_t Read_Map_2(struct Map_2*arr"
-                << ",sol_uint256_t key_0);";
-    func_expect << "void Write_Map_2(struct Map_2*arr,sol_uint256_t key_0"
-                << ",sol_uint256_t dat);";
-    func_expect << "void Set_Map_2(struct Map_2*arr,sol_uint256_t key_0"
-                << ",sol_uint256_t dat);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -442,30 +386,22 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 {
     char const* text = R"(
 		contract A {
-			mapping (uint => mapping (uint => mapping (uint => uint))) a;
+			mapping (address => mapping (address => mapping (address => uint))) a;
 		}
 	)";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -475,18 +411,18 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     ostringstream adt_expect, func_expect;
     adt_expect << "struct Map_1;";
     adt_expect << "struct A;";
+    func_expect << "struct Map_1 ZeroInit_Map_1(void);";
+    func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
+                << ",sol_address_t key_0,sol_address_t key_1"
+                << ",sol_address_t key_2);";
+    func_expect << "void Write_Map_1(struct Map_1*arr,sol_address_t key_0,"
+                << "sol_address_t key_1,sol_address_t key_2,sol_uint256_t dat);";
+    func_expect << "void Set_Map_1(struct Map_1*arr,sol_address_t key_0,"
+                << "sol_address_t key_1,sol_address_t key_2,sol_uint256_t dat);";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
                 << ",sol_address_t origin);";
-    func_expect << "struct Map_1 ZeroInit_Map_1(void);";
-    func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
-                << ",sol_uint256_t key_0,sol_uint256_t key_1"
-                << ",sol_uint256_t key_2);";
-    func_expect << "void Write_Map_1(struct Map_1*arr,sol_uint256_t key_0,"
-                << "sol_uint256_t key_1,sol_uint256_t key_2,sol_uint256_t dat);";
-    func_expect << "void Set_Map_1(struct Map_1*arr,sol_uint256_t key_0,"
-                << "sol_uint256_t key_1,sol_uint256_t key_2,sol_uint256_t dat);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -510,25 +446,17 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(adt_actual);
+    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -537,6 +465,8 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct A_Struct_B;" << "struct A;";
+    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    func_expect << "struct A_Struct_B Init_A_Struct_B(sol_uint256_t user_a);";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
@@ -545,8 +475,6 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
                 << "sol_address_t sender,sol_uint256_t value,sol_uint256_t "
                 << "blocknum,sol_uint256_t timestamp,sol_bool_t paid,"
                 << "sol_address_t origin,sol_uint256_t func_user___in);";
-    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
-    func_expect << "struct A_Struct_B Init_A_Struct_B(sol_uint256_t user_a);";
 
     BOOST_CHECK_EQUAL(adt_actual.str(), adt_expect.str());
     BOOST_CHECK_EQUAL(func_actual.str(), func_expect.str());
@@ -562,50 +490,42 @@ BOOST_AUTO_TEST_CASE(reproducible)
         contract A {
             struct S { address owner; uint val; }
             uint constant min_amt = 42;
-            mapping (uint => S) accs;
-            function Open(uint idx) public {
+            mapping (address => S) accs;
+            function Open(address idx) public {
                 require(accs[idx].owner == address(0));
                 accs[idx] = S(msg.sender, 0);
             }
-            function Deposit(uint idx) public payable {
+            function Deposit(address idx) public payable {
                 require(msg.value > min_amt);
                 if (accs[idx].owner != msg.sender) { Open(idx); }
                 accs[idx].val += msg.value;
             }
-            function Withdraw(uint idx) public payable {
+            function Withdraw(address idx) public payable {
                 require(accs[idx].owner == msg.sender);
                 uint amt = accs[idx].val;
                 accs[idx] = S(msg.sender, 0);
                 assert(accs[idx].val == 0);
                 msg.sender.transfer(amt);
             }
-            function View(uint idx) public returns (uint amt) {
+            function View(address idx) public returns (uint amt) {
                 amt = accs[idx].val;
             }
         }
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_1, adt_2, func_1, func_2;
-    ADTConverter(ast, alloc_graph, converter, false, 1, false).print(adt_1);
-    ADTConverter(ast, alloc_graph, converter, false, 1, false).print(adt_2);
+    ADTConverter(ast, stack, false, 1, false).print(adt_1);
+    ADTConverter(ast, stack, false, 1, false).print(adt_2);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -613,10 +533,7 @@ BOOST_AUTO_TEST_CASE(reproducible)
     ).print(func_1);
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        alloc_graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -628,6 +545,8 @@ BOOST_AUTO_TEST_CASE(reproducible)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+// -------------------------------------------------------------------------- //
 
 }
 }

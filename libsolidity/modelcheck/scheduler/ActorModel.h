@@ -20,13 +20,12 @@ namespace solidity
 namespace modelcheck
 {
 
-class AllocationGraph;
 class AddressSpace;
-class ContractDependance;
+class AnalysisStack;
+class FlatContract;
 class FunctionSpecialization;
 class MapIndexSummary;
 class StateGenerator;
-class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -37,15 +36,14 @@ class TypeAnalyzer;
 struct Actor
 {
     Actor(
-        TypeAnalyzer const& _converter,
-        ContractDependance const& _dependance,
-        ContractDefinition const* _contract,
+        std::shared_ptr<AnalysisStack const> _stack,
+        std::shared_ptr<FlatContract const> _contract,
         size_t _id,
         CExprPtr _path
     );
 
     // The underlying contract.
-    ContractDefinition const* contract;
+    std::shared_ptr<FlatContract const> contract;
 
     // A variable declaration used to maintain the actor in the harness.
     std::shared_ptr<CVarDecl> decl;
@@ -70,12 +68,8 @@ struct Actor
 class ActorModel
 {
 public:
-    ActorModel(
-        ContractDependance const& _dependance,
-        TypeAnalyzer const& _converter,
-        AllocationGraph const& _alloc_graph,
-        MapIndexSummary const& _addrdata
-    );
+    //
+    ActorModel(std::shared_ptr<AnalysisStack const> _stack);
 
     // Appends a declaration for each actor onto _block.
     void declare(CBlockList & _block) const;
@@ -85,9 +79,7 @@ public:
     // non-deterministic parameters. _statedata and _stategen are used to set
     // the block and message state.
     void initialize(
-        CBlockList & _block,
-        CallState const& _statedata,
-        StateGenerator const& _stategen
+        CBlockList & _block, StateGenerator const& _stategen
     ) const;
 
     // Appends statements onto _block to allocate addresses for each actor. The
@@ -102,7 +94,7 @@ public:
     std::list<Actor> const& inspect() const;
 
 private:
-	TypeAnalyzer const& M_CONVERTER;
+	std::shared_ptr<AnalysisStack const> m_stack;
 
     // The list of actors, which is populated after setup.
     std::list<Actor> m_actors;
@@ -113,11 +105,7 @@ private:
     // Extends setup to children. _path will accumulate the path to the current
     // parent, starting from a top level contract. _allocs is used to find all
     // children while _dependance is used to populate interface methods.
-    void recursive_setup(
-        AllocationGraph const& _alloc_graph,
-        ContractDependance const& _dependance,
-        Actor & _parent
-    );
+    void recursive_setup(Actor & _parent);
 };
 
 // -------------------------------------------------------------------------- //

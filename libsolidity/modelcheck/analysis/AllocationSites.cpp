@@ -16,6 +16,31 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+VariableDeclaration const* resolve_to_contract(Expression const& _expr)
+{
+    if (_expr.annotation().type->category() != Type::Category::Contract)
+    {
+        return nullptr;
+    }
+
+    // TODO(scottwe): support structures.
+    if (LValueSniffer<MemberAccess>(_expr).find())
+    {
+        throw runtime_error("Member access to contracts not yet allowed.");
+    }
+
+    if (auto const* id = LValueSniffer<Identifier>(_expr).find())
+    {
+        return dynamic_cast<VariableDeclaration const*>(
+            id->annotation().referencedDeclaration
+        );
+    }
+
+    return nullptr;
+}
+
+// -------------------------------------------------------------------------- //
+
 AllocationSummary::AllocationSummary(ContractDefinition const& _src)
 {
     for (auto func : _src.definedFunctions())
@@ -55,16 +80,15 @@ AllocationSummary::AllocationSummary(ContractDefinition const& _src)
         {
             m_violations.splice(m_violations.end(), visitor.calls);
         }
-        
     }
 }
 
-AllocationSummary::CallGroup const& AllocationSummary::children() const
+AllocationSummary::CallGroup AllocationSummary::children() const
 {
     return m_children;
 }
 
-AllocationSummary::CallGroup const& AllocationSummary::violations() const
+AllocationSummary::CallGroup AllocationSummary::violations() const
 {
     return m_violations;
 }
@@ -133,22 +157,7 @@ bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
 
 bool AllocationSummary::Visitor::visit(Assignment const& _node)
 {
-    VariableDeclaration const* dest = nullptr;
-
-    // TODO(scottwe): support structures.
-    auto const* access = LValueSniffer<MemberAccess>(_node).find();
-    if (access)
-    {
-        throw runtime_error("Member access to contracts not yet allowed.");
-    }
-
-    auto const* id = LValueSniffer<Identifier>(_node).find();
-    if (id)
-    {
-        dest = dynamic_cast<VariableDeclaration const*>(
-            id->annotation().referencedDeclaration
-        );
-    }
+    auto dest = resolve_to_contract(_node.leftHandSide());
 
     ScopedSwap<VariableDeclaration const*> scope(m_dest, dest);
     _node.rightHandSide().accept(*this);
@@ -247,7 +256,7 @@ AllocationGraph::AllocationGraph(vector<ContractDefinition const*> _model)
     // Computes cost of each vertex.
     for (auto itr = m_vertices.begin(); itr != m_vertices.end(); ++itr)
     {
-        analyze(itr);
+        analyze(itr->first, itr->second);
     }
 }
 
@@ -258,18 +267,17 @@ size_t AllocationGraph::cost_of(Label _vertex) const
     return 0;
 }
 
-AllocationSummary::CallGroup const&
-    AllocationGraph::children_of(Label _vertex) const
+AllocationSummary::CallGroup AllocationGraph::children_of(Label _vertex) const
 {
     auto itr = m_vertices.find(_vertex);
     if (itr == m_vertices.end())
     {
-        throw runtime_error("Unable to find vertex.");
+        throw runtime_error("Unable to find contract: " + _vertex->name());
     }
     return itr->second;
 }
 
-AllocationSummary::CallGroup const& AllocationGraph::violations() const
+AllocationSummary::CallGroup AllocationGraph::violations() const
 {
     return m_violations;
 }
@@ -294,23 +302,7 @@ ContractDefinition const&
 ContractDefinition const&
     AllocationGraph::resolve(Expression const& _expr) const
 {
-    // TODO(scottwe): support structures.
-    auto const* access = LValueSniffer<MemberAccess>(_expr).find();
-    if (access)
-    {
-        throw runtime_error("Member access to contracts not yet allowed.");
-    }
-
-    // TODO(scottwe): generalize analysis and reuse in earlier case.
-    VariableDeclaration const* dest = nullptr;
-    auto const* id = LValueSniffer<Identifier>(_expr).find();
-    if (id)
-    {
-        dest = dynamic_cast<VariableDeclaration const*>(
-            id->annotation().referencedDeclaration
-        );
-    }
-
+    auto dest = resolve_to_contract(_expr);
     if (!dest)
     {
         throw runtime_error("Unable to resolve expression.");
@@ -319,19 +311,21 @@ ContractDefinition const&
     return specialize(*dest);
 }
 
-void AllocationGraph::analyze(AllocationGraph::Graph::iterator _neighbourhood)
+void AllocationGraph::analyze(
+    Label _root, AllocationSummary::CallGroup _children
+)
 {
-    AllocationGraph::Label root = _neighbourhood->first;
-    if (m_reach.find(root) != m_reach.end()) return;
+    if (m_reach.find(_root) != m_reach.end()) return;
 
     size_t cost = 1;
-    for (auto neighbour : _neighbourhood->second)
+    for (auto child : _children)
     {
-        analyze(m_vertices.find(neighbour.type));
-        cost += m_reach[neighbour.type];
+        auto grandchildren = m_vertices.find(child.type)->second;
+        analyze(child.type, grandchildren);
+        cost += m_reach[child.type];
     }
 
-    m_reach[root] = cost;
+    m_reach[_root] = cost;
 }
 
 // -------------------------------------------------------------------------- //

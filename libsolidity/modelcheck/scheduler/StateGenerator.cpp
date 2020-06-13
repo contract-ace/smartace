@@ -1,6 +1,7 @@
 #include <libsolidity/modelcheck/scheduler/StateGenerator.h>
 
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
@@ -21,15 +22,10 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 StateGenerator::StateGenerator(
-    CallState const& _statedata,
-    TypeAnalyzer const& _converter,
-    MapIndexSummary const& _addrdata,
-    bool _use_lockstep_time
-): M_STATEDATA(_statedata)
- , M_CONVERTER(_converter)
- , M_MAPDATA(_addrdata)
- , M_USE_LOCKSTEP_TIME(_use_lockstep_time)
+    shared_ptr<AnalysisStack const> _stack, bool _use_lockstep_time
+): M_USE_LOCKSTEP_TIME(_use_lockstep_time)
  , M_STEPVAR(make_shared<CVarDecl>("uint8_t", "take_step"))
+ , m_stack(_stack)
 {
 }
 
@@ -41,7 +37,7 @@ void StateGenerator::declare(CBlockList & _block) const
     {
         _block.push_back(M_STEPVAR);
     }
-    for (auto const& fld : M_STATEDATA.order())
+    for (auto const& fld : m_stack->environment()->order())
     {
         auto const DECL = make_shared<CVarDecl>(fld.type_name, fld.name);
         _block.push_back(DECL);
@@ -51,7 +47,7 @@ void StateGenerator::declare(CBlockList & _block) const
         {
             if (M_USE_LOCKSTEP_TIME)
             {
-                auto nd = M_CONVERTER.raw_simple_nd(*fld.type, fld.name);
+                auto nd = m_stack->types()->raw_simple_nd(*fld.type, fld.name);
                 _block.push_back(
                     DECL->access("v")->assign(nd)->stmt()
                 );
@@ -83,10 +79,10 @@ void StateGenerator::update(CBlockList & _block) const
     }
 
     // Updates the values.
-    for (auto const& fld : M_STATEDATA.order())
+    for (auto const& fld : m_stack->environment()->order())
     {
         auto state = make_shared<CIdentifier>(fld.name, false);
-        auto nd = M_CONVERTER.raw_simple_nd(*fld.type, fld.name);
+        auto nd = m_stack->types()->raw_simple_nd(*fld.type, fld.name);
 
         if (fld.field == CallStateUtilities::Field::Paid) continue;
         if (fld.field == CallStateUtilities::Field::Origin) continue;
@@ -116,9 +112,10 @@ void StateGenerator::update(CBlockList & _block) const
         else if (fld.field == CallStateUtilities::Field::Sender)
         {
             // This restricts senders to valid addresses: non-zero clients.
-            size_t minaddr = M_MAPDATA.contract_count();
-            size_t maxaddr = M_MAPDATA.size();
-            if (M_MAPDATA.literals().find(0) != M_MAPDATA.literals().end())
+            size_t minaddr = m_stack->addresses()->contract_count();
+            size_t maxaddr = m_stack->addresses()->size();
+            if (m_stack->addresses()->literals().find(0)
+                != m_stack->addresses()->literals().end())
             {
                 minaddr += 1;
             }
@@ -141,7 +138,7 @@ void StateGenerator::pay(CBlockList & _block) const
     auto const VAL_NAME = CallStateUtilities::get_name(VAL_FIELD);
     auto const VAL_TYPE = CallStateUtilities::get_type(VAL_FIELD);
 
-    auto nd = M_CONVERTER.raw_simple_nd(*VAL_TYPE, VAL_NAME);
+    auto nd = m_stack->types()->raw_simple_nd(*VAL_TYPE, VAL_NAME);
     auto state = make_shared<CIdentifier>(VAL_NAME, false);
 
     _block.push_back(state->access("v")->assign(nd)->stmt());

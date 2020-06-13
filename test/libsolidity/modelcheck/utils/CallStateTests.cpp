@@ -1,14 +1,12 @@
 /**
+ * Tests for libsolidity/modelcheck/utils/CallState.
+ * 
  * @date 2019
- * Specific tests for libsolidity/modelcheck/utils/CallState.h
  */
 
 #include <libsolidity/modelcheck/utils/CallState.h>
 
 #include <boost/test/unit_test.hpp>
-#include <test/libsolidity/AnalysisFramework.h>
-
-using namespace std;
 
 namespace dev
 {
@@ -19,6 +17,8 @@ namespace modelcheck
 namespace test
 {
 
+// -------------------------------------------------------------------------- //
+
 namespace
 {
 
@@ -27,10 +27,9 @@ static MagicType const MESSAGE_TYPE(MagicType::Kind::Message);
 
 }
 
-BOOST_FIXTURE_TEST_SUITE(
-    CallStateUtilsTest,
-    ::dev::solidity::test::AnalysisFramework
-)
+// -------------------------------------------------------------------------- //
+
+BOOST_AUTO_TEST_SUITE(Utils_CallStateTests)
 
 BOOST_AUTO_TEST_CASE(handling_magic_types)
 {
@@ -57,6 +56,8 @@ BOOST_AUTO_TEST_CASE(handling_magic_types)
 }
 
 BOOST_AUTO_TEST_SUITE_END();
+
+// -------------------------------------------------------------------------- //
 
 }
 }

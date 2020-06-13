@@ -1,7 +1,7 @@
 /**
+ * Tests for libsolidity/modelcheck/analysis/AbstractAddressDomain.
+ * 
  * @date 2020
- * Tests for analyzing map index usage. Also tests that abstract domain
- * parameters are computed correctly.
  */
 
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
@@ -10,7 +10,6 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 using namespace std;
-using langutil::SourceLocation;
 
 namespace dev
 {
@@ -24,7 +23,8 @@ namespace test
 // -------------------------------------------------------------------------- //
 
 BOOST_FIXTURE_TEST_SUITE(
-    MapIndexAnalysis, ::dev::solidity::test::AnalysisFramework
+    Analysis_AbstractAddressDomainTests,
+    ::dev::solidity::test::AnalysisFramework
 )
 
 BOOST_AUTO_TEST_CASE(address_to_int)
@@ -369,6 +369,28 @@ BOOST_AUTO_TEST_CASE(concrete_map_test)
     summary.compute_interference(ctrt);
     BOOST_CHECK_EQUAL(summary.max_interference(), 0);
     BOOST_CHECK_EQUAL(summary.size(), 4);
+}
+
+BOOST_AUTO_TEST_CASE(noop_address_cast)
+{
+    char const* text = R"(
+        contract X {
+            function f(address i) public {
+                address(i);
+                address(address(5));
+            }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(unit, "X");
+
+    MapIndexSummary summary(false, 5, 5);
+    summary.extract_literals(ctrt);
+    summary.compute_interference(ctrt);
+
+    auto violations = summary.violations();
+    BOOST_CHECK_EQUAL(violations.size(), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

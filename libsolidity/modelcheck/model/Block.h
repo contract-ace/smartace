@@ -11,6 +11,7 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/CompilerMacros.h>
 
+#include <memory>
 #include <ostream>
 #include <utility>
 
@@ -21,10 +22,7 @@ namespace solidity
 namespace modelcheck
 {
 
-class AllocationGraph;
-class CallState;
-class FunctionSpecialization;
-class TypeAnalyzer;
+class AnalysisStack;
 
 // -------------------------------------------------------------------------- //
 
@@ -48,9 +46,7 @@ public:
 		std::vector<ASTPointer<VariableDeclaration>> const& _args,
 		std::vector<ASTPointer<VariableDeclaration>> const& _rvs,
 		Block const& _body,
-		TypeAnalyzer const& _converter,
-		CallState const& _statedata,
-		AllocationGraph const& _newcalls,
+		std::shared_ptr<AnalysisStack const> _stack,
 		bool _manage_pay,
 		bool _is_payable
 	);
@@ -61,7 +57,7 @@ public:
 	std::shared_ptr<CBlock> convert();
 
 protected:
-	TypeAnalyzer const& M_CONVERTER;
+	std::shared_ptr<AnalysisStack const> const m_stack;
 
 	// A taxonomy of block translations.
 	// - Initializer: wraps and returns a constructor call
@@ -115,14 +111,13 @@ private:
 	// Analyzes the return values to classify the block type of this block.
 	static BlockType determine_block_type(
 		std::vector<ASTPointer<VariableDeclaration>> const& _rvs,
-		AllocationGraph const& _alloc_graph
+		std::shared_ptr<AnalysisStack const> _stack
 	);
 
 	// Generates the payment call.
 	static void add_value_handler(CBlockList & _block);
 
 	Block const& M_BODY;
-	CallState const& M_STATEDATA;
 
 	bool const M_MANAGE_PAY;
 	bool const M_IS_PAYABLE;
@@ -153,9 +148,7 @@ public:
 	// unit(s) associated with _func.
 	FunctionBlockConverter(
 		FunctionDefinition const& _func,
-		TypeAnalyzer const& _converter,
-		CallState const& _statedata,
-		AllocationGraph const& _alloc_graph
+		std::shared_ptr<AnalysisStack const> _stack
 	);
 
 	~FunctionBlockConverter() override = default;
@@ -206,10 +199,7 @@ public:
 
 		// Generates the _i-th modifier for _func, where _i is zero-indexed.
 		ModifierBlockConverter generate(
-			size_t _i,
-			TypeAnalyzer const& _converter,
-			CallState const& _statedata,
-			AllocationGraph const& _alloc_graph
+			size_t _i, std::shared_ptr<AnalysisStack const> _stack
 		) const;
 
 		// Returns the number of modifiers which were not filtered away.
@@ -238,7 +228,6 @@ protected:
 	void endVisit(PlaceholderStatement const&) override;
 
 private:
-	CallState const& M_STATEDATA;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_TRUE_PARAMS;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_USER_PARAMS;
 	std::vector<ASTPointer<Expression>> const* M_USER_ARGS;
@@ -252,9 +241,7 @@ private:
 		FunctionDefinition const& _func,
 		ModifierDefinition const* _def,
 		ModifierInvocation const* _curr,
-		TypeAnalyzer const& _converter,
-		CallState const& _statedata,
-		AllocationGraph const& _alloc_graph,
+		std::shared_ptr<AnalysisStack const> _stack,
 		std::string _next,
 		bool _entry
 	);

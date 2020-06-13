@@ -1,6 +1,7 @@
 /**
+ * Specific tests for libsolidity/modelcheck/model/Function.
+ * 
  * @date 2019
- * Specific tests for libsolidity/modelcheck/FunctionChecker.h
  */
 
 #include <libsolidity/modelcheck/model/Function.h>
@@ -8,10 +9,7 @@
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
 
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 
 #include <sstream>
 
@@ -26,9 +24,10 @@ namespace modelcheck
 namespace test
 {
 
+// -------------------------------------------------------------------------- //
+
 BOOST_FIXTURE_TEST_SUITE(
-    FunctionConversionTests,
-    ::dev::solidity::test::AnalysisFramework
+    Model_FunctionTests, ::dev::solidity::test::AnalysisFramework
 )
 
 // Regression test to ensure returns of wrapped types work.
@@ -43,23 +42,16 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph graph({});
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -93,23 +85,16 @@ BOOST_AUTO_TEST_CASE(payable_method)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph graph({});
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -149,38 +134,21 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph graph({});
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
         false
     ).print(actual);
-    // -- Init_A
-    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
-           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
-           << "paid,sol_address_t origin)";
-    expect << "{";
-    expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
-    expect << "((self)->user_a)=(Init_sol_uint256_t(0));";
-    expect << "((self)->user_b)=(Init_sol_uint256_t(10));";
-    expect << "((self)->user_c)=(ZeroInit_A_Struct_B());";
-    expect << "}";
     // -- Init_0_A_Struct_B
     expect << "struct A_Struct_B ZeroInit_A_Struct_B(void)";
     expect << "{";
@@ -194,6 +162,16 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "struct A_Struct_B tmp=ZeroInit_A_Struct_B();";
     expect << "((tmp).user_a)=(user_a);";
     expect << "return tmp;";
+    expect << "}";
+    // -- Init_A
+    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
+           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
+           << "paid,sol_address_t origin)";
+    expect << "{";
+    expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
+    expect << "((self)->user_a)=(Init_sol_uint256_t(0));";
+    expect << "((self)->user_b)=(Init_sol_uint256_t(10));";
+    expect << "((self)->user_c)=(ZeroInit_A_Struct_B());";
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
@@ -214,23 +192,16 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph graph({});
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
@@ -278,35 +249,21 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph graph({});
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::FULL,
         false
     ).print(actual);
-    // -- Init_A
-    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
-           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t"
-           << " paid,sol_address_t origin)";
-    expect << "{";
-    expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
-    expect << "}";
     // -- Init_0_A_Struct_B
     expect << "struct A_Struct_B ZeroInit_A_Struct_B(void)";
     expect << "{";
@@ -342,6 +299,13 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "((tmp).user_ui1)=(user_ui1);";
     expect << "return tmp;";
     expect << "}";
+    // -- Init_A
+    expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
+           << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t"
+           << " paid,sol_address_t origin)";
+    expect << "{";
+    expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
+    expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
@@ -354,30 +318,23 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
             struct B {
                 int i;
             }
-            mapping(int => int) m;
-            function f() public pure {}
+            mapping(address => int) m;
             function g() private pure {}
+            function f() public pure { g(); }
         }
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph graph({});
-    FullSourceContractDependance analyzer(ast);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::EXT,
@@ -393,27 +350,24 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     ostringstream int_actual, int_expect;
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::INT,
         true
     ).print(int_actual);
-    int_expect << "void A_Method_g(struct A*self,sol_address_t sender"
-               << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
-               << "timestamp,sol_bool_t paid,sol_address_t origin);";
     int_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
     int_expect << "struct A_Struct_B Init_A_Struct_B(sol_int256_t user_i);";
     int_expect << "struct Map_1 ZeroInit_Map_1(void);";
-    int_expect << "sol_int256_t Read_Map_1(struct Map_1*arr,sol_int256_t "
+    int_expect << "sol_int256_t Read_Map_1(struct Map_1*arr,sol_address_t "
                << "key_0);";
-    int_expect << "void Write_Map_1(struct Map_1*arr,sol_int256_t key_0"
+    int_expect << "void Write_Map_1(struct Map_1*arr,sol_address_t key_0"
                << ",sol_int256_t dat);";
-    int_expect << "void Set_Map_1(struct Map_1*arr,sol_int256_t key_0"
+    int_expect << "void Set_Map_1(struct Map_1*arr,sol_address_t key_0"
                << ",sol_int256_t dat);";
+    int_expect << "void A_Method_g(struct A*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
+               << "timestamp,sol_bool_t paid,sol_address_t origin);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
     BOOST_CHECK_EQUAL(int_actual.str(), int_expect.str());
@@ -432,39 +386,21 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
     )";
 
     auto const &ast = *parseAndAnalyse(text);
-    auto test = retrieveContractByName(ast, "C");
+    auto ctrt = retrieveContractByName(ast, "C");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph graph({ test });
-    auto contracts = ASTNode::filteredNodes<ContractDefinition>(ast.nodes());
-    ContractDependance deps(
-        ModelDrivenContractDependance({ contracts.back() }, graph)
-    );
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
         ast,
-        deps,
-        statedata,
-        graph,
-        converter,
+        stack,
         false,
         1,
         FunctionConverter::View::EXT,
         true
     ).print(ext_actual);
-    ext_expect << "void Init_A_For_B(struct B*self,sol_address_t sender"
-               << ",sol_uint256_t value,sol_uint256_t blocknum"
-               << ",sol_uint256_t timestamp,sol_bool_t paid"
-               << ",sol_address_t origin);";
-    ext_expect << "void Init_B(struct B*self,sol_address_t sender"
-               << ",sol_uint256_t value,sol_uint256_t blocknum"
-               << ",sol_uint256_t timestamp,sol_bool_t paid"
-               << ",sol_address_t origin);";
     ext_expect << "void C_Constructor(struct C*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"
                << ",sol_uint256_t timestamp,sol_bool_t paid"
@@ -473,9 +409,19 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
                << ",sol_uint256_t value,sol_uint256_t blocknum"
                << ",sol_uint256_t timestamp,sol_bool_t paid"
                << ",sol_address_t origin);";
+    ext_expect << "void Init_A_For_B(struct B*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum"
+               << ",sol_uint256_t timestamp,sol_bool_t paid"
+               << ",sol_address_t origin);";
+    ext_expect << "void Init_B(struct B*self,sol_address_t sender"
+               << ",sol_uint256_t value,sol_uint256_t blocknum"
+               << ",sol_uint256_t timestamp,sol_bool_t paid"
+               << ",sol_address_t origin);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
 }
+
+// -------------------------------------------------------------------------- //
 
 BOOST_AUTO_TEST_SUITE_END();
 

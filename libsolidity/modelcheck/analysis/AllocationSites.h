@@ -32,6 +32,15 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
+ * When _expr is a contract typed variable, this returns the referenced variable
+ * declartion. When _expr is not a contract typed variable, this returns the
+ * nullptr.
+ */
+VariableDeclaration const* resolve_to_contract(Expression const& _expr);
+
+// -------------------------------------------------------------------------- //
+
+/**
  * Analyzes a single contract to identify how many "valid" contracts it
  * allocates, along with instances of invalid allocations (under our model).
  */
@@ -62,7 +71,7 @@ public:
     AllocationSummary(ContractDefinition const& _src);
 
     // Returns a summary of all children spawned by this contract.
-    CallGroup const& children() const;
+    CallGroup children() const;
 
     // Returns a list of new calls which violate our model. In theory this will
     // be any new call for which an exact bound is not inferred on the number of
@@ -70,7 +79,7 @@ public:
     //
     // In this implementation, violations are overapproximated by any new call
     // performed outside of a constructor.
-    CallGroup const& violations() const;
+    CallGroup violations() const;
 
 private:
     CallGroup m_children;
@@ -125,18 +134,14 @@ public:
     // Constructs the allocation graph for _model.
     AllocationGraph(std::vector<ContractDefinition const*> _model);
 
-    // Records the NewCallSummary of each contract in _src.
-    void record(SourceUnit const& _src);
-
-    // Assuming finalize() has been called, returns the cost of a given
-    // contract.
+    // Returns the cost of allocating _vertex.
     size_t cost_of(Label _vertex) const;
 
     // Returns all direct children of a contract.
-    AllocationSummary::CallGroup const& children_of(Label _vertex) const;
+    AllocationSummary::CallGroup children_of(Label _vertex) const;
 
     // Returns all violations found within the graph.
-    AllocationSummary::CallGroup const& violations() const;
+    AllocationSummary::CallGroup violations() const;
 
     // Returns true if _var has been mapped to a new call.
     bool retval_is_allocated(VariableDeclaration const& _var) const;
@@ -158,7 +163,7 @@ private:
 
     // Computes and caches the cost of constructing each neighbour. Cost is
     // defined as the number of instantiated constracts
-    void analyze(Graph::iterator _neighbourhood);
+    void analyze(Label _root, AllocationSummary::CallGroup _children);
 
     Graph m_vertices;
     Reach m_reach;

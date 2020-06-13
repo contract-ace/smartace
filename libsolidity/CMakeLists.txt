@@ -110,20 +110,18 @@ set(sources
 	modelcheck/analysis/AbstractAddressDomain.h
 	modelcheck/analysis/AllocationSites.cpp
 	modelcheck/analysis/AllocationSites.h
+	modelcheck/analysis/AnalysisStack.cpp
+	modelcheck/analysis/AnalysisStack.h
 	modelcheck/analysis/CallGraph.cpp
 	modelcheck/analysis/CallGraph.h
 	modelcheck/analysis/CallState.cpp
 	modelcheck/analysis/CallState.h
-	modelcheck/analysis/ContractDependance.cpp
-	modelcheck/analysis/ContractDependance.h
-	modelcheck/analysis/FullSourceContractDependance.cpp
 	modelcheck/analysis/FunctionCall.cpp
 	modelcheck/analysis/FunctionCall.h
 	modelcheck/analysis/Inheritance.cpp
 	modelcheck/analysis/Inheritance.h
 	modelcheck/analysis/Mapping.cpp
 	modelcheck/analysis/Mapping.h
-	modelcheck/analysis/ModelDrivenContractDependance.cpp
 	modelcheck/analysis/Primitives.cpp
 	modelcheck/analysis/Primitives.h
 	modelcheck/analysis/TypeNames.cpp
@@ -138,6 +136,9 @@ set(sources
 	modelcheck/codegen/Literals.h
 	modelcheck/model/ADT.cpp
 	modelcheck/model/ADT.h
+	modelcheck/model/Block_function.cpp
+	modelcheck/model/Block_general.cpp
+	modelcheck/model/Block_modifier.cpp
 	modelcheck/model/Block.h
 	modelcheck/model/Expression.cpp
 	modelcheck/model/Expression.h
@@ -145,9 +146,6 @@ set(sources
 	modelcheck/model/Mapping.cpp
 	modelcheck/model/Function.cpp
 	modelcheck/model/Function.h
-	modelcheck/model/FunctionBlock.cpp
-	modelcheck/model/GeneralBlock.cpp
-	modelcheck/model/ModifierBlock.cpp
 	modelcheck/scheduler/ActorModel.cpp
 	modelcheck/scheduler/ActorModel.h
 	modelcheck/scheduler/AddressSpace.cpp

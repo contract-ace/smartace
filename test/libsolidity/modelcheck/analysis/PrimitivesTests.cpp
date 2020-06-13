@@ -1,14 +1,7 @@
 /**
- * @date 2019
- * Targets libsolidity/modelcheck/PrimitiveTypeGenerator.{h,cpp} on contracts.
+ * Tests for libsolidity/modelcheck/analysis/Primitives.
  * 
- * Detection test targets the presence of a primitively typed map key, map
- * value, state variable, local variable, modifier parameter, and function
- * parameter. Formatting tests ensure that once the detection flag has been
- * thrown, the generated header will define the corresponding type.
- * 
- * An integration test will look at analyzing a more detailed complex with mixed
- * types.
+ * @date 2020
  */
 
 #include <libsolidity/modelcheck/analysis/Primitives.h>
@@ -27,6 +20,8 @@ namespace modelcheck
 namespace test
 {
 
+// -------------------------------------------------------------------------- //
+
 namespace
 {
 
@@ -44,9 +39,10 @@ void _add_init_to_stream(ostream & _out, string const& _t, string const& _d)
 
 }
 
+// -------------------------------------------------------------------------- //
+
 BOOST_FIXTURE_TEST_SUITE(
-    PrimitiveTypes,
-    ::dev::solidity::test::AnalysisFramework
+    Analysis_PrimitivesTests, ::dev::solidity::test::AnalysisFramework
 )
 
 // Ensures all types are initially false.
@@ -514,7 +510,9 @@ BOOST_AUTO_TEST_CASE(fixed_formatting)
     }
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_SUITE_END();
+
+// -------------------------------------------------------------------------- //
 
 }
 }

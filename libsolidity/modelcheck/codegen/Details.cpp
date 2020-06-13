@@ -1,6 +1,5 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 
-#include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Types.h>
@@ -217,14 +216,13 @@ void CFuncCallBuilder::push(CExprPtr _expr, Type const* _t)
 
 void CFuncCallBuilder::push(
     Expression const& _expr,
-    TypeAnalyzer const& _converter,
-    CallState const& _state,
+    shared_ptr<AnalysisStack const> _stack,
     VariableScopeResolver const& _decls,
     bool _is_ref,
     Type const* _t
 )
 {
-    ExpressionConverter converter(_expr, _converter, _state, _decls, _is_ref);
+    ExpressionConverter converter(_expr, _stack, _decls, _is_ref);
 
     if (!_t) _t = _expr.annotation().type;
 

@@ -14,6 +14,7 @@
 #include <libsolidity/modelcheck/scheduler/AddressSpace.h>
 #include <libsolidity/modelcheck/scheduler/StateGenerator.h>
 
+#include <memory>
 #include <ostream>
 
 namespace dev
@@ -23,12 +24,8 @@ namespace solidity
 namespace modelcheck
 {
 
-class AllocationGraph;
-class CallState;
-class ContractDependance;
+class AnalysisStack;
 class FunctionSpecialization;
-class MapIndexSummary;
-class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -41,20 +38,14 @@ class MainFunctionGenerator
 public:
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
-        bool _lockstep_time,
-	    MapIndexSummary const& _addrdata,
-        ContractDependance const& _dependance,
-        AllocationGraph const& _alloc_graph,
-        CallState const& _statedata,
-        TypeAnalyzer const& _converter
+        bool _lockstep_time, std::shared_ptr<AnalysisStack const> _stack
     );
 
     // Prints the main function.
     void print(std::ostream& _stream);
 
 private:
-    CallState const& M_STATEDATA;
-	TypeAnalyzer const& M_CONVERTER;
+    std::shared_ptr<AnalysisStack const> m_stack;
 
     // Stores data required to handle addresses.
     AddressSpace m_addrspace;

@@ -1,19 +1,14 @@
 /**
- * @date 2019
- * Test suite targeting expression conversion. These tests are outside of the
- * context of any statements, allowing for simplification and fine-tuning.
+ * Specific tests for libsolidity/modelcheck/model/Expression.
  * 
- * Targets libsolidity/modelcheck/ExpressionConversionVisitor.{h,cpp}.
+ * @date 2019
  */
 
 #include <libsolidity/modelcheck/model/Expression.h>
 
 #include <boost/test/unit_test.hpp>
 
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 
 #include <sstream>
@@ -34,6 +29,9 @@ namespace test
 // -------------------------------------------------------------------------- //
 
 using SubD = Literal::SubDenomination;
+
+vector<SourceUnit const*> const TEST_UNITS({});
+vector<ContractDefinition const*> const TEST_MODEL({});
 
 VariableScopeResolver _prime_resolver(shared_ptr<string> name)
 {
@@ -58,11 +56,11 @@ string _convert_assignment(Token tok)
     );
 
     Assignment assign(SourceLocation(), id, tok, op);
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false);
+    auto r = _prime_resolver(id_name);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
-    auto resolver = _prime_resolver(id_name);
-    oss << *ExpressionConverter(assign, {}, {deps}, resolver).convert();
+    oss << *ExpressionConverter(assign, s, r).convert();
     return oss.str();
 }
 
@@ -78,32 +76,32 @@ string _convert_bin_op(Token tok)
     id_b->annotation().type = new IntegerType(32);
 
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false);
+    auto r = _prime_resolver(name_a);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
-    auto resolver = _prime_resolver(name_a);
-    oss << *ExpressionConverter(op, {}, {deps}, resolver).convert();
+    oss << *ExpressionConverter(op, s, r).convert();
     return oss.str();
 }
 
 string _convert_unary_op(Token tok, shared_ptr<Expression> expr, bool prefix)
 {
     UnaryOperation op(SourceLocation(), tok, expr, prefix);
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false);
+    auto r = _prime_resolver(make_shared<string>("a"));
 
     ostringstream oss;
-    auto resolver = _prime_resolver(make_shared<string>("a"));
-    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
-    oss << *ExpressionConverter(op, {}, {deps}, resolver).convert();
+    oss << *ExpressionConverter(op, s, r).convert();
     return oss.str();
 }
 
 string _convert_literal(Token tok, string src, SubD subdom = SubD::None)
 {
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
-    oss << *ExpressionConverter(lit, {}, {deps}, {}).convert();
+    oss << *ExpressionConverter(lit, s, {}).convert();
     return oss.str();
 }
 
@@ -128,11 +126,11 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
     var_c->annotation().type = new IntegerType(32);
 
     Conditional cond(SourceLocation(), var_a, var_b, var_c);
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false);
+    auto r = _prime_resolver(name_a);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
-    auto resolver = _prime_resolver(name_a);
-    oss << *ExpressionConverter(cond, {}, {deps}, resolver).convert();
+    oss << *ExpressionConverter(cond, s, r).convert();
     BOOST_CHECK_EQUAL(
         oss.str(), "((func_user_a).v)?((self->user_b).v):((self->user_c).v)"
     );
@@ -195,10 +193,10 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
     // TODO(scottwe): three_tuple
     // TODO(scottwe): empty array
     // TODO(scottwe): n element array, large n
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false);
 
     ostringstream oss;
-    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
-    oss << *ExpressionConverter(one_tuple, {}, {deps}, {}).convert();
+    oss << *ExpressionConverter(one_tuple, s, {}).convert();
     BOOST_CHECK_EQUAL(oss.str(), "(self->user_a).v");
 }
 
@@ -304,12 +302,12 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
     id_a.annotation().type = new IntegerType(32);
     id_b.annotation().type = new IntegerType(32);
 
-    ContractDependance deps(ModelDrivenContractDependance({}, {{}}));
-    auto resolver = _prime_resolver(name_a);
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false);
+    auto r = _prime_resolver(name_a);
 
     ostringstream a_oss, b_oss, msg_oss;
-    a_oss << *ExpressionConverter(id_a, {}, {deps}, resolver).convert();
-    b_oss << *ExpressionConverter(id_b, {}, {deps}, resolver).convert();
+    a_oss << *ExpressionConverter(id_a, s, r).convert();
+    b_oss << *ExpressionConverter(id_b, s, r).convert();
 
     BOOST_CHECK_EQUAL(a_oss.str(), "(func_user_a).v");
     BOOST_CHECK_EQUAL(b_oss.str(), "(self->user_b).v");

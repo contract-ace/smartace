@@ -1,6 +1,7 @@
 /**
+ * Specific tests for libsolidity/modelcheck/analysis/Mapping.h
+ * 
  * @date 2019
- * Specific tests for libsolidity/modelcheck/FunctionChecker.h
  */
 
 #include <libsolidity/modelcheck/analysis/Mapping.h>
@@ -21,9 +22,10 @@ namespace modelcheck
 namespace test
 {
 
+// -------------------------------------------------------------------------- //
+
 BOOST_FIXTURE_TEST_SUITE(
-    MapDeflateTests,
-    ::dev::solidity::test::AnalysisFramework
+    Analysis_MappingTests, ::dev::solidity::test::AnalysisFramework
 )
 
 BOOST_AUTO_TEST_CASE(basic_lookup)
@@ -148,6 +150,8 @@ BOOST_AUTO_TEST_CASE(basic_access)
 }
 
 BOOST_AUTO_TEST_SUITE_END();
+
+// -------------------------------------------------------------------------- //
 
 }
 }

@@ -1,14 +1,12 @@
 /**
- * @date 2019
- * Specific tests for libsolidity/modelcheck/TypeClassification.h
+ * Specific tests for libsolidity/modelcheck/utils/Types.
+ * 
+ * @date 2020
  */
 
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <boost/test/unit_test.hpp>
-#include <test/libsolidity/AnalysisFramework.h>
-
-#include <sstream>
 
 using namespace std;
 
@@ -20,6 +18,8 @@ namespace modelcheck
 {
 namespace test
 {
+
+// -------------------------------------------------------------------------- //
 
 namespace
 {
@@ -71,10 +71,9 @@ static MagicType const MESSAGE_TYPE(MagicType::Kind::Message);
 
 }
 
-BOOST_FIXTURE_TEST_SUITE(
-    TypeClassificationTests,
-    ::dev::solidity::test::AnalysisFramework
-)
+// -------------------------------------------------------------------------- //
+
+BOOST_AUTO_TEST_SUITE(Utils_TypesTests)
 
 BOOST_AUTO_TEST_CASE(unwrap_on_types)
 {
@@ -207,6 +206,8 @@ BOOST_AUTO_TEST_CASE(name_escaping)
 }
 
 BOOST_AUTO_TEST_SUITE_END();
+
+// -------------------------------------------------------------------------- //
 
 }
 }

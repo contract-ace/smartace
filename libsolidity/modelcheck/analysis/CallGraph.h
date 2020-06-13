@@ -31,6 +31,8 @@ class FunctionCallAnalyzer;
  * This assumes that the call _func was made from within a method of _scope. The
  * contract against which to call _func is then resolved using the _alloc_graph
  * and _model.
+ * 
+ * Library calls are treated as no change in scope.
  */
 std::shared_ptr<FlatContract> devirtualize(
     std::shared_ptr<FlatContract> _scope,
@@ -44,10 +46,12 @@ std::shared_ptr<FlatContract> devirtualize(
 /**
  * Generic implementation of a digraph. Here Vertex is the type of each vertex.
  */
-template <typename Vertex>
+template <typename VertexT>
 class Digraph
 {
 public:
+    using Vertex = VertexT;
+
     // Returns true if a vertex exists at _v.
     bool has_vertex(Vertex _v) const
     {
@@ -129,7 +133,7 @@ private:
 
 // -------------------------------------------------------------------------- //
 
-enum class CallTypes { Super, External, Alloc };
+enum class CallTypes { Super, External, Alloc, Library };
 
 /**
  * Wrapper to the algorithms required to generate a call graph from a flat
@@ -142,10 +146,10 @@ public:
 
     // The call graph will downcast all contract variables through the use of
     // _alloc_graph.
-    CallGraphBuilder(std::shared_ptr<AllocationGraph> _alloc_graph);
+    CallGraphBuilder(std::shared_ptr<AllocationGraph const> _alloc_graph);
 
     // Computes a call graph for _model.
-    std::shared_ptr<Graph> build(std::shared_ptr<FlatModel> _model);
+    std::shared_ptr<Graph> build(std::shared_ptr<FlatModel const> _model);
 
 protected:
     bool visit(FunctionDefinition const& _node) override;
@@ -153,14 +157,48 @@ protected:
     void endVisit(FunctionCall const& _node) override;
 
 private:
-    std::shared_ptr<AllocationGraph> m_alloc_graph;
-    std::shared_ptr<FlatModel> m_model;
+    std::shared_ptr<AllocationGraph const> m_alloc_graph;
+    std::shared_ptr<FlatModel const> m_model;
 
     std::shared_ptr<Graph> m_graph;
 
     std::list<FunctionDefinition const*> m_stack;
     std::list<std::shared_ptr<FlatContract>> m_scope;
     std::set<CallTypes> m_labels;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * A wrapper to CallGraphBuilder. This class will construct a one-off graph
+ * builder, and then annotate said graph with additional interfaces.
+ */
+class CallGraph
+{
+public:
+    using CodeSet = std::set<CallGraphBuilder::Graph::Vertex>;
+    using CodeList = std::list<CallGraphBuilder::Graph::Vertex>;
+
+    // Corresponds to running CallGraphBuilder with _alloc_graph and _model.
+    CallGraph(
+        std::shared_ptr<AllocationGraph const> _alloc_graph,
+        std::shared_ptr<FlatModel const> _model
+    );
+
+    // Returns all function vertices in the call graph.
+    CodeSet executed_code() const;
+
+    // Returns all internal methods used by _scope.
+    CodeSet internals(FlatContract const& _scope) const;
+
+    // Returns all function definitions inherited by _scope, through _call. Note
+    // that _call is included in this list.
+    CodeSet super_calls(
+        FlatContract const& _scope, FunctionDefinition const& _call
+    ) const;
+
+private:
+    std::shared_ptr<CallGraphBuilder::Graph> m_graph;
 };
 
 // -------------------------------------------------------------------------- //

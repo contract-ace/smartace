@@ -9,7 +9,6 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 using namespace std;
-using namespace langutil;
 
 namespace dev
 {
@@ -23,8 +22,7 @@ namespace test
 // -------------------------------------------------------------------------- //
 
 BOOST_FIXTURE_TEST_SUITE(
-    FunctionUtils,
-    ::dev::solidity::test::AnalysisFramework
+    Utils_FunctionTests, ::dev::solidity::test::AnalysisFramework
 )
 
 BOOST_AUTO_TEST_CASE(function_collision)

@@ -1,14 +1,13 @@
 /**
- * @date 2019
- * Basic tests to detect faulty utilities. As most utilities are generated
- * through template metaprogramming, the test suite is likely incomplete.
+ * Tests for libsolidity/modelcheck/utils/General.
  * 
- * Targets libsolidity/modelcheck/Utility.h.
+ * @date 2019
  */
 
 #include <libsolidity/modelcheck/utils/General.h>
 
 #include <boost/test/unit_test.hpp>
+
 #include <cstdint>
 
 using namespace std;
@@ -22,7 +21,9 @@ namespace modelcheck
 namespace test
 {
 
-BOOST_AUTO_TEST_SUITE(Utilities)
+// -------------------------------------------------------------------------- //
+
+BOOST_AUTO_TEST_SUITE(Utils_GeneralTess)
 
 BOOST_AUTO_TEST_CASE(scope_swap)
 {
@@ -46,6 +47,8 @@ BOOST_AUTO_TEST_CASE(scope_swap)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+// -------------------------------------------------------------------------- //
 
 }
 }

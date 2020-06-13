@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 
 #include <cstdint>
+#include <memory>
 
 namespace dev
 {
@@ -29,7 +30,7 @@ class MapIndexSummary;
 class AddressSpace
 {
 public:
-    AddressSpace(MapIndexSummary const& _addrdata);
+    AddressSpace(std::shared_ptr<MapIndexSummary const> _address_data);
 
     // Returns a unique address. If all possible addresses have been expended,
     // an exception is raised.
@@ -46,7 +47,7 @@ private:
     const uint64_t MAX_ADDR;
 
     // Stores all parameters over the address space.
-    MapIndexSummary const& M_ADDRDATA;
+    std::shared_ptr<MapIndexSummary const> m_address_data;
 
     // The last allocated address.
     uint64_t m_next_addr;

@@ -414,12 +414,20 @@ bool MapIndexSummary::visit(FunctionCall const& _node)
     else if (_node.annotation().kind == FunctionCallKind::TypeConversion)
     {
         auto base = _node.arguments()[0];
+        auto base_type = base->annotation().type->category();
         if (CALLTYPE == Type::Category::Address)
         {
-            ScopedSwap<bool> scope(m_is_address_cast, true);
-            base->accept(*this);
+            if (base_type != Type::Category::Address)
+            {
+                ScopedSwap<bool> scope(m_is_address_cast, true);
+                base->accept(*this);
+            }
+            else
+            {
+                base->accept(*this);
+            }
         }
-        else if (base->annotation().type->category() == Type::Category::Address)
+        else if (base_type == Type::Category::Address)
         {
             m_violations.emplace_front();
             m_violations.front().type = ViolationType::Cast;

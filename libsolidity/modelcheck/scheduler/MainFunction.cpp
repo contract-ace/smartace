@@ -1,6 +1,7 @@
 #include <libsolidity/modelcheck/scheduler/MainFunction.h>
 
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
@@ -26,17 +27,11 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 MainFunctionGenerator::MainFunctionGenerator(
-    bool _lockstep_time,
-    MapIndexSummary const& _addrdata,
-    ContractDependance const& _dependance,
-    AllocationGraph const& _alloc_graph,
-    CallState const& _statedata,
-    TypeAnalyzer const& _converter
-): M_STATEDATA(_statedata)
- , M_CONVERTER(_converter)
- , m_addrspace(_addrdata)
- , m_stategen(_statedata, _converter, _addrdata, _lockstep_time)
- , m_actors(_dependance, _converter, _alloc_graph, _addrdata)
+    bool _lockstep_time, shared_ptr<AnalysisStack const> _stack
+): m_stack(_stack)
+ , m_addrspace(_stack->addresses())
+ , m_stategen(_stack, _lockstep_time)
+ , m_actors(_stack)
 {
 }
 
@@ -66,7 +61,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     m_actors.declare(main);
     m_addrspace.map_constants(main);
     m_actors.assign_addresses(main, m_addrspace);
-    m_actors.initialize(main, M_STATEDATA, m_stategen);
+    m_actors.initialize(main, m_stategen);
 
     // Generates transactionals loop.
     CBlockList transactionals;
@@ -110,7 +105,7 @@ CBlockList MainFunctionGenerator::build_case(
 
     CFuncCallBuilder call_builder(_spec.name(0));
     call_builder.push(id);
-    M_STATEDATA.push_state_to(call_builder);
+    m_stack->environment()->push_state_to(call_builder);
     if (_spec.func().isPayable())
     {
         m_stategen.pay(call_body);
@@ -130,11 +125,11 @@ CBlockList MainFunctionGenerator::build_case(
         else
         {
             argname = "arg_" + arg->name();
-            value = M_CONVERTER.get_nd_val(*arg, arg->name());
+            value = m_stack->types()->get_nd_val(*arg, arg->name());
         }
 
         auto input = make_shared<CVarDecl>(
-            M_CONVERTER.get_type(*arg), argname, false, value
+            m_stack->types()->get_type(*arg), argname, false, value
         );
 
         call_body.push_back(input);

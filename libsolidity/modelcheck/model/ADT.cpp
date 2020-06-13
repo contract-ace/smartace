@@ -1,6 +1,8 @@
 #include <libsolidity/modelcheck/model/ADT.h>
 
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
@@ -24,17 +26,15 @@ namespace modelcheck
 
 ADTConverter::ADTConverter(
     ASTNode const& _ast,
-    AllocationGraph const& _alloc_graph,
-    TypeAnalyzer const& _converter,
+    std::shared_ptr<AnalysisStack> _stack,
     bool _add_sums,
     size_t _map_k,
     bool _forward_declare
 ): M_AST(_ast)
- , M_ALLOC_GRAPH(_alloc_graph)
- , M_CONVERTER(_converter)
  , M_ADD_SUMS(_add_sums)
  , M_MAP_K(_map_k)
  , M_FORWARD_DECLARE(_forward_declare)
+ , m_stack(_stack)
 {
 }
 
@@ -79,34 +79,32 @@ bool ADTConverter::visit(ContractDefinition const& _node)
                 fields->push_back(make_shared<CVarDecl>(TYPE_NAME, NAME));
             }
 
-            set<string> vars;
-            for (auto BASE : _node.annotation().linearizedBaseContracts)
+            auto flat_view = m_stack->model()->get(_node);
+            for (auto decl : flat_view->state_variables())
             {
-                for (auto DECL : BASE->stateVariables())
+                string type;
+
+                // TODO: flat map to pre-compute the category.
+                auto const CATEGORY = decl->annotation().type->category();
+                if (CATEGORY == Type::Category::Contract)
                 {
-                    auto res = vars.insert(DECL->name());
-                    if (!res.second) break;
-
-                    string type;
-                    if (DECL->annotation().type->category() == Type::Category::Contract)
-                    {
-                        type = M_CONVERTER.get_type(M_ALLOC_GRAPH.specialize(*DECL));
-                    }
-                    else
-                    {
-                        type = M_CONVERTER.get_type(*DECL);
-                    }
-
-                    string const NAME = VariableScopeResolver::rewrite(
-                        DECL->name(), false, VarContext::STRUCT
-                    );
-
-                    fields->push_back(make_shared<CVarDecl>(type, NAME));
+                    auto const& ref = m_stack->allocations()->specialize(*decl);
+                    type = m_stack->types()->get_type(ref);
                 }
+                else
+                {
+                    type = m_stack->types()->get_type(*decl);
+                }
+
+                string const NAME = VariableScopeResolver::rewrite(
+                    decl->name(), false, VarContext::STRUCT
+                );
+
+                fields->push_back(make_shared<CVarDecl>(type, NAME));
             }
         }
 
-        CStructDef contract(M_CONVERTER.get_name(_node), move(fields));
+        CStructDef contract(m_stack->types()->get_name(_node), move(fields));
         (*m_ostream) << contract;
     }
 
@@ -117,7 +115,7 @@ bool ADTConverter::visit(ContractDefinition const& _node)
 
 bool ADTConverter::visit(Mapping const& _node)
 {
-    MapGenerator mapgen(_node, M_ADD_SUMS, M_MAP_K, M_CONVERTER);
+    MapGenerator mapgen(_node, M_ADD_SUMS, M_MAP_K, *m_stack->types());
     (*m_ostream) << mapgen.declare(M_FORWARD_DECLARE);
     return false;
 }
@@ -142,7 +140,7 @@ void ADTConverter::endVisit(StructDefinition const& _node)
         fields = make_shared<CParams>();
         for (auto decl : _node.members())
         {
-            string const TYPE = M_CONVERTER.get_type(*decl);
+            string const TYPE = m_stack->types()->get_type(*decl);
             string const NAME = VariableScopeResolver::rewrite(
                 decl->name(), false, VarContext::STRUCT
             );
@@ -151,7 +149,7 @@ void ADTConverter::endVisit(StructDefinition const& _node)
         }
     }
 
-    CStructDef structure(M_CONVERTER.get_name(_node), move(fields));
+    CStructDef structure(m_stack->types()->get_name(_node), move(fields));
     (*m_ostream) << structure;
 }
 

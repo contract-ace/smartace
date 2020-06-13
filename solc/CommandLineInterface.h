@@ -41,12 +41,8 @@ enum class DocumentationType: uint8_t;
 
 namespace modelcheck
 {
-class AllocationGraph;
-class CallState;
-class ContractDependance;
-class MapIndexSummary;
+class AnalysisStack;
 class PrimitiveTypeGenerator;
-class TypeAnalyzer;
 };
 
 class CommandLineInterface
@@ -81,20 +77,12 @@ private:
 	);
 	void handleCModelHeaders(
 		std::vector<SourceUnit const*> const& _parsed_contracts,
-		modelcheck::ContractDependance const& _dependance,
-		modelcheck::MapIndexSummary const& _addrdata,
-		modelcheck::AllocationGraph const& _alloc_graph,
-		modelcheck::TypeAnalyzer const& _types,
-		modelcheck::CallState const& _callstate,
+		std::shared_ptr<modelcheck::AnalysisStack> _stack,
 		std::ostream& _os
 	);
 	void handleCModelBody(
 		std::vector<SourceUnit const*> const& _parsed_contracts,
-		modelcheck::ContractDependance const& _dependance,
-		modelcheck::MapIndexSummary const& _addrdata,
-		modelcheck::AllocationGraph const& _alloc_graph,
-		modelcheck::TypeAnalyzer const& _types,
-		modelcheck::CallState const& _callstate,
+		std::shared_ptr<modelcheck::AnalysisStack> _stack,
 		std::ostream & _os
 	);
 	void handleBinary(std::string const& _contract);

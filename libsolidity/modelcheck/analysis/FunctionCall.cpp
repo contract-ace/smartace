@@ -1,5 +1,7 @@
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 
+#include <libsolidity/modelcheck/utils/AST.h>
+
 #include <iostream>
 
 using namespace std;
@@ -51,19 +53,21 @@ ASTPointer<Expression const> FunctionCallAnalyzer::gas() const
 {
     return m_gas;
 }
+
 Expression const* FunctionCallAnalyzer::context() const
 {
     return m_context;
 }
 
-Identifier const* FunctionCallAnalyzer::id() const
-{
-    return m_id;
-}
-
 bool FunctionCallAnalyzer::is_super() const
 {
-    return (id() && (id()->name() == "super"));
+    return (m_root && (m_root->name() == "super"));
+}
+
+bool FunctionCallAnalyzer::is_in_library() const
+{
+    auto scope = dynamic_cast<ContractDefinition const*>(decl().scope());
+	return scope->isLibrary();
 }
 
 FunctionType const& FunctionCallAnalyzer::type() const
@@ -161,7 +165,7 @@ bool FunctionCallAnalyzer::visit(MemberAccess const& _node)
     }
     else if (!m_context)
     {
-        m_context = (&_node.expression());
+        m_context = (&ExpressionCleaner(_node.expression()).clean());
     }
 
     _node.expression().accept(*this);
@@ -186,7 +190,7 @@ bool FunctionCallAnalyzer::visit(FunctionCall const& _node)
 
 bool FunctionCallAnalyzer::visit(Identifier const& _node)
 {
-    m_id = (&_node);
+    m_root = (&_node);
     return false;
 }
 

@@ -1,6 +1,7 @@
 /**
+ * Tests for libsolidity/modelcheck/analysis/TypeNames.
+ * 
  * @date 2019
- * Targets libsolidity/modelcheck/TypeTranslator.{h,cpp}.
  */
 
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
@@ -25,8 +26,7 @@ namespace test
 {
 
 BOOST_FIXTURE_TEST_SUITE(
-    TypeTranslations,
-    ::dev::solidity::test::AnalysisFramework
+    Analysis_TypeNamesTests, ::dev::solidity::test::AnalysisFramework
 )
 
 // Ensures that special structures are annotated with the proper names. Two

@@ -1,5 +1,6 @@
 #include <libsolidity/modelcheck/model/Block.h>
 
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
@@ -28,17 +29,14 @@ GeneralBlockConverter::GeneralBlockConverter(
 	vector<ASTPointer<VariableDeclaration>> const& _args,
 	vector<ASTPointer<VariableDeclaration>> const& _rvs,
 	Block const& _body,
-	TypeAnalyzer const& _converter,
-	CallState const& _statedata,
-	AllocationGraph const& _alloc_graph,
+	shared_ptr<AnalysisStack const> _stack,
 	bool _manage_pay,
 	bool _is_payable
-): M_CONVERTER(_converter)
+): m_stack(_stack)
  , M_BODY(_body)
- , M_STATEDATA(_statedata)
  , M_MANAGE_PAY(_manage_pay)
  , M_IS_PAYABLE(_is_payable)
- , M_BLOCKTYPE(determine_block_type(_rvs, _alloc_graph))
+ , M_BLOCKTYPE(determine_block_type(_rvs, _stack))
 {
 	m_decls.enter();
 	for (auto const& arg : _args)
@@ -62,10 +60,8 @@ shared_ptr<CBlock> GeneralBlockConverter::convert()
 
 CExprPtr GeneralBlockConverter::expand(Expression const& _expr, bool _ref)
 {
-	bool const IS_INIT = block_type() == BlockType::Initializer;
-	return ExpressionConverter(
-		_expr, M_CONVERTER, M_STATEDATA, m_decls, _ref, IS_INIT
-	).convert();
+	bool const INITS = block_type() == BlockType::Initializer;
+	return ExpressionConverter(_expr, m_stack, m_decls, _ref, INITS).convert();
 }
 
 // -------------------------------------------------------------------------- //
@@ -257,7 +253,7 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 			val = InitFunction::wrap(*DECL.type(), move(val));
 		}
 
-		auto const TYPE = M_CONVERTER.get_type(DECL);
+		auto const TYPE = m_stack->types()->get_type(DECL);
 		new_substmt<CVarDecl>(
 			TYPE, m_decls.resolve_declaration(DECL), IS_REF, val
 		);
@@ -288,7 +284,7 @@ void GeneralBlockConverter::endVisit(Break const&)
 
 GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
 	vector<ASTPointer<VariableDeclaration>> const& _rvs,
-	AllocationGraph const& _alloc_graph
+	shared_ptr<AnalysisStack const> _stack
 )
 {
 	if (_rvs.empty())
@@ -299,7 +295,7 @@ GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
 	{
 		throw runtime_error("Multiple return values not yet supported.");
 	}
-	else if (_alloc_graph.retval_is_allocated(*_rvs[0]))
+	else if (_stack->allocations()->retval_is_allocated(*_rvs[0]))
 	{
 		return BlockType::Initializer;
 	}

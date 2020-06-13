@@ -1,5 +1,6 @@
 #include <libsolidity/modelcheck/model/Expression.h>
 
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
@@ -28,15 +29,13 @@ namespace modelcheck
 
 ExpressionConverter::ExpressionConverter(
 	Expression const& _expr,
-	TypeAnalyzer const& _converter,
-	CallState const& _statedata,
+	std::shared_ptr<AnalysisStack const> _stack,
 	VariableScopeResolver const& _decls,
 	bool _is_ref,
 	bool _is_init
 ): M_EXPR(&_expr)
- , M_CONVERTER(_converter)
- , M_STATEDATA(_statedata)
  , M_DECLS(_decls)
+ , m_stack(_stack)
  , m_is_init(_is_init)
  , m_find_ref(_is_ref)
 {
@@ -84,7 +83,8 @@ bool ExpressionConverter::visit(Assignment const& _node)
 
 	// Establishes RHS
 	{
-		ScopedSwap<bool> swap(m_find_ref, ID && M_CONVERTER.is_pointer(*ID));
+		auto const FINDING_REF = (ID && m_stack->types()->is_pointer(*ID));
+		ScopedSwap<bool> swap(m_find_ref, FINDING_REF);
 		if (_node.assignmentOperator() != Token::Assign)
 		{
 			generate_binary_op(
@@ -107,7 +107,7 @@ bool ExpressionConverter::visit(Assignment const& _node)
 		{
 			// TODO: "Write" should not be hard-coded.
 			FlatIndex idx(*map);
-			auto record = M_CONVERTER.map_db().resolve(idx.decl());
+			auto record = m_stack->types()->map_db().resolve(idx.decl());
 			generate_mapping_call("Write", move(record), move(idx), move(rhs));
 		}
 		else
@@ -238,7 +238,7 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 	case Type::Category::Mapping:
 		{
 			FlatIndex idx(_node);
-			auto record = M_CONVERTER.map_db().resolve(idx.decl());
+			auto record = m_stack->types()->map_db().resolve(idx.decl());
 
 			if (idx.indices().size() != record.key_types.size())
 			{
@@ -267,7 +267,7 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 
 bool ExpressionConverter::visit(Identifier const& _node)
 {
-	bool const IS_REF = M_CONVERTER.is_pointer(_node);
+	bool const IS_REF = m_stack->types()->is_pointer(_node);
 
 	m_subexpr = make_shared<CIdentifier>(
 		M_DECLS.resolve_identifier(_node), IS_REF
@@ -377,7 +377,7 @@ void ExpressionConverter::generate_mapping_call(
 {
 	// The type of baseExpression is an array, so it is not a wrapped type.
 	CFuncCallBuilder builder(_op + "_" + _map.name);
-	builder.push(_idx.base(), M_CONVERTER, M_STATEDATA, M_DECLS, true);
+	builder.push(_idx.base(), m_stack, M_DECLS, true);
 
 	{
 		auto const& IDX_END = _idx.indices().end();
@@ -390,7 +390,7 @@ void ExpressionConverter::generate_mapping_call(
 		{
 			auto const& IDX = (**idx_itr);
 			auto const* type = (*key_itr)->annotation().type;
-			builder.push(IDX, M_CONVERTER, M_STATEDATA, M_DECLS, false, type);
+			builder.push(IDX, m_stack, M_DECLS, false, type);
 			++idx_itr;
 			++key_itr;
 		}
@@ -437,7 +437,7 @@ void ExpressionConverter::push_arg(
 {
 	auto const TYPE = _decl.type();
 	bool is_ref = (_decl.referenceLocation() == VariableDeclaration::Storage);
-	_builder.push(_arg, M_CONVERTER, M_STATEDATA, M_DECLS, is_ref, TYPE);
+	_builder.push(_arg, m_stack, M_DECLS, is_ref, TYPE);
 }
 
 // -------------------------------------------------------------------------- //
@@ -446,12 +446,12 @@ void ExpressionConverter::print_struct_ctor(FunctionCall const& _call)
 {
 	if (auto id = NodeSniffer<Identifier>(_call.expression()).find())
 	{
-		auto const& solstruct = dynamic_cast<StructDefinition const&>(
+		auto const& def = dynamic_cast<StructDefinition const&>(
 			*id->annotation().referencedDeclaration
 		);
 
-		auto builder = InitFunction(M_CONVERTER, solstruct).call_builder();
-		push_arglist(_call.arguments(), solstruct.members(), builder);
+		auto builder = InitFunction(*m_stack->types(), def).call_builder();
+		push_arglist(_call.arguments(), def.members(), builder);
 		m_subexpr = builder.merge_and_pop();
 	}
 	else
@@ -702,11 +702,11 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	{
 		call = FunctionSpecialization(call.func(), M_DECLS.spec()->use_by());
 	}
-	else if (!is_ext_call)
+	else if (!(is_ext_call || call.source().isLibrary()))
 	{
         auto const& user = M_DECLS.spec()->use_by();
         string const& target = call.func().name();
-		
+
 		auto match = find_named_match<FunctionDefinition>(&user, target);
 		call = FunctionSpecialization(*match, user);
 	}
@@ -739,11 +739,11 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		{
 			_calldata.context()->accept(*this);
 
-			// Checks if the context is taken by reference.
-			if (!(_calldata.id() && M_CONVERTER.is_pointer(*_calldata.id())))
+			// Checks if the context is taken by reference (not param or rv).
+			if (!dynamic_cast<FunctionCall const*>(_calldata.context()))
 			{
-				// Checks if the context is by retval (implicitly a pointer).
-				if (!dynamic_cast<FunctionCall const*>(_calldata.context()))
+				auto ref = expr_to_decl(*_calldata.context());
+				if (ref && ref->referenceLocation() != VariableDeclaration::CallData)
 				{
 					m_subexpr = make_shared<CReference>(move(m_subexpr));
 				}
@@ -774,10 +774,10 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 
 void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 {
-	if (auto user_type = NodeSniffer<UserDefinedTypeName>(_call).find())
+	if (auto def = NodeSniffer<UserDefinedTypeName>(_call).find())
 	{
-		auto builder = InitFunction(M_CONVERTER, *user_type).call_builder();
-		auto const DECL = user_type->annotation().referencedDeclaration;
+		auto builder = InitFunction(*m_stack->types(), *def).call_builder();
+		auto const DECL = def->annotation().referencedDeclaration;
 		if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
 		{	
 			builder.push(get_initializer_context());
@@ -861,7 +861,7 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 		CFuncCallBuilder fn(_nothrow ? CallState::SEND : CallState::TRANSFER);
 		fn.push(srcbalref);
 		fn.push(recipient, recipient_type);
-		fn.push(AMT, M_CONVERTER, M_STATEDATA, M_DECLS, false, &AMT_TYPE);
+		fn.push(AMT, m_stack, M_DECLS, false, &AMT_TYPE);
 		m_subexpr = fn.merge_and_pop();
 
 		// TODO: handle fallbacks.
@@ -882,7 +882,7 @@ void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
 	// TODO(scottwe): support for messages.
 	CFuncCallBuilder builder(_type);
 	const InaccessibleDynamicType RAW_TYPE;
-	builder.push(*_args[0], M_CONVERTER, M_STATEDATA, M_DECLS, false, &RAW_TYPE);
+	builder.push(*_args[0], m_stack, M_DECLS, false, &RAW_TYPE);
 	builder.push(Literals::ZERO);
 	m_subexpr = builder.merge_and_pop();
 }
@@ -902,17 +902,15 @@ void ExpressionConverter::pass_next_call_state(
 	FunctionCallAnalyzer const& _call, CFuncCallBuilder & _builder, bool _is_ext
 )
 {
-	CExprPtr value;
+	CExprPtr v;
 	if (_call.value())
 	{
-		value = ExpressionConverter(
-			*_call.value(), M_CONVERTER, M_STATEDATA, M_DECLS, false, m_is_init
+		v = ExpressionConverter(
+			*_call.value(), m_stack, M_DECLS, false, m_is_init
 		).convert();
-		value = InitFunction::wrap(
-			*ContractUtilities::balance_type(), move(value)
-		);
+		v = InitFunction::wrap(*ContractUtilities::balance_type(), move(v));
 	}
-	M_STATEDATA.compute_next_state_for(_builder, _is_ext, move(value));
+	m_stack->environment()->compute_next_state_for(_builder, _is_ext, move(v));
 }
 
 // -------------------------------------------------------------------------- //

@@ -1,6 +1,7 @@
 /**
+ * Specific tests for libsolidity/modelcheck/model/Block.
+ * 
  * @date 2019
- * Comprehensive tests for libsolidity/modelcheck/BlockConversionVisitor.{h,cpp}.
  */
 
 #include <libsolidity/modelcheck/model/Block.h>
@@ -8,16 +9,12 @@
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
 
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 
 #include <sstream>
 
 using namespace std;
-using langutil::SourceLocation;
 
 namespace dev
 {
@@ -28,9 +25,10 @@ namespace modelcheck
 namespace test
 {
 
+// -------------------------------------------------------------------------- //
+
 BOOST_FIXTURE_TEST_SUITE(
-    BlockConversion,
-    ::dev::solidity::test::AnalysisFramework
+    Model_BlockTests, ::dev::solidity::test::AnalysisFramework
 )
 
 // Tests that input parameters are registered as declarations.
@@ -45,24 +43,16 @@ BOOST_AUTO_TEST_CASE(argument_registration)
 		}
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expect << "{";
     expect << "(func_user_a).v;";
     expect << "(func_user_b).v;";
@@ -92,27 +82,21 @@ BOOST_AUTO_TEST_CASE(if_statement)
 		}
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& fncs = ctrt.definedFunctions();
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
 
-    auto if_stmt = (fncs[0]->name() == "if_stmt") ? fncs[0] : fncs[1];
-    auto else_stmt = (fncs[0]->name() == "if_stmt") ? fncs[1] : fncs[0];
+    auto if_stmt = ctrt->definedFunctions()[0];
+    auto else_stmt = ctrt->definedFunctions()[1];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
+    BOOST_CHECK_EQUAL(if_stmt->name(), "if_stmt");
+    BOOST_CHECK_EQUAL(else_stmt->name(), "if_else_stmt");
 
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual_if, expected_if;
-    actual_if << *FunctionBlockConverter(
-        *if_stmt, converter, statedata, alloc_graph
-    ).convert();
+    actual_if << *FunctionBlockConverter(*if_stmt, stack).convert();
     expected_if << "{";
     expected_if << "if(((self->user_a).v)==(1))";
     expected_if << "{";
@@ -126,9 +110,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
     BOOST_CHECK_EQUAL(actual_if.str(), expected_if.str());
 
     ostringstream actual_else, expected_else;
-    actual_else << *FunctionBlockConverter(
-        *else_stmt, converter, statedata, alloc_graph
-    ).convert();
+    actual_else << *FunctionBlockConverter(*else_stmt, stack).convert();
     expected_else << "{";
     expected_else << "if(((self->user_a).v)==(1)){}";
     expected_else << "else {}";
@@ -162,25 +144,21 @@ BOOST_AUTO_TEST_CASE(loop_statement)
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& fncs = ctrt.definedFunctions();
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
 
-    TypeAnalyzer converter;
-    converter.record(unit);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
-    AllocationGraph alloc_graph({});
+    auto while_stmt = ctrt->definedFunctions()[0];
+    auto for_stmt = ctrt->definedFunctions()[1];
 
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
+    BOOST_CHECK_EQUAL(while_stmt->name(), "while_stmt");
+    BOOST_CHECK_EQUAL(for_stmt->name(), "for_stmt");
 
-    CallState statedata(deps);
-
-    auto while_stmt = (fncs[0]->name() == "while_stmt") ? fncs[0] : fncs[1];
     ostringstream actual_while, expected_while;
-    actual_while << *FunctionBlockConverter(
-        *while_stmt, converter, statedata, alloc_graph
-    ).convert();
+    actual_while << *FunctionBlockConverter(*while_stmt, stack).convert();
     expected_while << "{";
     expected_while << "while(((self->user_a).v)!=((self->user_a).v)){}";
     expected_while << "while(((self->user_a).v)!=((self->user_a).v))";
@@ -189,11 +167,8 @@ BOOST_AUTO_TEST_CASE(loop_statement)
     expected_while << "}";
     BOOST_CHECK_EQUAL(actual_while.str(), expected_while.str());
 
-    auto for_stmt = (fncs[0]->name() == "while_stmt") ? fncs[1] : fncs[0];
     ostringstream actual_for, expected_for;
-    actual_for << *FunctionBlockConverter(
-        *for_stmt, converter, statedata, alloc_graph
-    ).convert();
+    actual_for << *FunctionBlockConverter(*for_stmt, stack).convert();
     expected_for << "{";
     expected_for << "for(;((self->user_a).v)<(10);++((self->user_a).v))"
                  << "{sol_int256_t func_user_i;}";
@@ -220,24 +195,16 @@ BOOST_AUTO_TEST_CASE(continue_statement)
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expect << "{";
     expect << "while(0){continue;}";
     expect << "}";
@@ -255,24 +222,16 @@ BOOST_AUTO_TEST_CASE(break_statement)
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expect << "{";
     expect << "while(0){break;}";
     expect << "}";
@@ -289,35 +248,28 @@ BOOST_AUTO_TEST_CASE(return_statement)
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& fncs = ctrt.definedFunctions();
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
 
-    TypeAnalyzer converter;
-    converter.record(unit);
+    auto void_func = ctrt->definedFunctions()[0];
+    auto int_func = ctrt->definedFunctions()[1];
 
-    AllocationGraph alloc_graph({});
+    BOOST_CHECK_EQUAL(void_func->name(), "void_func");
+    BOOST_CHECK_EQUAL(int_func->name(), "int_func");
 
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
-    CallState statedata(deps);
-
-    auto void_func = (fncs[0]->name() == "void_func") ? fncs[0] : fncs[1];
     ostringstream actual_void, expect_void;
-    actual_void << *FunctionBlockConverter(
-        *void_func, converter, statedata, alloc_graph
-    ).convert();
+    actual_void << *FunctionBlockConverter(*void_func, stack).convert();
     expect_void << "{";
     expect_void << "return;";
     expect_void << "}";
     BOOST_CHECK_EQUAL(actual_void.str(), expect_void.str());
 
-    auto int_func = (fncs[0]->name() == "void_func") ? fncs[1] : fncs[0];
     ostringstream actual_int, expect_int;
-    actual_int << *FunctionBlockConverter(
-        *int_func, converter, statedata, alloc_graph
-    ).convert();
+    actual_int << *FunctionBlockConverter(*int_func, stack).convert();
     expect_int << "{";
     expect_int << "return Init_sol_int256_t((10)+(5));";
     expect_int << "}";
@@ -346,24 +298,16 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
 		}
 	)";
 
-    const auto &unit = *parseAndAnalyse(text);
-    const auto &ctrt = *retrieveContractByName(unit, "A");
-    const auto &func = *ctrt.definedFunctions()[0];
+    auto const &unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const &func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "sol_int256_t func_user_b;";
     expected << "{";
@@ -394,24 +338,16 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
 		}
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual_named, expected_named;
-    actual_named << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual_named << *FunctionBlockConverter(func, stack).convert();
     expected_named << "{";
     expected_named << "sol_int256_t func_user_a;";
     expected_named << "((func_user_a).v)=(5);";
@@ -445,24 +381,16 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "if(((paid).v)==(1))(((self)->model_balance).v)+=((value).v);";
     expected << "(self)->user_d;";
@@ -501,27 +429,19 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
 		}
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
     
-    for (auto func_ptr : ctrt.definedFunctions())
+    for (auto func_ptr : ctrt->definedFunctions())
     {
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            FunctionBlockConverter fbc(
-                *func_ptr, converter, statedata, alloc_graph
-            );
+            FunctionBlockConverter fbc(*func_ptr, stack);
             fbc.set_for(FunctionSpecialization(*func_ptr));
             actual << *fbc.convert();
             expected << "{";
@@ -558,39 +478,32 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
 		}
         contract B {
             A a;
-            B b;
+            constructor() public {
+                a = new A();
+            }
             function f() public { }
             function test() public {
                 a.f();
                 a.g();
-                b.f();
                 this.f();
                 (this.f)();
             }
         }
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "B");
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "B");
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
     
-    for (auto func_ptr : ctrt.definedFunctions())
+    for (auto func_ptr : ctrt->definedFunctions())
     {
         if (func_ptr->name() == "test")
         {
             ostringstream actual, expected;
-            FunctionBlockConverter fbc(
-                *func_ptr, converter, statedata, alloc_graph
-            );
+            FunctionBlockConverter fbc(*func_ptr, stack);
             fbc.set_for(FunctionSpecialization(*func_ptr));
             actual << *fbc.convert();
             expected << "{";
@@ -598,9 +511,6 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
                      << ",Init_sol_uint256_t(0),blocknum,timestamp"
                      << ",Init_sol_bool_t(1),origin);";
             expected << "A_Method_g(&(self->user_a),(self)->model_address"
-                     << ",Init_sol_uint256_t(0),blocknum,timestamp"
-                     << ",Init_sol_bool_t(1),origin);";
-            expected << "B_Method_f(&(self->user_b),(self)->model_address"
                      << ",Init_sol_uint256_t(0),blocknum,timestamp"
                      << ",Init_sol_bool_t(1),origin);";
             expected << "B_Method_f(self,(self)->model_address"
@@ -630,24 +540,16 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
 		}
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "sol_transfer(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(5));";
@@ -673,24 +575,16 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
 		}
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "sol_require(1,0);";
     expected << "sol_require(1,0);";
@@ -714,24 +608,16 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
 		}
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "Init_A_Struct_B();";
     expected << "Init_A_Struct_C(Init_sol_uint256_t(1));";
@@ -755,31 +641,23 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
 		contract C {
             A a;
             B b;
-			function f() public {
+			constructor() public {
                 a = new A();
                 b = new B(10);
             }
 		}
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "C");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "C");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "Init_A(&(self->user_a),(self)->model_address"
              << ",Init_sol_uint256_t(0),blocknum,timestamp,Init_sol_bool_t(1)"
@@ -798,44 +676,39 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
 {
     char const* text = R"(
         contract A {
-            struct B { mapping(int => mapping(int => int)) arr2; }
+            struct B { mapping(address => mapping(address => int)) arr2; }
             struct C { B b; }
-            mapping(int => mapping(int => int)) arr1;
+            mapping(address => mapping(address => int)) arr1;
             B b;
             C c;
-            function f() public {
-                b.arr2[3 + 4][3 + 4];
-                c.b.arr2[5 + 6][5 + 6];
-                arr1[10][10];
+            function f(address i) public {
+                b.arr2[i][i];
+                c.b.arr2[i][i];
+                arr1[i][i];
             }
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "(Read_Map_1(&((self->user_b).user_arr2),"
-             << "Init_sol_int256_t((3)+(4)),Init_sol_int256_t((3)+(4)))).v;";
+             << "Init_sol_address_t((func_user_i).v),"
+             << "Init_sol_address_t((func_user_i).v))).v;";
     expected << "(Read_Map_1(&(((self->user_c).user_b).user_arr2),"
-             << "Init_sol_int256_t((5)+(6)),Init_sol_int256_t((5)+(6)))).v;";
-    expected << "(Read_Map_2(&(self->user_arr1),Init_sol_int256_t(10),"
-             << "Init_sol_int256_t(10))).v;";
+             << "Init_sol_address_t((func_user_i).v),"
+             << "Init_sol_address_t((func_user_i).v))).v;";
+    expected << "(Read_Map_2(&(self->user_arr1),"
+             << "Init_sol_address_t((func_user_i).v),"
+             << "Init_sol_address_t((func_user_i).v))).v;";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -847,52 +720,46 @@ BOOST_AUTO_TEST_CASE(map_assignment)
     char const* text = R"(
         contract A {
             struct B { int m; }
-            struct C { mapping(int => int) m; }
-            mapping(int => int) a;
-            mapping(int => B) b;
+            struct C { mapping(address => int) m; }
+            mapping(address => int) a;
+            mapping(address => B) b;
             C c;
-            mapping(int => mapping(int => int)) d;
-            function f() public {
-                a[1] = 2;
-                a[1] += 2;
-                b[1].m += 2;
-                c.m[1] = 2;
-                d[1][2] = 3;
+            mapping(address => mapping(address => int)) d;
+            function f(address i) public {
+                a[i] = 2;
+                a[i] += 2;
+                b[i].m += 2;
+                c.m[i] = 2;
+                d[i][i] = 3;
             }
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
-    expected << "Write_Map_2(&(self->user_a),Init_sol_int256_t(1),"
-             << "Init_sol_int256_t(2));";
-    expected << "Write_Map_2(&(self->user_a),Init_sol_int256_t(1),"
-             << "Init_sol_int256_t(((Read_Map_2(&(self->user_a),"
-             << "Init_sol_int256_t(1))).v)+(2)));";
-    expected << "(((Read_Map_3(&(self->user_b),Init_sol_int256_t(1))).user_m).v"
-             << ")=((((Read_Map_3(&(self->user_b),Init_sol_int256_t(1))).user_m"
-             << ").v)+(2));";
-    expected << "Write_Map_1(&((self->user_c).user_m),Init_sol_int256_t(1),"
-             << "Init_sol_int256_t(2));";
-    expected << "Write_Map_4(&(self->user_d),Init_sol_int256_t(1),"
-             << "Init_sol_int256_t(2),Init_sol_int256_t(3));";
+    expected << "Write_Map_2(&(self->user_a)"
+             << ",Init_sol_address_t((func_user_i).v),Init_sol_int256_t(2));";
+    expected << "Write_Map_2(&(self->user_a)"
+             << ",Init_sol_address_t((func_user_i).v)"
+             << ",Init_sol_int256_t(((Read_Map_2(&(self->user_a)"
+             << ",Init_sol_address_t((func_user_i).v))).v)+(2)));";
+    expected << "(((Read_Map_3(&(self->user_b)"
+             << ",Init_sol_address_t((func_user_i).v))).user_m).v"
+             << ")=((((Read_Map_3(&(self->user_b)"
+             << ",Init_sol_address_t((func_user_i).v))).user_m).v)+(2));";
+    expected << "Write_Map_1(&((self->user_c).user_m)"
+             << ",Init_sol_address_t((func_user_i).v),Init_sol_int256_t(2));";
+    expected << "Write_Map_4(&(self->user_d),Init_sol_address_t((func_user_i).v),"
+             << "Init_sol_address_t((func_user_i).v),Init_sol_int256_t(3));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -908,42 +775,30 @@ BOOST_AUTO_TEST_CASE(type_casting)
             bool b;
             function f() public view {
                 address(5.0);
-                address(a); int(a); uint(a);
-                address(s); int(s); uint(s);
-                address(u); int(u); uint(u);
+                address(a);
+                int(s); uint(s);
+                int(u); uint(u);
                 bool(b);
                 address(this);
             }
         }
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "((int)(g_literal_address_5));";
     expected << "(self->user_a).v;";
-    expected << "(self->user_a).v;";
-    expected << "((unsigned int)((self->user_a).v));";
-    expected << "(self->user_s).v;";
     expected << "(self->user_s).v;";
     expected << "((unsigned int)((self->user_s).v));";
-    expected << "((int)((self->user_u).v));";
     expected << "((int)((self->user_u).v));";
     expected << "(self->user_u).v;";
     expected << "(self->user_b).v;";
@@ -967,24 +822,16 @@ BOOST_AUTO_TEST_CASE(storage_variable_resolution)
         }
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "struct A_Struct_B*func_user_b__ref=&(self->user_b);";
     expected << "((func_user_b__ref)->user_i).v;";
@@ -1007,24 +854,16 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
         }
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "struct A_Struct_B*func_user_b__ref=&(self->user_b);";
     expected << "(func_user_b__ref)=(&(self->user_b));";
@@ -1043,24 +882,16 @@ BOOST_AUTO_TEST_CASE(else_if_formatting_regression)
         }
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expected;
-    actual << *FunctionBlockConverter(
-        func, converter, statedata, alloc_graph
-    ).convert();
+    actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "if(1){}";
     expected << "else if(0){}";
@@ -1078,24 +909,18 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
         }
 	)";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& fncs = ctrt.definedFunctions();
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
 
-    auto func = (fncs[0]->name() == "g") ? fncs[0] : fncs[1];
+    auto func = ctrt->definedFunctions()[1];
+    BOOST_CHECK_EQUAL(func->name(), "g");
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    FunctionBlockConverter fbc(*func, converter, statedata, alloc_graph);
+    FunctionBlockConverter fbc(*func, stack);
     fbc.set_for(FunctionSpecialization(*func));
     actual << *fbc.convert();
     expect << "{"
@@ -1123,32 +948,26 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& fncs = ctrt.definedFunctions();
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
 
-    auto const& func_f = (fncs[0]->name() == "f") ? *fncs[0] : *fncs[1];
-    auto const& func_g = (fncs[0]->name() == "f") ? *fncs[1] : *fncs[0];
+    auto func_f = ctrt->definedFunctions()[0];
+    auto func_g = ctrt->definedFunctions()[1];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
+    BOOST_CHECK_EQUAL(func_f->name(), "f");
+    BOOST_CHECK_EQUAL(func_g->name(), "g");
 
-    AllocationGraph alloc_graph({});
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
-
-    FunctionSpecialization spec_f(func_f);
-    FunctionSpecialization spec_g(func_g);
+    FunctionSpecialization spec_f(*func_f);
+    FunctionSpecialization spec_g(*func_g);
     ModifierBlockConverter::Factory f_factory(spec_f);
     ModifierBlockConverter::Factory g_factory(spec_g);
 
     ostringstream f0_actual, f0_expect;
-    f0_actual << *f_factory.generate(
-        0, converter, statedata, alloc_graph
-    ).convert();
+    f0_actual << *f_factory.generate(0, stack).convert();
     f0_expect << "{"
               << "A_Method_1_f(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);"
@@ -1159,9 +978,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     BOOST_CHECK_EQUAL(f0_actual.str(), f0_expect.str());
 
     ostringstream g0_actual, g0_expect;
-    g0_actual << *g_factory.generate(
-        0, converter, statedata, alloc_graph
-    ).convert();
+    g0_actual << *g_factory.generate(0, stack).convert();
     g0_expect << "{";
     g0_expect << "A_Method_1_g(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);";
@@ -1172,9 +989,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     BOOST_CHECK_EQUAL(g0_actual.str(), g0_expect.str());
 
     ostringstream f1_actual, f1_expect;
-    f1_actual << *f_factory.generate(
-        1, converter, statedata, alloc_graph
-    ).convert();
+    f1_actual << *f_factory.generate(1, stack).convert();
     f1_expect << "{";
     f1_expect << "A_Method_2_f(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);";
@@ -1183,9 +998,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
     BOOST_CHECK_EQUAL(f1_actual.str(), f1_expect.str());
 
     ostringstream g1_actual, g1_expect;
-    g1_actual << *g_factory.generate(
-        1, converter, statedata, alloc_graph
-    ).convert();
+    g1_actual << *g_factory.generate(1, stack).convert();
     g1_expect << "{";
     g1_expect << "A_Method_2_g(self,sender,value,blocknum,timestamp"
               << ",Init_sol_bool_t(0),origin);";
@@ -1207,24 +1020,18 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream expected, actual;
     FunctionSpecialization spec(func);
     ModifierBlockConverter::Factory factory(spec);
-    actual << *factory.generate(0, converter, statedata, alloc_graph).convert();
+    actual << *factory.generate(0, stack).convert();
     expected << "{";
     expected << "sol_int256_t func_model_rv;";
     expected << "(func_model_rv)=(A_Method_1_f(self,sender,value,blocknum,"
@@ -1250,24 +1057,18 @@ BOOST_AUTO_TEST_CASE(modifier_args)
         }
     )";
 
-    const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& func = *ctrt.definedFunctions()[0];
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
-
-    FullSourceContractDependance analyzer(unit);
-    ContractDependance deps(analyzer);
-
-    CallState statedata(deps);
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream expected, actual;
     FunctionSpecialization spec(func);
     ModifierBlockConverter::Factory factory(spec);
-    actual << *factory.generate(0, converter, statedata, alloc_graph).convert();
+    actual << *factory.generate(0, stack).convert();
     expected << "{";
     expected << "sol_int256_t func_user_a=Init_sol_int256_t("
              << "((func_model_b).v)+(5));";
@@ -1281,6 +1082,8 @@ BOOST_AUTO_TEST_CASE(modifier_args)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+// -------------------------------------------------------------------------- //
 
 }
 }

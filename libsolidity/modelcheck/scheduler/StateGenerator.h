@@ -18,9 +18,8 @@ namespace solidity
 namespace modelcheck
 {
 
-class CallState;
+class AnalysisStack;
 class MapIndexSummary;
-class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
 
@@ -31,10 +30,7 @@ class StateGenerator
 {
 public:
     StateGenerator(
-        CallState const& _statedata,
-        TypeAnalyzer const& _converter,
-        MapIndexSummary const& _addrdata,
-        bool _use_lockstep_time
+        std::shared_ptr<AnalysisStack const> _stack, bool _use_lockstep_time
     );
 
     // Declares all state variables used to maintain EVM state.
@@ -47,15 +43,14 @@ public:
     void pay(CBlockList & _block) const;
 
 private:
-    CallState const& M_STATEDATA;
-	TypeAnalyzer const& M_CONVERTER;
-    MapIndexSummary const& M_MAPDATA;
 
     // When true, time and blocknumber advance in lockstep.
     bool const M_USE_LOCKSTEP_TIME;
 
     // State variable used to signal when time should proceed (in lockstep).
     std::shared_ptr<CVarDecl> const M_STEPVAR;
+
+    std::shared_ptr<AnalysisStack const> m_stack;
 };
 
 // -------------------------------------------------------------------------- //

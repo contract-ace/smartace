@@ -153,9 +153,38 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * Follows back a member access for a specific field declaration.
+ * Prunes all no-op syntax from an expression.
+ */
+class ExpressionCleaner : public ASTConstVisitor
+{
+public:
+	// Cleans _expr.
+	ExpressionCleaner(Expression const& _expr);
+
+	// Returns the cleaned expression.
+	Expression const& clean() const;
+
+protected:
+	ASTNode const* m_res;
+
+	bool visitNode(ASTNode const& _node) override;
+
+	bool visit(TupleExpression const& _node) override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Follows back _access to a specific field declaration.
  */
 VariableDeclaration const* member_access_to_decl(MemberAccess const& _access);
+
+/**
+ * Consumes _expr and if it is an identifier or member access, the variable
+ * declaration is returned. In the case of a magic variable, the nullptr is
+ * returned. If expression is none of the above, this throws.
+ */
+VariableDeclaration const* expr_to_decl(Expression const& _expr);
 
 // -------------------------------------------------------------------------- //
 

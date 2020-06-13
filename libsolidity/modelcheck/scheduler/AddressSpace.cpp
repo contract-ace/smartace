@@ -20,10 +20,10 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-AddressSpace::AddressSpace(MapIndexSummary const& _addrdata)
- : MIN_ADDR((_addrdata.literals().find(0) != _addrdata.literals().end()) & 1)
- , MAX_ADDR(_addrdata.representative_count())
- , M_ADDRDATA(_addrdata)
+AddressSpace::AddressSpace(shared_ptr<MapIndexSummary const> _address_data)
+ : MIN_ADDR((_address_data->literals().find(0) != _address_data->literals().end()) & 1)
+ , MAX_ADDR(_address_data->representative_count())
+ , m_address_data(_address_data)
  , m_next_addr(MIN_ADDR)
 {
 }
@@ -46,11 +46,11 @@ uint64_t AddressSpace::reserve()
 void AddressSpace::map_constants(CBlockList & _block) const
 {
     list<shared_ptr<CIdentifier>> used_so_far;
-    if (M_ADDRDATA.literals().size() > 1)
+    if (m_address_data->literals().size() > 1)
     {
         LibVerify::log(_block, "[Handling constants]");
     }
-    for (auto lit : M_ADDRDATA.literals())
+    for (auto lit : m_address_data->literals())
     {
         auto const NAME = AbstractAddressDomain::literal_name(lit);
         auto decl = make_shared<CIdentifier>(NAME, false);

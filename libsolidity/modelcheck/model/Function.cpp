@@ -1,8 +1,10 @@
 #include <libsolidity/modelcheck/model/Function.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
+#include <libsolidity/modelcheck/analysis/CallGraph.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/model/Block.h>
 #include <libsolidity/modelcheck/model/Mapping.h>
@@ -33,23 +35,17 @@ const shared_ptr<CIdentifier> FunctionConverter::TMP =
 
 FunctionConverter::FunctionConverter(
     ASTNode const& _ast,
-    ContractDependance const& _dependance,
-    CallState const& _statedata,
-    AllocationGraph const& _alloc_graph,
-	TypeAnalyzer const& _converter,
+    std::shared_ptr<AnalysisStack> _stack,
     bool _add_sums,
     size_t _map_k,
     View _view,
     bool _fwd_dcl
 ): M_AST(_ast)
- , M_DEPENDANCE(_dependance)
- , M_STATEDATA(_statedata)
- , M_ALLOC_GRAPH(_alloc_graph)
- , M_CONVERTER(_converter)
  , M_ADD_SUMS(_add_sums)
  , M_MAP_K(_map_k)
  , M_VIEW(_view)
  , M_FWD_DCL(_fwd_dcl)
+ , m_stack(_stack)
 {
 }
 
@@ -57,12 +53,46 @@ void FunctionConverter::print(ostream& _stream)
 {
 	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
     M_AST.accept(*this);
+
+    for (auto contract : m_stack->model()->view())
+    {
+        // Generates initializer of the contract when in correct view.
+        if (M_VIEW != View::INT)
+        {
+            handle_contract_initializer(*contract->raw(), *contract->raw());
+        }
+
+        // Performs special handling of the fallback method.
+        if (auto fallback = contract->fallback())
+        {
+            handle_function(FunctionSpecialization(*fallback), "void", false);
+        }
+
+        // Generates the dependance-specified interface for the contract.
+        for (auto func : contract->interface())
+        {
+            for (auto func : m_stack->calls()->super_calls(*contract, *func))
+            {
+                generate_function(FunctionSpecialization(*func, *contract->raw()));
+            }
+        }
+
+        // Generates all internal dependencies of the contract.
+        for (auto func : m_stack->calls()->internals(*contract))
+        {
+            for (auto func : m_stack->calls()->super_calls(*contract, *func))
+            {
+                generate_function(FunctionSpecialization(*func, *contract->raw()));
+            }
+        }
+    }
 }
 
 // -------------------------------------------------------------------------- //
 
 bool FunctionConverter::visit(ContractDefinition const& _node)
 {
+    // TODO(scottwe): this should be known in advance.
     // Libraries are handled differently from member functions.
     if (_node.isLibrary())
     {
@@ -70,29 +100,6 @@ bool FunctionConverter::visit(ContractDefinition const& _node)
         for (auto FUNC : _node.definedFunctions())
         {
             generate_function(FunctionSpecialization(*FUNC, _node));
-        }
-    }
-    else if (M_DEPENDANCE.is_deployed(&_node))
-    {
-        // Generates initializer of the contract when in correct view.
-        if (M_VIEW != View::INT)
-        {
-            handle_contract_initializer(_node, _node);
-        }
-
-        // Performs special handling of the fallback method.
-        if (auto fallback = _node.fallbackFunction())
-        {
-            handle_function(FunctionSpecialization(*fallback), "void", false);
-        }
-
-        // Generates the dependance-specified interface for the contract.
-        for (auto func : M_DEPENDANCE.get_interface(&_node))
-        {
-            for (auto func : M_DEPENDANCE.get_superchain(&_node, func))
-            {
-                generate_function(FunctionSpecialization(*func, _node));
-            }
         }
     }
 
@@ -103,7 +110,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
 {
     if (M_VIEW == View::EXT) return false;
 
-    InitFunction initdata(M_CONVERTER, _node);
+    InitFunction initdata(*m_stack->types(), _node);
 
     SolDeclList basic_decls;
     for (auto const& member : _node.members())
@@ -116,7 +123,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
     shared_ptr<CBlock> zero_body, init_body;
     if (!M_FWD_DCL)
     {
-        string const STRUCT_T = M_CONVERTER.get_type(_node);
+        string const STRUCT_T = m_stack->types()->get_type(_node);
 
         CBlockList stmts;
         stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp"));
@@ -127,7 +134,7 @@ bool FunctionConverter::visit(StructDefinition const& _node)
             );
 
             auto member = TMP->access(NAME);
-            auto init = M_CONVERTER.get_init_val(*decl);
+            auto init = m_stack->types()->get_init_val(*decl);
             stmts.push_back(member->assign(move(init))->stmt());
         }
         stmts.push_back(make_shared<CReturn>(TMP));
@@ -165,7 +172,7 @@ bool FunctionConverter::visit(Mapping const& _node)
 {
     if (M_VIEW == View::EXT) return false;
 
-    MapGenerator gen(_node, M_ADD_SUMS, M_MAP_K, M_CONVERTER);
+    MapGenerator gen(_node, M_ADD_SUMS, M_MAP_K, *m_stack->types());
     (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
                  << gen.declare_read(M_FWD_DCL)
                  << gen.declare_write(M_FWD_DCL)
@@ -187,9 +194,9 @@ CParams FunctionConverter::generate_params(
     CParams params;
     if (_scope && !_scope->isLibrary())
     {
-        string const SELF_TYPE = M_CONVERTER.get_type(*_scope);
+        string const SELF_TYPE = m_stack->types()->get_type(*_scope);
         params.push_back(make_shared<CVarDecl>(SELF_TYPE, "self", true));
-        for (auto const& fld : M_STATEDATA.order())
+        for (auto const& fld : m_stack->environment()->order())
         {
             params.push_back(make_shared<CVarDecl>(
                 fld.type_name, fld.name, false
@@ -200,7 +207,7 @@ CParams FunctionConverter::generate_params(
     {
         auto const& DECL = *_decls[i];
     
-        string type = M_CONVERTER.get_type(DECL);
+        string type = m_stack->types()->get_type(DECL);
     
         string name = DECL.name();
         if (name.empty()) name = "var" + to_string(i);
@@ -211,8 +218,9 @@ CParams FunctionConverter::generate_params(
     }
     if (_dest)
     {
+        auto const& specialization = m_stack->allocations()->specialize(*_dest);
         params.push_back(make_shared<CVarDecl>(
-            M_CONVERTER.get_type(M_ALLOC_GRAPH.specialize(*_dest)),
+            m_stack->types()->get_type(specialization),
             InitFunction::INIT_VAR,
             true
         ));
@@ -249,18 +257,18 @@ void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
     auto rvs = FUNC.returnParameters();
     if (!rvs.empty() && rvs[0]->type()->category() == Type::Category::Contract)
     {
-        if (M_ALLOC_GRAPH.retval_is_allocated(*rvs[0]))
+        if (m_stack->allocations()->retval_is_allocated(*rvs[0]))
         {
             handle_function(_spec, "void", false);
         }
         else
         {
-            handle_function(_spec, M_CONVERTER.get_type(FUNC), true);
+            handle_function(_spec, m_stack->types()->get_type(FUNC), true);
         }
     }
     else
     {
-        handle_function(_spec, M_CONVERTER.get_type(FUNC), false);
+        handle_function(_spec, m_stack->types()->get_type(FUNC), false);
     }
 }
 
@@ -270,7 +278,8 @@ string FunctionConverter::handle_contract_initializer(
     ContractDefinition const& _initialized, ContractDefinition const& _for
 )
 {
-    auto const NAME = InitFunction(M_CONVERTER, _initialized, _for).call_name();
+    InitFunction const INIT_DATA(*m_stack->types(), _initialized, _for);
+    auto const NAME = INIT_DATA.call_name();
     auto const* LOCAL_CTOR = _initialized.constructor();
 
     // Ensures this specialization is new.
@@ -291,6 +300,7 @@ string FunctionConverter::handle_contract_initializer(
         params = generate_params(decls, &_for, nullptr);
     }
 
+    // TODO(scottwe): factour out this analysis into flat model.
     auto self_ptr = params[0]->id();
     vector<CFuncCallBuilder> parent_initializers;
     for (auto spec : _initialized.baseContracts())
@@ -306,7 +316,7 @@ string FunctionConverter::handle_contract_initializer(
         auto & builder = parent_initializers.back();
 
         builder.push(self_ptr);
-        M_STATEDATA.compute_next_state_for(builder, false, nullptr);
+        m_stack->environment()->compute_next_state_for(builder, false, nullptr);
         if (LOCAL_CTOR)
         {
             for (auto const CTOR_MOD : LOCAL_CTOR->modifiers())
@@ -322,9 +332,7 @@ string FunctionConverter::handle_contract_initializer(
                         {
                             auto const& V = *CARGS->at(i);
                             auto const* T = PARGS[i]->annotation().type;
-                            builder.push(
-                                V, M_CONVERTER, M_STATEDATA, resolver, false, T
-                            );
+                            builder.push(V, m_stack, resolver, false, T);
                         }
                     }
                     break;
@@ -338,7 +346,7 @@ string FunctionConverter::handle_contract_initializer(
                 auto const& arg = (*(*spec->arguments())[i]);
                 auto const& param = (*parent.constructor()->parameters()[i]);
                 auto const* type = param.annotation().type;
-                builder.push(arg, M_CONVERTER, M_STATEDATA, {}, type);
+                builder.push(arg, m_stack, {}, type);
             }
         }
     }
@@ -371,15 +379,12 @@ string FunctionConverter::handle_contract_initializer(
             CExprPtr v0;
             if (decl->value())
             {
-                ExpressionConverter init_expr(
-                    *decl->value(), {}, M_STATEDATA, {}
-                );
-                v0 = init_expr.convert();
+                v0 = ExpressionConverter(*decl->value(), m_stack, {}).convert();
                 v0 = InitFunction::wrap(*decl->type(), move(v0));
             }
             else
             {
-                v0 = M_CONVERTER.get_init_val(*decl);
+                v0 = m_stack->types()->get_init_val(*decl);
             }
 
             auto member = self_ptr->access(NAME);
@@ -389,7 +394,9 @@ string FunctionConverter::handle_contract_initializer(
         {
             CFuncCallBuilder builder(ctor_name);
             builder.push(self_ptr);
-            M_STATEDATA.compute_next_state_for(builder, false, nullptr);
+            m_stack->environment()->compute_next_state_for(
+                builder, false, nullptr
+            );
             for (auto decl : LOCAL_CTOR->parameters())
             {
                 auto const NAME = VariableScopeResolver::rewrite(
@@ -424,7 +431,7 @@ string FunctionConverter::handle_function(
     // Determines if a contract initialization destination is required.
     ASTPointer<VariableDeclaration> dest;
     auto rvs = _spec.func().returnParameters();
-    if (!rvs.empty() && M_ALLOC_GRAPH.retval_is_allocated(*rvs[0]))
+    if (!rvs.empty() && m_stack->allocations()->retval_is_allocated(*rvs[0]))
     {
         dest = rvs[0];
     }
@@ -443,10 +450,7 @@ string FunctionConverter::handle_function(
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            FunctionBlockConverter cov(
-                _spec.func(), M_CONVERTER, M_STATEDATA, M_ALLOC_GRAPH
-            );
-
+            FunctionBlockConverter cov(_spec.func(), m_stack);
             cov.set_for(_spec);
             body = cov.convert();
         }
@@ -467,9 +471,7 @@ string FunctionConverter::handle_function(
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            body = mods.generate(
-                IDX, M_CONVERTER, M_STATEDATA, M_ALLOC_GRAPH
-            ).convert();
+            body = mods.generate(IDX, m_stack).convert();
         }
 
         auto id = make_shared<CVarDecl>(_rv_type, _spec.name(IDX), _rv_is_ptr);

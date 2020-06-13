@@ -3,6 +3,7 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 
@@ -24,37 +25,55 @@ shared_ptr<FlatContract> devirtualize(
     FunctionCallAnalyzer const& _func
 )
 {
-    if (_func.is_super())
+    shared_ptr<FlatContract> scope;
+
+    // Best effort to devirtualize.
+    auto ctx = _func.context();
+    if (_func.is_in_library())
+    {
+        scope = _scope;
+    }
+    else if (_func.is_super())
     {
         auto new_scope = _func.decl().scope();
-        if (auto context = dynamic_cast<ContractDefinition const*>(new_scope))
-        {
-            _scope = _model.get(*context);
-        }
+        auto context = dynamic_cast<ContractDefinition const*>(new_scope);
+        scope = _model.get(*context);
     }
-    else if (_func.context())
+    else if (ctx && dynamic_cast<FunctionCall const*>(ctx))
     {
-        auto const& context = _alloc_graph.resolve(*_func.context());
-        _scope = _model.get(context);
+        auto raw = dynamic_cast<FunctionCall const*>(ctx)->annotation().type;
+        auto contract_type = dynamic_cast<ContractType const*>(raw);
+        scope = _model.get(contract_type->contractDefinition());
+    }
+    else if (ctx && (expr_to_decl(*ctx) != nullptr))
+    {
+        auto const& context = _alloc_graph.resolve(*ctx);
+        scope = _model.get(context);
+    }
+    else
+    {
+        scope = _scope;
     }
 
-    if (!_scope)
+    // Failed to devirtualize.
+    if (!scope)
     {
         throw runtime_error("Failed to devirtualize external call.");
     }
 
-    return _scope;
+    return scope;
 }
 
 // -------------------------------------------------------------------------- //
 
-CallGraphBuilder::CallGraphBuilder(shared_ptr<AllocationGraph> _alloc_graph)
- : m_alloc_graph(_alloc_graph) {}
+CallGraphBuilder::CallGraphBuilder(
+    shared_ptr<AllocationGraph const> _alloc_graph
+): m_alloc_graph(_alloc_graph) {}
 
 shared_ptr<CallGraphBuilder::Graph>
-    CallGraphBuilder::build(shared_ptr<FlatModel> _model)
+    CallGraphBuilder::build(shared_ptr<FlatModel const> _model)
 {
-    ScopedSwap<shared_ptr<FlatModel>> scope(m_model, _model);
+    ScopedSwap<shared_ptr<FlatModel const>> scope(m_model, _model);
 
     m_graph = make_shared<CallGraphBuilder::Graph>();
     for (auto contract : _model->view())
@@ -125,17 +144,31 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
 	FunctionCallAnalyzer call(_node);
     if (call.classify() == FunctionCallAnalyzer::CallGroup::Method)
     {
-        if (call.is_super())
-        {
-            m_labels = { CallTypes::Super };
-        }
-        else if (call.context())
+        // Sets the context label. Note context, library, and super are mutually
+        // exclusive so this is fine.
+        if (call.context())
         {
             m_labels = { CallTypes::External };
         }
 
+        // Resolves the function using the scope of this call.
         scope = devirtualize(m_scope.back(), *m_alloc_graph, *m_model, call);
-        resolution = (&scope->resolve(call.decl()));
+        if (call.is_in_library())
+        {
+            m_labels = { CallTypes::Library };
+            resolution = (&call.decl());
+        }
+        else
+        {
+            resolution = (&scope->resolve(call.decl()));
+        }
+
+        // If this is a super call, the scope really shouldn't change.
+        if (call.is_super())
+        {
+            m_labels = { CallTypes::Super };
+            scope = m_scope.back();
+        }
     }
     else if (call.classify() == FunctionCallAnalyzer::CallGroup::Constructor)
     {
@@ -156,6 +189,74 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
         resolution->accept(*this);
         m_scope.pop_back();
     }
+}
+
+// -------------------------------------------------------------------------- //
+
+CallGraph::CallGraph(
+    shared_ptr<AllocationGraph const> _alloc_graph,
+    shared_ptr<FlatModel const> _model
+): m_graph(CallGraphBuilder(_alloc_graph).build(_model)) {}
+
+CallGraph::CodeSet CallGraph::executed_code() const
+{
+    return m_graph->vertices();
+}
+
+CallGraph::CodeSet CallGraph::internals(FlatContract const& _scope) const
+{
+    CodeSet methods;
+
+    // TODO: precompute.
+    CodeList functions = _scope.interface();
+    set<FunctionDefinition const*> visited;
+    for (auto itr = functions.begin(); itr != functions.end(); ++itr)
+    {
+        FunctionDefinition const* func = (*itr);
+        if (!visited.insert(func).second) continue;
+
+        if (!func->functionType(false)) methods.insert(func);
+
+        for (auto succ : m_graph->neighbours(func))
+        {
+            auto labels = m_graph->label_of(func, succ);
+            if (labels.find(CallTypes::External) == labels.end())
+            {
+                functions.push_back(succ);
+            }
+        }
+    }
+
+    return methods;
+}
+
+CallGraph::CodeSet CallGraph::super_calls(
+    FlatContract const& _scope, FunctionDefinition const& _call
+) const
+{
+    CodeSet chain;
+
+    // TODO: precompute.
+    CodeList functions = _scope.interface();
+    set<FunctionDefinition const*> visited;
+    for (auto itr = functions.begin(); itr != functions.end(); ++itr)
+    {
+        FunctionDefinition const* func = (*itr);
+        if (!visited.insert(func).second) continue;
+
+        if (collid(_call, *func)) chain.insert(func);
+
+        for (auto succ : m_graph->neighbours(func))
+        {
+            auto labels = m_graph->label_of(func, succ);
+            if (labels.find(CallTypes::External) == labels.end())
+            {
+                functions.push_back(succ);
+            }
+        }
+    }
+
+    return chain;
 }
 
 // -------------------------------------------------------------------------- //

@@ -1,14 +1,15 @@
 /**
- * @date 2019
- * Test suite targeting function manipulation utilities.
+ * Tests for libsolidity/modelcheck/analysis/Inheritance.
+ * 
+ * @date 2020
  */
 
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
+
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
 
 #include <set>
 
@@ -27,8 +28,7 @@ namespace test
 // -------------------------------------------------------------------------- //
 
 BOOST_FIXTURE_TEST_SUITE(
-    Inheritance,
-    ::dev::solidity::test::AnalysisFramework
+    Analysis_InheritanceTests, ::dev::solidity::test::AnalysisFramework
 )
 
 BOOST_AUTO_TEST_CASE(interface)
@@ -205,6 +205,74 @@ BOOST_AUTO_TEST_CASE(super_classes_in_model)
 
     BOOST_CHECK_EQUAL(flat_model.view().size(), 1);
     BOOST_CHECK_NE(flat_model.get(*ctrt_a), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(child_entries_are_added)
+{
+    char const* text = R"(
+		contract A {}
+        contract B {
+            A a1;
+            A a2;
+            constructor() public {
+                a1 = new A();
+                a2 = new A();
+            }
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+    auto ctrt_b = retrieveContractByName(unit, "B");
+
+    vector<ContractDefinition const*> model({ ctrt_b });
+    AllocationGraph graph(model);
+    FlatModel flat_model(model, graph);
+
+    auto children = flat_model.children_of(*flat_model.get(*ctrt_b));
+    BOOST_CHECK_EQUAL(children.size(), 2);
+
+    bool found_child_1 = false;
+    bool found_child_2 = false;
+    for (auto r : children)
+    {
+        if (r.child == flat_model.get(*ctrt_a))
+        {
+            if (r.var == "a1") found_child_1 = true;
+            if (r.var == "a2") found_child_2 = true;
+        }
+    }
+    BOOST_CHECK(found_child_1);
+    BOOST_CHECK(found_child_2);
+}
+
+BOOST_AUTO_TEST_CASE(model_works)
+{
+    char const* text = R"(
+		contract A {}
+        contract B {}
+        contract C {}
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+    auto ctrt_b = retrieveContractByName(unit, "B");
+    auto ctrt_c = retrieveContractByName(unit, "C");
+
+    vector<ContractDefinition const*> model({
+        ctrt_a, ctrt_a, ctrt_b, ctrt_b, ctrt_c, ctrt_a
+    });
+    AllocationGraph graph(model);
+
+    FlatModel flat_model(model, graph);
+    BOOST_CHECK_EQUAL(flat_model.view().size(), 3);
+    BOOST_CHECK_EQUAL(flat_model.bundle().size(), 6);
+
+    map<string, int> count;
+    for (auto c : flat_model.bundle()) count[c->name()] += 1;
+    BOOST_CHECK_EQUAL(count["A"], 3);
+    BOOST_CHECK_EQUAL(count["B"], 2);
+    BOOST_CHECK_EQUAL(count["C"], 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

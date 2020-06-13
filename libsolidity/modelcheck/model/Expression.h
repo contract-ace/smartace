@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -20,10 +21,9 @@ namespace solidity
 namespace modelcheck
 {
 
-class CallState;
+class AnalysisStack;
 class CFuncCallBuilder;
 class FunctionCallAnalyzer;
-class TypeAnalyzer;
 class VariableScopeResolver;
 
 // -------------------------------------------------------------------------- //
@@ -43,8 +43,7 @@ public:
 	// declaration set. Will also propogate and expose relevant expression data.
     ExpressionConverter(
         Expression const& _expr,
-        TypeAnalyzer const& _converter,
-		CallState const& _statedata,
+        std::shared_ptr<AnalysisStack const> _stack,
         VariableScopeResolver const& _decls,
 		bool _is_ref = false,
 		bool _is_init = false
@@ -67,9 +66,9 @@ protected:
 
 private:
     Expression const* M_EXPR;
-    TypeAnalyzer const& M_CONVERTER;
-	CallState const& M_STATEDATA;
 	VariableScopeResolver const& M_DECLS;
+
+	std::shared_ptr<AnalysisStack const> m_stack;
 
 	CExprPtr m_subexpr;
 	Identifier const* m_last_assignment;

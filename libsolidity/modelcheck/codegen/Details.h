@@ -22,8 +22,7 @@ class Type;
 namespace modelcheck
 {
 
-class CallState;
-class TypeAnalyzer;
+class AnalysisStack;
 class VariableScopeResolver;
 
 // -------------------------------------------------------------------------- //
@@ -332,8 +331,7 @@ public:
     // of implicitly casting raw types.
     void push(
         Expression const& _expr,
-        TypeAnalyzer const& _converter,
-        CallState const& _state,
+        std::shared_ptr<AnalysisStack const> _stack,
         VariableScopeResolver const& _decls,
         bool _is_ref,
         Type const* _t = nullptr

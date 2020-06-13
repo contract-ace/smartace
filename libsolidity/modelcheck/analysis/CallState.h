@@ -26,8 +26,8 @@ namespace solidity
 namespace modelcheck
 {
 
+class CallGraph;
 class CFuncCallBuilder;
-class ContractDependance;
 class PrimitiveTypeGenerator;
 
 // -------------------------------------------------------------------------- //
@@ -48,7 +48,7 @@ public:
         std::string type_name;
     };
 
-    CallState(ContractDependance const& _dependance);
+    CallState(CallGraph const& _graph);
 
     // Prints an appropiate call state, along with the appropriate helpers, to
     // _stream. If _forward_declare is set, then the bodies are excluded.

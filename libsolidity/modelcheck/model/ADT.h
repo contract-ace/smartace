@@ -9,6 +9,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 
+#include <memory>
 #include <ostream>
 #include <set>
 
@@ -19,8 +20,7 @@ namespace solidity
 namespace modelcheck
 {
 
-class AllocationGraph;
-class TypeAnalyzer;
+class AnalysisStack;
 
 // -------------------------------------------------------------------------- //
 
@@ -36,8 +36,7 @@ public:
 	// declare is set, then the structure bodies are not generated.
     ADTConverter(
         ASTNode const& _ast,
-		AllocationGraph const& _alloc_graph,
-		TypeAnalyzer const& _converter,
+		std::shared_ptr<AnalysisStack> _stack,
 		bool _add_sums,
 		size_t _map_k,
 		bool _forward_declare
@@ -55,12 +54,12 @@ protected:
 
 private:
 	ASTNode const& M_AST;
-	AllocationGraph const& M_ALLOC_GRAPH;
-	TypeAnalyzer const& M_CONVERTER;
 
 	bool const M_ADD_SUMS;
 	size_t const M_MAP_K;
 	bool const M_FORWARD_DECLARE;
+
+	std::shared_ptr<AnalysisStack> m_stack;
 
 	std::ostream* m_ostream = nullptr;
 

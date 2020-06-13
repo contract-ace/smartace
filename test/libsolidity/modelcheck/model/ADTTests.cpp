@@ -1,6 +1,7 @@
 /**
+ * Specific tests for libsolidity/modelcheck/model/ADT.
+ * 
  * @date 2019
- * Specific tests for libsolidity/modelcheck/FunctionChecker.h
  */
 
 #include <libsolidity/modelcheck/model/ADT.h>
@@ -8,8 +9,7 @@
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
 
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 
 #include <map>
 #include <sstream>
@@ -25,9 +25,10 @@ namespace modelcheck
 namespace test
 {
 
+// -------------------------------------------------------------------------- //
+
 BOOST_FIXTURE_TEST_SUITE(
-    ADTConversionTests,
-    ::dev::solidity::test::AnalysisFramework
+    Model_ADTTests, ::dev::solidity::test::AnalysisFramework
 )
 
 // In the c-model, a contract is converted into a set of structs, which
@@ -45,24 +46,24 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
 {
     char const* text = R"(
         contract A {
-            mapping(int => mapping(int => mapping(int => int))) map3;
-            struct B { mapping(int => mapping(int => int)) map1; }
-            mapping(int => A) map4;
-            struct C { mapping(int => int) map2; }
+            mapping(address => mapping(address => mapping(address => int))) map3;
+            struct B { mapping(address => mapping(address => int)) map1; }
+            mapping(address => A) map4;
+            struct C { mapping(address => int) map2; }
             B b;
             C c;
         }
     )";
 
     auto const& ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    ADTConverter(ast, alloc_graph, converter, false, 1, true).print(actual);
+    ADTConverter(ast, stack, false, 1, true).print(actual);
     expect << "struct Map_1;";
     expect << "struct A_Struct_B;";
     expect << "struct Map_2;";
@@ -81,22 +82,22 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
 {
     char const* text = R"(
         contract A {
-            mapping(int => mapping(int => int)) map;
+            mapping(address => mapping(address => int)) map;
         }
     )";
 
     auto const &ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    AllocationGraph alloc_graph({});
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual_k_1;
     ostringstream actual_k_2;
 
-    ADTConverter(ast, alloc_graph, converter, false, 1, false).print(actual_k_1);
-    ADTConverter(ast, alloc_graph, converter, false, 2, false).print(actual_k_2);
+    ADTConverter(ast, stack, false, 1, false).print(actual_k_1);
+    ADTConverter(ast, stack, false, 2, false).print(actual_k_2);
 
     BOOST_CHECK(actual_k_1.str().find("data_0_0") != string::npos);
 
@@ -121,15 +122,14 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     )";
 
     auto const &unit = *parseAndAnalyse(text);
-    auto const &ctrt = *retrieveContractByName(unit, "C");
+    auto ctrt = retrieveContractByName(unit, "C");
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({});
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    ADTConverter(ctrt, alloc_graph, converter, false, 1, false).print(actual);
+    ADTConverter(unit, stack, false, 1, false).print(actual);
     expect << "struct A"
            << "{"
            << "sol_address_t model_address;"
@@ -180,16 +180,14 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     auto const &unit = *parseAndAnalyse(text);
     auto ctrt = retrieveContractByName(unit, "Test");
 
-    TypeAnalyzer converter;
-    converter.record(unit);
-
-    AllocationGraph alloc_graph({ ctrt });
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    ADTConverter(*ctrt, alloc_graph, converter, false, 1, false).print(actual);
+    ADTConverter(unit, stack, false, 1, false).print(actual);
     expect << "struct X"
-           << "{"
-           << "sol_address_t model_address;"
+           << "{sol_address_t model_address;"
            << "sol_uint256_t model_balance;"
            << "};";
     expect << "struct Y"
@@ -208,6 +206,8 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
  }
 
 BOOST_AUTO_TEST_SUITE_END();
+
+// -------------------------------------------------------------------------- //
 
 }
 }

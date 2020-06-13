@@ -34,7 +34,7 @@ public:
     using VariableList = std::list<VariableDeclaration const*>;
 
     // Flattens the inheritance tree of _contract.
-    FlatContract(ContractDefinition const& _contract);
+    explicit FlatContract(ContractDefinition const& _contract);
 
     // Returns all exposed methods of the contract.
     FunctionList const& interface() const;
@@ -54,8 +54,14 @@ public:
     // Finds a method matching _func, or throws.
     FunctionDefinition const& resolve(FunctionDefinition const& _func) const;
 
+    // TODO(scottwe): temporary solution to simplify transition.
+    ContractDefinition const* raw() const;
+
 private:
     std::string const M_NAME;
+
+    // TODO: deprecate.
+    ContractDefinition const* m_raw;
 
     FunctionList m_public;
     FunctionList m_private;
@@ -73,24 +79,37 @@ private:
 class FlatModel
 {
 public:
+    struct ChildRecord
+    {
+        std::shared_ptr<FlatContract> child;
+        std::string var;
+    };
     using ContractList = std::vector<ContractDefinition const *>;
     using FlatList = std::vector<std::shared_ptr<FlatContract>>;
 
     // This constructor has two conceptual steps. First, _model is expanded
     // using _alloc_graph. Afterwards, it is flattened to a set of vertices, and
     // each vertex is replaced by a FlatContract.
-    FlatModel(ContractList _model, AllocationGraph const& _alloc_graph);
+    FlatModel(ContractList const _model, AllocationGraph const& _alloc_graph);
 
-    // Gives view of all contracts.
-    FlatList const& view() const;
+    // Gives access to the bundle.
+    FlatList bundle() const;
+
+    // Gives view of all accessible contracts.
+    FlatList view() const;
 
     // Retrieves the flattened _src. This also includes super interfaces.
     // Returns nullptr on failure.
     std::shared_ptr<FlatContract> get(ContractDefinition const& _src) const;
 
+    // Retrieves the children of the contract.
+    std::vector<ChildRecord> children_of(FlatContract const& _contract) const;
+
 private:
     FlatList m_contracts;
+    FlatList m_bundle;
     std::map<ContractDefinition const*, std::shared_ptr<FlatContract>> m_lookup;
+    std::map<FlatContract const*, std::vector<ChildRecord>> m_children;
 };
 
 // -------------------------------------------------------------------------- //

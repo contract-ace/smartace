@@ -1,5 +1,6 @@
 #include <libsolidity/modelcheck/model/Block.h>
 
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
@@ -38,10 +39,7 @@ ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
 // -------------------------------------------------------------------------- //
 
 ModifierBlockConverter ModifierBlockConverter::Factory::generate(
-    size_t _i,
-    TypeAnalyzer const& _converter,
-    CallState const& _statedata,
-    AllocationGraph const& _alloc_graph
+    size_t _i, shared_ptr<AnalysisStack const> _stack
 ) const
 {
     // Checks that _i is in bounds.
@@ -58,9 +56,7 @@ ModifierBlockConverter ModifierBlockConverter::Factory::generate(
         M_SPEC.func(),
         def_invoke_pair.first,
         def_invoke_pair.second,
-        _converter,
-        _statedata,
-        _alloc_graph,
+        _stack,
         M_SPEC.name(_i + 1),
         _i == 0
     );
@@ -87,22 +83,17 @@ ModifierBlockConverter::ModifierBlockConverter(
     FunctionDefinition const& _func,
     ModifierDefinition const* _def,
     ModifierInvocation const* _curr,
-    TypeAnalyzer const& _converter,
-    CallState const& _statedata,
-    AllocationGraph const& _alloc_graph,
+    shared_ptr<AnalysisStack const> _stack,
     string _next,
     bool _entry
 ): GeneralBlockConverter(
     _def->parameters(),
     _func.returnParameters(),
     _def->body(),
-    _converter,
-    _statedata,
-    _alloc_graph,
+    _stack,
     _entry,
     _func.isPayable()
-), M_STATEDATA(_statedata)
- , M_TRUE_PARAMS(_func.parameters())
+), M_TRUE_PARAMS(_func.parameters())
  , M_USER_PARAMS(_def->parameters())
  , M_USER_ARGS(_curr->arguments())
  , M_NEXT_CALL(move(_next))
@@ -113,7 +104,7 @@ ModifierBlockConverter::ModifierBlockConverter(
 	    // TODO(scottwe): support multiple return types.
         auto const& ARG = *_func.returnParameters()[0];
 		m_rv = make_shared<CVarDecl>(
-            M_CONVERTER.get_type(ARG),
+            m_stack->types()->get_type(ARG),
             VariableScopeResolver::rewrite("rv", true, VarContext::FUNCTION)
         );
 	}
@@ -143,13 +134,13 @@ void ModifierBlockConverter::enter(
             auto const& PARAM = *M_USER_PARAMS[i];
             auto const& ARG = *((*M_USER_ARGS)[i]);
 
-            auto const TYPE = M_CONVERTER.get_type(PARAM);
+            auto const TYPE = m_stack->types()->get_type(PARAM);
             auto const SYM = _decls.resolve_declaration(PARAM);
 
-            bool const IS_INIT = block_type() == BlockType::Initializer;
+            bool const INITS = block_type() == BlockType::Initializer;
 
             ExpressionConverter arg_converter(
-                ARG, M_CONVERTER, M_STATEDATA, m_shadow_decls, false, IS_INIT
+                ARG, m_stack, m_shadow_decls, false, INITS
             );
 
             auto expr = arg_converter.convert();
@@ -186,7 +177,7 @@ void ModifierBlockConverter::endVisit(PlaceholderStatement const&)
 {
 	CFuncCallBuilder builder(M_NEXT_CALL);
 	builder.push(make_shared<CIdentifier>("self", true));
-	M_STATEDATA.compute_next_state_for(builder, false, nullptr);
+	m_stack->environment()->compute_next_state_for(builder, false, nullptr);
 
 	for (auto const& ARG : M_TRUE_PARAMS)
 	{

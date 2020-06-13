@@ -1,12 +1,12 @@
 /**
+ * Specific tests for libsolidity/modelcheck/utils/AST.
+ * 
  * @date 2019
- * Test suite targeting AST manipulation utilities.
  */
 
 #include <libsolidity/modelcheck/utils/AST.h>
 
 #include <boost/test/unit_test.hpp>
-#include <test/libsolidity/AnalysisFramework.h>
 
 using namespace std;
 using namespace langutil;
@@ -24,10 +24,7 @@ namespace test
 
 using SubD = Literal::SubDenomination;
 
-BOOST_FIXTURE_TEST_SUITE(
-    ASTUtils,
-    ::dev::solidity::test::AnalysisFramework
-)
+BOOST_AUTO_TEST_SUITE(Utils_ASTTests)
 
 // Tests the node sniffer utility with several types. Ensures that it ignores
 // control-flow sub-expressions.

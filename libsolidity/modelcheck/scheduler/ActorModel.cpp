@@ -2,8 +2,9 @@
 
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/ContractDependance.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
@@ -25,55 +26,42 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 Actor::Actor(
-    TypeAnalyzer const& _converter,
-    ContractDependance const& _dependance,
-    ContractDefinition const* _contract,
+    shared_ptr<AnalysisStack const> _stack,
+    std::shared_ptr<FlatContract const> _contract,
     size_t _id,
     CExprPtr _path
 ): contract(_contract), path(_path)
 {
     // Reserves a unique identifier for the actor.
     decl = make_shared<CVarDecl>(
-        _converter.get_type(*_contract),
+        _stack->types()->get_type(*_contract->raw()),
         "contract_" + to_string(_id),
         _path != nullptr
     );
 
     // Analyzes all children and function calls.
-    for (auto method : _dependance.get_interface(_contract))
+    for (auto method : _contract->interface())
     {
-        if (method->isConstructor()) continue;
-        if (!method->isPublic()) continue;
-
-        specs.emplace_back(*method, *contract);
+        specs.emplace_back(*method, *contract->raw());
     }
 }
 
 // -------------------------------------------------------------------------- //
 
-ActorModel::ActorModel(
-    ContractDependance const& _dependance,
-    TypeAnalyzer const& _converter,
-    AllocationGraph const& _alloc_graph,
-    MapIndexSummary const& _addrdata
-): M_CONVERTER(_converter)
+ActorModel::ActorModel(shared_ptr<AnalysisStack const> _stack)
+ : m_stack(_stack)
 {
     // Generates an actor for each client.
-    for (auto const contract : _dependance.get_model())
+    for (auto const contract : m_stack->model()->bundle())
     {
-        if (contract->isLibrary() || contract->isInterface()) continue;
-
-        m_actors.emplace_back(
-            M_CONVERTER, _dependance, contract, m_actors.size(), nullptr
-        );
-
-        recursive_setup(_alloc_graph, _dependance, m_actors.back());
+        m_actors.emplace_back(m_stack, contract, m_actors.size(), nullptr);
+        recursive_setup(m_actors.back());
     }
 
     // Extracts the address variable for each contract.
     for (auto actor : m_actors)
     {
-        for (auto entry : _addrdata.describe(*actor.contract))
+        for (auto entry : m_stack->addresses()->describe(*actor.contract->raw()))
         {
             if (entry.paths.empty()) continue;
 
@@ -85,10 +73,10 @@ ActorModel::ActorModel(
             for (auto path : entry.paths)
             {
                 CExprPtr addr = actor.decl->id();
-                for (auto symb : path)
+                for (auto id : path)
                 {
                     auto const NAME = VariableScopeResolver::rewrite(
-                        symb, false, VarContext::STRUCT
+                        id, false, VarContext::STRUCT
                     );
                     addr = make_shared<CMemberAccess>(addr, NAME);
                 }
@@ -112,9 +100,7 @@ void ActorModel::declare(CBlockList & _block) const
 // -------------------------------------------------------------------------- //
 
 void ActorModel::initialize(
-    CBlockList & _block,
-    CallState const& _statedata,
-    StateGenerator const& _stategen
+    CBlockList & _block, StateGenerator const& _stategen
 ) const
 {
     // Initializes each actor.
@@ -131,28 +117,31 @@ void ActorModel::initialize(
         LibVerify::log(_block, caselog.str());
 
         // Populates core constructor arguments.
-        auto init_builder = InitFunction(M_CONVERTER, *ctx).call_builder();
-        init_builder.push(make_shared<CReference>(actor.decl->id()));
-        _statedata.push_state_to(init_builder);
+        auto init = InitFunction(*m_stack->types(), *ctx->raw()).call_builder();
+        init.push(make_shared<CReference>(actor.decl->id()));
+        m_stack->environment()->push_state_to(init);
 
         _stategen.update(_block);
 
         // Populates specialized costructor arguments.
-        if (auto const ctor = ctx->constructor())
+        if (!ctx->constructors().empty())
         {
-            if (ctor->isPayable())
+            if (auto const ctor = ctx->constructors().front())
             {
-                _stategen.pay(_block);
-            }
+                if (ctor->isPayable())
+                {
+                    _stategen.pay(_block);
+                }
 
-            for (auto const param : ctor->parameters())
-            {
-                string const MSG = ctx->name() + ":" + param->name();
-                init_builder.push(M_CONVERTER.get_nd_val(*param, MSG));
+                for (auto const param : ctor->parameters())
+                {
+                    string const MSG = ctx->name() + ":" + param->name();
+                    init.push(m_stack->types()->get_nd_val(*param, MSG));
+                }
             }
         }
 
-        _block.push_back(init_builder.merge_and_pop()->stmt());
+        _block.push_back(init.merge_and_pop()->stmt());
     }
 }
 
@@ -204,26 +193,19 @@ list<Actor> const& ActorModel::inspect() const
 
 // -------------------------------------------------------------------------- //
 
-void ActorModel::recursive_setup(
-    AllocationGraph const& _alloc_graph,
-    ContractDependance const& _dependance,
-    Actor & _parent
-)
+void ActorModel::recursive_setup(Actor & _parent)
 {
-    for (auto const& child : _alloc_graph.children_of(_parent.contract))
+    for (auto const& record : m_stack->model()->children_of(*_parent.contract))
     {
-        if (child.is_retval) continue;
         _parent.has_children = true;
 
         auto const NAME = VariableScopeResolver::rewrite(
-            child.dest->name(), false, VarContext::STRUCT
+            record.var, false, VarContext::STRUCT
         );
         auto const PATH = make_shared<CMemberAccess>(_parent.decl->id(), NAME);
 
-        m_actors.emplace_back(
-            M_CONVERTER, _dependance, child.type, m_actors.size(), PATH
-        );
-        recursive_setup(_alloc_graph, _dependance, m_actors.back());
+        m_actors.emplace_back(m_stack, record.child, m_actors.size(), PATH);
+        recursive_setup(m_actors.back());
     }
 }
 
