@@ -1,0 +1,8 @@
+digraph finite_state_machine {
+	rankdir=LR;
+	node [shape = doublecircle]; q1 q2;
+	q1 -> q1 [ label = "unchanged && !called" ];
+	q1 -> q2 [ label = "called" ];
+	q2 -> q2 [ label = "True" ];
+}
+
