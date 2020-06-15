@@ -1,0 +1,16 @@
+digraph Topology {
+	"(Manager; A1, A2, A3)" [shape=oval];
+
+	A1 [shape=box];
+	A2 [shape=box];
+	A3 [shape=box];
+
+	"(Manager; A1, A2, A3)" -> { A1 A2 A3 } [arrowhead=none];
+
+	{
+		rank = same;
+		A1 -> A2 -> A3 [ style=invis ];
+		rankdir = LR;
+	}
+}
+
