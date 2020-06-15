@@ -142,7 +142,12 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
     shared_ptr<FlatContract> scope;
     FunctionDefinition const* resolution = nullptr;
 	FunctionCallAnalyzer call(_node);
-    if (call.classify() == FunctionCallAnalyzer::CallGroup::Method)
+    if (call.is_in_library())
+    {
+            m_labels = { CallTypes::Library };
+            resolution = (&call.decl());
+    }
+    else if (call.classify() == FunctionCallAnalyzer::CallGroup::Method)
     {
         // Sets the context label. Note context, library, and super are mutually
         // exclusive so this is fine.
@@ -153,15 +158,7 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
 
         // Resolves the function using the scope of this call.
         scope = devirtualize(m_scope.back(), *m_alloc_graph, *m_model, call);
-        if (call.is_in_library())
-        {
-            m_labels = { CallTypes::Library };
-            resolution = (&call.decl());
-        }
-        else
-        {
-            resolution = (&scope->resolve(call.decl()));
-        }
+        resolution = (&scope->resolve(call.decl()));
 
         // If this is a super call, the scope really shouldn't change.
         if (call.is_super())
@@ -180,6 +177,10 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
             m_labels = { CallTypes::Alloc };
             resolution = scope->constructors().front();
         }
+    }
+    else if (call.classify() == FunctionCallAnalyzer::CallGroup::Delegate)
+    {
+        throw runtime_error("Delegate calls are unsupported.");
     }
 
     // Follows the call, if it was resolved

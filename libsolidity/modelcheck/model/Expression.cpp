@@ -614,7 +614,14 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Delegate)
 	{
-		throw runtime_error("Delegate calls are unsupported.");
+		if (calldata.is_in_library())
+		{
+			print_method(calldata);
+		}
+		else
+		{
+			throw runtime_error("Delegate calls are unsupported.");
+		}
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Constructor)
 	{

@@ -49,14 +49,9 @@ BOOST_AUTO_TEST_CASE(simple_contract)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -86,14 +81,9 @@ BOOST_AUTO_TEST_CASE(simple_map)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -137,14 +127,9 @@ BOOST_AUTO_TEST_CASE(simple_struct)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -181,14 +166,9 @@ BOOST_AUTO_TEST_CASE(simple_func)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream func_expect;
@@ -228,14 +208,9 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream func_expect;
@@ -275,22 +250,15 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
     adt_expect << "struct Map_1;";
     adt_expect << "struct A_Struct_B;";
     adt_expect << "struct A;";
-    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
-    func_expect << "struct A_Struct_B Init_A_Struct_B(void);";
     func_expect << "struct Map_1 ZeroInit_Map_1(void);";
     func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
                 << ",sol_uint256_t key_0,sol_uint256_t key_1);";
@@ -298,6 +266,8 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
                 << ",sol_uint256_t key_1,sol_uint256_t dat);";
     func_expect << "void Set_Map_1(struct Map_1*arr,sol_uint256_t key_0"
                 << ",sol_uint256_t key_1,sol_uint256_t dat);";
+    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    func_expect << "struct A_Struct_B Init_A_Struct_B(void);";
     func_expect << "void Init_A(struct A*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
@@ -334,14 +304,9 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -350,8 +315,6 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
     adt_expect << "struct A;";
     adt_expect << "struct Map_2;";
     adt_expect << "struct C;";
-    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
-    func_expect << "struct A_Struct_B Init_A_Struct_B(void);";
     func_expect << "struct Map_1 ZeroInit_Map_1(void);";
     func_expect << "sol_uint256_t Read_Map_1(struct Map_1*arr"
                 << ",sol_address_t key_0);";
@@ -359,6 +322,12 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
                 << ",sol_uint256_t dat);";
     func_expect << "void Set_Map_1(struct Map_1*arr,sol_address_t key_0"
                 << ",sol_uint256_t dat);";
+    func_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
+    func_expect << "struct A_Struct_B Init_A_Struct_B(void);";
+    func_expect << "void Init_A(struct A*self,sol_address_t sender"
+                << ",sol_uint256_t value,sol_uint256_t blocknum"
+                << ",sol_uint256_t timestamp,sol_bool_t paid"
+                << ",sol_address_t origin);";
     func_expect << "struct Map_2 ZeroInit_Map_2(void);";
     func_expect << "sol_uint256_t Read_Map_2(struct Map_2*arr"
                 << ",sol_address_t key_0);";
@@ -366,10 +335,6 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
                 << ",sol_uint256_t dat);";
     func_expect << "void Set_Map_2(struct Map_2*arr,sol_address_t key_0"
                 << ",sol_uint256_t dat);";
-    func_expect << "void Init_A(struct A*self,sol_address_t sender"
-                << ",sol_uint256_t value,sol_uint256_t blocknum"
-                << ",sol_uint256_t timestamp,sol_bool_t paid"
-                << ",sol_address_t origin);";
     func_expect << "void Init_C(struct C*self,sol_address_t sender"
                 << ",sol_uint256_t value,sol_uint256_t blocknum"
                 << ",sol_uint256_t timestamp,sol_bool_t paid"
@@ -398,14 +363,9 @@ BOOST_AUTO_TEST_CASE(nested_maps)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -453,14 +413,9 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_actual, func_actual;
-    ADTConverter(ast, stack, false, 1, true).print(adt_actual);
+    ADTConverter(stack, false, 1, true).print(adt_actual);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        true
+        stack, false, 1, FunctionConverter::View::FULL, true
     ).print(func_actual);
 
     ostringstream adt_expect, func_expect;
@@ -521,23 +476,13 @@ BOOST_AUTO_TEST_CASE(reproducible)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream adt_1, adt_2, func_1, func_2;
-    ADTConverter(ast, stack, false, 1, false).print(adt_1);
-    ADTConverter(ast, stack, false, 1, false).print(adt_2);
+    ADTConverter(stack, false, 1, false).print(adt_1);
+    ADTConverter(stack, false, 1, false).print(adt_2);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        false
+        stack, false, 1, FunctionConverter::View::FULL, false
     ).print(func_1);
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        false
+        stack, false, 1, FunctionConverter::View::FULL, false
     ).print(func_2);
 
     BOOST_CHECK_EQUAL(adt_1.str(), adt_2.str());

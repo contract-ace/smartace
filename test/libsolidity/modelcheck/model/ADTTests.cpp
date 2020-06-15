@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    ADTConverter(ast, stack, false, 1, true).print(actual);
+    ADTConverter(stack, false, 1, true).print(actual);
     expect << "struct Map_1;";
     expect << "struct A_Struct_B;";
     expect << "struct Map_2;";
@@ -96,8 +96,8 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
     ostringstream actual_k_1;
     ostringstream actual_k_2;
 
-    ADTConverter(ast, stack, false, 1, false).print(actual_k_1);
-    ADTConverter(ast, stack, false, 2, false).print(actual_k_2);
+    ADTConverter(stack, false, 1, false).print(actual_k_1);
+    ADTConverter(stack, false, 2, false).print(actual_k_2);
 
     BOOST_CHECK(actual_k_1.str().find("data_0_0") != string::npos);
 
@@ -122,14 +122,15 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     )";
 
     auto const &unit = *parseAndAnalyse(text);
-    auto ctrt = retrieveContractByName(unit, "C");
+    auto ctrt_a = retrieveContractByName(unit, "A");
+    auto ctrt_c = retrieveContractByName(unit, "C");
 
-    vector<ContractDefinition const*> model({ ctrt });
+    vector<ContractDefinition const*> model({ ctrt_a, ctrt_c });
     vector<SourceUnit const*> full({ &unit });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    ADTConverter(unit, stack, false, 1, false).print(actual);
+    ADTConverter(stack, false, 1, false).print(actual);
     expect << "struct A"
            << "{"
            << "sol_address_t model_address;"
@@ -137,16 +138,6 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
            << "sol_int256_t user_a;"
            << "sol_int256_t user_b;"
            << "sol_int256_t user_c;"
-           << "};";
-    expect << "struct B"
-           << "{"
-           << "sol_address_t model_address;"
-           << "sol_uint256_t model_balance;"
-           << "sol_int256_t user_c;"
-           << "sol_int256_t user_d;"
-           << "sol_int256_t user_e;"
-           << "sol_int256_t user_a;"
-           << "sol_int256_t user_b;"
            << "};";
     expect << "struct C"
            << "{"
@@ -185,11 +176,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
 
     ostringstream actual, expect;
-    ADTConverter(unit, stack, false, 1, false).print(actual);
-    expect << "struct X"
-           << "{sol_address_t model_address;"
-           << "sol_uint256_t model_balance;"
-           << "};";
+    ADTConverter(stack, false, 1, false).print(actual);
     expect << "struct Y"
            << "{"
            << "sol_address_t model_address;"

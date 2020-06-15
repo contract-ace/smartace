@@ -26,7 +26,7 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-/**
+/*
  * Maintains a dictionary from AST Node addresses to type encoding metadata. The
  * mapping is restricted to AST Nodes for which types are practical, and records
  * must be generated on a per-source-unit basis.

@@ -13,6 +13,30 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+string get_error_type(ASTNode const* _node)
+{
+    string name = "unknown";
+    if (_node == nullptr)
+    {
+        name = "NULL_C_POINTER";
+    }
+    else if (auto DECL = dynamic_cast<Declaration const*>(_node))
+    {
+        name = DECL->name();
+    }
+    else if (auto EXPR = dynamic_cast<Expression const*>(_node))
+    {
+        name += "(" + EXPR->annotation().type->canonicalName() + ")";
+    }
+    else if (auto TYPE = dynamic_cast<TypeName const*>(_node))
+    {
+        name += "(" + TYPE->annotation().type->canonicalName() + ")";
+    }
+    return name;
+}
+
+// -------------------------------------------------------------------------- //
+
 ExpressionCleaner::ExpressionCleaner(Expression const& _expr)
 {
     _expr.accept(*this);

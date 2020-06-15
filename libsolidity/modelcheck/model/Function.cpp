@@ -5,6 +5,8 @@
 #include <libsolidity/modelcheck/analysis/CallGraph.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/analysis/Library.h>
+#include <libsolidity/modelcheck/analysis/Structure.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/model/Block.h>
 #include <libsolidity/modelcheck/model/Mapping.h>
@@ -34,14 +36,12 @@ const shared_ptr<CIdentifier> FunctionConverter::TMP =
 // -------------------------------------------------------------------------- //
 
 FunctionConverter::FunctionConverter(
-    ASTNode const& _ast,
-    std::shared_ptr<AnalysisStack> _stack,
+    shared_ptr<AnalysisStack> _stack,
     bool _add_sums,
     size_t _map_k,
     View _view,
     bool _fwd_dcl
-): M_AST(_ast)
- , M_ADD_SUMS(_add_sums)
+): M_ADD_SUMS(_add_sums)
  , M_MAP_K(_map_k)
  , M_VIEW(_view)
  , M_FWD_DCL(_fwd_dcl)
@@ -52,15 +52,39 @@ FunctionConverter::FunctionConverter(
 void FunctionConverter::print(ostream& _stream)
 {
 	ScopedSwap<ostream*> stream_swap(m_ostream, &_stream);
-    M_AST.accept(*this);
 
+    // Prints all library methods.
+    for (auto library : m_stack->libraries()->view())
+    {
+        // Prints structure specific methods.
+        for (auto structure : library->structures())
+        {
+            generate_structure(*structure);
+        }
+
+        // Prints user-defined methods.
+        for (auto func : library->functions())
+        {
+            generate_function(FunctionSpecialization(*func, *library->raw()));
+        }
+    }
+
+    // Prints all contract methods
     for (auto contract : m_stack->model()->view())
     {
-        // Generates initializer of the contract when in correct view.
-        if (M_VIEW != View::INT)
+        // Generates utility functions for structures.
+        for (auto structure : contract->structures())
         {
-            handle_contract_initializer(*contract->raw(), *contract->raw());
+            generate_structure(*structure);
         }
+
+        for (auto mapping : contract->mappings())
+        {
+            generate_mapping(*mapping);
+        }
+
+        // Prints initializer.
+        handle_contract_initializer(*contract->raw(), *contract->raw());
 
         // Performs special handling of the fallback method.
         if (auto fallback = contract->fallback())
@@ -68,117 +92,18 @@ void FunctionConverter::print(ostream& _stream)
             handle_function(FunctionSpecialization(*fallback), "void", false);
         }
 
-        // Generates the dependance-specified interface for the contract.
+        // Prints all user-defined public methods.
         for (auto func : contract->interface())
         {
-            for (auto func : m_stack->calls()->super_calls(*contract, *func))
-            {
-                generate_function(FunctionSpecialization(*func, *contract->raw()));
-            }
+            generate_method(*contract, *func);
         }
 
-        // Generates all internal dependencies of the contract.
+        // Prints all user-defined internal methods.
         for (auto func : m_stack->calls()->internals(*contract))
         {
-            for (auto func : m_stack->calls()->super_calls(*contract, *func))
-            {
-                generate_function(FunctionSpecialization(*func, *contract->raw()));
-            }
+            generate_method(*contract, *func);
         }
     }
-}
-
-// -------------------------------------------------------------------------- //
-
-bool FunctionConverter::visit(ContractDefinition const& _node)
-{
-    // TODO(scottwe): this should be known in advance.
-    // Libraries are handled differently from member functions.
-    if (_node.isLibrary())
-    {
-        // Generates the library methods.
-        for (auto FUNC : _node.definedFunctions())
-        {
-            generate_function(FunctionSpecialization(*FUNC, _node));
-        }
-    }
-
-    return true;
-}
-
-bool FunctionConverter::visit(StructDefinition const& _node)
-{
-    if (M_VIEW == View::EXT) return false;
-
-    InitFunction initdata(*m_stack->types(), _node);
-
-    SolDeclList basic_decls;
-    for (auto const& member : _node.members())
-    {
-        if (has_simple_type(*member)) basic_decls.push_back(member);
-    }
-
-    auto init_params = generate_params(basic_decls, nullptr, nullptr);
-
-    shared_ptr<CBlock> zero_body, init_body;
-    if (!M_FWD_DCL)
-    {
-        string const STRUCT_T = m_stack->types()->get_type(_node);
-
-        CBlockList stmts;
-        stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp"));
-        for (auto decl : _node.members())
-        {
-            string const NAME = VariableScopeResolver::rewrite(
-                decl->name(), false, VarContext::STRUCT
-            );
-
-            auto member = TMP->access(NAME);
-            auto init = m_stack->types()->get_init_val(*decl);
-            stmts.push_back(member->assign(move(init))->stmt());
-        }
-        stmts.push_back(make_shared<CReturn>(TMP));
-        zero_body = make_shared<CBlock>(move(stmts));
-
-        auto zinit = initdata.defaulted();
-        stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp", false, zinit));
-        for (auto decl : basic_decls)
-        {
-            string const NAME = VariableScopeResolver::rewrite(
-                decl->name(), false, VarContext::STRUCT
-            );
-
-            auto member = TMP->access(NAME);
-            auto param = make_shared<CIdentifier>(NAME, false);
-            stmts.push_back(member->assign(move(param))->stmt());
-        }
-        stmts.push_back(make_shared<CReturn>(TMP));
-        init_body = make_shared<CBlock>(move(stmts));
-    }
-
-    CFuncDef zero(initdata.default_id(), CParams{}, move(zero_body));
-    CFuncDef init(initdata.call_id(), move(init_params), move(init_body));
-
-    (*m_ostream) << zero << init;
-
-    return true;
-}
-
-bool FunctionConverter::visit(FunctionDefinition const&) { return false; }
-
-bool FunctionConverter::visit(ModifierDefinition const&) { return false; }
-
-bool FunctionConverter::visit(Mapping const& _node)
-{
-    if (M_VIEW == View::EXT) return false;
-
-    MapGenerator gen(_node, M_ADD_SUMS, M_MAP_K, *m_stack->types());
-    (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
-                 << gen.declare_read(M_FWD_DCL)
-                 << gen.declare_write(M_FWD_DCL)
-                 << gen.declare_set(M_FWD_DCL);
-
-    return false;
 }
 
 // -------------------------------------------------------------------------- //
@@ -230,14 +155,92 @@ CParams FunctionConverter::generate_params(
 
 // -------------------------------------------------------------------------- //
 
-bool FunctionConverter::record_pair(ASTNode const& inst, ASTNode const& user)
+void FunctionConverter::generate_mapping(Mapping const& _mapping)
 {
-    if (!m_handled[make_pair(inst.id(), user.id())])
+    if (M_VIEW == View::EXT) return;
+    if (!m_visited.insert(&_mapping).second) return;
+
+    MapGenerator gen(_mapping, M_ADD_SUMS, M_MAP_K, *m_stack->types());
+    (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
+                 << gen.declare_read(M_FWD_DCL)
+                 << gen.declare_write(M_FWD_DCL)
+                 << gen.declare_set(M_FWD_DCL);
+}
+
+// -------------------------------------------------------------------------- //
+
+void FunctionConverter::generate_structure(Structure const& _struct)
+{
+    if (M_VIEW == View::EXT) return;
+    if (!m_visited.insert(_struct.raw()).second) return;
+
+    for (auto mapping : _struct.mappings())
     {
-        m_handled[make_pair(inst.id(), user.id())] = true;
-        return true;
+        generate_mapping(*mapping);
     }
-    return false;
+
+    InitFunction initdata(*m_stack->types(), *_struct.raw());
+
+    SolDeclList basic_decls;
+    for (auto const& field : _struct.fields())
+    {
+        if (has_simple_type(*field)) basic_decls.push_back(field);
+    }
+
+    auto init_params = generate_params(basic_decls, nullptr, nullptr);
+
+    shared_ptr<CBlock> zero_body, init_body;
+    if (!M_FWD_DCL)
+    {
+        string const STRUCT_T = m_stack->types()->get_type(*_struct.raw());
+
+        CBlockList stmts;
+        stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp"));
+        for (auto field : _struct.fields())
+        {
+            string const NAME = VariableScopeResolver::rewrite(
+                field->name(), false, VarContext::STRUCT
+            );
+
+            auto member = TMP->access(NAME);
+            auto init = m_stack->types()->get_init_val(*field);
+            stmts.push_back(member->assign(move(init))->stmt());
+        }
+        stmts.push_back(make_shared<CReturn>(TMP));
+        zero_body = make_shared<CBlock>(move(stmts));
+
+        auto zinit = initdata.defaulted();
+        stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp", false, zinit));
+        for (auto field : basic_decls)
+        {
+            string const NAME = VariableScopeResolver::rewrite(
+                field->name(), false, VarContext::STRUCT
+            );
+
+            auto member = TMP->access(NAME);
+            auto param = make_shared<CIdentifier>(NAME, false);
+            stmts.push_back(member->assign(move(param))->stmt());
+        }
+        stmts.push_back(make_shared<CReturn>(TMP));
+        init_body = make_shared<CBlock>(move(stmts));
+    }
+
+    CFuncDef zero(initdata.default_id(), CParams{}, move(zero_body));
+    CFuncDef init(initdata.call_id(), move(init_params), move(init_body));
+
+    (*m_ostream) << zero << init;
+}
+
+// -------------------------------------------------------------------------- //
+
+void FunctionConverter::generate_method(
+    FlatContract const& _contract, FunctionDefinition const& _func
+)
+{
+    for (auto func : m_stack->calls()->super_calls(_contract, _func))
+    {
+        generate_function(FunctionSpecialization(*func, *_contract.raw()));
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -282,8 +285,7 @@ string FunctionConverter::handle_contract_initializer(
     auto const NAME = INIT_DATA.call_name();
     auto const* LOCAL_CTOR = _initialized.constructor();
 
-    // Ensures this specialization is new.
-    if (!record_pair(_initialized, _for)) return NAME;
+    if (M_VIEW == View::INT) return NAME;
 
     CParams params;
     string ctor_name;
@@ -424,10 +426,6 @@ string FunctionConverter::handle_function(
     FunctionSpecialization const& _spec, string _rv_type, bool _rv_is_ptr
 )
 {
-    // Ensures this specialization is new.
-    string fname = _spec.name(0);
-    if (!record_pair(_spec.func(), _spec.use_by())) return fname;
-
     // Determines if a contract initialization destination is required.
     ASTPointer<VariableDeclaration> dest;
     auto rvs = _spec.func().returnParameters();
@@ -484,7 +482,7 @@ string FunctionConverter::handle_function(
         (*m_ostream) << def;
     }
 
-    return fname;
+    return _spec.name(0);
 }
 
 // --------------------------------------------------------------------------

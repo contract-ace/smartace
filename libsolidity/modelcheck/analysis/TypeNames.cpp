@@ -148,11 +148,7 @@ string TypeAnalyzer::get_type(ASTNode const& _node) const
 {
     if (m_type_lookup.find(&_node) == m_type_lookup.end())
     {
-        string name = "unknown";
-        if (auto DECL = dynamic_cast<Declaration const*>(&_node))
-        {
-            name = DECL->name();
-        }
+        string name = get_error_type(&_node);
         throw runtime_error("get_type called on unknown ASTNode: " + name);
     }
     return m_type_lookup.find(&_node)->second;
@@ -163,19 +159,7 @@ string TypeAnalyzer::get_name(ASTNode const& _node) const
     auto const& RES = m_name_lookup.find(&_node);
     if (RES == m_name_lookup.end())
     {
-        string name = "unknown";
-        if (auto DECL = dynamic_cast<Declaration const*>(&_node))
-        {
-            name = DECL->name();
-        }
-        else if (auto EXPR = dynamic_cast<Expression const*>(&_node))
-        {
-            name += "(" + EXPR->annotation().type->canonicalName() + ")";
-        }
-        else if (auto TYPE = dynamic_cast<TypeName const*>(&_node))
-        {
-            name += "(" + TYPE->annotation().type->canonicalName() + ")";
-        }
+        string name = get_error_type(&_node);
         throw runtime_error("get_name called on unknown ASTNode: " + name);
     }
     return RES->second;
@@ -386,15 +370,9 @@ bool TypeAnalyzer::visit(IndexAccess const& _node)
     return false;
 }
 
-bool TypeAnalyzer::visit(EmitStatement const&)
-{
-    return false;
-}
+bool TypeAnalyzer::visit(EmitStatement const&) { return false; }
 
-bool TypeAnalyzer::visit(EventDefinition const&)
-{
-    return false;
-}
+bool TypeAnalyzer::visit(EventDefinition const&) { return false; }
 
 // -------------------------------------------------------------------------- //
 

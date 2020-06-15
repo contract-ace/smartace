@@ -50,12 +50,7 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        false
+        stack, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
            << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
@@ -93,12 +88,7 @@ BOOST_AUTO_TEST_CASE(payable_method)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        false
+        stack, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
            << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
@@ -142,12 +132,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        false
+        stack, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_0_A_Struct_B
     expect << "struct A_Struct_B ZeroInit_A_Struct_B(void)";
@@ -200,12 +185,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        false
+        stack, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Ctor_A
     expect << "void A_Constructor(struct A*self,sol_address_t sender"
@@ -257,12 +237,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
 
     ostringstream actual, expect;
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::FULL,
-        false
+        stack, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Init_0_A_Struct_B
     expect << "struct A_Struct_B ZeroInit_A_Struct_B(void)";
@@ -333,12 +308,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::EXT,
-        true
+        stack, false, 1, FunctionConverter::View::EXT, true
     ).print(ext_actual);
     ext_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t"
                << " value,sol_uint256_t blocknum,sol_uint256_t timestamp,"
@@ -349,12 +319,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     ostringstream int_actual, int_expect;
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::INT,
-        true
+        stack, false, 1, FunctionConverter::View::INT, true
     ).print(int_actual);
     int_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
     int_expect << "struct A_Struct_B Init_A_Struct_B(sol_int256_t user_i);";
@@ -394,12 +359,7 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
-        ast,
-        stack,
-        false,
-        1,
-        FunctionConverter::View::EXT,
-        true
+        stack, false, 1, FunctionConverter::View::EXT, true
     ).print(ext_actual);
     ext_expect << "void C_Constructor(struct C*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -419,6 +379,43 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
                << ",sol_address_t origin);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
+}
+
+BOOST_AUTO_TEST_CASE(inherited_duplicates)
+{
+    char const* text = R"(
+        contract A {
+            struct X {
+                int i;
+            }
+            mapping(address => int) m;
+        }
+        contract B is A {}
+        contract C is A {}
+    )";
+
+    auto const &ast = *parseAndAnalyse(text);
+    auto ctrt_b = retrieveContractByName(ast, "B");
+    auto ctrt_c = retrieveContractByName(ast, "C");
+
+    vector<ContractDefinition const*> model({ ctrt_b, ctrt_c });
+    vector<SourceUnit const*> full({ &ast });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+
+    ostringstream actual, expect;
+    FunctionConverter(
+        stack, false, 1, FunctionConverter::View::INT, true
+    ).print(actual);
+    expect << "struct A_Struct_X ZeroInit_A_Struct_X(void);";
+    expect << "struct A_Struct_X Init_A_Struct_X(sol_int256_t user_i);";
+    expect << "struct Map_1 ZeroInit_Map_1(void);";
+    expect << "sol_int256_t Read_Map_1(struct Map_1*arr,sol_address_t key_0);";
+    expect << "void Write_Map_1(struct Map_1*arr,sol_address_t key_0"
+           << ",sol_int256_t dat);";
+    expect << "void Set_Map_1(struct Map_1*arr,sol_address_t key_0"
+           << ",sol_int256_t dat);";
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
 
 // -------------------------------------------------------------------------- //

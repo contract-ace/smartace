@@ -5,6 +5,7 @@
 #include <libsolidity/modelcheck/analysis/CallGraph.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/analysis/Library.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 
 #include <stdexcept>
@@ -74,12 +75,25 @@ shared_ptr<CallGraph const> FlatCallAnalysis::calls() const
 
 // -------------------------------------------------------------------------- //
 
+LibraryAnalysis::LibraryAnalysis(InheritanceModel const& _model)
+ : FlatCallAnalysis(_model)
+{
+	m_libraries = make_shared<LibrarySummary>(*calls());
+}
+
+shared_ptr<LibrarySummary const> LibraryAnalysis::libraries() const
+{
+	return m_libraries;
+}
+
+// -------------------------------------------------------------------------- //
+
 FlatAddressAnalysis::FlatAddressAnalysis(
 	InheritanceModel const& _model,
 	std::vector<SourceUnit const*> _full,
 	size_t _clients,
 	bool _concrete_clients
-): FlatCallAnalysis(_model)
+): LibraryAnalysis(_model)
 {
 	m_addresses = make_shared<MapIndexSummary>(
 		_concrete_clients, _clients, model_cost()
@@ -115,7 +129,6 @@ shared_ptr<MapIndexSummary const> FlatAddressAnalysis::addresses() const
 {
 	return m_addresses;
 }
-
 
 // -------------------------------------------------------------------------- //
 

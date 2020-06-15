@@ -8,6 +8,7 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 
+#include <string>
 #include <type_traits>
 
 namespace dev
@@ -16,6 +17,14 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Stringifies unknown types for use in error messages. The error type for _node
+ * is returned.
+ */
+std::string get_error_type(ASTNode const* _node);
 
 // -------------------------------------------------------------------------- //
 

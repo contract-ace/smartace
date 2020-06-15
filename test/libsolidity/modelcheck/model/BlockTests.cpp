@@ -1081,6 +1081,41 @@ BOOST_AUTO_TEST_CASE(modifier_args)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(library_calls)
+{
+    char const* text = R"(
+        library Lib {
+            function incr(uint256 i) internal { i += 1; }
+            function f() public pure {}
+        }
+		contract A {
+            using Lib for uint256;
+			function f(uint256 i) public {
+                i.incr();
+                Lib.f();
+            }
+		}
+	)";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto func = ctrt->definedFunctions()[0];
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+
+    ostringstream actual, expect;
+    FunctionBlockConverter fbc(*func, stack);
+    fbc.set_for(FunctionSpecialization(*func));
+    actual << *fbc.convert();
+    expect << "{"
+           << "Lib_Method_incr(Init_sol_uint256_t((func_user_i).v));"
+           << "Lib_Method_f();"
+           << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

@@ -275,6 +275,55 @@ BOOST_AUTO_TEST_CASE(model_works)
     BOOST_CHECK_EQUAL(count["C"], 1);
 }
 
+BOOST_AUTO_TEST_CASE(structs_work)
+{
+    char const* text = R"(
+		contract A {
+            struct B { int a; }
+            struct C { int a; }
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+
+    vector<ContractDefinition const*> model({ ctrt_a });
+    AllocationGraph graph(model);
+
+    FlatModel flat_model(model, graph);
+    BOOST_CHECK_EQUAL(flat_model.view().size(), 1);
+    
+    auto flat_a = flat_model.get(*ctrt_a);
+    BOOST_CHECK_EQUAL(flat_a->structures().size(), 2);
+    if (flat_a->structures().size() == 2)
+    {
+        BOOST_CHECK_EQUAL(flat_a->structures().front()->name(), "B");
+        BOOST_CHECK_EQUAL(flat_a->structures().back()->name(), "C");
+    }
+}
+
+BOOST_AUTO_TEST_CASE(mappings_work)
+{
+    char const* text = R"(
+		contract A {
+            mapping(address => mapping(address => uint)) a;
+            mapping(address => uint) b;
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+
+    vector<ContractDefinition const*> model({ ctrt_a });
+    AllocationGraph graph(model);
+
+    FlatModel flat_model(model, graph);
+    BOOST_CHECK_EQUAL(flat_model.view().size(), 1);
+    
+    auto flat_a = flat_model.get(*ctrt_a);
+    BOOST_CHECK_EQUAL(flat_a->mappings().size(), 2);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

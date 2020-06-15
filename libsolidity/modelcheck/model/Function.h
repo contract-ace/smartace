@@ -23,7 +23,9 @@ namespace modelcheck
 {
 
 class AnalysisStack;
+class FlatContract;
 class FunctionSpecialization;
+class Structure;
 
 // -------------------------------------------------------------------------- //
 
@@ -32,17 +34,16 @@ using SolDeclList = std::vector<ASTPointer<VariableDeclaration>>;
 /**
  * Prints a forward declaration for each explicit (member function) and implicit
  * (default constructor, map accessor, etc.) Solidity function, according to the
- * C model.
+ * SmartACE model.
  */
-class FunctionConverter : public ASTConstVisitor
+class FunctionConverter
 {
 public:
 	// Specifies the class of methods to print.
 	enum class View { FULL, INT, EXT };
 
-    // Constructs a printer for all function forward decl's required by the ast.
+    // Constructs a printer for all functions in the model.
     FunctionConverter(
-        ASTNode const& _ast,
 		std::shared_ptr<AnalysisStack> _stack,
 		bool _add_sums,
 		size_t _map_k,
@@ -50,26 +51,14 @@ public:
 		bool _forward_declare
     );
 
-    // Prints each function-like declaration once, in some order. Special
-	// functions, such as constructors and accessors are also generated.
+    // Prints all user-defined functions, and implicit utility functions such as
+	// constructors and map accessors.
     void print(std::ostream& _stream);
 
-protected:
-	bool visit(ContractDefinition const& _node) override;
-	bool visit(StructDefinition const& _node) override;
-	bool visit(FunctionDefinition const& _node) override;
-	bool visit(ModifierDefinition const&) override;
-	bool visit(Mapping const& _node) override;
-
 private:
-	static FunctionDefinition const PLACEHOLDER_FUNC;
 	static std::shared_ptr<CIdentifier> const TMP;
 
-	std::map<std::pair<size_t, size_t>, bool> m_handled;
-
 	std::ostream* m_ostream = nullptr;
-
-	ASTNode const& M_AST;
 
 	bool const M_ADD_SUMS;
 	size_t const M_MAP_K;
@@ -78,6 +67,8 @@ private:
 	bool const M_FWD_DCL;
 
 	std::shared_ptr<AnalysisStack> m_stack;
+
+	std::set<void const*> m_visited;
 
 	// Formats all Solidity arguments (_decls) as a c-function argument list.
 	// If _scope is set, the function is assumed to be a method of _scope. The
@@ -90,21 +81,31 @@ private:
 		bool _instrumeneted = false
 	);
 
-	// Helper function to avoid duplicate visits to a single specialization. If
-	// the pair already exists, false is returned.
-	bool record_pair(ASTNode const& inst, ASTNode const& user);
+	// Writes all utility methods associated with _mapping.
+	void generate_mapping(Mapping const& _mapping);
 
-	// Determines whether or not to generate a function.
+	// Writes all utility methods associated with _struct.
+	void generate_structure(Structure const& _struct);
+
+	// Prints all inherited methods for function _func of contract _contract.
+	void generate_method(
+		FlatContract const& _contract, FunctionDefinition const& _func
+	);
+
+	// Prints the function specialization given by _spec.
 	void generate_function(FunctionSpecialization const& _spec);
 
-	// Generates a layer of the contract constructor.
+	// Prints the function specialization given by _spec, where the return value
+	// has stringified type _rv_type. If _rv_is_ptr is true, the value is
+	// returned by reference.
 	std::string handle_function(
 		FunctionSpecialization const& _spec,
 		std::string _rv_type,
 		bool _rv_is_ptr
 	);
 
-	// Recursively expands an initializer for a contract.
+	// Recursively expands the hierarchy of initializations for _for, starting
+	// from base contract _initialized.
 	std::string handle_contract_initializer(
     	ContractDefinition const& _initialized, ContractDefinition const& _for
 	);

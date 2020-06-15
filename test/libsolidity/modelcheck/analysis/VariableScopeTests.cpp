@@ -26,7 +26,7 @@ namespace test
 // -------------------------------------------------------------------------- //
 
 BOOST_FIXTURE_TEST_SUITE(
-    Analysis_VariableScopeResolution, ::dev::solidity::test::AnalysisFramework
+    Analysis_VariableScopeTests, ::dev::solidity::test::AnalysisFramework
 )
 
 // Tests that without a scope, resolution is exception free. The variable `var`

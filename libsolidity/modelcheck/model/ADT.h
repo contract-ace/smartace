@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/ast/AST.h>
 
 #include <memory>
 #include <ostream>
@@ -21,6 +21,8 @@ namespace modelcheck
 {
 
 class AnalysisStack;
+class FlatContract;
+class Structure;
 
 // -------------------------------------------------------------------------- //
 
@@ -28,15 +30,14 @@ class AnalysisStack;
  * Interprets the AST in terms of its C model, and prints forward declarations
  * for each of structures.
  */
-class ADTConverter : public ASTConstVisitor
+class ADTConverter
 {
 public:
     // Constructs a printer for all ADT's required by the ast's c model. The
 	// converter should provide translations for all typed ASTNodes. If forward
 	// declare is set, then the structure bodies are not generated.
     ADTConverter(
-        ASTNode const& _ast,
-		std::shared_ptr<AnalysisStack> _stack,
+		std::shared_ptr<AnalysisStack const> _stack,
 		bool _add_sums,
 		size_t _map_k,
 		bool _forward_declare
@@ -45,25 +46,26 @@ public:
     // Prints each ADT declaration once, in some order.
     void print(std::ostream& _stream);
 
-protected:
-	bool visit(ContractDefinition const& _node) override;
-	bool visit(Mapping const& _node) override;
-
-	void endVisit(VariableDeclaration const& _node) override;
-	void endVisit(StructDefinition const& _node) override;
-
 private:
-	ASTNode const& M_AST;
-
 	bool const M_ADD_SUMS;
 	size_t const M_MAP_K;
 	bool const M_FORWARD_DECLARE;
 
-	std::shared_ptr<AnalysisStack> m_stack;
+	std::shared_ptr<AnalysisStack const> m_stack;
 
 	std::ostream* m_ostream = nullptr;
 
-	std::set<ContractDefinition const*> m_built;
+	std::set<void const*> m_built;
+	
+	// Prints all dependencies of _contract, and then the contract itself.
+	void generate_contract(FlatContract const& _contract);
+
+	// Prints _mapping.
+	void generate_mapping(Mapping const& _mapping);
+
+	// Prints all mapping dependencies of _structure, and then the structure
+	// itself.
+	void generate_structure(Structure const& _structure);
 };
 
 // -------------------------------------------------------------------------- //

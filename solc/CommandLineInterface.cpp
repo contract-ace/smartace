@@ -1272,7 +1272,7 @@ void CommandLineInterface::handleCModel()
 {
 	// Generates an AST for each Solidity source unit.
 	vector<SourceUnit const*> asts;
-	for (auto const& sourceCode: m_sourceCodes)
+	for (auto const& sourceCode : m_sourceCodes)
 	{
 		SourceUnit const& ast = m_compiler->ast(sourceCode.first);
 		asts.push_back(&ast);
@@ -1352,8 +1352,8 @@ void CommandLineInterface::handleCModel()
 
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data, harness_data;
 		handleCModelHarness(harness_data);
-		handleCModelHeaders(asts, analysis_stack, cmodel_h_data);
-		handleCModelBody(asts, analysis_stack, cmodel_cpp_data);
+		handleCModelHeaders(analysis_stack, cmodel_h_data);
+		handleCModelBody(analysis_stack, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1367,9 +1367,9 @@ void CommandLineInterface::handleCModel()
 		sout() << "====== primitive.h =====" << endl;
 		handleCModelPrimitives(primitive_set, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
-		handleCModelHeaders(asts, analysis_stack, sout());
+		handleCModelHeaders(analysis_stack, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(asts, analysis_stack, sout());
+		handleCModelBody(analysis_stack, sout());
 		sout() << endl;
 	}
 }
@@ -1394,50 +1394,30 @@ void CommandLineInterface::handleCModelPrimitives(
 }
 
 void CommandLineInterface::handleCModelHeaders(
-	vector<SourceUnit const*> const& _parsed_contracts,
-	shared_ptr<modelcheck::AnalysisStack> _stack,
-	ostream& _os
+	shared_ptr<modelcheck::AnalysisStack> _stack, ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
 	using dev::solidity::modelcheck::FunctionConverter;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
+	size_t address_ct = _stack->addresses()->size();
 
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
 	_os << "void run_model(void);";
 
 	_stack->environment()->print(_os, true);
-	for (auto const* ast : _parsed_contracts)
-	{
-		ADTConverter cov(
-			*ast,
-			_stack,
-			sum_maps,
-			_stack->addresses()->size(),
-			true
-		);
-		cov.print(_os);
-	}
-	for (auto const* ast : _parsed_contracts)
-	{
-		FunctionConverter cov(
-			*ast,
-			_stack,
-			sum_maps,
-			_stack->addresses()->size(),
-			FunctionConverter::View::EXT,
-			true
-		);
-		cov.print(_os);
-	}
+
+	ADTConverter(_stack, sum_maps, address_ct, true).print(_os);
+
+	FunctionConverter(
+		_stack, sum_maps, address_ct, FunctionConverter::View::EXT, true
+	).print(_os);
 }
 
 void CommandLineInterface::handleCModelBody(
-	vector<SourceUnit const*> const& _parsed_contracts,
-	shared_ptr<modelcheck::AnalysisStack> _stack,
-	ostream& _os
+	shared_ptr<modelcheck::AnalysisStack> _stack, ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
@@ -1445,6 +1425,7 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
+	size_t address_ct = _stack->addresses()->size();
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 
 	_os << "#include \"cmodel.h\"" << endl;
@@ -1455,44 +1436,18 @@ void CommandLineInterface::handleCModelBody(
 	}
 
 	_stack->environment()->print(_os, false);
-	for (auto const* ast : _parsed_contracts)
-	{
-		ADTConverter cov(
-			*ast,
-			_stack,
-			sum_maps,
-			_stack->addresses()->size(),
-			false
-		);
-		cov.print(_os);
-	}
-	for (auto const* ast : _parsed_contracts)
-	{
-		FunctionConverter cov(
-			*ast,
-			_stack,
-			sum_maps,
-			_stack->addresses()->size(),
-			FunctionConverter::View::INT,
-			true
-		);
-		cov.print(_os);
-	}
-	for (auto const* ast : _parsed_contracts)
-	{
-		FunctionConverter cov(
-			*ast,
-			_stack,
-			sum_maps,
-			_stack->addresses()->size(),
-			FunctionConverter::View::FULL,
-			false
-		);
-		cov.print(_os);
-	}
 
-	modelcheck::MainFunctionGenerator main_gen(lockstep_time, _stack);
-	main_gen.print(_os);
+	ADTConverter(_stack, sum_maps, address_ct, false).print(_os);
+
+	FunctionConverter(
+		_stack, sum_maps, address_ct, FunctionConverter::View::INT, true
+	).print(_os);
+
+	FunctionConverter(
+		_stack, sum_maps, address_ct, FunctionConverter::View::FULL, false
+	).print(_os);
+
+	MainFunctionGenerator(lockstep_time, _stack).print(_os);
 }
 
 bool CommandLineInterface::actOnInput()

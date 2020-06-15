@@ -12,6 +12,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace dev
 {
@@ -19,6 +20,34 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Simple utility to extract mappings from a list of variable declarations.
+ */
+class MappingExtractor : public ASTConstVisitor
+{
+public:
+    // Creates an empty extractor.
+    MappingExtractor() = default;
+
+    // Extracts all mappings from _vars.
+    explicit
+        MappingExtractor(std::vector<ASTPointer<VariableDeclaration>> _vars);
+
+    // Manually analyzes _var, to aggregate mappings across multiple lists.
+    void record(VariableDeclaration const* _var);
+
+    // Returns the extracted mappings.
+    std::list<Mapping const*> get() const;
+
+protected:
+	bool visit(Mapping const& _node) override;
+
+private:
+    std::list<Mapping const*> m_mappings;
+};
 
 // -------------------------------------------------------------------------- //
 

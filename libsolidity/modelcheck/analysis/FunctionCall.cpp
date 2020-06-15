@@ -1,6 +1,7 @@
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 
 #include <libsolidity/modelcheck/utils/AST.h>
+#include <libsolidity/modelcheck/utils/Types.h>
 
 #include <iostream>
 
@@ -66,8 +67,12 @@ bool FunctionCallAnalyzer::is_super() const
 
 bool FunctionCallAnalyzer::is_in_library() const
 {
-    auto scope = dynamic_cast<ContractDefinition const*>(decl().scope());
-	return scope->isLibrary();
+	if (m_decl)
+	{
+    	auto scope = dynamic_cast<ContractDefinition const*>(decl().scope());
+		return (scope && scope->isLibrary());
+	}
+	return false;
 }
 
 FunctionType const& FunctionCallAnalyzer::type() const
@@ -166,6 +171,15 @@ bool FunctionCallAnalyzer::visit(MemberAccess const& _node)
     else if (!m_context)
     {
         m_context = (&ExpressionCleaner(_node.expression()).clean());
+
+		auto raw_type = m_context->annotation().type;
+		if (auto type = dynamic_cast<ContractType const*>(&unwrap(*raw_type)))
+		{
+			if (type->contractDefinition().isLibrary())
+			{
+				m_context = nullptr;
+			}
+		}
     }
 
     _node.expression().accept(*this);

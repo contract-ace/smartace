@@ -31,6 +31,7 @@ class AllocationGraph;
 class CallGraph;
 class CallState;
 class FlatModel;
+class LibrarySummary;
 class MapIndexSummary;
 class TypeAnalyzer;
 
@@ -100,10 +101,28 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The fourth pass of analysis ensures that addresses are used appropriately,
+ * The fourth pass uses call data to determine the mappings in use.
+ */
+class LibraryAnalysis : public FlatCallAnalysis
+{
+public:
+    // Equivalent to calling LibrarySummary(*calls()).
+    LibraryAnalysis(InheritanceModel const& _model);
+
+    // Describes all libraries in use by the bundle.
+    std::shared_ptr<LibrarySummary const> libraries() const;
+
+private:
+    std::shared_ptr<LibrarySummary> m_libraries;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * The fifth pass of analysis ensures that addresses are used appropriately,
  * and computes the required parameters for compositional reasoning.
  */
-class FlatAddressAnalysis : public FlatCallAnalysis
+class FlatAddressAnalysis : public LibraryAnalysis
 {
 public:
     // Equivalent to calling FlatAddressAnalysis(_concrete, _clients,

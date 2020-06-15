@@ -104,16 +104,16 @@ BOOST_AUTO_TEST_CASE(basic_access)
     )";
 
     const auto& unit = *parseAndAnalyse(text);
-    const auto& ctrt = *retrieveContractByName(unit, "A");
-    const auto& mapping = *ctrt.stateVariables()[2];
-    const auto& funcdef = *ctrt.definedFunctions()[0];
-    const auto& exprstmt = *static_cast<ExpressionStatement const*>(
-        funcdef.body().statements()[0].get()
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto mapping = ctrt->stateVariables()[2];
+    auto funcdef = ctrt->definedFunctions()[0];
+    auto exprstmt = dynamic_cast<ExpressionStatement const*>(
+        funcdef->body().statements()[0].get()
     );
-    const auto& mapindex = static_cast<IndexAccess const&>(exprstmt.expression());
+    auto mapindex = dynamic_cast<IndexAccess const*>(&exprstmt->expression());
 
-    FlatIndex idx1(mapindex);
-    FlatIndex idx2(static_cast<IndexAccess const&>(mapindex.baseExpression()));
+    FlatIndex idx1(*mapindex);
+    FlatIndex idx2(dynamic_cast<IndexAccess const&>(mapindex->baseExpression()));
 
     BOOST_CHECK_EQUAL(idx1.indices().size(), 3);
     BOOST_CHECK_EQUAL(idx2.indices().size(), 2);
@@ -141,12 +141,69 @@ BOOST_AUTO_TEST_CASE(basic_access)
         Type::Category::Address
     );
     
-    const auto* base = dynamic_cast<Identifier const&>(
+    auto base = dynamic_cast<Identifier const&>(
         idx1.base()
     ).annotation().referencedDeclaration;
-    BOOST_CHECK_EQUAL(base, &mapping);
+    BOOST_CHECK_EQUAL(base, mapping);
 
-    BOOST_CHECK_EQUAL(mapping.typeName(), idx1.decl().typeName());
+    BOOST_CHECK_EQUAL(mapping->typeName(), idx1.decl().typeName());
+}
+
+BOOST_AUTO_TEST_CASE(extraction_record)
+{
+    char const* text = R"(
+        contract A {
+            int a;
+            mapping(address => int) b;
+            mapping(address => mapping(address => int)) c;
+            int d;
+            mapping(address => int) e;
+            int f;
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto decls = ctrt->stateVariables();
+
+    MappingExtractor extractor;
+    for (auto var : decls) extractor.record(var);
+    BOOST_CHECK_EQUAL(extractor.get().size(), 3);
+
+    set<TypeName const*> refs;
+    for (auto mapping : extractor.get()) refs.insert(mapping);
+    BOOST_CHECK(refs.find(decls[1]->typeName()) != refs.end());
+    BOOST_CHECK(refs.find(decls[2]->typeName()) != refs.end());
+    BOOST_CHECK(refs.find(decls[4]->typeName()) != refs.end());
+}
+
+BOOST_AUTO_TEST_CASE(extraction_ctor)
+{
+    char const* text = R"(
+        contract A {
+            struct B {
+                int a;
+                mapping(address => int) b;
+                mapping(address => mapping(address => int)) c;
+                int d;
+                mapping(address => int) e;
+                int f;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto decls = ctrt->definedStructs()[0]->members();
+
+    MappingExtractor extractor(ctrt->definedStructs()[0]->members());
+    BOOST_CHECK_EQUAL(extractor.get().size(), 3);
+
+    set<TypeName const*> refs;
+    for (auto mapping : extractor.get()) refs.insert(mapping);
+    BOOST_CHECK(refs.find(decls[1]->typeName()) != refs.end());
+    BOOST_CHECK(refs.find(decls[2]->typeName()) != refs.end());
+    BOOST_CHECK(refs.find(decls[4]->typeName()) != refs.end());
 }
 
 BOOST_AUTO_TEST_SUITE_END();

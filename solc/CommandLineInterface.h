@@ -76,14 +76,10 @@ private:
 		modelcheck::PrimitiveTypeGenerator _gen, std::ostream& _os
 	);
 	void handleCModelHeaders(
-		std::vector<SourceUnit const*> const& _parsed_contracts,
-		std::shared_ptr<modelcheck::AnalysisStack> _stack,
-		std::ostream& _os
+		std::shared_ptr<modelcheck::AnalysisStack> _stack, std::ostream & _os
 	);
 	void handleCModelBody(
-		std::vector<SourceUnit const*> const& _parsed_contracts,
-		std::shared_ptr<modelcheck::AnalysisStack> _stack,
-		std::ostream & _os
+		std::shared_ptr<modelcheck::AnalysisStack> _stack, std::ostream & _os
 	);
 	void handleBinary(std::string const& _contract);
 	void handleOpcode(std::string const& _contract);

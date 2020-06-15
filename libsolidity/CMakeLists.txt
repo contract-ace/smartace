@@ -120,10 +120,14 @@ set(sources
 	modelcheck/analysis/FunctionCall.h
 	modelcheck/analysis/Inheritance.cpp
 	modelcheck/analysis/Inheritance.h
+	modelcheck/analysis/Library.cpp
+	modelcheck/analysis/Library.h
 	modelcheck/analysis/Mapping.cpp
 	modelcheck/analysis/Mapping.h
 	modelcheck/analysis/Primitives.cpp
 	modelcheck/analysis/Primitives.h
+	modelcheck/analysis/Structure.cpp
+	modelcheck/analysis/Structure.h
 	modelcheck/analysis/TypeNames.cpp
 	modelcheck/analysis/TypeNames.h
 	modelcheck/analysis/VariableScope.cpp
@@ -166,6 +170,8 @@ set(sources
 	modelcheck/utils/Function.h
 	modelcheck/utils/LibVerify.cpp
 	modelcheck/utils/LibVerify.h
+	modelcheck/utils/Named.cpp
+	modelcheck/utils/Named.h
 	modelcheck/utils/Types.cpp
 	modelcheck/utils/Types.h
 	parsing/DocStringParser.cpp

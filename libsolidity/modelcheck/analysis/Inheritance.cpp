@@ -21,8 +21,10 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 FlatContract::FlatContract(ContractDefinition const& _contract)
- : M_NAME(_contract.name()), m_raw(&_contract), m_fallback(nullptr)
+ : StructureContainer(_contract), m_fallback(nullptr)
 {
+    MappingExtractor extractor;
+
     map<string, FunctionList> registered_functions;
     set<string> variable_names;
     for (auto c : _contract.annotation().linearizedBaseContracts)
@@ -75,9 +77,12 @@ FlatContract::FlatContract(ContractDefinition const& _contract)
             if (variable_names.insert(v->name()).second)
             {
                 m_vars.push_back(v);
+                extractor.record(v);
             }
         }
     }
+
+    m_mappings = extractor.get();
 }
 
 FlatContract::FunctionList const& FlatContract::interface() const
@@ -88,11 +93,6 @@ FlatContract::FunctionList const& FlatContract::interface() const
 FlatContract::VariableList const& FlatContract::state_variables() const
 {
     return m_vars;
-}
-
-string const& FlatContract::name() const
-{
-    return M_NAME;
 }
 
 FlatContract::FunctionList FlatContract::constructors() const
@@ -125,10 +125,9 @@ FunctionDefinition const&
     throw runtime_error("Could not resolve function against flat contract.");
 }
 
-ContractDefinition const* FlatContract::raw() const
+list<Mapping const*> FlatContract::mappings() const
 {
-    // TODO: deprecate.
-    return m_raw;
+    return m_mappings;
 }
 
 // -------------------------------------------------------------------------- //

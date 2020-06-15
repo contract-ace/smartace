@@ -7,6 +7,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/Structure.h>
 
 #include <list>
 #include <map>
@@ -21,13 +22,14 @@ namespace modelcheck
 {
 
 class AllocationGraph;
+class Structure;
 
 // -------------------------------------------------------------------------- //
 
 /**
  * Creates a flat interface around the contract.
  */
-class FlatContract
+class FlatContract : public StructureContainer
 {
 public:
     using FunctionList = std::list<FunctionDefinition const*>;
@@ -42,9 +44,6 @@ public:
     // Returns all inherited variables of the contract.
     VariableList const& state_variables() const;
 
-    // Returns the name of the contract.
-    std::string const& name() const;
-
     // Returns the constructor chain.
     FunctionList constructors() const;
 
@@ -52,23 +51,21 @@ public:
     FunctionDefinition const* fallback() const;
 
     // Finds a method matching _func, or throws.
-    FunctionDefinition const& resolve(FunctionDefinition const& _func) const;
+    FunctionDefinition const&
+        resolve(FunctionDefinition const& _func) const;
 
-    // TODO(scottwe): temporary solution to simplify transition.
-    ContractDefinition const* raw() const;
+    // Returns the mappings defiend (directly) by this contract.
+    std::list<Mapping const*> mappings() const;
 
 private:
-    std::string const M_NAME;
-
-    // TODO: deprecate.
-    ContractDefinition const* m_raw;
-
     FunctionList m_public;
     FunctionList m_private;
     VariableList m_vars;
 
     FunctionList m_constructors;
     FunctionDefinition const* m_fallback;
+
+    std::list<Mapping const*> m_mappings;
 };
 
 // -------------------------------------------------------------------------- //

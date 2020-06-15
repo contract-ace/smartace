@@ -166,6 +166,7 @@ BOOST_AUTO_TEST_CASE(special_annotations)
     char const* text = R"(
         library Lib {
             function incr(uint256 x) internal {}
+            function f() public pure {}
         }
         contract X {
             function g(uint256 _x) public {}
@@ -176,6 +177,7 @@ BOOST_AUTO_TEST_CASE(special_annotations)
                 _x.incr();
                 super.g(_x);
                 assert(_x != 5);
+                Lib.f();
             }
         }
     )";
@@ -184,7 +186,7 @@ BOOST_AUTO_TEST_CASE(special_annotations)
 
     auto const* x = retrieveContractByName(unit, "Test");
     auto const& stmts = x->definedFunctions()[0]->body().statements();
-    BOOST_CHECK_EQUAL(stmts.size(), 3);
+    BOOST_CHECK_EQUAL(stmts.size(), 4);
 
     CallSearch call1(stmts[0]);
     FunctionCallAnalyzer test1(*call1.call);
@@ -197,6 +199,11 @@ BOOST_AUTO_TEST_CASE(special_annotations)
     CallSearch call3(stmts[2]);
     FunctionCallAnalyzer test3(*call3.call);
     BOOST_CHECK(test3.classify() == FunctionCallAnalyzer::CallGroup::Assert);
+
+    CallSearch call4(stmts[3]);
+    FunctionCallAnalyzer test4(*call4.call);
+    BOOST_CHECK(test4.is_in_library());
+    BOOST_CHECK_EQUAL(test4.context(), nullptr);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

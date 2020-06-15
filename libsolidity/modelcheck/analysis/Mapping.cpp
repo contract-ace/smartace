@@ -15,6 +15,28 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+MappingExtractor::MappingExtractor(
+    vector<ASTPointer<VariableDeclaration>> _vars
+)
+{
+    for (auto var : _vars) record(var.get());
+}
+
+void MappingExtractor::record(VariableDeclaration const* _var)
+{
+    _var->accept(*this);
+}
+
+list<Mapping const*> MappingExtractor::get() const { return m_mappings; }
+
+bool MappingExtractor::visit(Mapping const& _node)
+{
+    m_mappings.push_back(&_node);
+    return false;
+}
+
+// -------------------------------------------------------------------------- //
+
 MapDeflate::FlatMap MapDeflate::query(Mapping const& _map)
 {
     auto & flatmap = m_flatset[&_map];
