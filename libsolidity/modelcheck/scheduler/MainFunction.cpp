@@ -43,7 +43,8 @@ void MainFunctionGenerator::print(ostream& _stream)
     auto next_case = make_shared<CVarDecl>("uint8_t", "next_call");
 
     CBlockList default_case;
-    LibVerify::require(default_case, Literals::ZERO);
+    string default_err("Model failure, next_call out of bounds.");
+    LibVerify::add_require(default_case, Literals::ZERO, default_err);
 
     auto call_cases = make_shared<CSwitch>(next_case->id(), move(default_case));
     for (auto actor : m_actors.inspect())

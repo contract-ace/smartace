@@ -157,7 +157,7 @@ uint8_t nd_byte(const char* _msg)
 uint8_t nd_range(uint8_t _l, uint8_t _u, const char* _msg)
 {
     stringstream type;
-    type << "uint8 from " << _l << " to " << (_u - 1);
+    type << "uint8 from " << unsigned(_l) << " to " << unsigned(_u - 1);
     on_entry(type.str().c_str(), _msg);
 
     uint8_t retval;
@@ -204,7 +204,7 @@ sol_raw_uint256_t nd_increase(
 )
 {
     stringstream type;
-    type << "uint " << (_strict ? " larger" : " no less") << " than " << _curr;
+    type << "uint " << (_strict ? "larger" : "no less") << " than " << _curr;
     on_entry(type.str().c_str(), _msg);
 
     sol_raw_uint256_t next = ll_nd_uint256_t();

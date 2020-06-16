@@ -26,11 +26,19 @@ namespace modelcheck
 class LibVerify
 {
 public:
-    // Appends an assert statement to _block, conditioned on _cond.
-    static void assertion(CBlockList & _block, CExprPtr _cond);
+    //
+    static CExprPtr make_require(CExprPtr _cond, std::string _msg = "");
 
-    // Appends a require statement to _block, conditioned on _cond.
-    static void require(CBlockList & _block, CExprPtr _cond);
+    // 
+    static CExprPtr make_assert(CExprPtr _cond, std::string _msg = "");
+
+    // 
+    static void
+        add_assert(CBlockList & _block, CExprPtr _cond, std::string _msg = "");
+
+    // 
+    static void
+        add_require(CBlockList & _block, CExprPtr _cond, std::string _msg = "");
 
     // Produces a range between two values.
     static CExprPtr range(uint8_t _l, uint8_t _u, std::string const& _msg);
@@ -45,9 +53,14 @@ public:
     static CExprPtr increase(CExprPtr _curr, bool _strict, std::string _msg);
 
 private:
-    // Appends a specification of type _op, in _block conditioned on _cond.
-    static void
-        assert_impl(std::string _op, CBlockList & _block, CExprPtr _cond);
+    // 
+    static void add_property(
+        std::string _op, CBlockList & _block, CExprPtr _cond, std::string _msg
+    );
+
+    //
+    static CExprPtr
+        make_property(std::string _op, CExprPtr _cond, std::string _msg);
 };
 
 // -------------------------------------------------------------------------- //

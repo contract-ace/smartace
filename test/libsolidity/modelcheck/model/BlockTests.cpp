@@ -587,7 +587,7 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
     actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
     expected << "sol_require(1,0);";
-    expected << "sol_require(1,0);";
+    expected << "sol_require(1,\"test\");";
     expected << "sol_assert(1,0);";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());

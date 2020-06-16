@@ -58,7 +58,7 @@ class CComment : public CStmt
 {
 public:
     // Creates a literal of signed value _val.
-    CComment(std::string _val);
+    explicit CComment(std::string _val);
 
     ~CComment() = default;
 
@@ -163,7 +163,7 @@ class CIntLiteral : public CExpr
 {
 public:
     // Creates a literal of signed value _val.
-    CIntLiteral(long long int _val);
+    explicit CIntLiteral(long long int _val);
 
     ~CIntLiteral() = default;
 
@@ -182,7 +182,7 @@ class CStringLiteral : public CExpr
 {
 public:
     // Creates a literal of some string.
-    CStringLiteral(std::string const& _val);
+    explicit CStringLiteral(std::string const& _val);
 
     ~CStringLiteral() = default;
 
@@ -225,7 +225,7 @@ private:
 class CReference : public CUnaryOp
 {
 public:
-    CReference(CExprPtr _expr);
+    explicit CReference(CExprPtr _expr);
     ~CReference() = default;
 
     bool is_pointer() const override;
@@ -237,7 +237,7 @@ public:
 class CDereference : public CUnaryOp
 {
 public:
-    CDereference(CExprPtr _expr);
+    explicit CDereference(CExprPtr _expr);
     ~CDereference() = default;
 };
 
@@ -358,7 +358,7 @@ class CBlock : public CStmt
 {
 public:
     // Wraps a list of statements inside a brace-enclosed block.
-    CBlock(CBlockList _stmts);
+    explicit CBlock(CBlockList _stmts);
 
     ~CBlock() = default;
 
@@ -377,7 +377,7 @@ class CExprStmt : public CStmt
 {
 public:
     // Wraps the expression with a statement.
-    CExprStmt(CExprPtr _expr);
+    explicit CExprStmt(CExprPtr _expr);
 
     ~CExprStmt() = default;
 
@@ -496,7 +496,7 @@ class CSwitch : public CStmt
 public:
     // Constructs a while loop with given condition and body. If set to run at
     // least once, a do/while loop is generated.
-    CSwitch(CExprPtr _cond);
+    explicit CSwitch(CExprPtr _cond);
     CSwitch(CExprPtr _cond, CBlockList _default);
 
     // Adds a case `case _val: _body`.
@@ -551,7 +551,7 @@ class CReturn : public CStmt
 {
 public:
     // Creates a return statement with a return value.
-    CReturn(CExprPtr _retval);
+    explicit CReturn(CExprPtr _retval);
 
     ~CReturn() = default;
 

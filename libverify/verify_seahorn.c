@@ -28,14 +28,38 @@ void sol_on_transaction(void) {}
 
 // -------------------------------------------------------------------------- //
 
+#ifdef MC_LOG_ALL
+void log_assertion(const char* _type, sol_raw_uint8_t _cond, const char* _msg)
+{
+	if (!_cond)
+	{
+		if (_msg)
+		{
+			printf("%s: %s\n", _type, _msg);
+		}
+		else
+		{
+			printf("%s\n", _type);
+		}
+	}
+}
+#endif
+
 void sol_assert(sol_raw_uint8_t _cond, const char* _msg)
 {
+    (void) _msg;
+	#ifdef MC_LOG_ALL
+    log_assertion("assert", _cond, _msg);
+	#endif
     sassert(_cond);
 }
 
 void sol_require(sol_raw_uint8_t _cond, const char* _msg)
 {
     (void) _msg;
+	#ifdef MC_LOG_ALL
+    log_assertion("require", _cond, _msg);
+	#endif
     ll_assume(_cond);
 }
 

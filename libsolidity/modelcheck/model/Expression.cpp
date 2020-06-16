@@ -13,6 +13,7 @@
 #include <libsolidity/modelcheck/utils/Ether.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <stdexcept>
@@ -646,15 +647,15 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Revert)
 	{
-		print_revert(_call.arguments());
+		print_revert();
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Assert)
 	{
-		print_assertion("sol_assert", _call.arguments());
+		print_property(true, _call.arguments());
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Require)
 	{
-		print_assertion("sol_require", _call.arguments());
+		print_property(false, _call.arguments());
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Logging)
 	{
@@ -880,28 +881,32 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 	}
 }
 
-void ExpressionConverter::print_assertion(string _type, SolArgList const& _args)
+void ExpressionConverter::print_revert()
 {
-	if (_args.empty())
-	{
-		throw runtime_error("Assertion requires condition.");
-	}
-
-	// TODO(scottwe): support for messages.
-	CFuncCallBuilder builder(_type);
-	const InaccessibleDynamicType RAW_TYPE;
-	builder.push(*_args[0], m_stack, M_DECLS, false, &RAW_TYPE);
-	builder.push(Literals::ZERO);
-	m_subexpr = builder.merge_and_pop();
+	m_subexpr = LibVerify::make_require(Literals::ZERO, "Revert.");
 }
 
-void ExpressionConverter::print_revert(SolArgList const&)
+void ExpressionConverter::print_property(bool _fail, SolArgList const& _args)
 {
-	// TODO(scottwe): support for messages.
-	CFuncCallBuilder builder("sol_require");
-	builder.push(Literals::ZERO);
-	builder.push(Literals::ZERO);
-	m_subexpr = builder.merge_and_pop();
+	string err_msg;
+	if (_args.size() > 1)
+	{
+		ExpressionCleaner raw_expr(*_args[1]);
+		if (auto str_expr = dynamic_cast<Literal const*>(&raw_expr.clean()))
+		{
+			err_msg = str_expr->value();
+		}
+	}
+
+	ExpressionConverter cond(*_args[0], m_stack, M_DECLS, false);
+	if (_fail)
+	{
+		m_subexpr = LibVerify::make_assert(cond.convert(), err_msg);
+	}
+	else
+	{
+		m_subexpr = LibVerify::make_require(cond.convert(), err_msg);
+	}
 }
 
 // -------------------------------------------------------------------------- //

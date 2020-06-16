@@ -3,7 +3,10 @@
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+
+#include <sstream>
 
 using namespace std;
 
@@ -163,13 +166,8 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
     {
         auto default_val = M_CONVERTER.get_init_val(*M_MAP_RECORD.value_type);
 
-        CFuncCallBuilder on_fail("sol_assert");
-        on_fail.push(Literals::ZERO);
-        on_fail.push(Literals::ZERO);
-
         body = make_shared<CBlock>(CBlockList{
             expand_access(0, "", false, false),
-            on_fail.merge_and_pop_stmt(),
             make_shared<CReturn>(move(default_val))
         });
     }
@@ -266,7 +264,24 @@ CStmtPtr MapGenerator::expand_access(
 
             stmt = make_shared<CIf>(move(cond), move(next), move(stmt));
         }
-        return make_shared<CBlock>(CBlockList{stmt});
+
+        CBlockList stmts;
+        if (_depth == 0)
+        {
+            for (size_t i = 0; i < M_MAP_RECORD.key_types.size(); ++i)
+            {
+                auto const REQ_KEY = m_keys[i]->access("v");
+                auto key = make_shared<CIntLiteral>(M_LEN);
+                auto cond = make_shared<CBinaryOp>(move(key), ">=", REQ_KEY);
+
+                ostringstream err_msg;
+                err_msg << "Model failure, mapping key out of bounds.";
+
+                LibVerify::add_assert(stmts, cond, err_msg.str());
+            }
+        }
+        stmts.push_back(stmt);
+        return make_shared<CBlock>(move(stmts));
     }
 }
 

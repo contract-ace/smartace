@@ -10,6 +10,8 @@
 #include <libsolidity/modelcheck/utils/Ether.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 
+#include <sstream>
+
 using namespace std;
 
 namespace dev
@@ -64,16 +66,18 @@ void EtherMethodGenerator::generate_pay(
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto bal_cond = make_shared<CBinaryOp>(
+        auto cond = make_shared<CBinaryOp>(
             BAL_VAR->access("v"), ">=", AMT_VAR->access("v")
         );
-        auto bal_change = make_shared<CBinaryOp>(
+        auto update = make_shared<CBinaryOp>(
             BAL_VAR->access("v"), "-=", AMT_VAR->access("v")
         );
 
+        string error_msg("Insufficient funds to call.");
+
         CBlockList statements;
-        LibVerify::require(statements, bal_cond);
-        statements.push_back(bal_change->stmt());
+        LibVerify::add_require(statements, cond, error_msg);
+        statements.push_back(update->stmt());
         statements.push_back(make_shared<CReturn>(AMT_VAR->id()));
         body = make_shared<CBlock>(move(statements));
     }
@@ -116,7 +120,8 @@ void EtherMethodGenerator::generate_send(
             if (i > 0 && bundle[i - 1]->is_payable())
             {
                 // TODO(scottwe): support sends with fallbacks.
-                LibVerify::assertion(handler_list, Literals::ZERO);
+                string err_msg("Fallback not allowed in.");
+                LibVerify::add_assert(handler_list, Literals::ZERO, err_msg);
             }
             else
             {
@@ -144,12 +149,15 @@ void EtherMethodGenerator::generate_transfer(
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto send = make_shared<CFuncCall>(
-            Ether::SEND, CArgList{BAL_VAR->id(), DST_VAR->id(), AMT_VAR->id()}
-        );
+        string err_msg("Transfer failed.");
+
+        CFuncCallBuilder send_call(Ether::SEND);
+        send_call.push(BAL_VAR->id());
+        send_call.push(DST_VAR->id());
+        send_call.push(AMT_VAR->id());
 
         CBlockList statements;
-        LibVerify::require(statements, send);
+        LibVerify::add_require(statements, send_call.merge_and_pop(), err_msg);
         body = make_shared<CBlock>(move(statements));
     }
 

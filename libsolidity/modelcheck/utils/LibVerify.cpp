@@ -21,14 +21,24 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-void LibVerify::assertion(CBlockList & _block, CExprPtr _cond)
+CExprPtr LibVerify::make_require(CExprPtr _cond, string _msg)
 {
-    assert_impl("sol_assert", _block, _cond);
+    return make_property("sol_require", _cond, _msg);
 }
 
-void LibVerify::require(CBlockList & _block, CExprPtr _cond)
+CExprPtr LibVerify::make_assert(CExprPtr _cond, string _msg)
 {
-    assert_impl("sol_require", _block, _cond);
+    return make_property("sol_assert", _cond, _msg);
+}
+
+void LibVerify::add_assert(CBlockList & _block, CExprPtr _cond, string _msg)
+{
+    add_property("sol_assert", _block, _cond, _msg);
+}
+
+void LibVerify::add_require(CBlockList & _block, CExprPtr _cond, string _msg)
+{
+    add_property("sol_require", _block, _cond, _msg);
 }
 
 CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
@@ -72,10 +82,25 @@ CExprPtr LibVerify::increase(CExprPtr _curr, bool _strict, string _msg)
     return call.merge_and_pop();
 }
 
-void LibVerify::assert_impl(string _op, CBlockList & _block, CExprPtr _cond)
+void LibVerify::add_property(
+    string _op, CBlockList & _block, CExprPtr _cond, string _msg
+)
 {
-    auto fn = make_shared<CFuncCall>(_op, CArgList{_cond, Literals::ZERO});
-    _block.push_back(fn->stmt());
+    _block.push_back(make_shared<CExprStmt>(make_property(_op, _cond, _msg)));
+}
+
+CExprPtr LibVerify::make_property(string _op, CExprPtr _cond, string _msg)
+{
+    CExprPtr msg_param;
+    if (_msg.empty())
+    {
+        msg_param = Literals::ZERO;
+    }
+    else
+    {
+        msg_param = make_shared<CStringLiteral>(_msg);
+    }
+    return make_shared<CFuncCall>(_op, CArgList{_cond, msg_param});
 }
 
 // -------------------------------------------------------------------------- //

@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(handles_contract_addresses)
            << "if(((dst).v)==(0)){return 0;}"
            << "if(((dst).v)==(1)){return 0;}"
            << "if(((dst).v)==(2)){return 0;}"
-           << "if(((dst).v)==(3)){sol_assert(0,0);}"
+           << "if(((dst).v)==(3)){sol_assert(0,\"Fallback not allowed in.\");}"
            << "((bal)->v)-=((amt).v);"
            << "return nd_byte";
 
