@@ -26,6 +26,9 @@ namespace modelcheck
 class LibVerify
 {
 public:
+    // Appends an assert statement to _block, conditioned on _cond.
+    static void assertion(CBlockList & _block, CExprPtr _cond);
+
     // Appends a require statement to _block, conditioned on _cond.
     static void require(CBlockList & _block, CExprPtr _cond);
 
@@ -40,6 +43,11 @@ public:
 
     // Appends a log statement to _block, with message _msg.
     static CExprPtr increase(CExprPtr _curr, bool _strict, std::string _msg);
+
+private:
+    // Appends a specification of type _op, in _block conditioned on _cond.
+    static void
+        assert_impl(std::string _op, CBlockList & _block, CExprPtr _cond);
 };
 
 // -------------------------------------------------------------------------- //

@@ -130,6 +130,11 @@ list<Mapping const*> FlatContract::mappings() const
     return m_mappings;
 }
 
+bool FlatContract::is_payable() const
+{
+    return (m_fallback && m_fallback->isPayable());
+}
+
 // -------------------------------------------------------------------------- //
 
 FlatModel::FlatModel(

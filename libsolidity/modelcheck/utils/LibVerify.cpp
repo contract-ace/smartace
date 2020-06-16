@@ -21,15 +21,15 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-void LibVerify::require(CBlockList & _block, CExprPtr _cond)
+void LibVerify::assertion(CBlockList & _block, CExprPtr _cond)
 {
-    auto fn = make_shared<CFuncCall>(
-        "sol_require", CArgList{ _cond, Literals::ZERO }
-    );
-    _block.push_back(fn->stmt());
+    assert_impl("sol_assert", _block, _cond);
 }
 
-// -------------------------------------------------------------------------- //
+void LibVerify::require(CBlockList & _block, CExprPtr _cond)
+{
+    assert_impl("sol_require", _block, _cond);
+}
 
 CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
 {
@@ -48,16 +48,12 @@ CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
     }
 }
 
-// -------------------------------------------------------------------------- //
-
 CExprPtr LibVerify::byte(string const& _msg)
 {
     return make_shared<CFuncCall>(
         "nd_byte", CArgList{ make_shared<CStringLiteral>(_msg) }
     );
 }
-
-// -------------------------------------------------------------------------- //
 
 void LibVerify::log(CBlockList & _block, string _msg)
 {
@@ -67,8 +63,6 @@ void LibVerify::log(CBlockList & _block, string _msg)
     _block.push_back(fn->stmt());
 }
 
-// -------------------------------------------------------------------------- //
-
 CExprPtr LibVerify::increase(CExprPtr _curr, bool _strict, string _msg)
 {
     CFuncCallBuilder call("nd_increase");
@@ -76,6 +70,12 @@ CExprPtr LibVerify::increase(CExprPtr _curr, bool _strict, string _msg)
     call.push(_strict ? Literals::ONE : Literals::ZERO);
     call.push(make_shared<CStringLiteral>(_msg));
     return call.merge_and_pop();
+}
+
+void LibVerify::assert_impl(string _op, CBlockList & _block, CExprPtr _cond)
+{
+    auto fn = make_shared<CFuncCall>(_op, CArgList{_cond, Literals::ZERO});
+    _block.push_back(fn->stmt());
 }
 
 // -------------------------------------------------------------------------- //

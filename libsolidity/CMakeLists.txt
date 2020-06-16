@@ -144,6 +144,8 @@ set(sources
 	modelcheck/model/Block_general.cpp
 	modelcheck/model/Block_modifier.cpp
 	modelcheck/model/Block.h
+	modelcheck/model/Ether.cpp
+	modelcheck/model/Ether.h
 	modelcheck/model/Expression.cpp
 	modelcheck/model/Expression.h
 	modelcheck/model/Mapping.h
@@ -166,6 +168,8 @@ set(sources
 	modelcheck/utils/CallState.h
 	modelcheck/utils/Contract.cpp
 	modelcheck/utils/Contract.h
+	modelcheck/utils/Ether.cpp
+	modelcheck/utils/Ether.h
 	modelcheck/utils/Function.cpp
 	modelcheck/utils/Function.h
 	modelcheck/utils/LibVerify.cpp

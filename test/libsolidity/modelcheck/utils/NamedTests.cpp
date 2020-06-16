@@ -6,9 +6,9 @@
 
 #include <libsolidity/modelcheck/utils/Named.h>
 
-#include <libsolidity/ast/AST.h>
-
 #include <boost/test/unit_test.hpp>
+
+#include <libsolidity/ast/AST.h>
 
 using namespace std;
 using namespace langutil;

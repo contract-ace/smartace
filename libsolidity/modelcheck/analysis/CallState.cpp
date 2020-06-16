@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
+#include <libsolidity/modelcheck/utils/Ether.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
@@ -24,15 +25,8 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-string const CallState::TRANSFER = "sol_transfer";
-string const CallState::SEND = "sol_send";
-string const CallState::PAY = "sol_pay";
-
-// -------------------------------------------------------------------------- //
-
 CallState::CallState(CallGraph const& _graph)
 {
-    // TODO: separate analysis from codegen.
     for (auto call : _graph.executed_code())
     {
         if (call->isPayable())
@@ -51,98 +45,6 @@ CallState::CallState(CallGraph const& _graph)
     add_field(CallStateUtilities::Field::Origin);
 }
 
-// -------------------------------------------------------------------------- //
-
-void CallState::print(ostream& _stream, bool _forward_declare) const
-{
-    auto const VALUE_T = TypeAnalyzer::get_simple_ctype(
-        *CallStateUtilities::get_type(CallStateUtilities::Field::Value)
-    );
-    auto const SENDER_T = TypeAnalyzer::get_simple_ctype(
-        *CallStateUtilities::get_type(CallStateUtilities::Field::Sender)
-    );
-    auto const PAID_T = TypeAnalyzer::get_simple_ctype(
-        *CallStateUtilities::get_type(CallStateUtilities::Field::Paid)
-    );
-
-    shared_ptr<CBlock> throw_pay_body;
-    shared_ptr<CBlock> nothrow_pay_body;
-    shared_ptr<CBlock> pay_by_val_body;
-
-    auto const dst_var = make_shared<CVarDecl>(SENDER_T, "dst");
-    auto const amt_var = make_shared<CVarDecl>(VALUE_T, "amt");
-    auto const bal_var = make_shared<CVarDecl>(VALUE_T, "bal", true);
-
-    if (!_forward_declare)
-    {
-        // TODO: restrict to [0, 1]
-        auto nd_result = LibVerify::byte("Return value for send.");
-        auto bal_cond = make_shared<CBinaryOp>(
-            bal_var->access("v"), ">=", amt_var->access("v")
-        );
-        auto bal_check = make_shared<CFuncCall>(
-            "sol_require", CArgList{ bal_cond, Literals::ZERO }
-        );
-        auto bal_change = make_shared<CBinaryOp>(
-            bal_var->access("v"), "-=", amt_var->access("v")
-        );
-
-        throw_pay_body = make_shared<CBlock>(CBlockList{
-            // Note: if throw were to fail the transaction is unobserved
-            bal_check->stmt(),
-            bal_change->stmt()
-            // TODO: when address is in range
-        });
-
-        nothrow_pay_body = make_shared<CBlock>(CBlockList{
-            make_shared<CIf>(
-                bal_cond,
-                make_shared<CBlock>(CBlockList{
-                    bal_change->stmt(),
-                    make_shared<CReturn>(nd_result)
-                }),
-                make_shared<CReturn>(Literals::ZERO)
-            )
-            // TODO: when address is in range
-        });
-
-        pay_by_val_body = make_shared<CBlock>(CBlockList{
-            bal_check->stmt(),
-            bal_change->stmt(),
-            make_shared<CReturn>(amt_var->id())
-        });
-    }
-
-    if (m_uses_transfer)
-    {
-        _stream << CFuncDef(
-            make_shared<CVarDecl>("void", TRANSFER), CParams{
-                bal_var, dst_var, amt_var
-            }, move(throw_pay_body)
-        );
-    }
-
-    if (m_uses_transfer || m_uses_send)
-    {
-        _stream << CFuncDef(
-            make_shared<CVarDecl>("uint8_t", SEND), CParams{
-                bal_var, dst_var, amt_var
-            }, move(nothrow_pay_body)
-        );
-    }
-
-    if (m_uses_pay)
-    {
-        _stream << CFuncDef(
-            make_shared<CVarDecl>(VALUE_T, PAY), CParams{
-                bal_var, amt_var
-            }, move(pay_by_val_body)
-        );
-    }
-}
-
-// -------------------------------------------------------------------------- //
-
 void CallState::register_primitives(PrimitiveTypeGenerator& _gen) const
 {
     for (auto field : m_field_order)
@@ -151,14 +53,10 @@ void CallState::register_primitives(PrimitiveTypeGenerator& _gen) const
     }
 }
 
-// -------------------------------------------------------------------------- //
-
 list<CallState::FieldData> const& CallState::order() const
 {
     return m_field_order;
 }
-
-// -------------------------------------------------------------------------- //
 
 void CallState::push_state_to(CFuncCallBuilder & _builder) const
 {
@@ -167,8 +65,6 @@ void CallState::push_state_to(CFuncCallBuilder & _builder) const
         _builder.push(make_shared<CIdentifier>(fld.name, false));
     }
 }
-
-// -------------------------------------------------------------------------- //
 
 void CallState::compute_next_state_for(
     CFuncCallBuilder & _builder, bool _external, CExprPtr _value
@@ -187,7 +83,7 @@ void CallState::compute_next_state_for(
 			if (_value)
 			{
 				string const BAL = ContractUtilities::balance_member();
-				CFuncCallBuilder val_builder(PAY);
+				CFuncCallBuilder val_builder(Ether::PAY);
 				val_builder.push(make_shared<CReference>(self_id->access(BAL)));
 				val_builder.push(_value);
 				_builder.push(val_builder.merge_and_pop());
@@ -209,7 +105,11 @@ void CallState::compute_next_state_for(
 	}
 }
 
-// -------------------------------------------------------------------------- //
+bool CallState::uses_send() const { return m_uses_send; }
+
+bool CallState::uses_transfer() const { return m_uses_transfer; }
+
+bool CallState::uses_pay() const { return m_uses_pay; }
 
 void CallState::endVisit(FunctionCall const& _node)
 {
@@ -228,8 +128,6 @@ void CallState::endVisit(FunctionCall const& _node)
         m_uses_transfer = true;
     }
 }
-
-// -------------------------------------------------------------------------- //
 
 void CallState::add_field(CallStateUtilities::Field _field)
 {

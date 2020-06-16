@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/utils/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
+#include <libsolidity/modelcheck/utils/Ether.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/Types.h>
@@ -865,7 +866,7 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 		}
 
 		// Generates the call.
-		CFuncCallBuilder fn(_nothrow ? CallState::SEND : CallState::TRANSFER);
+		CFuncCallBuilder fn(_nothrow ? Ether::SEND : Ether::TRANSFER);
 		fn.push(srcbalref);
 		fn.push(recipient, recipient_type);
 		fn.push(AMT, m_stack, M_DECLS, false, &AMT_TYPE);

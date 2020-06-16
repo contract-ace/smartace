@@ -44,7 +44,7 @@ public:
     );
 
     // Prints each ADT declaration once, in some order.
-    void print(std::ostream& _stream);
+    void print(std::ostream & _stream);
 
 private:
 	bool const M_ADD_SUMS;

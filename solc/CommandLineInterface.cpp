@@ -46,6 +46,7 @@
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
 #include <libsolidity/modelcheck/model/ADT.h>
+#include <libsolidity/modelcheck/model/Ether.h>
 #include <libsolidity/modelcheck/model/Function.h>
 #include <libsolidity/modelcheck/scheduler/MainFunction.h>
 #include <libsolidity/modelcheck/utils/AbstractAddressDomain.h>
@@ -1398,6 +1399,7 @@ void CommandLineInterface::handleCModelHeaders(
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
+	using dev::solidity::modelcheck::EtherMethodGenerator;
 	using dev::solidity::modelcheck::FunctionConverter;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
@@ -1407,7 +1409,7 @@ void CommandLineInterface::handleCModelHeaders(
 	    << "#include \"primitive.h\"" << endl;
 	_os << "void run_model(void);";
 
-	_stack->environment()->print(_os, true);
+	EtherMethodGenerator(_stack).print(_os, true);
 
 	ADTConverter(_stack, sum_maps, address_ct, true).print(_os);
 
@@ -1421,6 +1423,7 @@ void CommandLineInterface::handleCModelBody(
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
+	using dev::solidity::modelcheck::EtherMethodGenerator;
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 
@@ -1435,7 +1438,7 @@ void CommandLineInterface::handleCModelBody(
 		_os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
 	}
 
-	_stack->environment()->print(_os, false);
+	EtherMethodGenerator(_stack).print(_os, false);
 
 	ADTConverter(_stack, sum_maps, address_ct, false).print(_os);
 

@@ -324,6 +324,39 @@ BOOST_AUTO_TEST_CASE(mappings_work)
     BOOST_CHECK_EQUAL(flat_a->mappings().size(), 2);
 }
 
+BOOST_AUTO_TEST_CASE(payable)
+{
+    char const* text = R"(
+		contract A {
+            function() external {}
+        }
+        contract B {}
+        contract C {
+            function() external payable {}
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+    auto ctrt_b = retrieveContractByName(unit, "B");
+    auto ctrt_c = retrieveContractByName(unit, "C");
+
+    vector<ContractDefinition const*> model({ ctrt_a, ctrt_b, ctrt_c });
+    AllocationGraph graph(model);
+
+    FlatModel flat_model(model, graph);
+    BOOST_CHECK_EQUAL(flat_model.view().size(), 3);
+    
+    auto flat_a = flat_model.get(*ctrt_a);
+    BOOST_CHECK(!flat_a->is_payable());
+    
+    auto flat_b = flat_model.get(*ctrt_b);
+    BOOST_CHECK(!flat_b->is_payable());
+    
+    auto flat_c = flat_model.get(*ctrt_c);
+    BOOST_CHECK(flat_c->is_payable());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

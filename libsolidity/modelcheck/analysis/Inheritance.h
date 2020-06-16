@@ -57,6 +57,9 @@ public:
     // Returns the mappings defiend (directly) by this contract.
     std::list<Mapping const*> mappings() const;
 
+    // Returns true if the contract is payable.
+    bool is_payable() const;
+
 private:
     FunctionList m_public;
     FunctionList m_private;

@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/utils/AST.h>
 
 #include <boost/test/unit_test.hpp>
+#include <test/libsolidity/AnalysisFramework.h>
 
 using namespace std;
 using namespace langutil;
@@ -24,7 +25,32 @@ namespace test
 
 using SubD = Literal::SubDenomination;
 
-BOOST_AUTO_TEST_SUITE(Utils_ASTTests)
+BOOST_FIXTURE_TEST_SUITE(
+    Utils_ASTTests, ::dev::solidity::test::AnalysisFramework
+)
+
+BOOST_AUTO_TEST_CASE(find_match)
+{
+    char const* text = R"(
+        contract A {
+            struct a { int a; }
+            int b;
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
+
+    auto var_a = find_named_match<VariableDeclaration>(ctrt, "a");
+    auto var_b = find_named_match<VariableDeclaration>(ctrt, "b");
+    auto struct_a = find_named_match<StructDefinition>(ctrt, "a");
+    auto struct_b = find_named_match<StructDefinition>(ctrt, "b");
+
+    BOOST_CHECK_EQUAL(var_a, nullptr);
+    BOOST_CHECK_EQUAL(var_b, ctrt->stateVariables()[0]);
+    BOOST_CHECK_EQUAL(struct_a, ctrt->definedStructs()[0]);
+    BOOST_CHECK_EQUAL(struct_b, nullptr);
+}
 
 // Tests the node sniffer utility with several types. Ensures that it ignores
 // control-flow sub-expressions.
@@ -94,6 +120,30 @@ BOOST_AUTO_TEST_CASE(lvalue_sniffer)
     // Checks that branches which cannot return l-values are pruned.
     BOOST_CHECK_EQUAL(LValueSniffer<Identifier>(call).find(), nullptr);
     BOOST_CHECK_EQUAL(LValueSniffer<Identifier>(indx).find(), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(expr_cleaner)
+{
+    char const* text = R"(
+        contract A {
+            function f() public pure {
+                (((((5)))));
+                (((5)));
+                5;
+            }
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(ast, "A");
+    auto body = ctrt->definedFunctions()[0]->body().statements();
+
+    for (auto stmt : ctrt->definedFunctions()[0]->body().statements())
+    {
+        auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
+        auto const& clean = ExpressionCleaner(expr_stmt->expression()).clean();
+        BOOST_CHECK_NE(dynamic_cast<Literal const*>(&clean), nullptr);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
