@@ -67,6 +67,13 @@ void sol_setup(int _argc, const char **_argv)
 
 // -------------------------------------------------------------------------- //
 
+sol_raw_uint8_t sol_crypto(void)
+{
+    return nd_byte("Select crypto value");
+}
+
+// -------------------------------------------------------------------------- //
+
 uint8_t sol_continue(void)
 {
 	return nd_byte("Select 0 to terminate");

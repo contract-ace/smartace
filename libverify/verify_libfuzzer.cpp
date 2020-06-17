@@ -57,6 +57,13 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* Data, size_t Size);
 
 // -------------------------------------------------------------------------- //
 
+sol_raw_uint8_t sol_crypto(void)
+{
+    return nd_byte("Select crypto value");
+}
+
+// -------------------------------------------------------------------------- //
+
 void sol_setup(int _argc, const char **_argv) {}
 
 // -------------------------------------------------------------------------- //

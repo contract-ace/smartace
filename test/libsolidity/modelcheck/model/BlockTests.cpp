@@ -1116,6 +1116,33 @@ BOOST_AUTO_TEST_CASE(library_calls)
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
 }
 
+BOOST_AUTO_TEST_CASE(crypto_calls)
+{
+    char const* text = R"(
+        contract A {
+            function f(uint value, bytes32 secret, bool fake) public pure {
+                keccak256(abi.encodePacked(value, fake, secret));
+            }
+        }
+	)";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto func = ctrt->definedFunctions()[0];
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+
+    ostringstream actual, expected;
+    actual << *FunctionBlockConverter(*func, stack).convert();
+    expected << "{";
+    expected << "sol_crypto();";
+    expected << "}";
+
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

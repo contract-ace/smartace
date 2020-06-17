@@ -639,7 +639,7 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Crypto)
 	{
-		throw runtime_error("Cryptographic calls are unsupported.");
+		m_subexpr = make_shared<CFuncCall>("sol_crypto", CArgList{});
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Destruct)
 	{

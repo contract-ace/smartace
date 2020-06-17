@@ -162,6 +162,9 @@ typedef uint64_t sol_raw_uint256_t;
 extern "C" {
 #endif
 
+// Overapproximation of keccak256.
+sol_raw_uint8_t sol_crypto(void);
+
 // Forward declares the entry-point to the c-model.
 void run_model(void);
 
