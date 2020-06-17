@@ -53,7 +53,11 @@ int simple_bit_count(Type const& _type)
 {
     Type const& t = unwrap(_type);
 
-    if (auto array_type = dynamic_cast<ArrayType const*>(&t))
+    if (auto bytes_type = dynamic_cast<FixedBytesType const*>(&t))
+    {
+        return bytes_type->numBytes() * 8;
+    }
+    else if (auto array_type = dynamic_cast<ArrayType const*>(&t))
     {
         if (array_type->isString())
         {
@@ -61,7 +65,6 @@ int simple_bit_count(Type const& _type)
         }
     }
 
-    unsigned int raw_bits;
     switch(t.category())
     {
     case Type::Category::Address:
@@ -69,35 +72,26 @@ int simple_bit_count(Type const& _type)
     case Type::Category::Bool:
         return 8;
     case Type::Category::FixedPoint:
-        raw_bits = dynamic_cast<FixedPointType const&>(t).numBits();
-        break;
+        return dynamic_cast<FixedPointType const&>(t).numBits();
     case Type::Category::Integer:
-        raw_bits = dynamic_cast<IntegerType const&>(t).numBits();
-        break;
+        return dynamic_cast<IntegerType const&>(t).numBits();
     default:
         return 64;
     }
-
-    return raw_bits;
 }
 
 // -------------------------------------------------------------------------- //
 
 bool simple_is_signed(Type const& _type)
 {
-    Type const& t = unwrap(_type);
+    Type const& type = unwrap(_type);
 
-    if (auto array_type = dynamic_cast<ArrayType const*>(&t))
-    {
-        return array_type->isString();
-    }
-
-    switch(t.category())
+    switch(type.category())
     {
     case Type::Category::FixedPoint:
-        return  dynamic_cast<FixedPointType const&>(t).isSigned();
+        return  dynamic_cast<FixedPointType const&>(type).isSigned();
     case Type::Category::Integer:
-        return dynamic_cast<IntegerType const&>(t).isSigned();
+        return dynamic_cast<IntegerType const&>(type).isSigned();
     default:
         return false;
     }
@@ -109,7 +103,11 @@ bool is_wrapped_type(Type const& _type)
 {
     Type const& type = unwrap(_type);
 
-    if (auto array_type = dynamic_cast<ArrayType const*>(&type))
+    if (dynamic_cast<FixedBytesType const*>(&type))
+    {
+        return true;
+    }
+    else if (auto array_type = dynamic_cast<ArrayType const*>(&type))
     {
         return array_type->isString();
     }
@@ -120,6 +118,7 @@ bool is_wrapped_type(Type const& _type)
     case Type::Category::Bool:
     case Type::Category::FixedPoint:
     case Type::Category::Integer:
+    case Type::Category::FixedBytes:
         return true;
     default:
         return false;
@@ -132,7 +131,11 @@ bool is_simple_type(Type const& _type)
 {
     Type const& type = unwrap(_type);
 
-    if (auto array_type = dynamic_cast<ArrayType const*>(&type))
+        if (dynamic_cast<FixedBytesType const*>(&type))
+    {
+        return true;
+    }
+    else if (auto array_type = dynamic_cast<ArrayType const*>(&type))
     {
         return array_type->isString();
     }

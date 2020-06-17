@@ -60,7 +60,8 @@ static TypeType const COMPLEX_TYPE_TYPE(&TUPLE_TYPE);
 static TypeType const SIMPLE_TYPE_TYPE_TYPE(&SIMPLE_TYPE_TYPE);
 static TypeType const COMPLEX_TYPE_TYPE_TYPE(&COMPLEX_TYPE_TYPE);
 static StringLiteralType const STRING_TYPE("blah");
-static FixedBytesType const FIXED_BYTE_TYPE(32);
+static FixedBytesType const FIXED_BYTES1_TYPE(1);
+static FixedBytesType const FIXED_BYTES32_TYPE(32);
 static ArrayType const ARRAY_TYPE(DataLocation::Memory);
 static ContractType const CTRX_TYPE(CTRX_DEF);
 static StructType const STRUCT_TYPE(STRUCT_DEF);
@@ -101,7 +102,7 @@ BOOST_AUTO_TEST_CASE(unwrap_on_types)
         &unwrap(*COMPLEX_TYPE_TYPE_TYPE.actualType())
     );
     BOOST_CHECK_EQUAL(&unwrap(STRING_TYPE), &STRING_TYPE);
-    BOOST_CHECK_EQUAL(&unwrap(FIXED_BYTE_TYPE), &FIXED_BYTE_TYPE);
+    BOOST_CHECK_EQUAL(&unwrap(FIXED_BYTES1_TYPE), &FIXED_BYTES1_TYPE);
     BOOST_CHECK_EQUAL(&unwrap(ARRAY_TYPE), &ARRAY_TYPE);
     BOOST_CHECK_EQUAL(&unwrap(CTRX_TYPE), &CTRX_TYPE);
     BOOST_CHECK_EQUAL(&unwrap(STRUCT_TYPE), &STRUCT_TYPE);
@@ -126,7 +127,7 @@ BOOST_AUTO_TEST_CASE(is_basic_on_types)
     BOOST_CHECK(is_simple_type(SIMPLE_TYPE_TYPE_TYPE));
     BOOST_CHECK(!is_simple_type(COMPLEX_TYPE_TYPE_TYPE));
     BOOST_CHECK(!is_simple_type(STRING_TYPE));
-    BOOST_CHECK(!is_simple_type(FIXED_BYTE_TYPE));
+    BOOST_CHECK(is_simple_type(FIXED_BYTES1_TYPE));
     BOOST_CHECK(!is_simple_type(ARRAY_TYPE));
     BOOST_CHECK(!is_simple_type(CTRX_TYPE));
     BOOST_CHECK(!is_simple_type(*CTRX_TYPE.newExpressionType()));
@@ -152,6 +153,8 @@ BOOST_AUTO_TEST_CASE(bits_on_types)
     BOOST_CHECK_EQUAL(simple_bit_count(BOOL_TYPE), 8);
     BOOST_CHECK_EQUAL(simple_bit_count(FIXED_PT_TYPE), FIXED_PT_TYPE.numBits());
     BOOST_CHECK_EQUAL(simple_bit_count(UFIXED_PT_TYPE), UFIXED_PT_TYPE.numBits());
+    BOOST_CHECK_EQUAL(simple_bit_count(FIXED_BYTES1_TYPE), 8);
+    BOOST_CHECK_EQUAL(simple_bit_count(FIXED_BYTES32_TYPE), 256);
 }
 
 BOOST_AUTO_TEST_CASE(signedness_on_types)
@@ -164,6 +167,8 @@ BOOST_AUTO_TEST_CASE(signedness_on_types)
     BOOST_CHECK(!simple_is_signed(BOOL_TYPE));
     BOOST_CHECK(simple_is_signed(FIXED_PT_TYPE));
     BOOST_CHECK(!simple_is_signed(UFIXED_PT_TYPE));
+    BOOST_CHECK(!simple_is_signed(FIXED_BYTES1_TYPE));
+    BOOST_CHECK(!simple_is_signed(FIXED_BYTES32_TYPE));
 }
 
 BOOST_AUTO_TEST_CASE(is_wrapped_on_types)

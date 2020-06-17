@@ -191,6 +191,13 @@ string TypeAnalyzer::get_simple_ctype(Type const& _type)
                     << "X" << fixed_ptr->fractionalDigits() << "_t";
         return numeric_oss.str();
     }
+    else if (auto byte_ptr = dynamic_cast<FixedBytesType const*>(&type))
+    {
+        uint16_t bits = byte_ptr->numBytes() * 8;
+        ostringstream numeric_oss;
+        numeric_oss << "sol_uint" << bits << "_t";
+        return numeric_oss.str();
+    }
     else if (auto array_ptr = dynamic_cast<ArrayType const*>(&type))
     {
         if (array_ptr->isString()) return "sol_uint256_t";

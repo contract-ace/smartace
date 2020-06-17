@@ -82,6 +82,8 @@ BOOST_AUTO_TEST_CASE(simple_types)
             ufixed32x10 i;
             ufixed40x11 j;
             MyEnum k;
+            bytes1 l;
+            bytes32 m;
         }
     )";
 
@@ -90,7 +92,7 @@ BOOST_AUTO_TEST_CASE(simple_types)
         {"d", "sol_int40_t"}, {"e", "sol_uint32_t"}, {"f", "sol_uint40_t"},
         {"g", "sol_fixed32X10_t"}, {"h", "sol_fixed40X11_t"},
         {"i", "sol_ufixed32X10_t"}, {"j", "sol_ufixed40X11_t"},
-        {"k", "sol_uint8_t"}
+        {"k", "sol_uint8_t"}, {"l", "sol_uint8_t"}, {"m", "sol_uint256_t"}
     };
 
     auto const& ast = *parseAndAnalyse(text);
