@@ -8,7 +8,7 @@ categories: [smartace, install]
 # 1. Installing SmartACE
 
 By Scott Wesley in collaboration Maria Christakis, Arie Gurfinkel, Xinwen Hu,
-Jorge Navas, and Valentin Wüstholz.
+Jorge Navas, Richard Trefler, and Valentin Wüstholz.
 
 SmartACE can be built from source, or obtained as a pre-built Docker container.
 For end-users of SmartACE, we **strongly recommend** Docker as the
