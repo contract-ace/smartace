@@ -146,6 +146,60 @@ BOOST_AUTO_TEST_CASE(expr_cleaner)
     }
 }
 
+BOOST_AUTO_TEST_CASE(decl_is_ref_works)
+{
+    auto viz = Declaration::Visibility::Default;
+    auto storage = VariableDeclaration::Storage;
+    auto calldata =VariableDeclaration::CallData;
+    auto memory =VariableDeclaration::Memory;
+
+    VariableDeclaration d_1(SourceLocation(), 0, 0, 0, viz, 1, 1, 1, storage);
+    VariableDeclaration d_2(SourceLocation(), 0, 0, 0, viz, 1, 1, 1, calldata);
+    VariableDeclaration d_3(SourceLocation(), 0, 0, 0, viz, 1, 1, 1, memory);
+
+    BOOST_CHECK(decl_is_ref(d_1));
+    BOOST_CHECK(!decl_is_ref(d_2));
+    BOOST_CHECK(!decl_is_ref(d_3));
+}
+
+BOOST_AUTO_TEST_CASE(node_to_ref_works)
+{
+    char const* text = R"(
+        contract A {}
+        contract B {
+            struct C {
+                int d;
+            }
+            A a;
+            C c;
+            constructor() public {
+                a = new A();
+                c = C(1);
+            }
+        }
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(ast, "A");
+    auto ctrt_b = retrieveContractByName(ast, "B");
+
+    auto func = ctrt_b->definedFunctions()[0];
+    auto stmts = func->body().statements();
+    auto stmt_1 = dynamic_cast<ExpressionStatement const*>(stmts[0].get());
+    auto stmt_2 = dynamic_cast<ExpressionStatement const*>(stmts[1].get());
+    auto assign_1 = dynamic_cast<Assignment const*>(&stmt_1->expression());
+    auto assign_2 = dynamic_cast<Assignment const*>(&stmt_2->expression());
+    auto ctor = dynamic_cast<FunctionCall const*>(&assign_2->rightHandSide());
+
+    auto res_1 = node_to_ref(*ctrt_a);
+    auto res_2 = node_to_ref(assign_1->leftHandSide());
+    auto res_3 = node_to_ref(ctor->expression());
+
+    BOOST_CHECK_EQUAL(res_1, nullptr);
+    BOOST_CHECK_EQUAL(res_2->name(), "a");
+    BOOST_CHECK_EQUAL(res_3->name(), "C");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

@@ -146,7 +146,7 @@ private:
 	);
 	void print_adt_member(Expression const& _node, std::string _member);
 	void print_magic_member(TypePointer _t, std::string _member);
-	void print_enum_member(TypePointer _t, std::string const& _member);
+	void print_enum_member(TypePointer _t, std::string const& _val);
 };
 
 // -------------------------------------------------------------------------- //

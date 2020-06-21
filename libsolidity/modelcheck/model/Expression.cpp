@@ -148,7 +148,7 @@ bool ExpressionConverter::visit(UnaryOperation const& _node)
 	bool const IS_PREFIX = _node.isPrefixOperation();
 	if (_node.getOperator() == Token::Delete)
 	{
-		// TODO(scottwe)
+		// TODO(scottwe): Work on dynamic bundles.
 		throw runtime_error("Delete not yet supported.");
 	}
 	else
@@ -378,9 +378,10 @@ void ExpressionConverter::generate_mapping_call(
 )
 {
 	// The type of baseExpression is an array, so it is not a wrapped type.
-	CFuncCallBuilder builder(_op + "_" + _map.name);
-	builder.push(_idx.base(), m_stack, M_DECLS, true);
+	CFuncCallBuilder mapcall(_op + "_" + _map.name);
+	mapcall.push(_idx.base(), m_stack, M_DECLS, true);
 
+	// Populates index arguments.
 	{
 		auto const& IDX_END = _idx.indices().end();
 		auto const& KEY_END = _map.key_types.end();
@@ -392,14 +393,18 @@ void ExpressionConverter::generate_mapping_call(
 		{
 			auto const& IDX = (**idx_itr);
 			auto const* type = (*key_itr)->annotation().type;
-			builder.push(IDX, m_stack, M_DECLS, false, type);
+			mapcall.push(IDX, m_stack, M_DECLS, false, type);
 			++idx_itr;
 			++key_itr;
 		}
 	}
 
-	if (_v) builder.push(move(_v), _map.value_type->annotation().type);
-	m_subexpr = builder.merge_and_pop();
+	// Pushes write value if provided.
+	if (_v)
+	{
+		mapcall.push(move(_v), _map.value_type->annotation().type);
+	}
+	m_subexpr = mapcall.merge_and_pop();
 }
 
 CExprPtr ExpressionConverter::get_initializer_context() const
@@ -437,38 +442,25 @@ void ExpressionConverter::push_arg(
 	CFuncCallBuilder & _builder
 ) const
 {
-	auto const TYPE = _decl.type();
-	bool is_ref = (_decl.referenceLocation() == VariableDeclaration::Storage);
-	_builder.push(_arg, m_stack, M_DECLS, is_ref, TYPE);
+	_builder.push(_arg, m_stack, M_DECLS, decl_is_ref(_decl), _decl.type());
 }
 
 // -------------------------------------------------------------------------- //
 
 void ExpressionConverter::print_struct_ctor(FunctionCall const& _call)
 {
-	if (auto id = NodeSniffer<Identifier>(_call.expression()).find())
-	{
-		auto const& def = dynamic_cast<StructDefinition const&>(
-			*id->annotation().referencedDeclaration
-		);
+	// Extracts the structure type.
+	auto raw_def = node_to_ref(_call.expression());
+	auto def = dynamic_cast<StructDefinition const*>(raw_def);
 
-		auto builder = InitFunction(*m_stack->types(), def).call_builder();
-		push_arglist(_call.arguments(), def.members(), builder);
-		m_subexpr = builder.merge_and_pop();
-	}
-	else
-	{
-		throw runtime_error("Struct constructor called without identifier.");
-	}
+	// Prints the constructor.
+	auto ctorcall = InitFunction(*m_stack->types(), *def).call_builder();
+	push_arglist(_call.arguments(), def->members(), ctorcall);
+	m_subexpr = ctorcall.merge_and_pop();
 }
 
 void ExpressionConverter::print_cast(FunctionCall const& _call)
 {
-	if (_call.arguments().size() != 1)
-	{
-		throw runtime_error("Unable to typecast multiple values in one call.");
-	}
-
 	auto const& BASE_EXPR = *_call.arguments()[0];
 	auto base_type = BASE_EXPR.annotation().type;
 	auto cast_type = _call.annotation().type;
@@ -622,7 +614,7 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 		}
 		else
 		{
-			throw runtime_error("Delegate calls are unsupported.");
+			throw runtime_error("Delegate calls are not supported supported.");
 		}
 	}
 	else if (group == FunctionCallAnalyzer::CallGroup::Constructor)
@@ -720,7 +712,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		call = FunctionSpecialization(*match, user);
 	}
 
-	// Determines if builder's method produces return value by pointer.
+	// Determines if method must produce return value by reference.
 	bool rv_is_wrapped = false;
 	bool rv_is_ptr = false;
 	if (!_calldata.type().returnParameterTypes().empty())
@@ -729,7 +721,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		rv_is_wrapped = is_wrapped_type(rv);
 		rv_is_ptr = (rv.category() == Type::Category::Contract);
 	}
-	CFuncCallBuilder builder(call.name(0), rv_is_ptr);	
+	CFuncCallBuilder fcall(call.name(0), rv_is_ptr);	
 
 	// Sets state for the next call.
 	size_t param_idx = 0;
@@ -738,7 +730,7 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 		if (_calldata.context())
 		{
 			auto const DECL = call.func().parameters()[param_idx];
-			push_arg(*_calldata.context(), *DECL, builder);
+			push_arg(*_calldata.context(), *DECL, fcall);
 			++param_idx;
 		}
 	}
@@ -758,21 +750,21 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 				}
 			}
 
-			builder.push(move(m_subexpr));
+			fcall.push(move(m_subexpr));
 		}
 		else
 		{
-			builder.push(make_shared<CIdentifier>("self", true));
+			fcall.push(make_shared<CIdentifier>("self", true));
 		}
-		pass_next_call_state(_calldata, builder, is_ext_call);
+		pass_next_call_state(_calldata, fcall, is_ext_call);
 	}
 
 	// Passes dest if contract construction is in use.
-	if (m_is_init) builder.push(get_initializer_context());
+	if (m_is_init) fcall.push(get_initializer_context());
 
 	// Pushes all user provided arguments and generates the function call.
-	push_arglist(_calldata.args(), call.func().parameters(), builder, param_idx);
-	m_subexpr = builder.merge_and_pop();
+	push_arglist(_calldata.args(), call.func().parameters(), fcall, param_idx);
+	m_subexpr = fcall.merge_and_pop();
 
 	// Unwraps the return value, if it is a wrapped type.
 	if (rv_is_wrapped)
@@ -783,31 +775,20 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 
 void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 {
-	if (auto def = NodeSniffer<UserDefinedTypeName>(_call).find())
-	{
-		auto builder = InitFunction(*m_stack->types(), *def).call_builder();
-		auto const DECL = def->annotation().referencedDeclaration;
-		if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
-		{	
-			builder.push(get_initializer_context());
-			pass_next_call_state(FunctionCallAnalyzer(_call), builder, true);
+	// Extracts contract definition.
+	auto usertype = NodeSniffer<UserDefinedTypeName>(_call.expression()).find();
+	auto ref = node_to_ref(*usertype);
+	auto const& DEF = dynamic_cast<ContractDefinition const&>(*ref);
 
-			if (auto const& ctor = contract->constructor())
-			{
-				push_arglist(_call.arguments(), ctor->parameters(), builder);
-			}
-		}
-		else
-		{
-			throw runtime_error("Unable to resolve contract from TypeName.");
-		}
-
-		m_subexpr = builder.merge_and_pop();
-	}
-	else
+	// Prints the constructor.
+	auto ctorcall = InitFunction(*m_stack->types(), DEF).call_builder();
+	ctorcall.push(get_initializer_context());
+	pass_next_call_state(FunctionCallAnalyzer(_call), ctorcall, true);
+	if (auto const& ctor = DEF.constructor())
 	{
-		throw runtime_error("Contract constructor called without TypeName.");
+		push_arglist(_call.arguments(), ctor->parameters(), ctorcall);
 	}
+	m_subexpr = ctorcall.merge_and_pop();
 }
 
 void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow)
@@ -815,70 +796,25 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 	const AddressType ADR_TYPE(StateMutability::Payable);
 	const IntegerType AMT_TYPE(256, IntegerType::Modifier::Unsigned);
 
-	auto const& args = _call.arguments();
-	if (args.size() != 1)
-	{
-		throw runtime_error("Payment calls require payment amount.");
-	}
-	else if (auto call = NodeSniffer<MemberAccess>(_call).find())
-	{
-		// Computes source balance.
-		auto const BAL_MEMBER = ContractUtilities::balance_member();
-		auto src = make_shared<CIdentifier>("self", true);
-		auto srcbal = make_shared<CMemberAccess>(src, BAL_MEMBER);
+	// Computes source balance.
+	auto const BAL_MEMBER = ContractUtilities::balance_member();
+	auto src = make_shared<CIdentifier>("self", true);
+	auto srcbal = make_shared<CMemberAccess>(src, BAL_MEMBER);
 
-		// Generates source balance and amount arguments.
-		auto srcbalref = make_shared<CReference>(srcbal);
-		auto const& AMT = *args[0];
+	// Generates source balance and amount arguments.
+	auto srcbalref = make_shared<CReference>(srcbal);
+	auto const& AMT = *_call.arguments()[0];
 
-		// Searches for a base contract.
-		auto const& dst = call->expression();
-		FunctionCall const* cast = NodeSniffer<FunctionCall>(dst).find();
-		if (cast)
-		{
-			auto const BASE = cast->expression().annotation().type->category();
-			if (BASE == Type::Category::Contract) 
-			{
-				if (cast->annotation().kind != FunctionCallKind::TypeConversion)
-				{
-					cast = nullptr;
-				}
-			}
-			else
-			{
-				cast = nullptr;
-			}
-		}
+	// Stores the recipient into m_subexpr.
+	FunctionCallAnalyzer call(_call);
+	call.context()->accept(*this);
 
-		// Determines if recipient is known.
-		CExprPtr recipient;
-		TypePointer recipient_type;
-		if (cast)
-		{
-			throw runtime_error("Send to contract not yet supported.");
-		}
-		else
-		{
-			dst.accept(*this);
-			recipient = m_subexpr;
-			recipient_type = (&ADR_TYPE);
-			// TODO: warn about approximation.
-			// TODO: map target to address space.
-		}
-
-		// Generates the call.
-		CFuncCallBuilder fn(_nothrow ? Ether::SEND : Ether::TRANSFER);
-		fn.push(srcbalref);
-		fn.push(recipient, recipient_type);
-		fn.push(AMT, m_stack, M_DECLS, false, &AMT_TYPE);
-		m_subexpr = fn.merge_and_pop();
-
-		// TODO: handle fallbacks.
-	}
-	else
-	{
-		throw runtime_error("Unable to extract address from payment call.");
-	}
+	// Generates the call.
+	CFuncCallBuilder fn(_nothrow ? Ether::SEND : Ether::TRANSFER);
+	fn.push(srcbalref);
+	fn.push(m_subexpr, &ADR_TYPE);
+	fn.push(AMT, m_stack, M_DECLS, false, &AMT_TYPE);
+	m_subexpr = fn.merge_and_pop();
 }
 
 void ExpressionConverter::print_revert()
@@ -888,6 +824,7 @@ void ExpressionConverter::print_revert()
 
 void ExpressionConverter::print_property(bool _fail, SolArgList const& _args)
 {
+	// Attempts to extract assertion message.
 	string err_msg;
 	if (_args.size() > 1)
 	{
@@ -898,6 +835,7 @@ void ExpressionConverter::print_property(bool _fail, SolArgList const& _args)
 		}
 	}
 
+	// Generates assertion.
 	ExpressionConverter cond(*_args[0], m_stack, M_DECLS, false);
 	if (_fail)
 	{
@@ -976,7 +914,9 @@ void ExpressionConverter::print_array_member(
 	}
 }
 
-void ExpressionConverter::print_adt_member(Expression const& _node, string _member)
+void ExpressionConverter::print_adt_member(
+	Expression const& _node, string _member
+)
 {
 	_node.accept(*this);
 	auto name = M_DECLS.rewrite(move(_member), false, VarContext::STRUCT);
@@ -990,17 +930,11 @@ void ExpressionConverter::print_magic_member(TypePointer _t, string _member)
 	m_subexpr = make_shared<CIdentifier>(move(name), false);
 }
 
-void ExpressionConverter::print_enum_member(
-	TypePointer _t, string const& _member
-)
+void ExpressionConverter::print_enum_member(TypePointer _t, string const& _val)
 {
 	const auto* WRAPPED_T = dynamic_cast<TypeType const*>(_t);
 	const auto* ENUM_T = dynamic_cast<EnumType const*>(WRAPPED_T->actualType());
-	if (!ENUM_T)
-	{
-		throw runtime_error("EnumValue lacks EnumType.");
-	}
-	m_subexpr = make_shared<CIntLiteral>(ENUM_T->memberValue(_member));
+	m_subexpr = make_shared<CIntLiteral>(ENUM_T->memberValue(_val));
 }
 
 // -------------------------------------------------------------------------- //

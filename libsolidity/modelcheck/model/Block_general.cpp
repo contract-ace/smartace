@@ -6,6 +6,7 @@
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/Expression.h>
+#include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
@@ -117,8 +118,7 @@ bool GeneralBlockConverter::visit(Block const& _node)
 		stmts.push_back(last_substmt());
 	}
 
-	// If this is the top level, perform teardown, and set return value. If not,
-	// propogate the results.
+	// Top level blocks must set-up and tear-down the context, i.e. return.
 	if (top_level_swap.old())
 	{
 		exit(stmts, m_decls);
@@ -154,8 +154,6 @@ bool GeneralBlockConverter::visit(IfStatement const& _node)
 
 bool GeneralBlockConverter::visit(WhileStatement const& _node)
 {
-	// TODO(scottwe): Ensure number of interations has finite bound.
-
 	_node.body().accept(*this);
 	new_substmt<CWhileLoop>(
 		last_substmt(), expand(_node.condition()), _node.isDoWhile()
@@ -166,8 +164,6 @@ bool GeneralBlockConverter::visit(WhileStatement const& _node)
 
 bool GeneralBlockConverter::visit(ForStatement const& _node)
 {
-	// TODO(scottwe): Ensure number of iterations has finite bound.
-
 	// The loop condition is in its own scope.
 	m_decls.enter();
 
@@ -201,15 +197,12 @@ bool GeneralBlockConverter::visit(ForStatement const& _node)
 
 bool GeneralBlockConverter::visit(InlineAssembly const&)
 {
-	// TODO(scottwe): implement.
-	throw runtime_error("Inline assembly statement not yet supported.");
+	throw runtime_error("Inline assembly is not supported.");
 }
 
-bool GeneralBlockConverter::visit(Throw const& _node)
+bool GeneralBlockConverter::visit(Throw const&)
 {
-	(void) _node;
-	// TODO(scottwe): implement.
-	throw runtime_error("Throw statement not yet supported.");
+	throw runtime_error("Throw is deprecated.");
 }
 
 bool GeneralBlockConverter::visit(EmitStatement const& _node)
@@ -235,16 +228,8 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 	}
 	else if (!_node.declarations().empty())
 	{
-		auto const &DECL = *_node.declarations()[0];
-		bool const IS_REF
-			= DECL.referenceLocation() == VariableDeclaration::Storage;
-		if (DECL.annotation().type->category() == Type::Category::Contract)
-		{
-			// These are implicitly references.
-			throw runtime_error("Contract variable declarations unsupported.");
-		}
-
-		m_decls.record_declaration(DECL);
+		auto const &DECL = (*_node.declarations()[0]);
+		bool const IS_REF = decl_is_ref(DECL);
 
 		CExprPtr val = nullptr;
 		if (_node.initialValue())
@@ -253,10 +238,17 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 			val = InitFunction::wrap(*DECL.type(), move(val));
 		}
 
+		if (DECL.annotation().type->category() == Type::Category::Contract)
+		{
+			// These are implicitly references.
+			throw runtime_error("Contract variable declarations unsupported.");
+		}
+
+		m_decls.record_declaration(DECL);
+
 		auto const TYPE = m_stack->types()->get_type(DECL);
-		new_substmt<CVarDecl>(
-			TYPE, m_decls.resolve_declaration(DECL), IS_REF, val
-		);
+		auto const NAME = m_decls.resolve_declaration(DECL);
+		new_substmt<CVarDecl>(TYPE, NAME, IS_REF, val);
 	}
 
 	return false;
@@ -293,6 +285,7 @@ GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
 	}
 	else if (_rvs.size() > 1)
 	{
+		// TODO(scottwe): support multiple return values.
 		throw runtime_error("Multiple return values not yet supported.");
 	}
 	else if (_stack->allocations()->retval_is_allocated(*_rvs[0]))

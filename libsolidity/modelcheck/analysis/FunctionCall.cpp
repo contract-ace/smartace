@@ -23,16 +23,11 @@ FunctionCallAnalyzer::FunctionCallAnalyzer(FunctionCall const& _call)
     m_type = dynamic_cast<FunctionType const*>(
         _call.expression().annotation().type
     );
-	if (!m_type)
-	{
-		throw runtime_error("Function encountered without type annotations.");
-	}
 
-    if (m_type->hasDeclaration())
+    if (m_type && m_type->hasDeclaration())
     {
-        m_decl = dynamic_cast<FunctionDefinition const*>(
-            &m_type->declaration()
-        );
+        m_decl
+            = dynamic_cast<FunctionDefinition const*>(&m_type->declaration());
     }
 
     _call.expression().accept(*this);
@@ -77,6 +72,10 @@ bool FunctionCallAnalyzer::is_in_library() const
 
 FunctionType const& FunctionCallAnalyzer::type() const
 {
+    if (!m_type)
+    {
+        throw runtime_error("Function encountered without type annotations.");
+    }
     return (*m_type);
 }
 

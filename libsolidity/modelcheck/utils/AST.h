@@ -184,9 +184,24 @@ protected:
 // -------------------------------------------------------------------------- //
 
 /**
+ * Returns true if _decl is a storage reference.
+ */
+bool decl_is_ref(VariableDeclaration const& _decl);
+
+// -------------------------------------------------------------------------- //
+
+/**
  * Follows back _access to a specific field declaration.
  */
 VariableDeclaration const* member_access_to_decl(MemberAccess const& _access);
+
+/**
+ * Returns a referenced declaration from _exp. On failure, this returns null.
+ * Note that this is more general than expr_to_decl. While expr_to_decl must
+ * return a variable declaration, this can also return contracts, structs, and
+ * function declarations.
+ */
+Declaration const* node_to_ref(ASTNode const& _node);
 
 /**
  * Consumes _expr and if it is an identifier or member access, the variable

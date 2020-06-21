@@ -58,6 +58,12 @@ bool ExpressionCleaner::visit(TupleExpression const& _node)
     return (_node.components().size() == 1);
 }
 
+// -------------------------------------------------------------------------- //
+
+bool decl_is_ref(VariableDeclaration const& _decl)
+{
+    return (_decl.referenceLocation() == VariableDeclaration::Storage);
+}
 
 // -------------------------------------------------------------------------- //
 
@@ -84,6 +90,27 @@ VariableDeclaration const* member_access_to_decl(MemberAccess const& _access)
             }
         }
 	}
+    return nullptr;
+}
+
+Declaration const* node_to_ref(ASTNode const& _node)
+{
+    if (auto raw = dynamic_cast<Expression const*>(&_node))
+    {
+        auto const& EXPR = ExpressionCleaner(*raw).clean();
+        if (auto const* member = dynamic_cast<MemberAccess const*>(&EXPR))
+        {
+            return member_access_to_decl(*member);
+        }
+        else if (auto const* id = dynamic_cast<Identifier const*>(&EXPR))
+        {
+            return id->annotation().referencedDeclaration;
+        }
+    }
+    else if (auto type = dynamic_cast<UserDefinedTypeName const*>(&_node))
+    {
+        return type->annotation().referencedDeclaration;
+    }
     return nullptr;
 }
 

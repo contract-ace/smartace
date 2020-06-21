@@ -102,12 +102,12 @@ ModifierBlockConverter::ModifierBlockConverter(
 	if (has_retval())
 	{
 	    // TODO(scottwe): support multiple return types.
-        auto const& ARG = *_func.returnParameters()[0];
-		m_rv = make_shared<CVarDecl>(
-            m_stack->types()->get_type(ARG),
-            VariableScopeResolver::rewrite("rv", true, VarContext::FUNCTION)
-        );
+        auto rv = _func.returnParameters()[0];
+        auto rv_type = m_stack->types()->get_type(*rv);
+        auto rv_name = m_shadow_decls.rewrite("rv", true, VarContext::FUNCTION);
+		m_rv = make_shared<CVarDecl>(rv_type, rv_name);
 	}
+
     m_shadow_decls.enter();
     for (auto ARG : M_TRUE_PARAMS)
     {
@@ -122,7 +122,7 @@ void ModifierBlockConverter::enter(
     CBlockList & _stmts, VariableScopeResolver &_decls
 )
 {
-    if (has_retval())
+    if (m_rv)
     {
 		_stmts.push_back(m_rv);
     }
@@ -152,7 +152,7 @@ void ModifierBlockConverter::enter(
 
 void ModifierBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 {
-    if (has_retval())
+    if (m_rv)
     {
         _stmts.push_back(make_shared<CReturn>(m_rv->id()));
     }
@@ -163,7 +163,7 @@ void ModifierBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 bool ModifierBlockConverter::visit(Return const&)
 {
     CExprPtr rv_id = nullptr;
-    if (has_retval())
+    if (m_rv)
     {
         rv_id = m_rv->id();
     }

@@ -59,6 +59,9 @@ private:
  */
 inline uint64_t fast_pow(uint64_t _base, uint64_t _exp)
 {
+    if (_base == 0) return 0;
+    if (_base == 1) return 1;
+
     uint64_t res = 1;
     while (_exp > 0)
     {

@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     ostringstream actual_named, expected_named;
     actual_named << *FunctionBlockConverter(func, stack).convert();
     expected_named << "{";
-    expected_named << "sol_int256_t func_user_a;";
+    expected_named << "sol_int256_t func_user_a=Init_sol_int256_t(0);";
     expected_named << "((func_user_a).v)=(5);";
     expected_named << "return func_user_a;";
     expected_named << "}";
@@ -528,7 +528,7 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
 
 // Tests conversion of transfer/send into _pay. This is tested on the block
 // level due to the complexity of annotated FunctionCall expressions.
-BOOST_AUTO_TEST_CASE(payment_function_calls)
+BOOST_AUTO_TEST_CASE(payment_to_addr_calls)
 {
     char const* text = R"(
 		contract A {
@@ -536,6 +536,7 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
                 dst.transfer(5);
                 dst.send(10);
                 (dst.send)(15);
+                address(20).send(25);
             }
 		}
 	)";
@@ -557,6 +558,8 @@ BOOST_AUTO_TEST_CASE(payment_function_calls)
              << "(func_user_dst).v),Init_sol_uint256_t(10));";
     expected << "sol_send(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(15));";
+    expected << "sol_send(&((self)->model_balance),Init_sol_address_t(((int)("
+             << "g_literal_address_20))),Init_sol_uint256_t(25));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

@@ -99,7 +99,7 @@ protected:
 	bool visit(WhileStatement const& _node) override;
 	bool visit(ForStatement const& _node) override;
 	bool visit(InlineAssembly const&) override;
-	bool visit(Throw const& _node) override;
+	bool visit(Throw const&) override;
 	bool visit(EmitStatement const& _node) override;
 	bool visit(VariableDeclarationStatement const& _node) override;
 	bool visit(ExpressionStatement const& _node) override;
@@ -157,14 +157,15 @@ public:
 
 protected:
 	void enter(CBlockList & _stmts, VariableScopeResolver & _decls) override;
-	void exit(CBlockList & _stmts, VariableScopeResolver & _decls) override;
+	void exit(CBlockList & _stmts, VariableScopeResolver &) override;
 
 	bool visit(Return const& _node) override;
 
 private:
 	FunctionSpecialization const* m_spec;
 
-	ASTPointer<VariableDeclaration> m_rv = nullptr;
+	ASTPointer<VariableDeclaration> m_raw_rv;
+	ASTPointer<CVarDecl> m_rv;
 };
 
 CLANG_ENABLE_COMPILER_WARNING()

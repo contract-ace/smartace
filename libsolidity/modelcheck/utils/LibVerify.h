@@ -26,17 +26,17 @@ namespace modelcheck
 class LibVerify
 {
 public:
-    //
+    // Generates a call to `sol_require(<_cond>, <_msg>)`.
     static CExprPtr make_require(CExprPtr _cond, std::string _msg = "");
 
-    // 
+    // Generates a call to `sol_assert(<_cond>, <_msg>)`.
     static CExprPtr make_assert(CExprPtr _cond, std::string _msg = "");
 
-    // 
+    // Appends to _block a call to `sol_require(<_cond>, <_msg>)`.
     static void
         add_assert(CBlockList & _block, CExprPtr _cond, std::string _msg = "");
 
-    // 
+    // Appends to _block a call to `sol_assert(<_cond>, <_msg>)`.
     static void
         add_require(CBlockList & _block, CExprPtr _cond, std::string _msg = "");
 
@@ -53,12 +53,12 @@ public:
     static CExprPtr increase(CExprPtr _curr, bool _strict, std::string _msg);
 
 private:
-    // 
+    // Appends to _block a call to `<_op>(<_cond>, <_msg>)`.
     static void add_property(
         std::string _op, CBlockList & _block, CExprPtr _cond, std::string _msg
     );
 
-    //
+    // Returns a call to `<_op>(<_cond>, <_msg>)`.
     static CExprPtr
         make_property(std::string _op, CExprPtr _cond, std::string _msg);
 };

@@ -3,6 +3,7 @@
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/model/Expression.h>
+#include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/Types.h>
@@ -34,7 +35,7 @@ FunctionBlockConverter::FunctionBlockConverter(
 	if (has_retval())
 	{
 		// TODO(scottwe): support multiple return types.
-		m_rv = _func.returnParameters()[0];
+		m_raw_rv = _func.returnParameters()[0];
 	}
 }
 
@@ -52,25 +53,23 @@ void FunctionBlockConverter::enter(
 )
 {
 	_decls.assign_spec(m_spec);
-	if (m_rv && !m_rv->name().empty())
+	if (m_raw_rv && !m_raw_rv->name().empty())
 	{
-		_decls.record_declaration(*m_rv);
-		_stmts.push_back(make_shared<CVarDecl>(
-			m_stack->types()->get_type(*m_rv), _decls.resolve_declaration(*m_rv)
-		));
+		_decls.record_declaration(*m_raw_rv);
+		auto RV_TYPE = m_stack->types()->get_type(*m_raw_rv);
+		auto RV_NAME = _decls.resolve_declaration(*m_raw_rv);
+		auto RV_INIT = m_stack->types()->get_init_val(*m_raw_rv);
+		bool const IS_REF = decl_is_ref(*m_raw_rv);
+		m_rv = make_shared<CVarDecl>(RV_TYPE, RV_NAME, IS_REF, RV_INIT);
+		_stmts.push_back(m_rv);
 	}
 }
 
-void FunctionBlockConverter::exit(
-    CBlockList & _stmts, VariableScopeResolver & _decls
-)
+void FunctionBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 {
-    if (m_rv && !m_rv->name().empty())
+    if (m_rv)
     {
-		auto rv = make_shared<CVarDecl>(
-			m_stack->types()->get_type(*m_rv), _decls.resolve_declaration(*m_rv)
-		);
-		_stmts.push_back(make_shared<CReturn>(rv->id()));
+		_stmts.push_back(make_shared<CReturn>(m_rv->id()));
     }
 }
 
@@ -87,7 +86,7 @@ bool FunctionBlockConverter::visit(Return const& _node)
 	case BlockType::Operation:
 	case BlockType::AddressRef:
 		rv = expand(*_node.expression());
-		rv = InitFunction::wrap(*m_rv->annotation().type, move(rv));
+		rv = InitFunction::wrap(*m_raw_rv->annotation().type, move(rv));
 		if (block_type() == BlockType::AddressRef)
 		{
 			rv = make_shared<CReference>(rv);

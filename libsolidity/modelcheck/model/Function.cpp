@@ -11,6 +11,7 @@
 #include <libsolidity/modelcheck/model/Block.h>
 #include <libsolidity/modelcheck/model/Mapping.h>
 #include <libsolidity/modelcheck/model/Expression.h>
+#include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
@@ -138,8 +139,8 @@ CParams FunctionConverter::generate_params(
         if (name.empty()) name = "var" + to_string(i);
         name = VariableScopeResolver::rewrite(name, _instrumeneted, _context);
 
-		bool is_ref = DECL.referenceLocation() == VariableDeclaration::Storage;
-        params.push_back(make_shared<CVarDecl>(move(type), move(name), is_ref));
+        bool const IS_REF = decl_is_ref(DECL);
+        params.push_back(make_shared<CVarDecl>(move(type), move(name), IS_REF));
     }
     if (_dest)
     {
@@ -323,7 +324,8 @@ string FunctionConverter::handle_contract_initializer(
         {
             for (auto const CTOR_MOD : LOCAL_CTOR->modifiers())
             {
-                auto const MOD_REF = CTOR_MOD->name()->annotation().referencedDeclaration;
+                auto const MOD_REF
+                    = CTOR_MOD->name()->annotation().referencedDeclaration;
                 if (MOD_REF->name() == parent.name())
                 {
                     if (auto const* CARGS = CTOR_MOD->arguments())
