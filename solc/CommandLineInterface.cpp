@@ -811,7 +811,7 @@ Allowed options)",
 		)
 		(
 			g_argModelLockstepTime.c_str(),
-			po::value<bool>()->value_name("on")->default_value(false),
+			po::value<bool>()->value_name("on")->default_value(true),
 			"Forces block number and timestamp to be incremented in lockstep."
 		)
 		(
