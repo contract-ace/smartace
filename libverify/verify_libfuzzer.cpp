@@ -150,9 +150,15 @@ sol_raw_uint256_t nd_increase(
 		ll_assume(_curr < SOL_UINT256_MAX);
 		_curr += 1;
 	}
+
 	sol_raw_uint256_t max_increase = SOL_UINT256_MAX - _curr;
-	sol_raw_uint256_t delta = nd_uint256_t(_msg) % max_increase;
-	return _curr + delta;
+	if (max_increase > 0)
+	{
+		sol_raw_uint256_t delta = nd_uint256_t(_msg) % max_increase;
+		_curr += delta;
+	}
+
+	return _curr;
 }
 
 // -------------------------------------------------------------------------- //

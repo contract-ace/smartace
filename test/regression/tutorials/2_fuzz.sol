@@ -18,8 +18,10 @@ contract Crowdsale {
     }
 
     function invest() public payable {
+        uint old_raised = raised;
         require(now <= deadline);
         raised += msg.value;
+        require(raised > old_raised);
     }
 
     function finish() public {
