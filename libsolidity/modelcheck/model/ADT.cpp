@@ -169,6 +169,7 @@ void ADTConverter::generate_structure(Structure const& _structure)
 
 void ADTConverter::generate_mapping(Mapping const& _mapping)
 {
+    if (!m_built.insert(&_mapping).second) return;
     MapGenerator mapgen(_mapping, M_ADD_SUMS, M_MAP_K, *m_stack->types());
     (*m_ostream) << mapgen.declare(M_FORWARD_DECLARE);
 }
