@@ -480,9 +480,11 @@ BOOST_AUTO_TEST_CASE(resolve_id)
     
     auto stmt = ctrt->definedFunctions()[0]->body().statements()[0];
     auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
+    auto assignment = dynamic_cast<Assignment const*>(&expr_stmt->expression());
+    auto id = (&assignment->leftHandSide());
 
     AllocationGraph g({ ctrt });
-    BOOST_CHECK_EQUAL(g.resolve(expr_stmt->expression()).name(), "X");
+    BOOST_CHECK_EQUAL(g.resolve(*id).name(), "X");
 }
 
 BOOST_AUTO_TEST_CASE(member_access_to_contracts)
@@ -500,8 +502,10 @@ BOOST_AUTO_TEST_CASE(member_access_to_contracts)
     const auto& unit = *parseAndAnalyse(text);
     auto const* ctrt = retrieveContractByName(unit, "Test");
 
-    // TODO(scott): implement this.
-    BOOST_CHECK_THROW(AllocationGraph g({ ctrt }), runtime_error);
+    auto struct_s = ctrt->definedStructs()[0];
+    auto var_x = struct_s->members()[0].get();
+    AllocationGraph g({ ctrt });
+    BOOST_CHECK_EQUAL(g.specialize(*var_x).name(), "X");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

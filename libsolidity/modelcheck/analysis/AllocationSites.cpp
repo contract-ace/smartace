@@ -1,5 +1,6 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 
+#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/General.h>
 
@@ -16,42 +17,17 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-VariableDeclaration const* resolve_to_contract(Expression const& _expr)
-{
-    if (_expr.annotation().type->category() != Type::Category::Contract)
-    {
-        return nullptr;
-    }
-
-    // TODO(scottwe): support structures.
-    if (LValueSniffer<MemberAccess>(_expr).find())
-    {
-        throw runtime_error("Member access to contracts not yet allowed.");
-    }
-
-    if (auto const* id = LValueSniffer<Identifier>(_expr).find())
-    {
-        return dynamic_cast<VariableDeclaration const*>(
-            id->annotation().referencedDeclaration
-        );
-    }
-
-    return nullptr;
-}
-
-// -------------------------------------------------------------------------- //
-
 AllocationSummary::AllocationSummary(ContractDefinition const& _src)
 {
     for (auto func : _src.definedFunctions())
     {
-        Visitor visitor(func, 2);
+        Visitor visitor(_src, *func, 2);
 
         if (func->isConstructor())
         {
             for (auto const& call : visitor.calls)
             {
-                if (call.dest && call.dest->isStateVariable())
+                if (call.dest && !call.dest->isLocalOrReturn())
                 {
                     m_children.push_back(call);
                 }
@@ -94,57 +70,67 @@ AllocationSummary::CallGroup AllocationSummary::violations() const
 }
 
 AllocationSummary::Visitor::Visitor(
-    FunctionDefinition const* _context, size_t _depth_limit
-): M_DEPTH_LIMIT(_depth_limit) , m_context(_context)
+    ContractDefinition const& _src,
+    FunctionDefinition const& _context,
+    size_t _depth_limit
+): M_DEPTH_LIMIT(_depth_limit), m_context(_context), m_src(_src)
 {
     if (M_DEPTH_LIMIT == 0)
     {
         throw runtime_error("AllocationSite analysis exceeded depth limit.");
     }
-    _context->accept(*this);
+    _context.accept(*this);
 }
 
 bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
 {
-    auto const* NEWTYPE = dynamic_cast<ContractType const*>(
-        _node.annotation().type
-    );
-    auto const* CALLTYPE = dynamic_cast<FunctionType const*>(
-        _node.expression().annotation().type
-    );
+    auto type = _node.annotation().type;
+    auto contract = dynamic_cast<ContractType const*>(type);
 
-    if (NEWTYPE)
+	if (_node.annotation().kind == FunctionCallKind::FunctionCall)
     {
-        // Recursive type analysis for internal calls.
-        ContractDefinition const* newcall_rv_type = nullptr;
-        if (CALLTYPE->kind() == FunctionType::Kind::Creation)
+        FunctionCallAnalyzer call(_node);
+        if (contract)
         {
-            newcall_rv_type = (&NEWTYPE->contractDefinition());
-        }
-        else
-        {
-            newcall_rv_type = handle_call_type(*CALLTYPE);
-        }
+            // Determines the allocation contract.
+            ContractDefinition const* def;
+            if (call.classify() == FunctionCallAnalyzer::CallGroup::Constructor)
+            {
+                // Case: New call.
+                def = (&contract->contractDefinition());
+            }
+            else if (call.is_super() || call.is_in_library() || !call.context())
+            {
+                // Case: Internal method call.
+                auto match = (&call.decl());
+                if (!call.context())
+                {
+                    string const& name = call.decl().name();
+                    match = find_named_match<FunctionDefinition>(&m_src, name);
+                }
+                def = handle_call_type(*match);
+            }
+            else
+            {
+                throw runtime_error("Allocations restricted to internal calls");
+            }
 
-        // If the call lacks a "true" return type, it is not an allocation.
-        if (newcall_rv_type)
-        {
+            // Records the allocation.
             calls.emplace_back();
-            calls.back().callsite = &_node;
-            calls.back().context = m_context;
+            calls.back().callsite = (&_node);
+            calls.back().context = (&m_context);
             calls.back().is_retval = m_return;
-            calls.back().type = newcall_rv_type;
-
-            // Splits returns from assignments. Return dests are implicit.
+            calls.back().type = def;
             if (m_return)
             {
-                calls.back().dest = m_context->returnParameters()[0].get();
+                calls.back().dest = m_context.returnParameters()[0].get();
             }
             else
             {
                 calls.back().dest = m_dest;
             }
         }
+        if (call.context()) call.context()->accept(*this);
     }
 
     for (auto arg : _node.arguments())
@@ -157,7 +143,11 @@ bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
 
 bool AllocationSummary::Visitor::visit(Assignment const& _node)
 {
-    auto dest = resolve_to_contract(_node.leftHandSide());
+    VariableDeclaration const* dest = nullptr;
+    if (_node.annotation().type->category() == Type::Category::Contract)
+    {
+        dest = expr_to_decl(_node.leftHandSide());
+    }
 
     ScopedSwap<VariableDeclaration const*> scope(m_dest, dest);
     _node.rightHandSide().accept(*this);
@@ -176,36 +166,23 @@ bool AllocationSummary::Visitor::visit(Return const& _node)
 }
 
 ContractDefinition const* AllocationSummary::Visitor::handle_call_type(
-    FunctionType const& _ftype
+    FunctionDefinition const& _call
 )
 {
-    auto const* CALL = dynamic_cast<FunctionDefinition const*>(
-        &_ftype.declaration()
-    );
-
-    // Checks if this method was previously analyzed.
-    auto res = _fcache.find(CALL);
-    if (res != _fcache.end())
+    if (_fcache.find(&_call) == _fcache.end())
     {
-        return res->second;
-    }
-
-    // If not, analyzes the method.
-    if (CALL)
-    {
-        Visitor nested(CALL, M_DEPTH_LIMIT - 1);
+        _fcache[&_call] = nullptr;
+        Visitor nested(m_src, _call, M_DEPTH_LIMIT - 1);
         for (auto child : nested.calls)
         {
             if (child.is_retval)
             {
-                _fcache[CALL] = child.type;
+                _fcache[&_call] = child.type;
                 return child.type;
             }
         }
     }
-
-    // No match.
-    return nullptr;
+    return _fcache[&_call];
 }
 
 // -------------------------------------------------------------------------- //
@@ -302,13 +279,12 @@ ContractDefinition const&
 ContractDefinition const&
     AllocationGraph::resolve(Expression const& _expr) const
 {
-    auto dest = resolve_to_contract(_expr);
-    if (!dest)
+    auto decl = expr_to_decl(_expr);
+    if (!decl)
     {
         throw runtime_error("Unable to resolve expression.");
     }
-
-    return specialize(*dest);
+    return specialize(*decl);
 }
 
 void AllocationGraph::analyze(

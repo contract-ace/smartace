@@ -32,15 +32,6 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 /**
- * When _expr is a contract typed variable, this returns the referenced variable
- * declartion. When _expr is not a contract typed variable, this returns the
- * nullptr.
- */
-VariableDeclaration const* resolve_to_contract(Expression const& _expr);
-
-// -------------------------------------------------------------------------- //
-
-/**
  * Analyzes a single contract to identify how many "valid" contracts it
  * allocates, along with instances of invalid allocations (under our model).
  */
@@ -92,7 +83,11 @@ private:
         CallGroup calls;
 
         // Extracts new calls from _context, up to a call depth of _depth_limit.
-        Visitor(FunctionDefinition const* _context, size_t _depth_limit);
+        Visitor(
+            ContractDefinition const& _src,
+            FunctionDefinition const& _context,
+            size_t _depth_limit
+        );
 
     protected:
         bool visit(FunctionCall const& _node) override;
@@ -102,14 +97,18 @@ private:
     private:
         size_t const M_DEPTH_LIMIT;
 
-        FunctionDefinition const* m_context;
+        FunctionDefinition const& m_context;
+        ContractDefinition const& m_src;
+    
         VariableDeclaration const* m_dest = nullptr;
         bool m_return = false;
 
         std::map<FunctionDefinition const*, ContractDefinition const*> _fcache;
 
         // Utility method to handle _ftype based on call type.
-        ContractDefinition const* handle_call_type(FunctionType const& _ftype);
+        ContractDefinition const* handle_call_type(
+            FunctionDefinition const& _call
+        );
     };
 };
 
