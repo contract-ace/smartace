@@ -435,35 +435,31 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
-    
-    for (auto func_ptr : ctrt->definedFunctions())
-    {
-        if (func_ptr->name() == "test")
-        {
-            ostringstream actual, expected;
-            FunctionBlockConverter fbc(*func_ptr, stack);
-            fbc.set_for(FunctionSpecialization(*func_ptr));
-            actual << *fbc.convert();
-            expected << "{";
-            expected << "A_Method_f(self,sender,value,blocknum,timestamp"
-                     << ",Init_sol_bool_t(0),origin);";
-            expected << "A_Method_g(self,sender,value,blocknum,timestamp"
-                     << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1));";
-            expected << "A_Method_h(self,sender,value,blocknum,timestamp"
-                     << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1)"
-                     << ",Init_sol_int256_t(2));";
-            expected << "A_Method_p(self,sender,value,blocknum,timestamp"
-                     << ",Init_sol_bool_t(0),origin);";
-            expected << "A_Method_q(self,sender,value,blocknum,timestamp"
-                     << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1));";
-            expected << "A_Method_r(self,sender,value,blocknum,timestamp"
-                     << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1)"
-                     << ",Init_sol_int256_t(2));";
-            expected << "}";
-            BOOST_CHECK_EQUAL(actual.str(), expected.str());
-            break;
-        }
-    }
+
+    auto func = ctrt->definedFunctions()[6];
+    BOOST_CHECK_EQUAL(func->name(), "test");
+
+    ostringstream actual, expected;
+    FunctionBlockConverter fbc(*func, stack);
+    fbc.set_for(FunctionSpecialization(*func));
+    actual << *fbc.convert();
+    expected << "{";
+    expected << "A_Method_f(self,sender,value,blocknum,timestamp"
+             << ",Init_sol_bool_t(0),origin);";
+    expected << "A_Method_g(self,sender,value,blocknum,timestamp"
+             << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1));";
+    expected << "A_Method_h(self,sender,value,blocknum,timestamp"
+             << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1)"
+             << ",Init_sol_int256_t(2));";
+    expected << "A_Method_p(self,sender,value,blocknum,timestamp"
+             << ",Init_sol_bool_t(0),origin);";
+    expected << "A_Method_q(self,sender,value,blocknum,timestamp"
+             << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1));";
+    expected << "A_Method_r(self,sender,value,blocknum,timestamp"
+             << ",Init_sol_bool_t(0),origin,Init_sol_int256_t(1)"
+             << ",Init_sol_int256_t(2));";
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
 // Tests external method calls. External method calls reference members of a
@@ -497,33 +493,27 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false);
-    
-    for (auto func_ptr : ctrt->definedFunctions())
-    {
-        if (func_ptr->name() == "test")
-        {
-            ostringstream actual, expected;
-            FunctionBlockConverter fbc(*func_ptr, stack);
-            fbc.set_for(FunctionSpecialization(*func_ptr));
-            actual << *fbc.convert();
-            expected << "{";
-            expected << "A_Method_f(&(self->user_a),(self)->model_address"
-                     << ",Init_sol_uint256_t(0),blocknum,timestamp"
-                     << ",Init_sol_bool_t(1),origin);";
-            expected << "A_Method_g(&(self->user_a),(self)->model_address"
-                     << ",Init_sol_uint256_t(0),blocknum,timestamp"
-                     << ",Init_sol_bool_t(1),origin);";
-            expected << "B_Method_f(self,(self)->model_address"
-                     << ",Init_sol_uint256_t(0),blocknum,timestamp"
-                     << ",Init_sol_bool_t(1),origin);";
-            expected << "B_Method_f(self,(self)->model_address"
-                     << ",Init_sol_uint256_t(0),blocknum,timestamp"
-                     << ",Init_sol_bool_t(1),origin);";
-            expected << "}";;
-            BOOST_CHECK_EQUAL(actual.str(), expected.str());
-            break;
-        }
-    }
+
+    auto func = ctrt->definedFunctions()[2];
+    BOOST_CHECK_EQUAL(func->name(), "test");
+
+    ostringstream actual, expected;
+    FunctionBlockConverter fbc(*func, stack);
+    fbc.set_for(FunctionSpecialization(*func));
+    actual << *fbc.convert();
+    expected << "{";
+    expected << "A_Method_f(&(self->user_a),(self)->model_address"
+             << ",Init_sol_uint256_t(0),blocknum,timestamp,Init_sol_bool_t(1)"
+             << ",origin);";
+    expected << "A_Method_g(&(self->user_a),(self)->model_address"
+             << ",Init_sol_uint256_t(0),blocknum,timestamp,Init_sol_bool_t(1)"
+             << ",origin);";
+    expected << "B_Method_f(self,(self)->model_address,Init_sol_uint256_t(0)"
+             << ",blocknum,timestamp,Init_sol_bool_t(1),origin);";
+    expected << "B_Method_f(self,(self)->model_address,Init_sol_uint256_t(0)"
+             << ",blocknum,timestamp,Init_sol_bool_t(1),origin);";
+    expected << "}";;
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
 // Tests conversion of transfer/send into _pay. This is tested on the block

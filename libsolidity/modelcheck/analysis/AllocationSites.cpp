@@ -103,14 +103,14 @@ bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
             {
                 // Case: Internal method call.
                 auto match = (&call.decl());
-                if (!call.context())
+                if (!call.is_super() && !call.is_in_library())
                 {
                     string const& name = call.decl().name();
                     match = find_named_match<FunctionDefinition>(&m_src, name);
                 }
                 def = handle_call_type(*match);
             }
-            else
+            else if (m_dest)
             {
                 throw runtime_error("Allocations restricted to internal calls");
             }

@@ -116,6 +116,8 @@ set(sources
 	modelcheck/analysis/CallGraph.h
 	modelcheck/analysis/CallState.cpp
 	modelcheck/analysis/CallState.h
+	modelcheck/analysis/ContractRvAnalysis.cpp
+	modelcheck/analysis/ContractRvAnalysis.h
 	modelcheck/analysis/FunctionCall.cpp
 	modelcheck/analysis/FunctionCall.h
 	modelcheck/analysis/Inheritance.cpp
