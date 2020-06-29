@@ -186,6 +186,26 @@ void ContractRvAnalyzer::record_ref(Expression const& _ref)
 
 // -------------------------------------------------------------------------- //
 
+ContractExpressionAnalyzer::ContractExpressionAnalyzer(
+    FlatModel const& _model, shared_ptr<AllocationGraph const> _allocation_graph
+): m_allocation_graph(_allocation_graph)
+{
+    (void) _model;
+}
+
+ContractDefinition const&
+    ContractExpressionAnalyzer::resolve(Expression const& _expr) const
+{
+    auto decl = expr_to_decl(_expr);
+    if (!decl)
+    {
+        throw runtime_error("Unable to resolve expression.");
+    }
+    return m_allocation_graph->specialize(*decl);
+}
+
+// -------------------------------------------------------------------------- //
+
 }
 }
 }

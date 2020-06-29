@@ -4,6 +4,7 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallGraph.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/Library.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
@@ -62,10 +63,25 @@ shared_ptr<FlatModel const> InheritanceAnalysis::model() const
 
 // -------------------------------------------------------------------------- //
 
-FlatCallAnalysis::FlatCallAnalysis(InheritanceModel const& _model)
+ContractExprAnalysis::ContractExprAnalysis(InheritanceModel const& _model)
  : InheritanceAnalysis(_model)
 {
-	m_call_graph = make_shared<CallGraph>(allocations(), model());
+	m_contracts
+		= make_shared<ContractExpressionAnalyzer>(*model(), allocations());
+}
+
+shared_ptr<ContractExpressionAnalyzer const>
+	ContractExprAnalysis::contracts() const
+{
+    return m_contracts;
+}
+
+// -------------------------------------------------------------------------- //
+
+FlatCallAnalysis::FlatCallAnalysis(InheritanceModel const& _model)
+ : ContractExprAnalysis(_model)
+{
+	m_call_graph = make_shared<CallGraph>(contracts(), model());
 }
 
 shared_ptr<CallGraph const> FlatCallAnalysis::calls() const

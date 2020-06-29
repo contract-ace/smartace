@@ -150,11 +150,6 @@ public:
     // contract type.
     ContractDefinition const& specialize(VariableDeclaration const& _var) const;
 
-    // Returns a more precise contract type for _expr. This takes into account
-    // upcasting. Throws if the expression cannot be mapped to a recorded
-    // declaration.
-    ContractDefinition const& resolve(Expression const& _expr) const;
-
 private:
     using VarTyping = std::map<VariableDeclaration const*, Label>;
     using Graph = std::map<Label, AllocationSummary::CallGroup>;

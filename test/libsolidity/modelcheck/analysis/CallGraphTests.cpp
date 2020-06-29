@@ -10,6 +10,7 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 
 #include <cstdint>
@@ -176,7 +177,9 @@ BOOST_AUTO_TEST_CASE(call_graph_builder)
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 3);
 
-    CallGraphBuilder builder(alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+
+    CallGraphBuilder builder(r);
     auto call_graph = builder.build(flat_model);
     BOOST_CHECK_EQUAL(call_graph->vertices().size(), 11);
 
@@ -282,7 +285,9 @@ BOOST_AUTO_TEST_CASE(call_graph_build_with_inheritance)
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
-    CallGraphBuilder builder(alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+
+    CallGraphBuilder builder(r);
     auto call_graph = builder.build(flat_model);
     BOOST_CHECK_EQUAL(call_graph->vertices().size(), 2);
 }
@@ -312,7 +317,9 @@ BOOST_AUTO_TEST_CASE(call_graph_build_with_downcasting)
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 2);
 
-    CallGraphBuilder builder(alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+
+    CallGraphBuilder builder(r);
     auto call_graph = builder.build(flat_model);
     BOOST_CHECK_EQUAL(call_graph->vertices().size(), 3);
 }
@@ -346,7 +353,9 @@ BOOST_AUTO_TEST_CASE(call_graph_with_super)
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
-    CallGraphBuilder builder(alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+
+    CallGraphBuilder builder(r);
     auto call_graph = builder.build(flat_model);
     BOOST_CHECK_EQUAL(call_graph->vertices().size(), 3);
     BOOST_CHECK(call_graph->has_vertex(func_a_f));
@@ -394,6 +403,8 @@ BOOST_AUTO_TEST_CASE(executable_code)
 
     vector<ContractDefinition const*> model_all({ ctrt_x, ctrt_y, ctrt_z, ctrt_q });
     auto alloc_graph = make_shared<AllocationGraph>(model_all);
+    auto flat_model = make_shared<FlatModel>(model_all, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
 
     vector<ContractDefinition const*> model_x({ ctrt_x });
     vector<ContractDefinition const*> model_y({ ctrt_y });
@@ -408,10 +419,10 @@ BOOST_AUTO_TEST_CASE(executable_code)
     BOOST_CHECK_EQUAL(flat_model_z->view().size(), 1);
     BOOST_CHECK_EQUAL(flat_model_q->view().size(), 2);
 
-    CallGraph graph_x(alloc_graph, flat_model_x);
-    CallGraph graph_y(alloc_graph, flat_model_y);
-    CallGraph graph_z(alloc_graph, flat_model_z);
-    CallGraph graph_q(alloc_graph, flat_model_q);
+    CallGraph graph_x(r, flat_model_x);
+    CallGraph graph_y(r, flat_model_y);
+    CallGraph graph_z(r, flat_model_z);
+    CallGraph graph_q(r, flat_model_q);
 
     BOOST_CHECK_EQUAL(graph_x.executed_code().size(), 3);
     BOOST_CHECK_EQUAL(graph_y.executed_code().size(), 5);
@@ -452,10 +463,11 @@ BOOST_AUTO_TEST_CASE(linearizes_direct_super_calls)
     vector<ContractDefinition const*> model({ ctrt_r });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_NE(flat_model->get(*ctrt_y).get(), nullptr);
 
-    CallGraph graph(alloc_graph, flat_model);
+    CallGraph graph(r, flat_model);
     BOOST_CHECK_EQUAL(graph.executed_code().size(), 3);
 
     auto func_r_f = ctrt_r->definedFunctions()[0];
@@ -498,11 +510,12 @@ BOOST_AUTO_TEST_CASE(linearizes_mixed_super_calls)
     vector<ContractDefinition const*> model({ ctrt_x, ctrt_y });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 2);
     BOOST_CHECK_NE(flat_model->get(*ctrt_x).get(), nullptr);
     BOOST_CHECK_NE(flat_model->get(*ctrt_y).get(), nullptr);
 
-    CallGraph graph(alloc_graph, flat_model);
+    CallGraph graph(r, flat_model);
     BOOST_CHECK_EQUAL(graph.executed_code().size(), 5);
 
     auto flat_x = flat_model->get(*ctrt_x);
@@ -551,10 +564,11 @@ BOOST_AUTO_TEST_CASE(linearizes_indirect_super_calls)
     vector<ContractDefinition const*> model({ ctrt_z });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_NE(flat_model->get(*ctrt_z).get(), nullptr);
 
-    CallGraph graph(alloc_graph, flat_model);
+    CallGraph graph(r, flat_model);
     BOOST_CHECK_EQUAL(graph.executed_code().size(), 4);
 
     auto func_y_f = ctrt_y->definedFunctions()[0];
@@ -594,10 +608,11 @@ BOOST_AUTO_TEST_CASE(internals)
     vector<ContractDefinition const*> model({ ctrt_z });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_NE(flat_model->get(*ctrt_z).get(), nullptr);
 
-    CallGraph graph(alloc_graph, flat_model);
+    CallGraph graph(r, flat_model);
     BOOST_CHECK_EQUAL(graph.executed_code().size(), 4);
 
     auto func_x_f = ctrt_x->definedFunctions()[0];
@@ -634,7 +649,9 @@ BOOST_AUTO_TEST_CASE(lib_calls)
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
-    CallGraphBuilder builder(alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+
+    CallGraphBuilder builder(r);
     auto call_graph = builder.build(flat_model);
     BOOST_CHECK_EQUAL(call_graph->vertices().size(), 2);
 
@@ -675,10 +692,11 @@ BOOST_AUTO_TEST_CASE(super_is_temporary)
     vector<ContractDefinition const*> model({ ctrt_y });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_NE(flat_model->get(*ctrt_y).get(), nullptr);
 
-    CallGraph graph(alloc_graph, flat_model);
+    CallGraph graph(r, flat_model);
     BOOST_CHECK_EQUAL(graph.executed_code().size(), 3);
 
     auto func_y_f = ctrt_y->definedFunctions()[0];

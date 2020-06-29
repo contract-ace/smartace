@@ -20,7 +20,7 @@ namespace solidity
 namespace modelcheck
 {
 
-class AllocationGraph;
+class ContractExpressionAnalyzer;
 class FlatContract;
 class FlatModel;
 class FunctionCallAnalyzer;
@@ -36,7 +36,7 @@ class FunctionCallAnalyzer;
  */
 std::shared_ptr<FlatContract> devirtualize(
     std::shared_ptr<FlatContract> _scope,
-    AllocationGraph const& _alloc_graph,
+    ContractExpressionAnalyzer const& _expr_resolver,
     FlatModel const& _model,
     FunctionCallAnalyzer const& _func
 );
@@ -145,8 +145,10 @@ public:
     using Graph = LabeledDigraph<FunctionDefinition const*, CallTypes>;
 
     // The call graph will downcast all contract variables through the use of
-    // _alloc_graph.
-    CallGraphBuilder(std::shared_ptr<AllocationGraph const> _alloc_graph);
+    // _expression_lookup.
+    CallGraphBuilder(
+        std::shared_ptr<ContractExpressionAnalyzer const> _expr_resolver
+    );
 
     // Computes a call graph for _model.
     std::shared_ptr<Graph> build(std::shared_ptr<FlatModel const> _model);
@@ -157,7 +159,7 @@ protected:
     void endVisit(FunctionCall const& _node) override;
 
 private:
-    std::shared_ptr<AllocationGraph const> m_alloc_graph;
+    std::shared_ptr<ContractExpressionAnalyzer const> m_expr_resolver;
     std::shared_ptr<FlatModel const> m_model;
 
     std::shared_ptr<Graph> m_graph;
@@ -179,9 +181,9 @@ public:
     using CodeSet = std::set<CallGraphBuilder::Graph::Vertex>;
     using CodeList = std::list<CallGraphBuilder::Graph::Vertex>;
 
-    // Corresponds to running CallGraphBuilder with _alloc_graph and _model.
+    // Corresponds to running CallGraphBuilder with _expr_resolver and _model.
     CallGraph(
-        std::shared_ptr<AllocationGraph const> _alloc_graph,
+        std::shared_ptr<ContractExpressionAnalyzer const> _expr_resolver,
         std::shared_ptr<FlatModel const> _model
     );
 

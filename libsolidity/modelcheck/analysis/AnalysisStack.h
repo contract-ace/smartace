@@ -30,6 +30,7 @@ namespace modelcheck
 class AllocationGraph;
 class CallGraph;
 class CallState;
+class ContractExpressionAnalyzer;
 class FlatModel;
 class LibrarySummary;
 class MapIndexSummary;
@@ -82,10 +83,29 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The third pass of analysis constructs a call graph for all contracts in the
+ * The third pass of analysis upcasts all contract return values. The end result
+ * is a mapping from contract expressions to upcast contracts.
+ */
+class ContractExprAnalysis : public InheritanceAnalysis
+{
+public:
+    // Equivalent to ContractExpressionAnalyzer(*model(), *allocations()).
+    ContractExprAnalysis(InheritanceModel const& _model);
+
+    // Describes all calls made within the bundle.
+    std::shared_ptr<ContractExpressionAnalyzer const> contracts() const;
+
+private:
+    std::shared_ptr<ContractExpressionAnalyzer> m_contracts;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * The fourth pass of analysis constructs a call graph for all contracts in the
  * model.
  */
-class FlatCallAnalysis : public InheritanceAnalysis
+class FlatCallAnalysis : public ContractExprAnalysis
 {
 public:
     // Equivalent to calling CallGraph(*model(), *allocations()).
@@ -101,7 +121,7 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The fourth pass uses call data to determine the mappings in use.
+ * The fifth pass uses call data to determine the mappings in use.
  */
 class LibraryAnalysis : public FlatCallAnalysis
 {
@@ -119,7 +139,7 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The fifth pass of analysis ensures that addresses are used appropriately,
+ * The sixth pass of analysis ensures that addresses are used appropriately,
  * and computes the required parameters for compositional reasoning.
  */
 class FlatAddressAnalysis : public LibraryAnalysis

@@ -13,6 +13,7 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallGraph.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/Library.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
@@ -71,6 +72,16 @@ BOOST_AUTO_TEST_CASE(end_to_end)
     if (stack->model())
     {
         BOOST_CHECK_EQUAL(stack->model()->bundle().size(), 2);
+    }
+
+    BOOST_CHECK_NE(stack->contracts().get(), nullptr);
+    if (stack->contracts())
+    {
+        auto stmt = ctrt->definedFunctions()[0]->body().statements()[0];
+        auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
+        auto assign = dynamic_cast<Assignment const*>(&expr_stmt->expression());
+        auto id = (&assign->leftHandSide());
+        BOOST_CHECK_EQUAL(stack->contracts()->resolve(*id).name(), "X");
     }
 
     BOOST_CHECK_NE(stack->calls().get(), nullptr);

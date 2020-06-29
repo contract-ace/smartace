@@ -2,6 +2,7 @@
 
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
@@ -703,13 +704,18 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	{
 		call = FunctionSpecialization(call.func(), M_DECLS.spec()->use_by());
 	}
-	else if (!(is_ext_call || call.source().isLibrary()))
+	else if (!_calldata.is_in_library())
 	{
-        auto const& user = M_DECLS.spec()->use_by();
-        string const& target = call.func().name();
+		// If the context is not an LValue, then the context is "this".
+		auto user = (&M_DECLS.spec()->use_by());
+		if (is_ext_call && _calldata.context()->annotation().isLValue)
+		{
+			user = (&m_stack->contracts()->resolve(*_calldata.context()));
+		}
 
-		auto match = find_named_match<FunctionDefinition>(&user, target);
-		call = FunctionSpecialization(*match, user);
+		string const& target = call.func().name();
+		auto match = find_named_match<FunctionDefinition>(user, target);
+		call = FunctionSpecialization(*match, *user);
 	}
 
 	// Determines if method must produce return value by reference.

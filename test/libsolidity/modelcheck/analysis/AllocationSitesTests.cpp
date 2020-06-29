@@ -459,34 +459,6 @@ BOOST_AUTO_TEST_CASE(specialization_by_inderection)
     BOOST_CHECK_EQUAL(g.specialize(*ctrt->stateVariables()[1]).name(), "X");
 }
 
-BOOST_AUTO_TEST_CASE(resolve_id)
-{
-    char const* text = R"(
-        contract X {}
-        contract Y {}
-        contract Test {
-            X x;
-            Y y;
-            constructor() public {
-                x = new X();
-                y = new Y();
-            }
-            function f() public view { x; }
-        }
-    )";
-
-    const auto& unit = *parseAndAnalyse(text);
-    auto ctrt = retrieveContractByName(unit, "Test");
-    
-    auto stmt = ctrt->definedFunctions()[0]->body().statements()[0];
-    auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
-    auto assignment = dynamic_cast<Assignment const*>(&expr_stmt->expression());
-    auto id = (&assignment->leftHandSide());
-
-    AllocationGraph g({ ctrt });
-    BOOST_CHECK_EQUAL(g.resolve(*id).name(), "X");
-}
-
 BOOST_AUTO_TEST_CASE(member_access_to_contracts)
 {
     char const* text = R"(

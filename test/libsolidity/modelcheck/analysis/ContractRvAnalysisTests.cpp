@@ -10,6 +10,7 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 
 using namespace std;
 
@@ -257,6 +258,39 @@ BOOST_AUTO_TEST_CASE(unsupported)
 
     BOOST_CHECK_THROW(ContractRvAnalyzer(*ctrt, graph, *func_f), runtime_error);
     BOOST_CHECK_THROW(ContractRvAnalyzer(*ctrt, graph, *func_g), runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(resolve_id)
+{
+    char const* text = R"(
+        contract X {}
+        contract Y {}
+        contract Test {
+            X x;
+            Y y;
+            constructor() public {
+                x = new X();
+                y = new Y();
+            }
+            function f() public view { x; }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "Test");
+    
+    auto stmt = ctrt->definedFunctions()[0]->body().statements()[0];
+    auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
+    auto assignment = dynamic_cast<Assignment const*>(&expr_stmt->expression());
+    auto id = (&assignment->leftHandSide());
+
+    vector<ContractDefinition const*> model({ ctrt });
+    auto graph = make_shared<AllocationGraph>(model);
+
+    FlatModel flat_model(model, *graph);
+
+    ContractExpressionAnalyzer resolver(flat_model, graph);
+    BOOST_CHECK_EQUAL(resolver.resolve(*id).name(), "X");
 }
 
 BOOST_AUTO_TEST_SUITE_END();

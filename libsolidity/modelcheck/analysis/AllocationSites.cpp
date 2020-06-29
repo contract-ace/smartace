@@ -276,17 +276,6 @@ ContractDefinition const&
     return (*itr->second);
 }
 
-ContractDefinition const&
-    AllocationGraph::resolve(Expression const& _expr) const
-{
-    auto decl = expr_to_decl(_expr);
-    if (!decl)
-    {
-        throw runtime_error("Unable to resolve expression.");
-    }
-    return specialize(*decl);
-}
-
 void AllocationGraph::analyze(
     Label _root, AllocationSummary::CallGroup _children
 )

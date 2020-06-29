@@ -1,6 +1,6 @@
 #include <libsolidity/modelcheck/analysis/CallGraph.h>
 
-#include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/utils/AST.h>
@@ -20,7 +20,7 @@ namespace modelcheck
 
 shared_ptr<FlatContract> devirtualize(
     shared_ptr<FlatContract> _scope,
-    AllocationGraph const& _alloc_graph,
+    ContractExpressionAnalyzer const& _expr_resolver,
     FlatModel const& _model,
     FunctionCallAnalyzer const& _func
 )
@@ -47,7 +47,7 @@ shared_ptr<FlatContract> devirtualize(
     }
     else if (ctx && (expr_to_decl(*ctx) != nullptr))
     {
-        auto const& context = _alloc_graph.resolve(*ctx);
+        auto const& context = _expr_resolver.resolve(*ctx);
         scope = _model.get(context);
     }
     else
@@ -67,8 +67,8 @@ shared_ptr<FlatContract> devirtualize(
 // -------------------------------------------------------------------------- //
 
 CallGraphBuilder::CallGraphBuilder(
-    shared_ptr<AllocationGraph const> _alloc_graph
-): m_alloc_graph(_alloc_graph) {}
+    shared_ptr<ContractExpressionAnalyzer const> _expr_resolver
+): m_expr_resolver(_expr_resolver) {}
 
 shared_ptr<CallGraphBuilder::Graph>
     CallGraphBuilder::build(shared_ptr<FlatModel const> _model)
@@ -144,8 +144,8 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
 	FunctionCallAnalyzer call(_node);
     if (call.is_in_library())
     {
-            m_labels = { CallTypes::Library };
-            resolution = (&call.decl());
+        m_labels = { CallTypes::Library };
+        resolution = (&call.decl());
     }
     else if (call.classify() == FunctionCallAnalyzer::CallGroup::Method)
     {
@@ -157,7 +157,7 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
         }
 
         // Resolves the function using the scope of this call.
-        scope = devirtualize(m_scope.back(), *m_alloc_graph, *m_model, call);
+        scope = devirtualize(m_scope.back(), *m_expr_resolver, *m_model, call);
         resolution = (&scope->resolve(call.decl()));
 
         // If this is a super call, the scope really shouldn't change.
@@ -195,9 +195,9 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
 // -------------------------------------------------------------------------- //
 
 CallGraph::CallGraph(
-    shared_ptr<AllocationGraph const> _alloc_graph,
+    shared_ptr<ContractExpressionAnalyzer const> _expr_resolver,
     shared_ptr<FlatModel const> _model
-): m_graph(CallGraphBuilder(_alloc_graph).build(_model)) {}
+): m_graph(CallGraphBuilder(_expr_resolver).build(_model)) {}
 
 CallGraph::CodeSet CallGraph::executed_code() const
 {
