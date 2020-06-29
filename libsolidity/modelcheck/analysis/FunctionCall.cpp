@@ -70,6 +70,15 @@ bool FunctionCallAnalyzer::is_in_library() const
 	return false;
 }
 
+bool FunctionCallAnalyzer::context_is_this() const
+{
+	if (auto id = dynamic_cast<Identifier const*>(m_context))
+	{
+		return (id->name() == "this");
+	}
+	return false;
+}
+
 FunctionType const& FunctionCallAnalyzer::type() const
 {
     if (!m_type)

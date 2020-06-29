@@ -87,6 +87,7 @@ BOOST_AUTO_TEST_CASE(annotation_tests)
                 x.h.value(1)(2);
                 x.h.gas(1).value(2)(3);
                 x.h.value(1).gas(2)(3);
+                this.f();
             }
         }
     )";
@@ -95,7 +96,7 @@ BOOST_AUTO_TEST_CASE(annotation_tests)
 
     auto const* x = retrieveContractByName(unit, "Test");
     auto const& stmts = x->definedFunctions()[1]->body().statements();
-    BOOST_CHECK_EQUAL(stmts.size(), 6);
+    BOOST_CHECK_EQUAL(stmts.size(), 7);
 
     CallSearch call1(stmts[0]);
     FunctionCallAnalyzer test1(*call1.call);
@@ -119,6 +120,7 @@ BOOST_AUTO_TEST_CASE(annotation_tests)
     BOOST_CHECK_EQUAL(test2.value(), nullptr);
     BOOST_CHECK_EQUAL(test2.gas(), nullptr);
     BOOST_CHECK_NE(test2.context(), nullptr);
+    BOOST_CHECK(!test2.context_is_this());
 
     CallSearch call3(stmts[2]);
     FunctionCallAnalyzer test3(*call3.call);
@@ -129,6 +131,7 @@ BOOST_AUTO_TEST_CASE(annotation_tests)
     BOOST_CHECK_EQUAL(test3.value(), nullptr);
     BOOST_CHECK_EQUAL(LiteralSearch(test3.gas()).v, 1);
     BOOST_CHECK_NE(test3.context(), nullptr);
+    BOOST_CHECK(!test3.context_is_this());
 
     CallSearch call4(stmts[3]);
     FunctionCallAnalyzer test4(*call4.call);
@@ -159,6 +162,10 @@ BOOST_AUTO_TEST_CASE(annotation_tests)
     BOOST_CHECK_EQUAL(LiteralSearch(test6.value()).v, 1);
     BOOST_CHECK_EQUAL(LiteralSearch(test6.gas()).v, 2);
     BOOST_CHECK_NE(test6.context(), nullptr);
+
+    CallSearch call7(stmts[6]);
+    FunctionCallAnalyzer test7(*call7.call);
+    BOOST_CHECK(test7.context_is_this());
 }
 
 BOOST_AUTO_TEST_CASE(special_annotations)

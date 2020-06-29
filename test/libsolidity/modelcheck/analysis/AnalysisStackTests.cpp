@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(end_to_end)
         auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
         auto assign = dynamic_cast<Assignment const*>(&expr_stmt->expression());
         auto id = (&assign->leftHandSide());
-        BOOST_CHECK_EQUAL(stack->contracts()->resolve(*id).name(), "X");
+        BOOST_CHECK_EQUAL(stack->contracts()->resolve(*id, ctrt).name(), "X");
     }
 
     BOOST_CHECK_NE(stack->calls().get(), nullptr);

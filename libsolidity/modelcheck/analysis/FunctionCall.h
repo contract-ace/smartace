@@ -56,6 +56,9 @@ public:
     // If true, this is a library call.
     bool is_in_library() const;
 
+    // If true, the call is a remote call to "this".
+    bool context_is_this() const;
+
     // Returns the type metadata for the underlying method.
     FunctionType const& type() const;
 

@@ -27,13 +27,14 @@ AllocationSummary::AllocationSummary(ContractDefinition const& _src)
         {
             for (auto const& call : visitor.calls)
             {
-                if (call.dest && !call.dest->isLocalOrReturn())
+                if (call.dest && !call.dest->isLocalOrReturn() && call.type)
                 {
                     m_children.push_back(call);
                 }
-                else
+                else if (call.type)
                 {
                     m_violations.push_back(call);
+                    m_violations.back().status = ViolationType::Orphaned;
                 }
             }
         }
@@ -41,20 +42,27 @@ AllocationSummary::AllocationSummary(ContractDefinition const& _src)
         {
             for (auto const& call : visitor.calls)
             {
-                if (call.is_retval)
+                if (call.is_retval && call.type)
                 {
-
                     m_children.push_back(call);
                 }
-                else
+                else if (call.type)
                 {
                     m_violations.push_back(call);
+                    m_violations.back().status = ViolationType::Orphaned;
                 }
             }
         }
         else
         {
-            m_violations.splice(m_violations.end(), visitor.calls);
+            for (auto const & call : visitor.calls)
+            {
+                if (call.type)
+                {
+                    m_violations.push_back(call);
+                    m_violations.back().status = ViolationType::Unbounded;
+                }
+            }
         }
     }
 }
@@ -93,7 +101,7 @@ bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
         if (contract)
         {
             // Determines the allocation contract.
-            ContractDefinition const* def;
+            ContractDefinition const* def = nullptr;
             if (call.classify() == FunctionCallAnalyzer::CallGroup::Constructor)
             {
                 // Case: New call.

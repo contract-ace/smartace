@@ -90,6 +90,11 @@ FlatContract::FunctionList const& FlatContract::interface() const
     return m_public;
 }
 
+FlatContract::FunctionList const& FlatContract::internals() const
+{
+    return m_private;
+}
+
 FlatContract::VariableList const& FlatContract::state_variables() const
 {
     return m_vars;

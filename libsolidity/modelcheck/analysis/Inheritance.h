@@ -41,6 +41,9 @@ public:
     // Returns all exposed methods of the contract.
     FunctionList const& interface() const;
 
+    // Returns all hidden methods of the contract.
+    FunctionList const& internals() const;
+
     // Returns all inherited variables of the contract.
     VariableList const& state_variables() const;
 

@@ -480,6 +480,61 @@ BOOST_AUTO_TEST_CASE(member_access_to_contracts)
     BOOST_CHECK_EQUAL(g.specialize(*var_x).name(), "X");
 }
 
+BOOST_AUTO_TEST_CASE(can_return_address)
+{
+    char const* text = R"(
+        contract X {}
+        contract Test {
+            X x;
+            constructor() public {
+                x = new X();
+            }
+            function get() public view returns (X) {
+                return x;
+            }
+            function f() public view {
+                address(get());
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto const* ctrt = retrieveContractByName(unit, "Test");
+
+    AllocationGraph g({ ctrt });
+    BOOST_CHECK(g.violations().empty());
+}
+
+BOOST_AUTO_TEST_CASE(can_chain_call)
+{
+    char const* text = R"(
+        contract X {
+            int y;
+            function get_val() public view returns (int) {
+                return y;
+            }
+        }
+        contract Test {
+            X x;
+            constructor() public {
+                x = new X();
+            }
+            function get_x() public view returns (X) {
+                return x;
+            }
+            function f() public view {
+                this.get_x().get_val();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto const* ctrt = retrieveContractByName(unit, "Test");
+
+    AllocationGraph g({ ctrt });
+    BOOST_CHECK(g.violations().empty());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

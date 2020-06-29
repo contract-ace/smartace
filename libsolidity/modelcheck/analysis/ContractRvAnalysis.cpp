@@ -2,6 +2,7 @@
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 
@@ -25,6 +26,14 @@ ContractRvAnalyzer::ContractRvAnalyzer(
     _func.body().accept(*this);
 }
 
+ContractRvAnalyzer::ContractRvAnalyzer(
+    shared_ptr<AllocationGraph const> _allocation_graph,
+    FunctionDefinition const& _func
+): m_src(nullptr), m_allocation_graph(_allocation_graph)
+{
+    _func.body().accept(*this);
+}
+
 set<ContractDefinition const*> ContractRvAnalyzer::internals() const
 {
     return m_internal_refs;
@@ -35,7 +44,7 @@ set<ContractDefinition const*> ContractRvAnalyzer::externals() const
     return m_external_refs;
 }
 
-set<FunctionDefinition const*> ContractRvAnalyzer::dependencies() const
+set<ContractRvAnalyzer::Key> ContractRvAnalyzer::dependencies() const
 {
     return m_procedural_calls;
 }
@@ -101,7 +110,7 @@ bool ContractRvAnalyzer::visit(FunctionCall const& _node)
         {
             if (call.is_super())
             {
-                m_procedural_calls.insert(&call.decl());
+                m_procedural_calls.insert(make_pair(m_src, &call.decl()));
             }
             else
             {
@@ -130,12 +139,12 @@ bool ContractRvAnalyzer::visit(FunctionCall const& _node)
 
                 string const& name = call.decl().name();
                 auto match = find_named_match<FunctionDefinition>(user, name);
-                m_procedural_calls.insert(match);
+                m_procedural_calls.insert(make_pair(user, match));
             }
         }
         else if (call.is_in_library())
         {
-            m_procedural_calls.insert(&call.decl());
+            m_procedural_calls.insert(make_pair(nullptr, &call.decl()));
         }
         else if (call.classify() == FunctionCallAnalyzer::CallGroup::Delegate)
         {
@@ -186,22 +195,170 @@ void ContractRvAnalyzer::record_ref(Expression const& _ref)
 
 // -------------------------------------------------------------------------- //
 
+ContractRvLookup::ContractRvLookup(
+    FlatModel const& _model, shared_ptr<AllocationGraph const> _allocation_graph
+): m_allocation_graph(_allocation_graph)
+{
+    // First, the contract methods used by the model are recorded.
+    set<Key> seen;
+    for (auto contract : _model.view())
+    {
+        for (auto func : contract->interface())
+        {
+            if (check_method_rv(*func))
+            {
+                seen.insert(record(*contract, *func));
+            }
+        }
+        for (auto func : contract->internals())
+        {
+            if (check_method_rv(*func))
+            {
+                seen.insert(record(*contract, *func));
+            }
+        }
+    }
+    list<Key> pending(seen.begin(), seen.end());
+
+    // Next, the required libraries are analyzed and added.
+    for (auto key : pending)
+    {
+        auto record = registry[key];
+        for (auto dep : record->dependencies())
+        {
+            if (dep.first == nullptr)
+            {
+                if (seen.insert(dep).second)
+                {
+                    registry[dep] = make_shared<ContractRvAnalyzer>(
+                        m_allocation_graph, *key.second
+                    );
+                    pending.push_back(dep);
+                }
+            }
+        }
+    }
+}
+
+ContractRvLookup::Key ContractRvLookup::record(
+    FlatContract const& _src, FunctionDefinition const& _func
+)
+{
+    auto key = make_pair(_src.raw(), &_func);
+    registry[key] = make_shared<ContractRvAnalyzer>(
+        *_src.raw(), m_allocation_graph, _func
+    );
+    return key;
+}
+
+bool ContractRvLookup::check_method_rv(FunctionDefinition const& _func)
+{
+    auto const& params = _func.returnParameters();
+    if (params.size() != 1)
+    {
+        return false;
+    }
+
+    if (params[0]->type()->category() != Type::Category::Contract)
+    {
+        return false;
+    }
+    return true;
+}
+
+// -------------------------------------------------------------------------- //
+
 ContractExpressionAnalyzer::ContractExpressionAnalyzer(
     FlatModel const& _model, shared_ptr<AllocationGraph const> _allocation_graph
 ): m_allocation_graph(_allocation_graph)
 {
-    (void) _model;
+    ContractRvLookup lookup(_model, _allocation_graph);
+    for (auto entry : lookup.registry)
+    {
+        auto const& src = (*entry.second);
+        auto const& src_deps = src.dependencies();
+
+        list<ContractRvLookup::Key> pending(src_deps.begin(), src_deps.end());
+        set<ContractRvLookup::Key> seen;
+        seen.insert(entry.first);
+
+        // Aggregates all internals and externals across all dependencies.
+        set<ContractDefinition const*> internal = src.internals();
+        set<ContractDefinition const*> external = src.externals();
+        for (auto key : pending)
+        {
+            if (seen.insert(key).second)
+            {
+                auto record = (*lookup.registry[key]);
+                auto internal_ext = record.internals();
+                auto external_ext = record.externals();
+                internal.insert(internal_ext.begin(), internal_ext.end());
+                external.insert(external_ext.begin(), external_ext.end());
+
+                for (auto dep : record.dependencies())
+                {
+                    if (seen.insert(dep).second)
+                    {
+                        pending.push_back(dep);
+                    }
+                }
+            }
+        }
+
+        // Ensures that this function satisfies our requirements.
+        if (!external.empty() && internal.size() != 1)
+        {
+            throw runtime_error("Unable to resolve contract rv type.");
+        }
+        m_rv_types[entry.first] = (*internal.begin());
+    }
 }
 
-ContractDefinition const&
-    ContractExpressionAnalyzer::resolve(Expression const& _expr) const
+ContractDefinition const& ContractExpressionAnalyzer::resolve(
+    Expression const& _expr, ContractDefinition const* _ctx
+) const
 {
-    auto decl = expr_to_decl(_expr);
-    if (!decl)
+    // Ensures the type matches the request.
+    auto type = _expr.annotation().type;
+    if (type->category() != Type::Category::Contract)
     {
-        throw runtime_error("Unable to resolve expression.");
+        throw runtime_error("Resolve must be called on a contract typed expr.");
     }
-    return m_allocation_graph->specialize(*decl);
+
+    // Functions are handled differently.
+    ExpressionCleaner cleaner(_expr);
+    if (auto call = dynamic_cast<FunctionCall const*>(&cleaner.clean()))
+    {
+        FunctionCallAnalyzer calldata(*call);
+
+        // Determines the key for this call.
+        auto key = make_pair(_ctx, &calldata.decl());
+        if (calldata.is_in_library())
+        {
+            key.first = nullptr;
+        }
+        else if (calldata.context() && !calldata.context_is_this())
+        {
+            key.first = (&resolve(*calldata.context(), _ctx));
+        }
+
+        // Resolves the key.
+        auto match =  m_rv_types.find(key);
+        if (match == m_rv_types.end())
+        {
+            throw runtime_error("Unable to resolve rv type of call");
+        }
+        return (*match->second);
+    }
+    else
+    {
+        auto decl = expr_to_decl(_expr);
+        if (!decl)
+        {
+            throw runtime_error("Unable to resolve expression to decl.");
+        }
+        return m_allocation_graph->specialize(*decl);
+    }
 }
 
 // -------------------------------------------------------------------------- //

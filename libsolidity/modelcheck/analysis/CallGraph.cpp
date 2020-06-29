@@ -47,7 +47,7 @@ shared_ptr<FlatContract> devirtualize(
     }
     else if (ctx && (expr_to_decl(*ctx) != nullptr))
     {
-        auto const& context = _expr_resolver.resolve(*ctx);
+        auto const& context = _expr_resolver.resolve(*ctx, _scope->raw());
         scope = _model.get(context);
     }
     else

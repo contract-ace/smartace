@@ -97,12 +97,13 @@ BOOST_AUTO_TEST_CASE(basic_rv_analysis)
     BOOST_CHECK_EQUAL(g_res.dependencies().size(), 0);
 
     ContractRvAnalyzer h_res(*ctrt, graph, *func_h);
+    auto key = make_pair(ctrt, func_f);
     BOOST_CHECK_EQUAL(h_res.internals().size(), 1);
     BOOST_CHECK(h_res.externals().find(child_xx) != h_res.externals().end());
     BOOST_CHECK_EQUAL(h_res.externals().size(), 1);
     BOOST_CHECK(h_res.externals().find(child_x) != h_res.externals().end());
     BOOST_CHECK_EQUAL(h_res.dependencies().size(), 1);
-    BOOST_CHECK(h_res.dependencies().find(func_f) != h_res.dependencies().end());
+    BOOST_CHECK(h_res.dependencies().find(key) != h_res.dependencies().end());
 }
 
 BOOST_AUTO_TEST_CASE(library_call)
@@ -136,10 +137,11 @@ BOOST_AUTO_TEST_CASE(library_call)
     auto graph = make_shared<AllocationGraph>(model);
 
     ContractRvAnalyzer f_res(*ctrt, graph, *func_f);
+    auto key = make_pair(nullptr, libcall);
     BOOST_CHECK_EQUAL(f_res.internals().size(), 0);
     BOOST_CHECK_EQUAL(f_res.externals().size(), 0);
     BOOST_CHECK_EQUAL(f_res.dependencies().size(), 1);
-    BOOST_CHECK(f_res.dependencies().find(libcall) != f_res.dependencies().end());
+    BOOST_CHECK(f_res.dependencies().find(key) != f_res.dependencies().end());
 }
 
 BOOST_AUTO_TEST_CASE(supercall)
@@ -173,10 +175,11 @@ BOOST_AUTO_TEST_CASE(supercall)
     auto graph = make_shared<AllocationGraph>(model);
 
     ContractRvAnalyzer f_res(*ctrt, graph, *func_f);
+    auto key = make_pair(ctrt, super);
     BOOST_CHECK_EQUAL(f_res.internals().size(), 0);
     BOOST_CHECK_EQUAL(f_res.externals().size(), 0);
     BOOST_CHECK_EQUAL(f_res.dependencies().size(), 1);
-    BOOST_CHECK(f_res.dependencies().find(super) != f_res.dependencies().end());
+    BOOST_CHECK(f_res.dependencies().find(key) != f_res.dependencies().end());
 }
 
 BOOST_AUTO_TEST_CASE(external_call)
@@ -215,10 +218,11 @@ BOOST_AUTO_TEST_CASE(external_call)
     auto graph = make_shared<AllocationGraph>(model);
 
     ContractRvAnalyzer f_res(*ctrt, graph, *func_f);
+    auto key = make_pair(ext, extcall);
     BOOST_CHECK_EQUAL(f_res.internals().size(), 0);
     BOOST_CHECK_EQUAL(f_res.externals().size(), 0);
     BOOST_CHECK_EQUAL(f_res.dependencies().size(), 1);
-    BOOST_CHECK(f_res.dependencies().find(extcall) != f_res.dependencies().end());
+    BOOST_CHECK(f_res.dependencies().find(key) != f_res.dependencies().end());
 }
 
 BOOST_AUTO_TEST_CASE(unsupported)
@@ -290,7 +294,125 @@ BOOST_AUTO_TEST_CASE(resolve_id)
     FlatModel flat_model(model, *graph);
 
     ContractExpressionAnalyzer resolver(flat_model, graph);
-    BOOST_CHECK_EQUAL(resolver.resolve(*id).name(), "X");
+    BOOST_CHECK_EQUAL(resolver.resolve(*id, ctrt).name(), "X");
+}
+
+BOOST_AUTO_TEST_CASE(resolve_fn)
+{
+    char const* text = R"(
+        contract X {}
+        contract XX is X {}
+        contract Aux {
+            X x;
+            constructor() public {
+                x = new XX();
+            }
+            function get() public view returns (X) {
+                return x;
+            }
+        }
+        contract Ext {
+            Aux aux;
+            constructor() public {
+                aux = new Aux();
+            }
+            function get() public view returns (Aux) {
+                return aux;
+            }
+        }
+        contract Test {
+            Ext ext;
+            constructor() public {
+                ext = new Ext();
+            }
+            function f() public view {
+                ext.get().get();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "Test");
+    
+    auto stmt = ctrt->definedFunctions()[1]->body().statements()[0];
+    auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
+    auto expr = (&expr_stmt->expression());
+
+    vector<ContractDefinition const*> model({ ctrt });
+    auto graph = make_shared<AllocationGraph>(model);
+
+    FlatModel flat_model(model, *graph);
+
+    ContractExpressionAnalyzer resolver(flat_model, graph);
+    BOOST_CHECK_EQUAL(resolver.resolve(*expr, ctrt).name(), "XX");
+}
+
+BOOST_AUTO_TEST_CASE(coverage)
+{
+    char const* text = R"(
+        contract X {}
+        library Lib {
+            function f() public pure returns (X) {
+                return X(address(5));
+            }
+        }
+        contract Base {
+            function h() internal view returns (X) {
+                return Lib.f();
+            } 
+        }
+        contract TestA is Base {
+            X x;
+            constructor() public {
+                x = new X();
+            }
+            function f() public pure {}
+            function g() public view returns (X) {
+                return x;
+            }
+        }
+        contract TestB {
+            X x;
+            constructor() public {
+                x = new X();
+            }
+            function p() public view returns (X) {
+                return x;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_1 = retrieveContractByName(unit, "TestA");
+    auto ctrt_2 = retrieveContractByName(unit, "TestB");
+
+    auto lib = retrieveContractByName(unit, "Lib");
+    auto base = retrieveContractByName(unit, "Base");
+
+    auto func_g = ctrt_1->definedFunctions()[2];
+    auto func_h = base->definedFunctions()[0];
+    auto lib_f = lib->definedFunctions()[0];
+    auto func_p = ctrt_2->definedFunctions()[1];
+
+    BOOST_CHECK_EQUAL(func_g->name(), "g");
+    BOOST_CHECK_EQUAL(func_h->name(), "h");
+    BOOST_CHECK_EQUAL(lib_f->name(), "f");
+
+    vector<ContractDefinition const*> model({ ctrt_1, ctrt_2 });
+    auto graph = make_shared<AllocationGraph>(model);
+
+    FlatModel flat_model(model, *graph);
+
+    ContractRvLookup lookup(flat_model, graph);
+    auto key_1 = make_pair(ctrt_1, func_g);
+    auto key_2 = make_pair(ctrt_1, func_h);
+    auto key_3 = make_pair(nullptr, lib_f);
+    auto key_4 = make_pair(ctrt_2, func_p);
+    BOOST_CHECK_EQUAL(lookup.registry.size(), 4);
+    BOOST_CHECK(lookup.registry.find(key_1) != lookup.registry.end());
+    BOOST_CHECK(lookup.registry.find(key_2) != lookup.registry.end());
+    BOOST_CHECK(lookup.registry.find(key_3) != lookup.registry.end());
+    BOOST_CHECK(lookup.registry.find(key_4) != lookup.registry.end());
 }
 
 BOOST_AUTO_TEST_SUITE_END();

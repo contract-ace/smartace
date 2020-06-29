@@ -708,9 +708,9 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	{
 		// If the context is not an LValue, then the context is "this".
 		auto user = (&M_DECLS.spec()->use_by());
-		if (is_ext_call && _calldata.context()->annotation().isLValue)
+		if (is_ext_call && !_calldata.context_is_this())
 		{
-			user = (&m_stack->contracts()->resolve(*_calldata.context()));
+			user = (&m_stack->contracts()->resolve(*_calldata.context(), user));
 		}
 
 		string const& target = call.func().name();
