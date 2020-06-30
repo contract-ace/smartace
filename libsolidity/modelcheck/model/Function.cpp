@@ -159,7 +159,7 @@ CParams FunctionConverter::generate_params(
 void FunctionConverter::generate_mapping(Mapping const& _mapping)
 {
     if (M_VIEW == View::EXT) return;
-    if (!m_visited.insert(&_mapping).second) return;
+    if (!m_visited.insert(make_pair(&_mapping, nullptr)).second) return;
 
     MapGenerator gen(_mapping, M_ADD_SUMS, M_MAP_K, *m_stack->types());
     (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
@@ -173,7 +173,7 @@ void FunctionConverter::generate_mapping(Mapping const& _mapping)
 void FunctionConverter::generate_structure(Structure const& _struct)
 {
     if (M_VIEW == View::EXT) return;
-    if (!m_visited.insert(_struct.raw()).second) return;
+    if (!m_visited.insert(make_pair(_struct.raw(), nullptr)).second) return;
 
     for (auto mapping : _struct.mappings())
     {
@@ -287,6 +287,7 @@ string FunctionConverter::handle_contract_initializer(
     auto const* LOCAL_CTOR = _initialized.constructor();
 
     if (M_VIEW == View::INT) return NAME;
+    if (!m_visited.insert(make_pair(&_initialized, &_for)).second) return NAME;
 
     CParams params;
     string ctor_name;
@@ -428,9 +429,13 @@ string FunctionConverter::handle_function(
     FunctionSpecialization const& _spec, string _rv_type, bool _rv_is_ptr
 )
 {
+    auto const& FUNC = _spec.func();
+    auto const& USER = _spec.use_by();
+    if (!m_visited.insert(make_pair(&FUNC, &USER)).second) return _spec.name(0);
+
     // Determines if a contract initialization destination is required.
     ASTPointer<VariableDeclaration> dest;
-    auto rvs = _spec.func().returnParameters();
+    auto rvs = FUNC.returnParameters();
     if (!rvs.empty() && m_stack->allocations()->retval_is_allocated(*rvs[0]))
     {
         dest = rvs[0];
@@ -444,13 +449,13 @@ string FunctionConverter::handle_function(
     vector<CFuncDef> defs;
     {
         CParams params = generate_params(
-            _spec.func().parameters(), &_spec.use_by(), dest, CONTEXT
+            FUNC.parameters(), &USER, dest, CONTEXT
         );
 
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            FunctionBlockConverter cov(_spec.func(), m_stack);
+            FunctionBlockConverter cov(FUNC, m_stack);
             cov.set_for(_spec);
             body = cov.convert();
         }
@@ -462,7 +467,7 @@ string FunctionConverter::handle_function(
 
     // Generates a declaration for each modifier.
     CParams const mod_params = generate_params(
-        _spec.func().parameters(), &_spec.use_by(), dest, CONTEXT, true
+        FUNC.parameters(), &USER, dest, CONTEXT, true
     );
     for (size_t i = mods.len(); i > 0; --i)
     {

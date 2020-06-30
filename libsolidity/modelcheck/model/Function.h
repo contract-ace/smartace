@@ -68,7 +68,7 @@ private:
 
 	std::shared_ptr<AnalysisStack> m_stack;
 
-	std::set<void const*> m_visited;
+	std::set<std::pair<void const*, void const*>> m_visited;
 
 	// Formats all Solidity arguments (_decls) as a c-function argument list.
 	// If _scope is set, the function is assumed to be a method of _scope. The
