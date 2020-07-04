@@ -39,13 +39,7 @@ shared_ptr<FlatContract> devirtualize(
         auto context = dynamic_cast<ContractDefinition const*>(new_scope);
         scope = _model.get(*context);
     }
-    else if (ctx && dynamic_cast<FunctionCall const*>(ctx))
-    {
-        auto raw = dynamic_cast<FunctionCall const*>(ctx)->annotation().type;
-        auto contract_type = dynamic_cast<ContractType const*>(raw);
-        scope = _model.get(contract_type->contractDefinition());
-    }
-    else if (ctx && (expr_to_decl(*ctx) != nullptr))
+    else if (ctx && !_func.context_is_this())
     {
         auto const& context = _expr_resolver.resolve(*ctx, _scope->raw());
         scope = _model.get(context);
@@ -93,9 +87,9 @@ shared_ptr<CallGraphBuilder::Graph>
         }
 
         // Fallback methods can be called directly.
-        if (contract->fallback() != nullptr)
+        if (auto fallback = contract->fallback())
         {
-            contract->fallback()->accept(*this);
+            fallback->accept(*this);
         }
 
         m_scope.pop_back();
@@ -107,7 +101,6 @@ bool CallGraphBuilder::visit(FunctionDefinition const& _node)
 {
     // Caches labels.
     auto labels = m_labels;
-    m_labels.clear();
 
     // Processes vertex if it is new.
     if (!m_graph->has_vertex(&_node))
@@ -142,6 +135,7 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
     shared_ptr<FlatContract> scope;
     FunctionDefinition const* resolution = nullptr;
 	FunctionCallAnalyzer call(_node);
+    m_labels.clear();
     if (call.is_in_library())
     {
         m_labels = { CallTypes::Library };
@@ -208,8 +202,18 @@ CallGraph::CodeSet CallGraph::internals(FlatContract const& _scope) const
 {
     CodeSet methods;
 
-    // TODO: precompute.
+    // Computes list of all interfaces, including "special" methods.
     CodeList functions = _scope.interface();
+    if (auto fallback = _scope.fallback())
+    {
+        functions.push_back(fallback);
+    }
+    for (auto ctor : _scope.constructors())
+    {
+        functions.push_back(ctor);
+    }
+
+    // TODO: precompute.
     set<FunctionDefinition const*> visited;
     for (auto itr = functions.begin(); itr != functions.end(); ++itr)
     {
@@ -237,8 +241,17 @@ CallGraph::CodeSet CallGraph::super_calls(
 {
     CodeSet chain;
 
+    CodeList functions;
+    if (_call.functionType(false))
+    {
+        functions = _scope.interface();
+    }
+    else
+    {
+        functions = _scope.internals();
+    }
+
     // TODO: precompute.
-    CodeList functions = _scope.interface();
     set<FunctionDefinition const*> visited;
     for (auto itr = functions.begin(); itr != functions.end(); ++itr)
     {

@@ -367,6 +367,42 @@ BOOST_AUTO_TEST_CASE(call_graph_with_super)
     BOOST_CHECK(labels.find(CallTypes::Super) != labels.end());
 }
 
+BOOST_AUTO_TEST_CASE(call_graph_with_fallback_internals)
+{
+    char const* text = R"(
+        contract A {
+            int _x = 0;
+            function f() internal { _x += 1; }
+            function() external { f(); }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+
+    auto func_a_f = ctrt_a->definedFunctions()[0];
+    auto func_a_fallback = ctrt_a->definedFunctions()[1];
+
+    BOOST_CHECK_EQUAL(func_a_f->name(), "f");
+    BOOST_CHECK_EQUAL(func_a_fallback->name(), "");
+
+    vector<ContractDefinition const*> model({ ctrt_a });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
+
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+
+    CallGraphBuilder builder(r);
+    auto call_graph = builder.build(flat_model);
+    BOOST_CHECK_EQUAL(call_graph->vertices().size(), 2);
+    BOOST_CHECK(call_graph->has_vertex(func_a_f));
+    BOOST_CHECK(call_graph->has_vertex(func_a_fallback));
+    BOOST_CHECK(call_graph->has_edge(func_a_fallback, func_a_f));
+    BOOST_CHECK(call_graph->label_of(func_a_fallback, func_a_f).empty());
+}
+
 BOOST_AUTO_TEST_CASE(executable_code)
 {
     char const* text = R"(
@@ -704,6 +740,95 @@ BOOST_AUTO_TEST_CASE(super_is_temporary)
 
     auto flat_y = flat_model->get(*ctrt_y);
     BOOST_CHECK_EQUAL(graph.super_calls(*flat_y, *func_y_f).size(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(internals_from_fallback)
+{
+    char const* text = R"(
+        contract A {
+            int _x = 0;
+            function f() internal { _x += 1; }
+            function() external { f(); }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+
+    auto func_a_f = ctrt_a->definedFunctions()[0];
+    auto func_a_fallback = ctrt_a->definedFunctions()[1];
+
+    BOOST_CHECK_EQUAL(func_a_f->name(), "f");
+    BOOST_CHECK_EQUAL(func_a_fallback->name(), "");
+
+    vector<ContractDefinition const*> model({ ctrt_a });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
+
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+
+    CallGraph graph(r, flat_model);
+    auto flat_contract = flat_model->get(*ctrt_a);
+    BOOST_CHECK_EQUAL(graph.internals(*flat_contract).size(), 1);
+    BOOST_CHECK_EQUAL(graph.super_calls(*flat_contract, *func_a_f).size(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(can_downcast_rvs)
+{
+    char const* text = R"(
+        contract A {
+            function f() public view {}
+        }
+        contract B is A {
+            function f() public view {}
+        }
+        contract C {
+            A a;
+            constructor () public {
+                a = new B();
+            }
+            function get() public returns(A) {
+                return a;
+            }
+        }
+        contract D {
+            C c;
+            constructor() public {
+                c = new C();
+            }
+            function f() public {
+                c.get().f();
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_d = retrieveContractByName(unit, "D");
+
+    auto ctrt_a = retrieveContractByName(unit, "A");
+    auto ctrt_b = retrieveContractByName(unit, "B");
+
+    auto func_a_f = ctrt_a->definedFunctions()[0];
+    auto func_b_f = ctrt_b->definedFunctions()[0];
+    auto func_d_f = ctrt_d->definedFunctions()[1];
+
+    BOOST_CHECK_EQUAL(func_a_f->name(), "f");
+    BOOST_CHECK_EQUAL(func_b_f->name(), "f");
+    BOOST_CHECK_EQUAL(func_d_f->name(), "f");
+
+    vector<ContractDefinition const*> model({ ctrt_d });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+
+    CallGraphBuilder builder(r);
+    auto call_graph = builder.build(flat_model);
+    BOOST_CHECK(!call_graph->has_edge(func_d_f, func_a_f));
+    BOOST_CHECK(call_graph->has_edge(func_d_f, func_b_f));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
