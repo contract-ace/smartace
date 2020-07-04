@@ -782,9 +782,8 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 void ExpressionConverter::print_contract_ctor(FunctionCall const& _call)
 {
 	// Extracts contract definition.
-	auto usertype = NodeSniffer<UserDefinedTypeName>(_call.expression()).find();
-	auto ref = node_to_ref(*usertype);
-	auto const& DEF = dynamic_cast<ContractDefinition const&>(*ref);
+	auto ctortype = dynamic_cast<ContractType const*>(_call.annotation().type);
+	auto const& DEF = ctortype->contractDefinition();
 
 	// Prints the constructor.
 	auto ctorcall = InitFunction(*m_stack->types(), DEF).call_builder();
@@ -878,7 +877,8 @@ void ExpressionConverter::print_address_member(
 {
 	if (_member == "balance")
 	{
-		auto const* fcall = NodeSniffer<FunctionCall>(_node, false).find();
+		ExpressionCleaner cleaner(_node);
+		auto fcall = dynamic_cast<FunctionCall const*>(&cleaner.clean());
 		if (!fcall)
 		{
 			throw runtime_error("Balance of arbitrary address not supported.");

@@ -51,62 +51,6 @@ T const* find_named_match(
 // -------------------------------------------------------------------------- //
 
 /**
- * Utility to find the top-most instance of T along some branch of an
- * expression AST. Sub-expressions used in decisions shell be pruned from the
- * tree.
- */
-template <class T>
-class NodeSniffer : public ASTConstVisitor
-{
-public:
-	static_assert(
-		std::is_base_of<ASTNode, T>::value,
-		"NodeSniffer expects that T be a valid ASTNode type."
-	);
-
-	// Wraps an AST node from which a node of type T is located.
-	NodeSniffer(Expression const& _expr, bool _use_func_args = false)
-	: M_EXPR(_expr), M_USE_FUNC_ARGS(_use_func_args) {}
-
-	// Returns the node of type T if possible, or nullptr.
-	T const* find()
-	{
-		m_ret = nullptr;
-		M_EXPR.accept(*this);
-		return m_ret;
-	}
-
-protected:
-	bool visit(Conditional const& _node) override
-	{
-		_node.falseExpression().accept(*this);
-		_node.trueExpression().accept(*this);
-		return false;
-	}
-
-	bool visit(IndexAccess const& _node) override
-	{
-		_node.baseExpression().accept(*this);
-		return false;
-	}
-
-	bool visit(FunctionCall const& _node) override
-	{
-		if (!M_USE_FUNC_ARGS) _node.expression().accept(*this);
-		return M_USE_FUNC_ARGS;
-	}
-
-	void endVisit(T const& _node) override { m_ret = &_node; }
-
-private:
-    Expression const& M_EXPR;
-	bool const M_USE_FUNC_ARGS;
-    T const* m_ret;
-};
-
-// -------------------------------------------------------------------------- //
-
-/**
  * This utility will consume an expression node. If this expression node
  * contains a potential LVal, it will be located, and if it is of type T, it
  * will be returned.
