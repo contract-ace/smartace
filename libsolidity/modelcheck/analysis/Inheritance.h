@@ -91,9 +91,11 @@ public:
     using FlatList = std::vector<std::shared_ptr<FlatContract>>;
 
     // This constructor has two conceptual steps. First, _model is expanded
-    // using _alloc_graph. Afterwards, it is flattened to a set of vertices, and
-    // each vertex is replaced by a FlatContract.
-    FlatModel(ContractList const _model, AllocationGraph const& _alloc_graph);
+    // using _allocation_graph. Afterwards, it is flattened to a set of
+    // vertices, and each vertex is replaced by a FlatContract.
+    FlatModel(
+        ContractList const _model, AllocationGraph const& _allocation_graph
+    );
 
     // Gives access to the bundle.
     FlatList bundle() const;

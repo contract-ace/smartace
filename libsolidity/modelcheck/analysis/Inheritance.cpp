@@ -143,7 +143,8 @@ bool FlatContract::is_payable() const
 // -------------------------------------------------------------------------- //
 
 FlatModel::FlatModel(
-    FlatModel::ContractList const _model, AllocationGraph const& _alloc_graph
+    FlatModel::ContractList const _model,
+    AllocationGraph const& _allocation_graph
 )
 {
     // Iterates through all children.
@@ -160,7 +161,7 @@ FlatModel::FlatModel(
         m_lookup[contract] = m_contracts.back();
 
         // Adds children to the list.
-        for (auto child : _alloc_graph.children_of(contract))
+        for (auto child : _allocation_graph.children_of(contract))
         {
             pending.push_back(child.type);
         }
@@ -176,7 +177,7 @@ FlatModel::FlatModel(
             m_lookup[parent] = make_shared<FlatContract>(*parent);
         }
 
-        for (auto child : _alloc_graph.children_of(contract))
+        for (auto child : _allocation_graph.children_of(contract))
         {
             ChildRecord record{m_lookup[child.type], child.dest->name()};
             m_children[m_lookup[contract].get()].push_back(std::move(record));

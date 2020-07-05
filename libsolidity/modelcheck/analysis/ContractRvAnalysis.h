@@ -86,7 +86,7 @@ class ContractRvLookup
 {
 public:
     // Extracts the true return value for each contract typed method in _model,
-    // using the allocation records in _alloc_graph. 
+    // using the allocation records in _allocation_graph. 
     ContractRvLookup(
         FlatModel const& _model,
         std::shared_ptr<AllocationGraph const> _allocation_graph

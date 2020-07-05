@@ -29,8 +29,8 @@ class FunctionCallAnalyzer;
 
 /**
  * This assumes that the call _func was made from within a method of _scope. The
- * contract against which to call _func is then resolved using the _alloc_graph
- * and _model.
+ * contract against which to call _func is then resolved using the
+ * _expr_resolver and _model.
  * 
  * Library calls are treated as no change in scope.
  */

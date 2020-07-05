@@ -270,20 +270,28 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 
 bool ExpressionConverter::visit(Identifier const& _node)
 {
-	bool const IS_REF = m_stack->types()->is_pointer(_node);
-
-	m_subexpr = make_shared<CIdentifier>(
-		M_DECLS.resolve_identifier(_node), IS_REF
-	);
-
-	// TODO: this code is duplicated
-	if (m_find_ref && !IS_REF)
+	if (_node.annotation().isConstant)
 	{
-		m_subexpr = make_shared<CReference>(move(m_subexpr));
+		auto raw_decl = _node.annotation().referencedDeclaration;
+		auto var_decl = dynamic_cast<VariableDeclaration const*>(raw_decl);
+		var_decl->value()->accept(*this);
 	}
-	else if (is_wrapped_type(*_node.annotation().type))
+	else
 	{
-		m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), "v");
+		bool const IS_REF = m_stack->types()->is_pointer(_node);
+
+		m_subexpr = make_shared<CIdentifier>(
+			M_DECLS.resolve_identifier(_node), IS_REF
+		);
+
+		if (m_find_ref && !IS_REF)
+		{
+			m_subexpr = make_shared<CReference>(move(m_subexpr));
+		}
+		else if (is_wrapped_type(*_node.annotation().type))
+		{
+			m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), "v");
+		}
 	}
 
 	return false;

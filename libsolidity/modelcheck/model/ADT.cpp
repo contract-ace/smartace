@@ -103,9 +103,10 @@ void ADTConverter::generate_contract(FlatContract const& _contract)
 
         for (auto decl : _contract.state_variables())
         {
-            string type;
+            if (decl->isConstant()) continue;
 
             // TODO: flat map to pre-compute the category.
+            string type;
             auto const CATEGORY = decl->annotation().type->category();
             if (CATEGORY == Type::Category::Contract)
             {

@@ -377,6 +377,8 @@ string FunctionConverter::handle_contract_initializer(
             auto const DECLKIND = decl->annotation().type->category();
             if (DECLKIND == Type::Category::Contract) continue;
 
+            if (decl->isConstant()) continue;
+
             auto const NAME = VariableScopeResolver::rewrite(
                 decl->name(), false, VarContext::STRUCT
             );

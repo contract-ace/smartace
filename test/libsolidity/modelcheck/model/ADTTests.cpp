@@ -190,7 +190,34 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
            << "};";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
- }
+}
+
+BOOST_AUTO_TEST_CASE(constants)
+{
+    char const* text = R"(
+        contract A {
+            int a; int constant b = 5;
+        }
+    )";
+
+    auto const &unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+
+    vector<ContractDefinition const*> model({ ctrt_a });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+
+    ostringstream actual, expect;
+    ADTConverter(stack, false, 1, false).print(actual);
+    expect << "struct A"
+           << "{"
+           << "sol_address_t model_address;"
+           << "sol_uint256_t model_balance;"
+           << "sol_int256_t user_a;"
+           << "};";
+
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
+}
 
 BOOST_AUTO_TEST_SUITE_END();
 

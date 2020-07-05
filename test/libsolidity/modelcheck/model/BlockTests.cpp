@@ -1136,6 +1136,33 @@ BOOST_AUTO_TEST_CASE(crypto_calls)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(constants)
+{
+    char const* text = R"(
+		contract A {
+            int constant CONST = 5;
+            function int_func() public returns (int) { return CONST; }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto func = ctrt->definedFunctions()[0];
+    BOOST_CHECK_EQUAL(func->name(), "int_func");
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+
+    ostringstream actual_int, expect_int;
+    actual_int << *FunctionBlockConverter(*func, stack).convert();
+    expect_int << "{";
+    expect_int << "return Init_sol_int256_t(5);";
+    expect_int << "}";
+    BOOST_CHECK_EQUAL(actual_int.str(), expect_int.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //
