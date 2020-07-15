@@ -23,9 +23,7 @@ namespace modelcheck
 
 StateGenerator::StateGenerator(
     shared_ptr<AnalysisStack const> _stack, bool _use_lockstep_time
-): M_USE_LOCKSTEP_TIME(_use_lockstep_time)
- , M_STEPVAR(make_shared<CVarDecl>("uint8_t", "take_step"))
- , m_stack(_stack)
+): M_USE_LOCKSTEP_TIME(_use_lockstep_time) , m_stack(_stack)
 {
 }
 
@@ -33,81 +31,82 @@ StateGenerator::StateGenerator(
 
 void StateGenerator::declare(CBlockList & _block) const
 {
-    if (M_USE_LOCKSTEP_TIME)
-    {
-        _block.push_back(M_STEPVAR);
-    }
     for (auto const& fld : m_stack->environment()->order())
     {
-        auto const DECL = make_shared<CVarDecl>(fld.type_name, fld.name);
-        _block.push_back(DECL);
-
+        // Determines the initial value, given it should be made global at all.
+        CExprPtr val;
         if (fld.field == CallStateUtilities::Field::Block ||
             fld.field == CallStateUtilities::Field::Timestamp)
         {
+            val = Literals::ZERO;
             if (M_USE_LOCKSTEP_TIME)
             {
-                auto nd = m_stack->types()->raw_simple_nd(*fld.type, fld.name);
-                _block.push_back(
-                    DECL->access("v")->assign(nd)->stmt()
-                );
-            }
-            else
-            {
-                _block.push_back(
-                    DECL->access("v")->assign(Literals::ZERO)->stmt()
-                );
+                val = m_stack->types()->raw_simple_nd(*fld.type, fld.name);
             }
         }
         else if (fld.field == CallStateUtilities::Field::Paid)
         {
-            _block.push_back(DECL->access("v")->assign(Literals::ONE)->stmt());
+            val = Literals::ONE;
+        }
+
+        // Initializes the ID.
+        if (val)
+        {
+            auto id = make_shared<CVarDecl>(fld.type_name, fld.name);
+            _block.push_back(id);
+            _block.push_back(id->access("v")->assign(val)->stmt());
         }
     }
 }
 
 // -------------------------------------------------------------------------- //
 
-void StateGenerator::update(CBlockList & _block) const
+void StateGenerator::update_global(CBlockList & _block) const
 {
-    // Decides once, if lockstep will be used.
-    if (M_USE_LOCKSTEP_TIME)
-    {
-        _block.push_back(M_STEPVAR->id()->assign(
-            LibVerify::range(0, 2, "take_step"))->stmt()
-        );
-    }
+    CBlockList step_block_list;
 
-    // Updates the values.
+    // Constructs step block.
     for (auto const& fld : m_stack->environment()->order())
     {
-        auto state = make_shared<CIdentifier>(fld.name, false);
-        auto nd = m_stack->types()->raw_simple_nd(*fld.type, fld.name);
-
-        if (fld.field == CallStateUtilities::Field::Paid) continue;
-        if (fld.field == CallStateUtilities::Field::Origin) continue;
-
         if (fld.field == CallStateUtilities::Field::Block ||
             fld.field == CallStateUtilities::Field::Timestamp)
         {
+            auto state = make_shared<CIdentifier>(fld.name, false);
             auto step = state->access("v")->assign(LibVerify::increase(
                 state->access("v"), M_USE_LOCKSTEP_TIME, fld.name
             ))->stmt();
-            if (M_USE_LOCKSTEP_TIME)
-            {
-                _block.push_back(make_shared<CIf>(
-                    M_STEPVAR->id(),
-                    make_shared<CBlock>(CBlockList{ move(step) })
-                ));
-            }
-            else
-            {
-                _block.push_back(step);
-            }
+            step_block_list.push_back(step);
         }
-        else if (fld.field == CallStateUtilities::Field::Value)
+    }
+
+    // Performs step.
+    auto step_block = make_shared<CBlock>(move(step_block_list));
+    if (M_USE_LOCKSTEP_TIME)
+    {
+        auto choice = LibVerify::range(0, 2, "take_step");
+        _block.push_back(make_shared<CIf>(choice, step_block));
+    }
+    else
+    {
+        _block.push_back(step_block);
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+void StateGenerator::update_local(CBlockList & _block) const
+{
+    for (auto const& fld : m_stack->environment()->order())
+    {
+        if (fld.field == CallStateUtilities::Field::Paid) continue;
+        if (fld.field == CallStateUtilities::Field::Origin) continue;
+        if (fld.field == CallStateUtilities::Field::Block) continue;
+        if (fld.field == CallStateUtilities::Field::Timestamp) continue;
+
+        CExprPtr val;
+        if (fld.field == CallStateUtilities::Field::Value)
         {
-            _block.push_back(state->access("v")->assign(Literals::ZERO)->stmt());
+            val = Literals::ZERO;
         }
         else if (fld.field == CallStateUtilities::Field::Sender)
         {
@@ -119,14 +118,16 @@ void StateGenerator::update(CBlockList & _block) const
             {
                 minaddr += 1;
             }
-
-            auto nd_addr = LibVerify::range(minaddr, maxaddr, fld.name);
-            _block.push_back(state->access("v")->assign(nd_addr)->stmt());
+            val = LibVerify::range(minaddr, maxaddr, fld.name);
         }
         else
         {
-            _block.push_back(state->access("v")->assign(nd)->stmt());
+            val = m_stack->types()->raw_simple_nd(*fld.type, fld.name);
         }
+
+        auto decl = make_shared<CVarDecl>(fld.type_name, fld.name);
+        _block.push_back(decl);
+        _block.push_back(decl->access("v")->assign(val)->stmt());
     }
 }
 

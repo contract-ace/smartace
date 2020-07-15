@@ -69,7 +69,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     transactionals.push_back(
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
-    m_stategen.update(transactionals);
+    m_stategen.update_global(transactionals);
     transactionals.push_back(next_case);
     transactionals.push_back(next_case->assign(
         LibVerify::range(0, call_cases->size(), "next_call")
@@ -103,6 +103,8 @@ CBlockList MainFunctionGenerator::build_case(
     }
 
     log_call(call_body, (*_id->id()), _spec);
+
+    m_stategen.update_local(call_body);
 
     CFuncCallBuilder call_builder(_spec.name(0));
     call_builder.push(id);

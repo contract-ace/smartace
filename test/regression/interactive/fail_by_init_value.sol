@@ -2,8 +2,8 @@
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath
 // RUN: make icmodel
-// RUN: echo 2 100 1 10 | ./icmodel --return-0 --count-transactions 2>&1 | OutputCheck %s --comment=//
-// CHECK: require
+// RUN: echo 100 10 2 10 | ./icmodel --return-0 --count-transactions 2>&1 | OutputCheck %s --comment=//
+// CHECK: assert
 // CHECK: Transaction Count: 0
 
 /*
@@ -13,6 +13,6 @@
 
 contract FailByInitValue {
 	constructor() public payable {
-		require(msg.value != 10);
+		assert(msg.value != 10);
 	}
 }

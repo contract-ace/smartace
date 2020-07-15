@@ -37,7 +37,10 @@ public:
     void declare(CBlockList & _block) const;
 
     // Generate the instructions required to update the call state.
-    void update(CBlockList & _block) const;
+    void update_global(CBlockList & _block) const;
+
+    //
+    void update_local(CBlockList & _block) const;
 
     // Generates a value for a payable method.
     void pay(CBlockList & _block) const;
@@ -46,9 +49,6 @@ private:
 
     // When true, time and blocknumber advance in lockstep.
     bool const M_USE_LOCKSTEP_TIME;
-
-    // State variable used to signal when time should proceed (in lockstep).
-    std::shared_ptr<CVarDecl> const M_STEPVAR;
 
     std::shared_ptr<AnalysisStack const> m_stack;
 };

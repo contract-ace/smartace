@@ -121,16 +121,18 @@ void ActorModel::initialize(
         init.push(make_shared<CReference>(actor.decl->id()));
         m_stack->environment()->push_state_to(init);
 
-        _stategen.update(_block);
+        _stategen.update_global(_block);
 
         // Populates specialized costructor arguments.
+        CBlockList init_block;
+        _stategen.update_local(init_block);
         if (!ctx->constructors().empty())
         {
             if (auto const ctor = ctx->constructors().front())
             {
                 if (ctor->isPayable())
                 {
-                    _stategen.pay(_block);
+                    _stategen.pay(init_block);
                 }
 
                 for (auto const param : ctor->parameters())
@@ -140,8 +142,8 @@ void ActorModel::initialize(
                 }
             }
         }
-
-        _block.push_back(init.merge_and_pop()->stmt());
+        init_block.push_back(init.merge_and_pop()->stmt());
+        _block.push_back(make_shared<CBlock>(move(init_block)));
     }
 }
 

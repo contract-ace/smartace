@@ -60,9 +60,19 @@ list<CallState::FieldData> const& CallState::order() const
 
 void CallState::push_state_to(CFuncCallBuilder & _builder) const
 {
+    CExprPtr sender;
     for (auto fld : order())
     {
-        _builder.push(make_shared<CIdentifier>(fld.name, false));
+        if (fld.field == CallStateUtilities::Field::Origin)
+        {
+            auto src_type = CallStateUtilities::Field::Sender;
+            auto src_name = CallStateUtilities::get_name(src_type);
+            _builder.push(make_shared<CIdentifier>(src_name, false));
+        }
+        else
+        {
+            _builder.push(make_shared<CIdentifier>(fld.name, false));
+        }
     }
 }
 
