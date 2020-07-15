@@ -133,6 +133,7 @@ static string const g_strModelMapSum = "map-sum";
 static string const g_strModelLockstepTime = "lockstep-time";
 static string const g_strModelActor = "bundle";
 static string const g_strModelConcrete = "concrete";
+static string const g_strModelFailOnRequire = "fail-on-require";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -191,6 +192,7 @@ static string const g_argModelMapSum = g_strModelMapSum;
 static string const g_argModelLockstepTime = g_strModelLockstepTime;
 static string const g_argModelActor = g_strModelActor;
 static string const g_argModelConcrete = g_strModelConcrete;
+static string const g_argModelFailOnRequire = g_strModelFailOnRequire;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -820,7 +822,8 @@ Allowed options)",
 			"A list of top level contracts to instantiate. All member contracts are implicitly modeled."
 		)
 		(g_argModelConcrete.c_str(), "Forces all client to be concrete. This corresponds to a bounded model.")
-		(g_argModelMapSum.c_str(), "Auto-instruments all maps with sum variables.");
+		(g_argModelMapSum.c_str(), "Auto-instruments all maps with sum variables.")
+		(g_argModelFailOnRequire.c_str(), "Escalates requirement failures to assertion failures.");
 	desc.add(smartaceOptions);
 
 	po::options_description allOptions = desc;
@@ -1330,8 +1333,9 @@ void CommandLineInterface::handleCModel()
 	// Runs full analysis stack.
 	size_t client_count = m_args[g_argModelMapLen].as<size_t>();
 	bool concrete_addrs = (m_args.count(g_argModelConcrete) > 0);
+	bool escalate_reqs = (m_args.count(g_argModelFailOnRequire) > 0);
 	auto analysis_stack = make_shared<modelcheck::AnalysisStack>(
-		major_actors, asts, client_count, concrete_addrs
+		major_actors, asts, client_count, concrete_addrs, escalate_reqs
 	);
 
 	// Aggregates primitive types.

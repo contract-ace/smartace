@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(payable_method)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     FunctionConverter(
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
@@ -355,7 +355,7 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
@@ -400,7 +400,7 @@ BOOST_AUTO_TEST_CASE(inherited_duplicates)
 
     vector<ContractDefinition const*> model({ ctrt_b, ctrt_c });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     FunctionConverter(

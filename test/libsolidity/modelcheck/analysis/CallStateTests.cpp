@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(add_to_primitives)
     auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
 
-    CallState call_state(call_graph);
+    CallState call_state(call_graph, false);
     PrimitiveTypeGenerator primitive_generator;
 
     call_state.register_primitives(primitive_generator);
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     auto flat_model_a = make_shared<FlatModel>(model_a, *alloc_graph_a);
     auto r_a = make_shared<ContractExpressionAnalyzer>(*flat_model_a, alloc_graph_a);
     CallGraph call_graph_a(r_a, flat_model_a);
-    CallState call_state_a(call_graph_a);
+    CallState call_state_a(call_graph_a, false);
     BOOST_CHECK(!call_state_a.uses_pay());
     BOOST_CHECK(call_state_a.uses_send());
     BOOST_CHECK(!call_state_a.uses_transfer());
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     auto flat_model_b = make_shared<FlatModel>(model_b, *alloc_graph_b);
     auto r_b = make_shared<ContractExpressionAnalyzer>(*flat_model_b, alloc_graph_b);
     CallGraph call_graph_b(r_b, flat_model_b);
-    CallState call_state_b(call_graph_b);
+    CallState call_state_b(call_graph_b, false);
     BOOST_CHECK(!call_state_b.uses_pay());
     BOOST_CHECK(!call_state_b.uses_send());
     BOOST_CHECK(call_state_b.uses_transfer());
@@ -117,10 +117,42 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     auto flat_model_c = make_shared<FlatModel>(model_c, *alloc_graph_c);
     auto r_c = make_shared<ContractExpressionAnalyzer>(*flat_model_c, alloc_graph_c);
     CallGraph call_graph_c(r_a, flat_model_c);
-    CallState call_state_c(call_graph_c);
+    CallState call_state_c(call_graph_c, false);
     BOOST_CHECK(call_state_c.uses_pay());
     BOOST_CHECK(!call_state_c.uses_send());
     BOOST_CHECK(!call_state_c.uses_transfer());
+}
+
+BOOST_AUTO_TEST_CASE(escalate_reqs)
+{
+    char const* text = R"(
+        contract X {}
+    )";
+
+    auto const& ast = *parseAndAnalyse(text);
+    auto ctrt_x = retrieveContractByName(ast, "X");
+
+    vector<ContractDefinition const*> model({ ctrt_x });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+
+    CallState call_state_a(call_graph, false);
+    BOOST_CHECK(!call_state_a.escalate_requires());
+    for (auto param : call_state_a.order())
+    {
+        BOOST_CHECK(param.field != CallStateUtilities::Field::ReqFail);
+    }
+
+    bool req_fail_found = false;
+    CallState call_state_b(call_graph, true);
+    BOOST_CHECK(call_state_b.escalate_requires());
+    for (auto param : call_state_a.order())
+    {
+        req_fail_found = true;
+    }
+    BOOST_CHECK(req_fail_found);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

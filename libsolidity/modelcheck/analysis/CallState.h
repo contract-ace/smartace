@@ -32,8 +32,8 @@ class PrimitiveTypeGenerator;
 // -------------------------------------------------------------------------- //
 
 /**
- * Provides an interface for aggregating call state data, and using it to produce
- * call state related abstractions.
+ * Provides an interface for aggregating call state data, and using it to
+ * produce call state related abstractions.
  */
 class CallState : public ASTConstVisitor
 {
@@ -47,7 +47,10 @@ public:
         std::string type_name;
     };
 
-    CallState(CallGraph const& _graph);
+    // A sufficient state for each call is inferred from _graph. If the
+    // _escalate_reqs flag is set, the call state will propogate the ReqFail
+    // flag will be propogated.
+    CallState(CallGraph const& _graph, bool _escalate_reqs);
 
     // Allows the CallState to pass dependencies to the primitive generator.
     void register_primitives(PrimitiveTypeGenerator& _gen) const;
@@ -72,6 +75,9 @@ public:
     // Returns true if methods are paid.
     bool uses_pay() const;
 
+    // Returns true if requires should be escalated to assertions.
+    bool escalate_requires() const;
+
 protected:
     void endVisit(FunctionCall const& _node) override;
 
@@ -82,6 +88,8 @@ private:
     bool m_uses_send = false;
     bool m_uses_transfer = false;
     bool m_uses_pay = false;
+
+    bool m_escalates_reqs = false;
 
     std::set<CallStateUtilities::Field> m_recorded_fields;
     std::list<FieldData> m_field_order;

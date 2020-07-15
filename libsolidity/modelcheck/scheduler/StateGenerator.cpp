@@ -120,6 +120,10 @@ void StateGenerator::update_local(CBlockList & _block) const
             }
             val = LibVerify::range(minaddr, maxaddr, fld.name);
         }
+        else if (fld.field == CallStateUtilities::Field::ReqFail)
+        {
+            val = Literals::ONE;
+        }
         else
         {
             val = m_stack->types()->raw_simple_nd(*fld.type, fld.name);

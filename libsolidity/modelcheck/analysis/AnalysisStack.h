@@ -172,13 +172,18 @@ class AnalysisStack : public FlatAddressAnalysis
 {
 public:
     // Initializes all analyses which can be performed after analying the
-    // address access patterns.
+    // address access patterns. The _model parameter is used to specify the
+    // contracts to encode. The _clients field gives the number of distinguished
+    // clients, while _concrete_clients escalates all clients to a concrete
+    // execution. The _escalates_reqs parameter will force all requirements to
+    // be escalated into assertions.
     // TODO(scottwe): deprecate _full.
     AnalysisStack(
         InheritanceModel const& _model,
         std::vector<SourceUnit const*> _full,
         size_t _clients,
-        bool _concrete_clients
+        bool _concrete_clients,
+        bool _escalates_reqs
     );
 
     // Characterizes the environment needed by each call.

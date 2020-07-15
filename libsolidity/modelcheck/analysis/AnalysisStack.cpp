@@ -152,10 +152,11 @@ AnalysisStack::AnalysisStack(
 	InheritanceModel const& _model,
 	std::vector<SourceUnit const*> _full,
 	size_t _clients,
-	bool _concrete_clients
+	bool _concrete_clients,
+	bool _escalates_reqs
 ): FlatAddressAnalysis(_model, _full, _clients, _concrete_clients)
 {
-	m_environment = make_shared<CallState>(*calls());
+	m_environment = make_shared<CallState>(*calls(), _escalates_reqs);
 	m_types = make_shared<TypeAnalyzer>(addresses()->size());
 
 	// TODO: deprecate.

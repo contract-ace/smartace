@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(end_to_end)
 
     vector<ContractDefinition const*> model({ ctrt, ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     BOOST_CHECK_NE(stack->allocations().get(), nullptr);
     BOOST_CHECK_EQUAL(stack->model_cost(), 8);
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(libraries)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     auto libraries = stack->libraries()->view();
     BOOST_CHECK_EQUAL(libraries.size(), 2);
@@ -134,6 +134,32 @@ BOOST_AUTO_TEST_CASE(libraries)
     for (auto lib : libraries) names.insert(lib->name());
     BOOST_CHECK(names.find("Lib1") != names.end());
     BOOST_CHECK(names.find("Lib2") != names.end());
+}
+
+BOOST_AUTO_TEST_CASE(params)
+{
+    char const* text = R"(
+        contract X {
+            function f() public {}
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "X");
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+
+    auto stack_nparam = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto stack_wparam = make_shared<AnalysisStack>(model, full, 5, true, true);
+
+    BOOST_CHECK_EQUAL(stack_nparam->addresses()->size(), 3);
+    BOOST_CHECK_EQUAL(stack_nparam->addresses()->max_interference(), 1);
+    BOOST_CHECK(!stack_nparam->environment()->escalate_requires());
+
+    BOOST_CHECK_EQUAL(stack_wparam->addresses()->size(), 7);
+    BOOST_CHECK_EQUAL(stack_wparam->addresses()->max_interference(), 0);
+    BOOST_CHECK(stack_wparam->environment()->escalate_requires());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

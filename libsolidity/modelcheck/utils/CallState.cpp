@@ -15,11 +15,11 @@ namespace modelcheck
 
 map<pair<MagicType::Kind, string>, CallStateUtilities::Field> const 
     CallStateUtilities::MAGIC_TYPE_LOOKUP{{
-	{{MagicType::Kind::Block, "number"}, CallStateUtilities::Field::Block},
-	{{MagicType::Kind::Block, "timestamp"}, CallStateUtilities::Field::Timestamp},
-	{{MagicType::Kind::Message, "sender"}, CallStateUtilities::Field::Sender},
-	{{MagicType::Kind::Message, "value"}, CallStateUtilities::Field::Value},
-    {{MagicType::Kind::Transaction, "origin"}, CallStateUtilities::Field::Origin}
+	{{MagicType::Kind::Block, "number"}, Field::Block},
+	{{MagicType::Kind::Block, "timestamp"}, Field::Timestamp},
+	{{MagicType::Kind::Message, "sender"}, Field::Sender},
+	{{MagicType::Kind::Message, "value"}, Field::Value},
+    {{MagicType::Kind::Transaction, "origin"}, Field::Origin}
 }};
 
 AddressType const CallStateUtilities::SENDER_TYPE(StateMutability::Payable);
@@ -40,10 +40,8 @@ CallStateUtilities::Field CallStateUtilities::parse_magic_type(
 		throw runtime_error("Resolution of MagicType failed in MemberAccess.");
 	}
 
-	auto const RES = CallStateUtilities::MAGIC_TYPE_LOOKUP.find({
-        MAGIC_TYPE->kind(), _field
-    });
-	if (RES == CallStateUtilities::MAGIC_TYPE_LOOKUP.end())
+	auto const RES = MAGIC_TYPE_LOOKUP.find({MAGIC_TYPE->kind(), _field});
+	if (RES == MAGIC_TYPE_LOOKUP.end())
 	{
 		throw runtime_error("Unable to resolve member of Magic type.");
 	}
@@ -54,32 +52,17 @@ CallStateUtilities::Field CallStateUtilities::parse_magic_type(
 
 string CallStateUtilities::get_name(CallStateUtilities::Field _field)
 {
-    string retval = "unknowntype";
-    if (_field == CallStateUtilities::Field::Block)
+    switch (_field)
     {
-        retval = "blocknum";
-    }
-    else if (_field == CallStateUtilities::Field::Timestamp)
-    {
-        retval = "timestamp";
-    }
-    else if (_field == CallStateUtilities::Field::Sender)
-    {
-        retval = "sender";
-    }
-    else if (_field == CallStateUtilities::Field::Value)
-    {
-        retval = "value";
-    }
-    else if (_field == CallStateUtilities::Field::Paid)
-    {
-        retval = "paid";
-    }
-    else if (_field == CallStateUtilities::Field::Origin)
-    {
-        retval = "origin";
-    }
-    return retval;
+    case CallStateUtilities::Field::Sender: return "sender";
+    case CallStateUtilities::Field::Value: return "value";
+    case CallStateUtilities::Field::Block: return "blocknum";
+    case CallStateUtilities::Field::Timestamp: return "timestamp";
+    case CallStateUtilities::Field::Paid: return "paid";
+    case CallStateUtilities::Field::Origin: return "origin";
+    case CallStateUtilities::Field::ReqFail: return "reqfail";
+    default: return "unknowntype";
+    };
 }
 
 // -------------------------------------------------------------------------- //
@@ -88,12 +71,13 @@ Type const* CallStateUtilities::get_type(CallStateUtilities::Field _field)
 {
     switch (_field)
     {
+    case CallStateUtilities::Field::Sender: return &SENDER_TYPE;
+    case CallStateUtilities::Field::Value: return &COUNTABLE_TYPE;
     case CallStateUtilities::Field::Block: return &COUNTABLE_TYPE;
     case CallStateUtilities::Field::Timestamp: return &COUNTABLE_TYPE;
-    case CallStateUtilities::Field::Sender: return &SENDER_TYPE;
-    case CallStateUtilities::Field::Origin: return &SENDER_TYPE;
-    case CallStateUtilities::Field::Value: return &COUNTABLE_TYPE;
     case CallStateUtilities::Field::Paid: return &BOOLEAN_TYPE;
+    case CallStateUtilities::Field::Origin: return &SENDER_TYPE;
+    case CallStateUtilities::Field::ReqFail: return &BOOLEAN_TYPE;
     default: return nullptr;
     };
 }

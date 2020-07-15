@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     ADTConverter(stack, false, 1, true).print(actual);
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual_k_1;
     ostringstream actual_k_2;
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
 
     vector<ContractDefinition const*> model({ ctrt_a, ctrt_c });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     ADTConverter(stack, false, 1, false).print(actual);
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     ADTConverter(stack, false, 1, false).print(actual);
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(constants)
 
     vector<ContractDefinition const*> model({ ctrt_a });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     ADTConverter(stack, false, 1, false).print(actual);

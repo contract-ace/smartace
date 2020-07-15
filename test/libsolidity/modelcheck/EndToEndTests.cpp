@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(simple_func)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -247,7 +247,7 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     vector<ContractDefinition const*> model({ ctrt_a, ctrt_c });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -360,7 +360,7 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -410,7 +410,7 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_actual, func_actual;
     ADTConverter(stack, false, 1, true).print(adt_actual);
@@ -473,7 +473,7 @@ BOOST_AUTO_TEST_CASE(reproducible)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream adt_1, adt_2, func_1, func_2;
     ADTConverter(stack, false, 1, false).print(adt_1);

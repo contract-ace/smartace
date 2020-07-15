@@ -25,7 +25,8 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-CallState::CallState(CallGraph const& _graph)
+CallState::CallState(CallGraph const& _graph, bool _escalate_reqs)
+ : m_escalates_reqs(_escalate_reqs)
 {
     for (auto call : _graph.executed_code())
     {
@@ -43,6 +44,11 @@ CallState::CallState(CallGraph const& _graph)
     add_field(CallStateUtilities::Field::Timestamp);
     add_field(CallStateUtilities::Field::Paid);
     add_field(CallStateUtilities::Field::Origin);
+
+    if (m_escalates_reqs)
+    {
+        add_field(CallStateUtilities::Field::ReqFail);
+    }
 }
 
 void CallState::register_primitives(PrimitiveTypeGenerator& _gen) const
@@ -120,6 +126,8 @@ bool CallState::uses_send() const { return m_uses_send; }
 bool CallState::uses_transfer() const { return m_uses_transfer; }
 
 bool CallState::uses_pay() const { return m_uses_pay; }
+
+bool CallState::escalate_requires() const { return m_escalates_reqs; }
 
 void CallState::endVisit(FunctionCall const& _node)
 {

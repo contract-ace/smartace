@@ -129,6 +129,7 @@ private:
 	void print_method(FunctionCallAnalyzer const& _calldata);
 	void print_contract_ctor(FunctionCall const& _call);
 	void print_payment(FunctionCall const& _call, bool _nothrow);
+	void print_require(CExprPtr _expr, std::string const& _msg);
 	void print_revert();
 	void print_property(bool _fail, SolArgList const& _args);
 	void pass_next_call_state(

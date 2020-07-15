@@ -830,9 +830,23 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 	m_subexpr = fn.merge_and_pop();
 }
 
+void ExpressionConverter::print_require(CExprPtr _expr, string const& _msg)
+{
+	m_subexpr = LibVerify::make_require(_expr, _msg);
+	if (m_stack->environment()->escalate_requires())
+	{
+		auto param
+			= CallStateUtilities::get_name(CallStateUtilities::Field::ReqFail);
+
+		auto escalate_expr = make_shared<CIdentifier>(param, false)->access("v");
+		auto assert_expr = LibVerify::make_assert(_expr, _msg);
+		m_subexpr = make_shared<CCond>(escalate_expr, assert_expr, m_subexpr);
+	}
+}
+
 void ExpressionConverter::print_revert()
 {
-	m_subexpr = LibVerify::make_require(Literals::ZERO, "Revert.");
+	print_require(Literals::ZERO, "Revert.");
 }
 
 void ExpressionConverter::print_property(bool _fail, SolArgList const& _args)
@@ -856,7 +870,7 @@ void ExpressionConverter::print_property(bool _fail, SolArgList const& _args)
 	}
 	else
 	{
-		m_subexpr = LibVerify::make_require(cond.convert(), err_msg);
+		print_require(cond.convert(), err_msg);
 	}
 }
 

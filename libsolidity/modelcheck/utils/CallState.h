@@ -28,7 +28,7 @@ class CallStateUtilities
 {
 public:
     // An enum for supported call state variables.
-    enum class Field { Sender, Origin, Value, Block, Timestamp, Paid };
+    enum class Field { Sender, Value, Block, Timestamp, Paid, Origin, ReqFail };
 
     // Maps a magic type to a field.
     static Field parse_magic_type(Type const& _type, std::string _field);

@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(argument_registration)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual_if, expected_if;
     actual_if << *FunctionBlockConverter(*if_stmt, stack).convert();
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(loop_statement)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     auto while_stmt = ctrt->definedFunctions()[0];
     auto for_stmt = ctrt->definedFunctions()[1];
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(continue_statement)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE(break_statement)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual_void, expect_void;
     actual_void << *FunctionBlockConverter(*void_func, stack).convert();
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(variable_declaration_statement)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -344,7 +344,7 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual_named, expected_named;
     actual_named << *FunctionBlockConverter(func, stack).convert();
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(member_access_expressions)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_CASE(internal_method_calls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     auto func = ctrt->definedFunctions()[6];
     BOOST_CHECK_EQUAL(func->name(), "test");
@@ -492,7 +492,7 @@ BOOST_AUTO_TEST_CASE(external_method_calls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     auto func = ctrt->definedFunctions()[2];
     BOOST_CHECK_EQUAL(func->name(), "test");
@@ -537,7 +537,7 @@ BOOST_AUTO_TEST_CASE(payment_to_addr_calls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -574,7 +574,7 @@ BOOST_AUTO_TEST_CASE(verification_function_calls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -607,7 +607,7 @@ BOOST_AUTO_TEST_CASE(struct_ctor_calls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -647,7 +647,7 @@ BOOST_AUTO_TEST_CASE(contract_ctor_calls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -688,7 +688,7 @@ BOOST_AUTO_TEST_CASE(read_only_index_access)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -734,7 +734,7 @@ BOOST_AUTO_TEST_CASE(map_assignment)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -783,7 +783,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -821,7 +821,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_resolution)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -853,7 +853,7 @@ BOOST_AUTO_TEST_CASE(storage_variable_assignment)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -881,7 +881,7 @@ BOOST_AUTO_TEST_CASE(else_if_formatting_regression)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
@@ -910,7 +910,7 @@ BOOST_AUTO_TEST_CASE(function_call_unwraps_data)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     FunctionBlockConverter fbc(*func, stack);
@@ -952,7 +952,7 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     FunctionSpecialization spec_f(*func_f);
     FunctionSpecialization spec_g(*func_g);
@@ -1019,7 +1019,7 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream expected, actual;
     FunctionSpecialization spec(func);
@@ -1056,7 +1056,7 @@ BOOST_AUTO_TEST_CASE(modifier_args)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream expected, actual;
     FunctionSpecialization spec(func);
@@ -1096,7 +1096,7 @@ BOOST_AUTO_TEST_CASE(library_calls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expect;
     FunctionBlockConverter fbc(*func, stack);
@@ -1125,7 +1125,7 @@ BOOST_AUTO_TEST_CASE(crypto_calls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(*func, stack).convert();
@@ -1153,7 +1153,7 @@ BOOST_AUTO_TEST_CASE(constants)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false);
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     ostringstream actual_int, expect_int;
     actual_int << *FunctionBlockConverter(*func, stack).convert();
@@ -1161,6 +1161,32 @@ BOOST_AUTO_TEST_CASE(constants)
     expect_int << "return Init_sol_int256_t(5);";
     expect_int << "}";
     BOOST_CHECK_EQUAL(actual_int.str(), expect_int.str());
+}
+
+BOOST_AUTO_TEST_CASE(escalation)
+{
+    char const* text = R"(
+		contract A {
+			function f(address payable dst) public {
+                require(true);
+            }
+		}
+	)";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, true);
+
+    ostringstream actual, expected;
+    actual << *FunctionBlockConverter(func, stack).convert();
+    expected << "{";
+    expected << "((reqfail).v)?(sol_assert(1,0)):(sol_require(1,0));";
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
