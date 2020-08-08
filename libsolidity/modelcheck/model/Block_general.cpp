@@ -248,7 +248,72 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 
 bool GeneralBlockConverter::visit(ExpressionStatement const& _node)
 {
-	new_substmt<CExprStmt>(expand(_node.expression()));
+	// Extracts top level expression.
+	ExpressionCleaner c_cleaner(_node.expression());
+	auto center = (&c_cleaner.clean());
+
+	// This could be an assignment, which is special-cased on tuples.
+	if (auto op = dynamic_cast<Assignment const*>(center))
+	{
+		// Extracts the LHS.
+		ExpressionCleaner l_cleaner(op->leftHandSide());
+		auto left = (&l_cleaner.clean());
+
+		// Determines if this is a tuple assignment.
+		if (auto lhs = dynamic_cast<TupleExpression const*>(left))
+		{
+			// Extracts the RHS.
+			ExpressionCleaner r_cleaner(op->rightHandSide());
+			auto right = (&r_cleaner.clean());
+
+			// Checks and processes RHS.
+			CBlockList stmts;
+			if (auto rhs = dynamic_cast<FunctionCall const*>(right))
+			{
+				// TODO(scottwe): implement.
+				(void) rhs;
+				throw runtime_error("Tuple-function assignment is not supported.");
+			}
+			else if (auto rhs = dynamic_cast<TupleExpression const*>(right))
+			{
+				vector<shared_ptr<CVarDecl>> tmp_vars;
+				for (size_t i = 0; i < lhs->components().size(); ++i)
+				{
+					auto lhs_entry = lhs->components()[i].get();
+					auto type = m_stack->types()->get_type(*lhs_entry);
+					string name = "blockvar_" + to_string(i);
+					auto decl = make_shared<CVarDecl>(type, name, false);
+					tmp_vars.push_back(decl);
+					stmts.push_back(decl);
+				}
+				for (size_t i = 0; i < rhs->components().size(); ++i)
+				{
+					auto rhs_id = expand(*rhs->components()[i].get());
+					auto tmp_id = tmp_vars[i]->id()->access("v");
+					auto assign = make_shared<CBinaryOp>(tmp_id, "=", rhs_id);
+					stmts.push_back(assign->stmt());
+				}
+				for (size_t i = 0; i < lhs->components().size(); ++i)
+				{
+					auto lhs_id = expand(*lhs->components()[i].get());
+					auto tmp_id = tmp_vars[i]->id()->access("v");
+					auto assign = make_shared<CBinaryOp>(lhs_id, "=", tmp_id);
+					stmts.push_back(assign->stmt());
+				}
+			}
+			else
+			{
+				throw runtime_error("Unexpected LHS tuple.");
+			}
+
+			// Generates tuple-like statement.
+			new_substmt<CBlock>(move(stmts));
+			return false;
+		}
+	}
+
+	// Default case (not tuples).
+	new_substmt<CExprStmt>(expand(*center));
 	return false;
 }
 

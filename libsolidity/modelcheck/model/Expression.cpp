@@ -132,8 +132,7 @@ bool ExpressionConverter::visit(TupleExpression const& _node)
 	}
 	else if (_node.components().size() > 1)
 	{
-		// TODO(scottwe): Support multiple return values.
-		throw runtime_error("Multivalue tuples not yet supported.");
+		throw runtime_error("Unexpected nested tuple.");
 	}
 	else if (!_node.components().empty())
 	{
