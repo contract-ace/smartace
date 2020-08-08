@@ -74,6 +74,7 @@ private:
 	// If _scope is set, the function is assumed to be a method of _scope. The
 	// _context and _instrumented pass to VariableScopeDeclaration::rewrite.
 	CParams generate_params(
+		SolDeclList const& _rvs,
 		SolDeclList const& _decls,
 		ContractDefinition const* _scope,
 		ASTPointer<VariableDeclaration> _dest,

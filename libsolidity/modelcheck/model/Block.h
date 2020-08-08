@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <ostream>
+#include <vector>
 #include <utility>
 
 namespace dev
@@ -63,7 +64,7 @@ protected:
 	// - Initializer: wraps and returns a constructor call
 	// - Action: function without a return parameter.
 	// - Operation: produces one or more return values.
-	enum class BlockType { Initializer, Action, Operation, AddressRef };
+	enum class BlockType { Initializer, Action, Operation };
 
 	// Allows top-level setup and teardown.
 	virtual void enter(CBlockList & _stmts, VariableScopeResolver & _decls) = 0;
@@ -164,8 +165,8 @@ protected:
 private:
 	FunctionSpecialization const* m_spec;
 
-	ASTPointer<VariableDeclaration> m_raw_rv;
-	ASTPointer<CVarDecl> m_rv;
+	std::vector<ASTPointer<VariableDeclaration>> m_rvs;
+	std::vector<ASTPointer<CVarDecl>> m_rv_decls;
 };
 
 CLANG_ENABLE_COMPILER_WARNING()

@@ -30,14 +30,7 @@ FunctionBlockConverter::FunctionBlockConverter(
 	_stack,
 	_func.modifiers().empty(),
 	_func.isPayable()
-)
-{
-	if (has_retval())
-	{
-		// TODO(scottwe): support multiple return types.
-		m_raw_rv = _func.returnParameters()[0];
-	}
-}
+), m_rvs(_func.returnParameters()) {}
 
 // -------------------------------------------------------------------------- //
 
@@ -53,23 +46,35 @@ void FunctionBlockConverter::enter(
 )
 {
 	_decls.assign_spec(m_spec);
-	if (m_raw_rv && !m_raw_rv->name().empty())
+	for (size_t i = 0; i < m_rvs.size(); ++i)
 	{
-		_decls.record_declaration(*m_raw_rv);
-		auto RV_TYPE = m_stack->types()->get_type(*m_raw_rv);
-		auto RV_NAME = _decls.resolve_declaration(*m_raw_rv);
-		auto RV_INIT = m_stack->types()->get_init_val(*m_raw_rv);
-		bool const IS_REF = decl_is_ref(*m_raw_rv);
-		m_rv = make_shared<CVarDecl>(RV_TYPE, RV_NAME, IS_REF, RV_INIT);
-		_stmts.push_back(m_rv);
+		auto rv = m_rvs[i];
+		if (rv->name().empty()) continue;
+		_decls.record_declaration(*rv);
+		auto RV_TYPE = m_stack->types()->get_type(*rv);
+		auto RV_NAME = _decls.resolve_declaration(*rv);
+		auto RV_INIT = m_stack->types()->get_init_val(*rv);
+		bool const IS_REF = decl_is_ref(*rv);
+		auto decl = make_shared<CVarDecl>(RV_TYPE, RV_NAME, IS_REF, RV_INIT);
+		m_rv_decls.push_back(decl);
+		if (i == 0)
+		{
+			_stmts.push_back(decl);
+		}
+		else
+		{
+			auto deref_var = make_shared<CDereference>(decl->id());
+			auto assign_expr = make_shared<CBinaryOp>(deref_var, "=", RV_INIT);
+			_stmts.push_back(assign_expr->stmt());
+		}
 	}
 }
 
 void FunctionBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 {
-    if (m_rv)
+    if (!m_rv_decls.empty())
     {
-		_stmts.push_back(make_shared<CReturn>(m_rv->id()));
+		_stmts.push_back(make_shared<CReturn>(m_rv_decls[0]->id()));
     }
 }
 
@@ -77,22 +82,54 @@ void FunctionBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 
 bool FunctionBlockConverter::visit(Return const& _node)
 {
-	CExprPtr rv;
 	switch (block_type())
 	{
 	case BlockType::Action:
 		new_substmt<CReturn>(nullptr);
 		break;
 	case BlockType::Operation:
-	case BlockType::AddressRef:
-		rv = expand(*_node.expression());
-		rv = InitFunction::wrap(*m_raw_rv->annotation().type, move(rv));
-		if (block_type() == BlockType::AddressRef)
 		{
-			rv = make_shared<CReference>(rv);
+			vector<Expression const*> expr_list;
+			if (m_rvs.size() == 1)
+			{
+				expr_list.push_back(_node.expression());
+			}
+			else
+			{
+				ExpressionCleaner cleaner(*_node.expression());
+				auto raw = &cleaner.clean();
+				auto tuple = dynamic_cast<TupleExpression const*>(raw);
+				for (auto val : tuple->components())
+				{
+					expr_list.push_back(val.get());
+				}
+			}
+
+			CBlockList stmts;
+			for (size_t i = expr_list.size(); i > 0; --i)
+			{
+				CExprPtr val = expand(*expr_list[i - 1]);
+				val = InitFunction::wrap(*m_rvs[i - 1]->type(), move(val));
+				if (m_rvs[i - 1]->type()->category() == Type::Category::Contract)
+				{
+					val = make_shared<CReference>(val);
+				}
+
+				if (i == 1)
+				{
+					stmts.push_back(make_shared<CReturn>(val));
+				}
+				else
+				{
+					auto dest = make_shared<CDereference>(m_rv_decls[i - 1]->id());
+					auto op = make_shared<CBinaryOp>(dest, "=", val);
+					stmts.push_back(op->stmt());
+				}
+			}
+
+			new_substmt<CBlock>(stmts);
+			break;
 		}
-		new_substmt<CReturn>(rv);
-		break;
 	case BlockType::Initializer:
 		new_substmt<CExprStmt>(expand(*_node.expression()));
 		break;

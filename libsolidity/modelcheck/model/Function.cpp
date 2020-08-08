@@ -110,6 +110,7 @@ void FunctionConverter::print(ostream& _stream)
 // -------------------------------------------------------------------------- //
 
 CParams FunctionConverter::generate_params(
+    SolDeclList const& _rvs,
     SolDeclList const& _decls,
     ContractDefinition const* _scope,
     ASTPointer<VariableDeclaration> _dest,
@@ -128,6 +129,22 @@ CParams FunctionConverter::generate_params(
                 fld.type_name, fld.name, false
             ));
         }
+    }
+    for (size_t i = 1; i < _rvs.size(); ++i)
+    {
+        auto const& DECL = *_rvs[i];
+    
+        string type = m_stack->types()->get_type(DECL);
+    
+        string name = DECL.name();
+        if (name.empty())
+        {
+            // TODO(scottwe): generalize to unnamed tuple return values.
+            throw runtime_error("Tuple return values must be named.");
+        }
+        name = VariableScopeResolver::rewrite(name, _instrumeneted, _context);
+
+        params.push_back(make_shared<CVarDecl>(move(type), move(name), true));
     }
     for (size_t i = 0; i < _decls.size(); ++i)
     {
@@ -188,7 +205,7 @@ void FunctionConverter::generate_structure(Structure const& _struct)
         if (has_simple_type(*field)) basic_decls.push_back(field);
     }
 
-    auto init_params = generate_params(basic_decls, nullptr, nullptr);
+    auto init_params = generate_params({}, basic_decls, nullptr, nullptr);
 
     shared_ptr<CBlock> zero_body, init_body;
     if (!M_FWD_DCL)
@@ -301,7 +318,7 @@ string FunctionConverter::handle_contract_initializer(
                 FunctionSpecialization(*LOCAL_CTOR, _for), "void", false
             );
         }
-        params = generate_params(decls, &_for, nullptr);
+        params = generate_params({}, decls, &_for, nullptr);
     }
 
     // TODO(scottwe): factour out this analysis into flat model.
@@ -451,7 +468,7 @@ string FunctionConverter::handle_function(
     vector<CFuncDef> defs;
     {
         CParams params = generate_params(
-            FUNC.parameters(), &USER, dest, CONTEXT
+            rvs, FUNC.parameters(), &USER, dest, CONTEXT
         );
 
         shared_ptr<CBlock> body;
@@ -469,7 +486,7 @@ string FunctionConverter::handle_function(
 
     // Generates a declaration for each modifier.
     CParams const mod_params = generate_params(
-        FUNC.parameters(), &USER, dest, CONTEXT, true
+        rvs, FUNC.parameters(), &USER, dest, CONTEXT, true
     );
     for (size_t i = mods.len(); i > 0; --i)
     {

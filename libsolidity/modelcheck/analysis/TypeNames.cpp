@@ -388,12 +388,9 @@ void TypeAnalyzer::endVisit(ParameterList const& _node)
     if (m_is_retval)
     {
         string ctype;
-        if (_node.parameters().size() > 1)
+        if (_node.parameters().size() > 0)
         {
-            throw runtime_error("Multiple return types are unsupported.");
-        }
-        else if (_node.parameters().size() == 1)
-        {
+            // We treat the first return value as the canonical return type.
             auto const& PARAM = *_node.parameters()[0];
             ctype = get_type(PARAM);
             if (!has_simple_type(PARAM))

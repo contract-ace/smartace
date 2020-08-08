@@ -114,6 +114,17 @@ CBlockList MainFunctionGenerator::build_case(
         m_stategen.pay(call_body);
     }
 
+    for (size_t i = 1; i < _spec.func().returnParameters().size(); ++i)
+    {
+        auto const& rv = _spec.func().returnParameters()[i];
+        string name = "rv_" + to_string(i);
+        string type = m_stack->types()->get_type(*rv.get());
+
+        auto output = make_shared<CVarDecl>(type, name);
+        call_body.push_back(output);
+        call_builder.push(make_shared<CReference>(output->id()));
+    }
+
     size_t placeholder_count = 0;
     for (auto const arg : _spec.func().parameters())
     {

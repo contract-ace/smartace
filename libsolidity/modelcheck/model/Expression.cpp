@@ -284,6 +284,17 @@ bool ExpressionConverter::visit(Identifier const& _node)
 			M_DECLS.resolve_identifier(_node), IS_REF
 		);
 
+		if (auto var_ref = dynamic_cast<VariableDeclaration const *>(_node.annotation().referencedDeclaration))
+		{
+			if (var_ref->isReturnParameter())
+			{
+				if (M_DECLS.spec()->func().returnParameters()[0]->id() != var_ref->id())
+				{
+					m_subexpr = make_shared<CDereference>(move(m_subexpr));
+				}
+			}
+		}
+
 		if (m_find_ref && !IS_REF)
 		{
 			m_subexpr = make_shared<CReference>(move(m_subexpr));

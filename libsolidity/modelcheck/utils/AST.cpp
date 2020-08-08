@@ -39,6 +39,7 @@ string get_error_type(ASTNode const* _node)
 
 ExpressionCleaner::ExpressionCleaner(Expression const& _expr)
 {
+    m_res = (&_expr);
     _expr.accept(*this);
 }
 

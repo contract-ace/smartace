@@ -83,14 +83,7 @@ GeneralBlockConverter::BlockType GeneralBlockConverter::block_type() const
 
 bool GeneralBlockConverter::has_retval() const
 {
-	switch (block_type())
-	{
-	case BlockType::Operation:
-	case BlockType::AddressRef:
-		return true;
-	default:
-		return false;
-	}
+	return (block_type() == BlockType::Operation);
 }
 
 // -------------------------------------------------------------------------- //
@@ -106,7 +99,6 @@ bool GeneralBlockConverter::visit(Block const& _node)
 	// Performs setup specific to the top-level block.
 	if (top_level_swap.old())
 	{
-
 		if (M_MANAGE_PAY && M_IS_PAYABLE) add_value_handler(stmts);
 		enter(stmts, m_decls);
 	}
@@ -283,18 +275,14 @@ GeneralBlockConverter::BlockType GeneralBlockConverter::determine_block_type(
 	{
 		return BlockType::Action;
 	}
-	else if (_rvs.size() > 1)
-	{
-		// TODO(scottwe): support multiple return values.
-		throw runtime_error("Multiple return values not yet supported.");
-	}
 	else if (_stack->allocations()->retval_is_allocated(*_rvs[0]))
 	{
+		// TODO(scottwe): this doesn't generalize to tuple return values.
+		if (_rvs.size() > 1)
+		{
+			throw runtime_error("BlockType::Initializer assumes 1 rv.");
+		}
 		return BlockType::Initializer;
-	}
-	else if (_rvs[0]->type()->category() == Type::Category::Contract)
-	{
-		return BlockType::AddressRef;
 	}
 	else
 	{
