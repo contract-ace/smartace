@@ -3,6 +3,7 @@
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/Expression.h>
@@ -266,26 +267,53 @@ bool GeneralBlockConverter::visit(ExpressionStatement const& _node)
 			ExpressionCleaner r_cleaner(op->rightHandSide());
 			auto right = (&r_cleaner.clean());
 
-			// Checks and processes RHS.
 			CBlockList stmts;
+			vector<shared_ptr<CVarDecl>> tmp_vars;
+
+			// Checks and processes RHS.
 			if (auto rhs = dynamic_cast<FunctionCall const*>(right))
 			{
-				// TODO(scottwe): implement.
-				(void) rhs;
-				throw runtime_error("Tuple-function assignment is not supported.");
-			}
-			else if (auto rhs = dynamic_cast<TupleExpression const*>(right))
-			{
-				vector<shared_ptr<CVarDecl>> tmp_vars;
-				for (size_t i = 0; i < lhs->components().size(); ++i)
+				FunctionCallAnalyzer call(*rhs);
+
+				// Generates temporary variables for each return value.
+				for (auto entry : call.decl().returnParameters())
 				{
-					auto lhs_entry = lhs->components()[i].get();
-					auto type = m_stack->types()->get_type(*lhs_entry);
-					string name = "blockvar_" + to_string(i);
+					string name = "blockvar_" + to_string(tmp_vars.size());
+					auto type = m_stack->types()->get_type(*entry.get());
 					auto decl = make_shared<CVarDecl>(type, name, false);
 					tmp_vars.push_back(decl);
 					stmts.push_back(decl);
 				}
+
+				// Generates the call.
+				vector<CExprPtr> rv_ids;
+				ExpressionConverter expr(*rhs, m_stack, m_decls);
+				for (size_t i = 1; i < tmp_vars.size(); ++i)
+				{
+					auto var = tmp_vars[i];
+					rv_ids.push_back(make_shared<CReference>(var->id()));
+				}
+				expr.set_aux_rvs(rv_ids);
+
+				// Generates the call statement.
+				auto dst = tmp_vars[0]->id()->access("v");
+				auto src = expr.convert();
+				auto assign = make_shared<CBinaryOp>(dst, "=", src);
+				stmts.push_back(assign->stmt());
+			}
+			else if (auto rhs = dynamic_cast<TupleExpression const*>(right))
+			{
+				// Generates temporary variables for each variable on the RHS.
+				for (auto entry : lhs->components())
+				{
+					string name = "blockvar_" + to_string(tmp_vars.size());
+					auto type = m_stack->types()->get_type(*entry.get());
+					auto decl = make_shared<CVarDecl>(type, name, false);
+					tmp_vars.push_back(decl);
+					stmts.push_back(decl);
+				}
+
+				// Assigns RHS values to temp vars.
 				for (size_t i = 0; i < rhs->components().size(); ++i)
 				{
 					auto rhs_id = expand(*rhs->components()[i].get());
@@ -293,17 +321,22 @@ bool GeneralBlockConverter::visit(ExpressionStatement const& _node)
 					auto assign = make_shared<CBinaryOp>(tmp_id, "=", rhs_id);
 					stmts.push_back(assign->stmt());
 				}
-				for (size_t i = 0; i < lhs->components().size(); ++i)
-				{
-					auto lhs_id = expand(*lhs->components()[i].get());
-					auto tmp_id = tmp_vars[i]->id()->access("v");
-					auto assign = make_shared<CBinaryOp>(lhs_id, "=", tmp_id);
-					stmts.push_back(assign->stmt());
-				}
 			}
 			else
 			{
 				throw runtime_error("Unexpected LHS tuple.");
+			}
+
+			// Assigns temp vars to LHS.
+			for (size_t i = 0; i < lhs->components().size(); ++i)
+			{
+				if (auto expr = lhs->components()[i])
+				{
+					auto lhs_id = expand(*expr);
+					auto tmp_id = tmp_vars[i]->id()->access("v");
+					auto assign = make_shared<CBinaryOp>(lhs_id, "=", tmp_id);
+					stmts.push_back(assign->stmt());
+				}
 			}
 
 			// Generates tuple-like statement.

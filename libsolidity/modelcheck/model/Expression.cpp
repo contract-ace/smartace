@@ -56,6 +56,13 @@ CExprPtr ExpressionConverter::convert()
 
 // -------------------------------------------------------------------------- //
 
+void ExpressionConverter::set_aux_rvs(std::vector<CExprPtr> _rvs)
+{
+	m_aux_rvs = _rvs;
+}
+
+// -------------------------------------------------------------------------- //
+
 bool ExpressionConverter::visit(Conditional const& _node)
 {
 	_node.condition().accept(*this);
@@ -787,6 +794,10 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	if (m_is_init) fcall.push(get_initializer_context());
 
 	// Pushes all user provided arguments and generates the function call.
+	if (call.func().returnParameters().size() > 1)
+	{
+		for (auto rv : m_aux_rvs) fcall.push(rv);
+	}
 	push_arglist(_calldata.args(), call.func().parameters(), fcall, param_idx);
 	m_subexpr = fcall.merge_and_pop();
 

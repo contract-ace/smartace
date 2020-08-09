@@ -52,6 +52,9 @@ public:
     // Generates a SimpleCGenerator representation of the expression.
     CExprPtr convert();
 
+	// Sets the auxilary rv's for the first tuple-valued function.
+	void set_aux_rvs(std::vector<CExprPtr> _rvs);
+
 protected:
 	bool visit(Conditional const& _node) override;
 	bool visit(Assignment const& _node) override;
@@ -67,6 +70,8 @@ protected:
 private:
     Expression const* M_EXPR;
 	VariableScopeResolver const& M_DECLS;
+
+	std::vector<CExprPtr> m_aux_rvs;
 
 	std::shared_ptr<AnalysisStack const> m_stack;
 
