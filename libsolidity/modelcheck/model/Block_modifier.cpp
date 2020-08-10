@@ -94,6 +94,7 @@ ModifierBlockConverter::ModifierBlockConverter(
     _entry,
     _func.isPayable()
 ), M_TRUE_PARAMS(_func.parameters())
+ , M_TRUE_RVS(_func.returnParameters())
  , M_USER_PARAMS(_def->parameters())
  , M_USER_ARGS(_curr->arguments())
  , M_NEXT_CALL(move(_next))
@@ -112,6 +113,10 @@ ModifierBlockConverter::ModifierBlockConverter(
     for (auto ARG : M_TRUE_PARAMS)
     {
         m_shadow_decls.record_declaration(*ARG);
+    }
+    for (auto RV : M_TRUE_RVS)
+    {
+        m_shadow_decls.record_declaration(*RV);
     }
 }
 
@@ -179,10 +184,30 @@ void ModifierBlockConverter::endVisit(PlaceholderStatement const&)
 	builder.push(make_shared<CIdentifier>("self", true));
 	m_stack->environment()->compute_next_state_for(builder, false, nullptr);
 
-	for (auto const& ARG : M_TRUE_PARAMS)
+    for (size_t i = 1; i < M_TRUE_RVS.size(); ++i)
+    {
+        auto const& RV = M_TRUE_RVS[i];
+        string name = m_shadow_decls.resolve_declaration(*RV);
+		builder.push(make_shared<CIdentifier>(name, false));
+    }
+
+	for (size_t i = 0; i < M_TRUE_PARAMS.size(); ++i)
 	{
-        auto const SYM = m_shadow_decls.resolve_declaration(*ARG);
-		builder.push(make_shared<CIdentifier>(SYM, false));
+        auto const& ARG = M_TRUE_PARAMS[i];
+
+        string name;
+        if (ARG->name().empty())
+        {
+            // TODO(scottwe): factor out.
+            name = "var" + to_string(i);
+            name = VariableScopeResolver::rewrite(name, true, VarContext::FUNCTION);
+        }
+        else
+        {
+            name = m_shadow_decls.resolve_declaration(*ARG);
+        }
+
+		builder.push(make_shared<CIdentifier>(name, false));
 	}
 
     if (block_type() == BlockType::Initializer)

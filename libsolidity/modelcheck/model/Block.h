@@ -231,6 +231,7 @@ protected:
 
 private:
 	std::vector<ASTPointer<VariableDeclaration>> const& M_TRUE_PARAMS;
+	std::vector<ASTPointer<VariableDeclaration>> const& M_TRUE_RVS;
 	std::vector<ASTPointer<VariableDeclaration>> const& M_USER_PARAMS;
 	std::vector<ASTPointer<Expression>> const* M_USER_ARGS;
 	std::string const M_NEXT_CALL;
