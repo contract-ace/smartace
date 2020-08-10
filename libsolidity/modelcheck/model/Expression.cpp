@@ -755,8 +755,30 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	CFuncCallBuilder fcall(call.name(0), rv_is_ptr);	
 
 	// Sets state for the next call.
+	bool is_library = call.source().isLibrary();
 	size_t param_idx = 0;
-	if (call.source().isLibrary())
+	if (!is_library && is_ext_call)
+	{
+		_calldata.context()->accept(*this);
+
+		// Checks if the context is taken by reference (not param or rv).
+		if (!dynamic_cast<FunctionCall const*>(_calldata.context()))
+		{
+			auto ref = expr_to_decl(*_calldata.context());
+			if (ref && ref->referenceLocation() != VariableDeclaration::CallData)
+			{
+				m_subexpr = make_shared<CReference>(move(m_subexpr));
+			}
+		}
+
+		fcall.push(move(m_subexpr));
+	}
+	else if (!is_library)
+	{
+		fcall.push(make_shared<CIdentifier>("self", true));
+	}
+	pass_next_call_state(_calldata, fcall, is_ext_call);
+	if (is_library)
 	{
 		if (_calldata.context())
 		{
@@ -764,30 +786,6 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 			push_arg(*_calldata.context(), *DECL, fcall);
 			++param_idx;
 		}
-	}
-	else
-	{
-		if (is_ext_call)
-		{
-			_calldata.context()->accept(*this);
-
-			// Checks if the context is taken by reference (not param or rv).
-			if (!dynamic_cast<FunctionCall const*>(_calldata.context()))
-			{
-				auto ref = expr_to_decl(*_calldata.context());
-				if (ref && ref->referenceLocation() != VariableDeclaration::CallData)
-				{
-					m_subexpr = make_shared<CReference>(move(m_subexpr));
-				}
-			}
-
-			fcall.push(move(m_subexpr));
-		}
-		else
-		{
-			fcall.push(make_shared<CIdentifier>("self", true));
-		}
-		pass_next_call_state(_calldata, fcall, is_ext_call);
 	}
 
 	// Passes dest if contract construction is in use.
@@ -909,7 +907,9 @@ void ExpressionConverter::pass_next_call_state(
 		).convert();
 		v = InitFunction::wrap(*ContractUtilities::balance_type(), move(v));
 	}
-	m_stack->environment()->compute_next_state_for(_builder, _is_ext, move(v));
+	m_stack->environment()->compute_next_state_for(
+		_builder, _is_ext, !_call.is_in_library(), move(v)
+	);
 }
 
 // -------------------------------------------------------------------------- //

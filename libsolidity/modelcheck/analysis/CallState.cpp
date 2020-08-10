@@ -83,12 +83,16 @@ void CallState::push_state_to(CFuncCallBuilder & _builder) const
 }
 
 void CallState::compute_next_state_for(
-    CFuncCallBuilder & _builder, bool _external, CExprPtr _value
+    CFuncCallBuilder & _builder,
+    bool _external,
+    bool _for_contract,
+    CExprPtr _value
 ) const
 {
 	auto self_id = make_shared<CIdentifier>("self", true);
 	for (auto const& f : order())
 	{
+        if (!_for_contract && f.contract_only) continue;
 		if (_external && f.field == CallStateUtilities::Field::Sender)
 		{
 			string const ADDRESS = ContractUtilities::address_member();
@@ -157,6 +161,7 @@ void CallState::add_field(CallStateUtilities::Field _field)
     f.name = CallStateUtilities::get_name(_field);
     f.type = CallStateUtilities::get_type(_field);
     f.type_name = TypeAnalyzer::get_simple_ctype(*f.type);
+    f.contract_only = CallStateUtilities::is_contract_only(_field);
     m_field_order.push_back(move(f));
 }
 

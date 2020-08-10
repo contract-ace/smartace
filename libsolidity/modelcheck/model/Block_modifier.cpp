@@ -182,7 +182,9 @@ void ModifierBlockConverter::endVisit(PlaceholderStatement const&)
 {
 	CFuncCallBuilder builder(M_NEXT_CALL);
 	builder.push(make_shared<CIdentifier>("self", true));
-	m_stack->environment()->compute_next_state_for(builder, false, nullptr);
+	m_stack->environment()->compute_next_state_for(
+        builder, false, true, nullptr
+    );
 
     for (size_t i = 1; i < M_TRUE_RVS.size(); ++i)
     {

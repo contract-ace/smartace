@@ -84,6 +84,17 @@ Type const* CallStateUtilities::get_type(CallStateUtilities::Field _field)
 
 // -------------------------------------------------------------------------- //
 
+bool CallStateUtilities::is_contract_only(CallStateUtilities::Field _field)
+{
+    switch (_field)
+    {
+    case CallStateUtilities::Field::ReqFail: return false;
+    default: return true;
+    };
+}
+
+// -------------------------------------------------------------------------- //
+
 }
 }
 }

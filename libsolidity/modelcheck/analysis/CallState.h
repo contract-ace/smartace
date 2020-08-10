@@ -45,6 +45,7 @@ public:
         std::string name;
         TypePointer type;
         std::string type_name;
+        bool contract_only;
     };
 
     // A sufficient state for each call is inferred from _graph. If the
@@ -63,7 +64,10 @@ public:
 
     // Handles callstate updates for intermediate calls.
     void compute_next_state_for(
-        CFuncCallBuilder & _builder, bool _external, CExprPtr _value
+        CFuncCallBuilder & _builder,
+        bool _external,
+        bool _for_contract,
+        CExprPtr _value
     ) const;
 
     // Returns true if send is required.

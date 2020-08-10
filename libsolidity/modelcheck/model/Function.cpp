@@ -119,24 +119,36 @@ CParams FunctionConverter::generate_params(
 )
 {
     CParams params;
-    if (_scope && !_scope->isLibrary())
+    bool is_scoped = (_scope != nullptr);
+    bool is_contract = (is_scoped && !_scope->isLibrary());
+
+    // Pushes context for contract methods.
+    if (is_contract)
     {
         string const SELF_TYPE = m_stack->types()->get_type(*_scope);
         params.push_back(make_shared<CVarDecl>(SELF_TYPE, "self", true));
-        for (auto const& fld : m_stack->environment()->order())
+    }
+
+    // Pushes environment variables, while respecting scope rules.
+    if (is_scoped)
+    {
+        for (auto const& fld: m_stack->environment()->order())
         {
+            if (!is_contract && fld.contract_only) continue;
             params.push_back(make_shared<CVarDecl>(
                 fld.type_name, fld.name, false
             ));
         }
     }
+
+    // Pushes return values.
     for (size_t i = 1; i < _rvs.size(); ++i)
     {
-        auto const& DECL = *_rvs[i];
-    
-        string type = m_stack->types()->get_type(DECL);
-    
-        string name = DECL.name();
+        auto const& RV = *_rvs[i];
+
+        string type = m_stack->types()->get_type(RV);
+
+        string name = RV.name();
         if (name.empty())
         {
             // TODO(scottwe): generalize to unnamed tuple return values.
@@ -146,6 +158,8 @@ CParams FunctionConverter::generate_params(
 
         params.push_back(make_shared<CVarDecl>(move(type), move(name), true));
     }
+
+    // Pushes arguments.
     for (size_t i = 0; i < _decls.size(); ++i)
     {
         auto const& DECL = *_decls[i];
@@ -159,15 +173,16 @@ CParams FunctionConverter::generate_params(
         bool const IS_REF = decl_is_ref(DECL);
         params.push_back(make_shared<CVarDecl>(move(type), move(name), IS_REF));
     }
+
+    // Pushes destination (for initializers, etc.).
     if (_dest)
     {
-        auto const& specialization = m_stack->allocations()->specialize(*_dest);
+        auto const& spec = m_stack->allocations()->specialize(*_dest);
         params.push_back(make_shared<CVarDecl>(
-            m_stack->types()->get_type(specialization),
-            InitFunction::INIT_VAR,
-            true
+            m_stack->types()->get_type(spec), InitFunction::INIT_VAR, true
         ));
     }
+
     return params;
 }
 
@@ -337,7 +352,9 @@ string FunctionConverter::handle_contract_initializer(
         auto & builder = parent_initializers.back();
 
         builder.push(self_ptr);
-        m_stack->environment()->compute_next_state_for(builder, false, nullptr);
+        m_stack->environment()->compute_next_state_for(
+            builder, false, true, nullptr
+        );
         if (LOCAL_CTOR)
         {
             for (auto const CTOR_MOD : LOCAL_CTOR->modifiers())
@@ -419,7 +436,7 @@ string FunctionConverter::handle_contract_initializer(
             CFuncCallBuilder builder(ctor_name);
             builder.push(self_ptr);
             m_stack->environment()->compute_next_state_for(
-                builder, false, nullptr
+                builder, false, true, nullptr
             );
             for (auto decl : LOCAL_CTOR->parameters())
             {

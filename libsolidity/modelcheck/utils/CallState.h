@@ -39,6 +39,9 @@ public:
     // Resolves a model type from a field type.
     static Type const* get_type(Field _field);
 
+    // Returns true if the field is specifically for contracts (not libraries).
+    static bool is_contract_only(Field _field);
+
 private:
     // Static mapping from magic types to field names.
     static std::map<std::pair<MagicType::Kind, std::string>, Field> const
