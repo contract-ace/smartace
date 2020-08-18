@@ -51,32 +51,33 @@ CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
     }
     else
     {
-        auto msg = make_shared<CStringLiteral>(_msg);
-        return make_shared<CFuncCall>(
-            "nd_range",
-            CArgList{ Literals::ZERO, lower, make_shared<CIntLiteral>(_u), msg }
-        );
+        CFuncCallBuilder builder("GET_ND_RANGE");
+        builder.push(Literals::ZERO);
+        builder.push(move(lower));
+        builder.push(make_shared<CIntLiteral>(_u));
+        builder.push(make_shared<CStringLiteral>(_msg));
+        return builder.merge_and_pop();
     }
 }
 
 CExprPtr LibVerify::byte(string const& _msg)
 {
-    return make_shared<CFuncCall>(
-        "nd_byte", CArgList{ Literals::ZERO, make_shared<CStringLiteral>(_msg) }
-    );
+    CFuncCallBuilder builder("GET_ND_BYTE");
+    builder.push(Literals::ZERO);
+    builder.push(make_shared<CStringLiteral>(_msg));
+    return builder.merge_and_pop();
 }
 
 void LibVerify::log(CBlockList & _block, string _msg)
 {
-    auto fn = make_shared<CFuncCall>(
-        "smartace_log", CArgList{ make_shared<CStringLiteral>(_msg)
-    });
+    CArgList arglist{ make_shared<CStringLiteral>(_msg) };
+    auto fn = make_shared<CFuncCall>("smartace_log", move(arglist));
     _block.push_back(fn->stmt());
 }
 
 CExprPtr LibVerify::increase(CExprPtr _curr, bool _strict, string _msg)
 {
-    CFuncCallBuilder call("nd_increase");
+    CFuncCallBuilder call("GET_ND_INCREASE");
     call.push(Literals::ZERO);
     call.push(_curr);
     call.push(_strict ? Literals::ONE : Literals::ZERO);

@@ -448,7 +448,7 @@ BOOST_AUTO_TEST_CASE(bounded_addr)
 
     std::ostringstream expr;
     expr << *raw_nd;
-    BOOST_CHECK_EQUAL(expr.str(), "nd_range(0,0,10,\"Blah\")");
+    BOOST_CHECK_EQUAL(expr.str(), "GET_ND_RANGE(0,0,10,\"Blah\")");
 }
 
 BOOST_AUTO_TEST_CASE(bounded_bool)
@@ -460,7 +460,7 @@ BOOST_AUTO_TEST_CASE(bounded_bool)
 
     std::ostringstream expr;
     expr << *raw_nd;
-    BOOST_CHECK_EQUAL(expr.str(), "nd_range(0,0,2,\"Blah\")");
+    BOOST_CHECK_EQUAL(expr.str(), "GET_ND_RANGE(0,0,2,\"Blah\")");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

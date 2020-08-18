@@ -193,6 +193,34 @@ void sol_emit(const char * _event);
 // Raw call to assume, meant for use by the model's execution environment.
 void ll_assume(sol_raw_uint8_t _cond);
 
+// Allows logs from the model.
+void smartace_log(const char* _msg);
+
+//
+#ifdef MC_USE_EXTERNAL_NONDET
+#define GET_ND_BYTE(__loc, __msg) \
+    nd_byte(0, (__msg))
+#define GET_ND_RANGE(__loc, __curr, __hi, __lo, __msg) \
+    nd_range(0, (__curr), (__hi), (__lo), (__msg))
+#define GET_ND_INCREASE(__loc, __curr, __strict, __msg) \
+    nd_increase(0, (__curr), (__strict), (__msg))
+#define GET_ND_INT(__loc, __width, __msg) \
+    (nd_int ## __width ## _t(0, (_msg)))
+#define GET_ND_UINT(__loc, __width, __msg) \
+    (nd_uint ## __width ## _t(0, (_msg)))
+#else
+#define GET_ND_BYTE(__loc, __msg) \
+    nd_byte(0, (__msg))
+#define GET_ND_RANGE(__loc, __lo, __hi, __msg) \
+    nd_range(0, (__lo), (__hi), (__msg))
+#define GET_ND_INCREASE(__loc, __curr, __strict, __msg) \
+    nd_increase(0, (__curr), (__strict), (__msg))
+#define GET_ND_INT(__loc, __width, __msg) \
+    (nd_int ## __width ## _t(0, (__msg)))
+#define GET_ND_UINT(__loc, __width, __msg) \
+    (nd_uint ## __width ## _t(0, (__msg)))
+#endif
+
 // Returns a raw byte without any wrapping. This is meant to be used by the
 // model's execution environment. Note that _sea_hint is meant for the Seahorn
 // ND value to be injected. This allows for each ND value to be callsite aware.
@@ -208,9 +236,6 @@ sol_raw_uint256_t nd_increase(
     uint8_t _strict,
     const char* _msg
 );
-
-// Allows logs from the model.
-void smartace_log(const char* _msg);
 
 // Provides non-deterministic integers for all native Solidity byte-widths. Note
 // that _sea_hint is meant for the Seahorn ND value to be injected. This allows

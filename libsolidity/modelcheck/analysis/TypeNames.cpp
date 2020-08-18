@@ -235,15 +235,17 @@ CExprPtr TypeAnalyzer::raw_simple_nd(Type const& _type, string const& _msg) cons
     }
     else
     {
-        ostringstream call;
-        call << "nd_";
-        if (!simple_is_signed(_type)) call << "u";
-        call << "int" << simple_bit_count(_type) << "_t";
+        string macroname = "GET_ND_UINT";
+        if (simple_is_signed(_type))
+        {
+            macroname = "GET_ND_INT";
+        }
 
-        auto msg_lit = make_shared<CStringLiteral>(_msg);
-        return make_shared<CFuncCall>(
-            call.str(), CArgList{ Literals::ZERO, msg_lit }
-        );
+        CFuncCallBuilder call(macroname);
+        call.push(Literals::ZERO);
+        call.push(make_shared<CIntLiteral>(simple_bit_count(_type)));
+        call.push(make_shared<CStringLiteral>(_msg));
+        return call.merge_and_pop();
     }
 }
 
