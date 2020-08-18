@@ -47,31 +47,40 @@ foreach(d ${CMODEL_COMPILE_DEFS_RAW})
 endforeach(d)
 list(APPEND CMODEL_COMPILE_DEFS "-DMC_USE_EXTERNAL_NONDET")
 
+# Sets solver mode.
+set(HORN_SOLVER_LIA "lia")
+set(HORN_SOLVER_NLIA "nlia")
+set(HORN_SOLVER_BV "bv")
+set(HORN_SOLVER_MODES ${HORN_SOLVER_LIA} ${HORN_SOLVER_NLIA} ${HORN_SOLVER_BV})
+set(SEA_HORN_SOLVER ${HORN_SOLVER_LIA} CACHE STRING "Theories available to spacer (lia/nlia/bv).")
+set_property(CACHE SEA_HORN_SOLVER PROPERTY STRINGS ${HORN_SOLVER_MODES})
+
+# Configures YAML files.
+set(SEA_YAML "${CMAKE_CURRENT_SOURCE_DIR}/yaml/sea.common.yaml")
+set(CEX_YAML "${CMAKE_CURRENT_SOURCE_DIR}/yaml/sea.cex.yaml")
+set(NLIA_YAML "${CMAKE_CURRENT_SOURCE_DIR}/yaml/sea.nlia.yaml")
+set(BV_YAML "${CMAKE_CURRENT_SOURCE_DIR}/yaml/sea.bv.yaml")
+
+set(SEA_COMMON_YAMA "")
+list(APPEND SEA_COMMON_YAMA "-y" "${SEA_YAML}")
+if(SEA_HORN_SOLVER EQUAL "nlia")
+    list(APPEND SEA_COMMON_YAMA "-y" "${NLIA_YAML}")
+elseif(SEA_HORN_SOLVER EQUAL "bv")
+    list(APPEND SEA_COMMON_YAMA "-y" "${BV_YAML}")
+endif()
+
+set(SEA_CEX_YAMA "${SEA_COMMON_YAMA}")
+list(APPEND SEA_CEX_YAMA "-y" "${CEX_YAML}")
+
+# Handles additional arguments, if provided.
 set(SEA_ARGS "" CACHE STRING "Additional arguments to pass to Seahorn.")
-set(SEA_CMODEL_ARGS "${SEA_ARGS}")
-list(APPEND SEA_CMODEL_ARGS "--inline")
-list(APPEND SEA_CMODEL_ARGS "--dsa=sea-cs")
-list(APPEND SEA_CMODEL_ARGS "--enable-indvar")
-list(APPEND SEA_CMODEL_ARGS "--horn-global-constraints=true")
-list(APPEND SEA_CMODEL_ARGS "--horn-singleton-aliases=true")
-list(APPEND SEA_CMODEL_ARGS "--horn-use-write=true")
-
-set(SEA_DEBUG OFF CACHE BOOL "Compiles Seahorn executables for debugging.")
-if(SEA_DEBUG)
-    list(APPEND SEA_CMODEL_ARGS "-g")
-endif()
-
-set(SEA_EXELOG OFF CACHE BOOL "Allows Seahorn executables to log input traces.")
-if(SEA_EXELOG)
-	list(APPEND CMODEL_COMPILE_DEFS "-DMC_LOG_ALL")
-endif()
 
 # If all dependancies were located, adds all Seahorn targets.
 if(SEA_EXE)
     # Merges arguments to sea.
     set(SEA_FULL_ARGS "")
     list(APPEND SEA_FULL_ARGS ${CMODEL_COMPILE_DEFS})
-    list(APPEND SEA_FULL_ARGS ${SEA_CMODEL_ARGS})
+    list(APPEND SEA_FULL_ARGS ${SEA_ARGS})
 
     # Adds pipeline to produce optimized LLVM bytecode and dot diagram.
     if(LLVM_DIS_EXE)
@@ -81,7 +90,7 @@ if(SEA_EXE)
         set(SEA_FINAL_LL "merged.pp.ms.o.ll")
         add_custom_command(
             OUTPUT "${SEA_INSPECT_TEMP_REL}/${SEA_FINAL_BC}"
-            COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --save-temps --temp-dir ${SEA_INSPECT_TEMP_ABS}
+            COMMAND ${SEA_EXE} yama ${SEA_COMMON_YAMA} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --save-temps --temp-dir ${SEA_INSPECT_TEMP_ABS}
             DEPENDS ${SEAHORN_DEPS}
             COMMAND_EXPAND_LISTS
         )
@@ -92,26 +101,26 @@ if(SEA_EXE)
         )
         add_custom_target(
             sea_inspect
-            COMMAND ${SEA_EXE} inspect --cfg-dot "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
+            COMMAND ${SEA_EXE} yama ${SEA_COMMON_YAMA} inspect --cfg-dot "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
             SOURCES "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
         )
     endif()
 
     add_custom_target(
         verify
-        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --show-invars
+        COMMAND ${SEA_EXE} yama ${SEA_COMMON_YAMA} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --show-invars
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         cex
-        COMMAND ${SEA_EXE} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --cex=cex.ll
+        COMMAND ${SEA_EXE} yama ${SEA_CEX_YAMA} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --cex=cex.ll
         SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
         witness
-        COMMAND ${SEA_EXE} exe-cex ${SEAHORN_DEPS} ${SEA_FULL_ARGS} -o witness
+        COMMAND ${SEA_EXE} yama ${SEA_CEX_YAMA} exe-cex ${SEAHORN_DEPS} ${SEA_FULL_ARGS} -DMC_LOG_ALL -o witness
         COMMAND_EXPAND_LISTS
     )
 endif()

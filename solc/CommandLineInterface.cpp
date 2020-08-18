@@ -1358,6 +1358,7 @@ void CommandLineInterface::handleCModel()
 
 		copyDirectory((m_install_dir / "share/solc/project").string(), "", true);
 		copyDirectory((m_install_dir / "include/solc/libverify").string(), "libverify", true);
+		copyDirectory((m_install_dir / "include/solc/yaml").string(), "yaml", true);
 
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data, harness_data;
 		handleCModelHarness(harness_data);

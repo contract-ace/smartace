@@ -1,0 +1,10 @@
+sea_options:
+    '-O3': ''
+    'inline': ''
+    'dsa': 'sea-cs-t'
+    'enable-indvar': ''
+    'enable-loop-idiom': ''
+    'horn-global-constraints': 'true'
+    'horn-singleton-aliases': 'true'
+    'horn-use-write': 'true'
+    '-m64': ''

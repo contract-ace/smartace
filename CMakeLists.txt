@@ -56,6 +56,7 @@ add_subdirectory(libverify)
 add_subdirectory(solc)
 
 install(DIRECTORY libverify/ DESTINATION include/solc/libverify)
+install(DIRECTORY cmodelres/yaml/ DESTINATION include/solc/yaml)
 install(FILES cmodelres/CMakeLists.txt DESTINATION share/solc/project)
 install(FILES cmodelres/Klee.cmake DESTINATION share/solc/project/cmake)
 install(FILES cmodelres/Interactive.cmake DESTINATION share/solc/project/cmake)
