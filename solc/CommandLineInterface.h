@@ -74,7 +74,9 @@ private:
 	void handleCModel();
 	void handleCModelHarness(std::ostream& _os);
 	void handleCModelPrimitives(
-		modelcheck::PrimitiveTypeGenerator _gen, std::ostream& _os
+		modelcheck::PrimitiveTypeGenerator _gen,
+		modelcheck::NondetSourceRegistry _nd_reg,
+		std::ostream& _os
 	);
 	void handleCModelHeaders(
 		std::shared_ptr<modelcheck::AnalysisStack> _stack,

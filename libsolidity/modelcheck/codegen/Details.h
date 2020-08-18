@@ -570,7 +570,7 @@ private:
 class CFuncDef : public CElement
 {
 public:
-    enum class Modifier { DEFAULT, INLINE };
+    enum class Modifier { DEFAULT, INLINE, EXTERN };
 
     // Represents the function, _id.type _id.name(_args[0],...,args[k]){_body}.
     CFuncDef(

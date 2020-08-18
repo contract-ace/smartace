@@ -3,6 +3,7 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
+#include <libsolidity/modelcheck/utils/Primitives.h>
 
 #include <sstream>
 
@@ -99,15 +100,13 @@ void PrimitiveTypeGenerator::print(ostream& _out) const
 {
     if (found_bool())
     {
-        string const RAW_DATA = "sol_raw_uint8_t";
         string const RAW_STRUCT = "sol_bool";
-        declare_primitive(_out, RAW_STRUCT, RAW_DATA);
+        declare_primitive(_out, RAW_STRUCT, PrimitiveToRaw::boolean());
     }
     if (found_address())
     {
-        string const RAW_DATA = "sol_raw_uint160_t";
         string const RAW_STRUCT = "sol_address";
-        declare_primitive(_out, RAW_STRUCT, RAW_DATA);
+        declare_primitive(_out, RAW_STRUCT, PrimitiveToRaw::address());
 
     }
     for (unsigned char bytes = 1; bytes <= 32; ++bytes)
@@ -152,10 +151,7 @@ void PrimitiveTypeGenerator::declare_numeric(
 {
     string const SIGN = (_signed ? "" : "u");
     string const WRAPPER = "sol_" + SIGN + _sym;
-
-    ostringstream data_oss;
-    data_oss << "sol_raw_" << SIGN << "int" << (_bytes * 8) << "_t";
-    string const DATA = data_oss.str();
+    string const DATA = PrimitiveToRaw::integer(_bytes * 8, _signed);
 
     declare_primitive(_out, WRAPPER, DATA);
 }

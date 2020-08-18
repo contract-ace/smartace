@@ -1363,7 +1363,7 @@ void CommandLineInterface::handleCModel()
 		handleCModelHarness(harness_data);
 		handleCModelHeaders(analysis_stack, nondet_reg, cmodel_h_data);
 		handleCModelBody(analysis_stack, nondet_reg, cmodel_cpp_data);
-		handleCModelPrimitives(primitive_set, primitive_data);
+		handleCModelPrimitives(primitive_set, *nondet_reg, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
 		createFile("cmodel.c", cmodel_cpp_data.str());
@@ -1373,12 +1373,12 @@ void CommandLineInterface::handleCModel()
 	{
 		sout() << "======= harness.c(pp) =======" << endl;
 		handleCModelHarness(sout());
-		sout() << "====== primitive.h =====" << endl;
-		handleCModelPrimitives(primitive_set, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(analysis_stack, nondet_reg, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
 		handleCModelBody(analysis_stack, nondet_reg, sout());
+		sout() << "====== primitive.h =====" << endl;
+		handleCModelPrimitives(primitive_set, *nondet_reg, sout());
 		sout() << endl;
 	}
 }
@@ -1394,11 +1394,14 @@ void CommandLineInterface::handleCModelHarness(ostream& _os)
 }
 
 void CommandLineInterface::handleCModelPrimitives(
-	modelcheck::PrimitiveTypeGenerator _gen, ostream& _os
+	modelcheck::PrimitiveTypeGenerator _gen,
+	modelcheck::NondetSourceRegistry _nd_reg,
+	ostream& _os
 )
 {
 	_os << "#pragma once" << endl
 	    << "#include \"libverify/verify.h\"" << endl;
+	_nd_reg.print(_os);
 	_gen.print(_os);
 }
 

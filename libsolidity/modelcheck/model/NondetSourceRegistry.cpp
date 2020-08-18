@@ -5,6 +5,7 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+#include <libsolidity/modelcheck/utils/Primitives.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 using namespace std;
@@ -113,6 +114,24 @@ CExprPtr NondetSourceRegistry::val(Declaration const& _decl, string const& _msg)
     {
         string name = m_stack->types()->get_name(_decl);
         return make_shared<CFuncCall>("ND_" + name, CArgList{});
+    }
+}
+
+void NondetSourceRegistry::print(std::ostream& _stream)
+{
+    CParams const args;
+    CFuncDef::Modifier const mod = CFuncDef::Modifier::EXTERN;
+    for (size_t i = 0; i < m_registry.size(); ++i)
+    {
+        auto const& SRC = (*m_registry[i]);
+
+        auto const BITS = simple_bit_count(SRC);
+        auto const SIGN = simple_is_signed(SRC);
+        auto const TYPE = PrimitiveToRaw::integer(BITS, SIGN);
+        auto const NAME = "sea_nd_" + to_string(i);
+
+        auto id = make_shared<CVarDecl>(TYPE, NAME);
+        _stream << CFuncDef(move(id), args, nullptr, mod);
     }
 }
 

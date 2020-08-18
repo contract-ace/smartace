@@ -45,6 +45,7 @@ get_directory_property(CMODEL_COMPILE_DEFS_RAW DIRECTORY ${CMAKE_SOURCE_DIR} COM
 foreach(d ${CMODEL_COMPILE_DEFS_RAW})
     list(APPEND CMODEL_COMPILE_DEFS "-D${d}")
 endforeach(d)
+list(APPEND CMODEL_COMPILE_DEFS "-DMC_USE_EXTERNAL_NONDET")
 
 set(SEA_ARGS "" CACHE STRING "Additional arguments to pass to Seahorn.")
 set(SEA_CMODEL_ARGS "${SEA_ARGS}")

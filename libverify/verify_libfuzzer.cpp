@@ -127,13 +127,13 @@ void on_entry(const char* _type, const char* _msg)
 	// cout << _msg << " [" << _type << "]:";
 }
 
-uint8_t nd_byte(uint8_t, const char* _msg)
+uint8_t nd_byte(int8_t, const char* _msg)
 {
 	on_entry("uint8", _msg);
 	return tryGetNextRandByte();
 }
 
-uint8_t nd_range(uint8_t, uint8_t l, uint8_t u, const char* _msg)
+uint8_t nd_range(int8_t, uint8_t l, uint8_t u, const char* _msg)
 {
 	uint8_t v = nd_byte(0, _msg);
 	return (v % (u - l)) + l;
@@ -142,7 +142,7 @@ uint8_t nd_range(uint8_t, uint8_t l, uint8_t u, const char* _msg)
 // -------------------------------------------------------------------------- //
 
 sol_raw_uint256_t nd_increase(
-	sol_raw_uint256_t,
+	sol_raw_int256_t,
 	sol_raw_uint256_t _curr,
 	uint8_t _strict,
 	const char* _msg
@@ -264,7 +264,7 @@ sol_raw_int16_t nd_int16_t(sol_raw_int16_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint16_t nd_uint16_t(sol_raw_uint16_t, const char* _msg)
+sol_raw_uint16_t nd_uint16_t(sol_raw_int16_t, const char* _msg)
 {
 	on_entry("uint16", _msg);
 	sol_raw_uint16_t retval = 0;
@@ -288,7 +288,7 @@ sol_raw_int24_t nd_int24_t(sol_raw_int24_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint24_t nd_uint24_t(sol_raw_uint24_t, const char* _msg)
+sol_raw_uint24_t nd_uint24_t(sol_raw_int24_t, const char* _msg)
 {
 	on_entry("uint24", _msg);
 	sol_raw_uint24_t retval = 0;
@@ -312,7 +312,7 @@ sol_raw_int32_t nd_int32_t(sol_raw_int32_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint32_t nd_uint32_t(sol_raw_uint32_t, const char* _msg)
+sol_raw_uint32_t nd_uint32_t(sol_raw_int32_t, const char* _msg)
 {
 	on_entry("uint32", _msg);
 	sol_raw_uint32_t retval = 0;
@@ -336,7 +336,7 @@ sol_raw_int40_t nd_int40_t(sol_raw_int40_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint40_t nd_uint40_t(sol_raw_uint40_t, const char* _msg)
+sol_raw_uint40_t nd_uint40_t(sol_raw_int40_t, const char* _msg)
 {
 	on_entry("uint40", _msg);
 	sol_raw_uint40_t retval = 0;
@@ -359,7 +359,7 @@ sol_raw_int48_t nd_int48_t(sol_raw_int48_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint48_t nd_uint48_t(sol_raw_uint48_t, const char* _msg)
+sol_raw_uint48_t nd_uint48_t(sol_raw_int48_t, const char* _msg)
 {
 	on_entry("uint48", _msg);
 	sol_raw_uint48_t retval = 0;
@@ -383,7 +383,7 @@ sol_raw_int56_t nd_int56_t(sol_raw_int56_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint56_t nd_uint56_t(sol_raw_uint56_t, const char* _msg)
+sol_raw_uint56_t nd_uint56_t(sol_raw_int56_t, const char* _msg)
 {
 	on_entry("uint56", _msg);
 	sol_raw_uint56_t retval = 0;
@@ -407,7 +407,7 @@ sol_raw_int64_t nd_int64_t(sol_raw_int64_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint64_t nd_uint64_t(sol_raw_uint64_t, const char* _msg)
+sol_raw_uint64_t nd_uint64_t(sol_raw_int64_t, const char* _msg)
 {
 	on_entry("uint64", _msg);
 	sol_raw_uint64_t retval = 0;
@@ -431,7 +431,7 @@ sol_raw_int72_t nd_int72_t(sol_raw_int72_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint72_t nd_uint72_t(sol_raw_uint72_t, const char* _msg)
+sol_raw_uint72_t nd_uint72_t(sol_raw_int72_t, const char* _msg)
 {
 	on_entry("uint72", _msg);
 	sol_raw_uint72_t retval = 0;
@@ -455,7 +455,7 @@ sol_raw_int80_t nd_int80_t(sol_raw_int80_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint80_t nd_uint80_t(sol_raw_uint80_t, const char* _msg)
+sol_raw_uint80_t nd_uint80_t(sol_raw_int80_t, const char* _msg)
 {
 	on_entry("uint80", _msg);
 	sol_raw_uint80_t retval = 0;
@@ -479,7 +479,7 @@ sol_raw_int88_t nd_int88_t(sol_raw_int88_t, const char* _msg)
 	return retval;	
 }
 
-sol_raw_uint88_t nd_uint88_t(sol_raw_uint88_t, const char* _msg)
+sol_raw_uint88_t nd_uint88_t(sol_raw_int88_t, const char* _msg)
 {
 	on_entry("uint88", _msg);
 	sol_raw_uint88_t retval = 0;
@@ -503,7 +503,7 @@ sol_raw_int96_t nd_int96_t(sol_raw_int96_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint96_t nd_uint96_t(sol_raw_uint96_t, const char* _msg)
+sol_raw_uint96_t nd_uint96_t(sol_raw_int96_t, const char* _msg)
 {
 	on_entry("uint96", _msg);
 	sol_raw_uint96_t retval = 0;
@@ -527,7 +527,7 @@ sol_raw_int104_t nd_int104_t(sol_raw_int104_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint104_t nd_uint104_t(sol_raw_uint104_t, const char* _msg)
+sol_raw_uint104_t nd_uint104_t(sol_raw_int104_t, const char* _msg)
 {
 	on_entry("uint104", _msg);
 	sol_raw_uint104_t retval = 0;
@@ -551,7 +551,7 @@ sol_raw_int112_t nd_int112_t(sol_raw_int112_t, const char* _msg)
 	return retval;	
 }
 
-sol_raw_uint112_t nd_uint112_t(sol_raw_uint112_t, const char* _msg)
+sol_raw_uint112_t nd_uint112_t(sol_raw_int112_t, const char* _msg)
 {
 	on_entry("uint112", _msg);
 	sol_raw_uint112_t retval = 0;
@@ -575,7 +575,7 @@ sol_raw_int120_t nd_int120_t(sol_raw_int120_t, const char* _msg)
 	return retval;	
 }
 
-sol_raw_uint120_t nd_uint120_t(sol_raw_uint120_t, const char* _msg)
+sol_raw_uint120_t nd_uint120_t(sol_raw_int120_t, const char* _msg)
 {
 	on_entry("uint120", _msg);
 	sol_raw_uint120_t retval = 0;
@@ -599,7 +599,7 @@ sol_raw_int128_t nd_int128_t(sol_raw_int128_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint128_t nd_uint128_t(sol_raw_uint128_t, const char* _msg)
+sol_raw_uint128_t nd_uint128_t(sol_raw_int128_t, const char* _msg)
 {
 	on_entry("uint128", _msg);
 	sol_raw_uint128_t retval = 0;
@@ -623,7 +623,7 @@ sol_raw_int136_t nd_int136_t(sol_raw_int136_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint136_t nd_uint136_t(sol_raw_uint136_t, const char* _msg)
+sol_raw_uint136_t nd_uint136_t(sol_raw_int136_t, const char* _msg)
 {
 	on_entry("uint136", _msg);
 	sol_raw_uint136_t retval = 0;
@@ -647,7 +647,7 @@ sol_raw_int144_t nd_int144_t(sol_raw_int144_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint144_t nd_uint144_t(sol_raw_uint144_t, const char* _msg)
+sol_raw_uint144_t nd_uint144_t(sol_raw_int144_t, const char* _msg)
 {
 	on_entry("uint144", _msg);
 	sol_raw_uint144_t retval = 0;
@@ -671,7 +671,7 @@ sol_raw_int152_t nd_int152_t(sol_raw_int152_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint152_t nd_uint152_t(sol_raw_uint152_t, const char* _msg)
+sol_raw_uint152_t nd_uint152_t(sol_raw_int152_t, const char* _msg)
 {
 	on_entry("uint152", _msg);
 	sol_raw_uint152_t retval = 0;
@@ -695,7 +695,7 @@ sol_raw_int160_t nd_int160_t(sol_raw_int160_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint160_t nd_uint160_t(sol_raw_uint160_t, const char* _msg)
+sol_raw_uint160_t nd_uint160_t(sol_raw_int160_t, const char* _msg)
 {
 	on_entry("uint160", _msg);
 	sol_raw_uint160_t retval = 0;
@@ -719,7 +719,7 @@ sol_raw_int168_t nd_int168_t(sol_raw_int168_t, const char* _msg)
 	return retval;	
 }
 
-sol_raw_uint168_t nd_uint168_t(sol_raw_uint168_t, const char* _msg)
+sol_raw_uint168_t nd_uint168_t(sol_raw_int168_t, const char* _msg)
 {
 	on_entry("uint168", _msg);
 	sol_raw_uint168_t retval = 0;
@@ -743,7 +743,7 @@ sol_raw_int176_t nd_int176_t(sol_raw_int176_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint176_t nd_uint176_t(sol_raw_uint176_t, const char* _msg)
+sol_raw_uint176_t nd_uint176_t(sol_raw_int176_t, const char* _msg)
 {
 	on_entry("uint176", _msg);
 	sol_raw_uint176_t retval = 0;
@@ -767,7 +767,7 @@ sol_raw_int184_t nd_int184_t(sol_raw_int184_t, const char* _msg)
 	return retval;	
 }
 
-sol_raw_uint184_t nd_uint184_t(sol_raw_uint184_t, const char* _msg)
+sol_raw_uint184_t nd_uint184_t(sol_raw_int184_t, const char* _msg)
 {
 	on_entry("uint184", _msg);
 	sol_raw_uint184_t retval = 0;
@@ -791,7 +791,7 @@ sol_raw_int192_t nd_int192_t(sol_raw_int192_t, const char* _msg)
 	return retval;	
 }
 
-sol_raw_uint192_t nd_uint192_t(sol_raw_uint192_t, const char* _msg)
+sol_raw_uint192_t nd_uint192_t(sol_raw_int192_t, const char* _msg)
 {
 	on_entry("uint192", _msg);
 	sol_raw_uint192_t retval = 0;
@@ -815,7 +815,7 @@ sol_raw_int200_t nd_int200_t(sol_raw_int200_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint200_t nd_uint200_t(sol_raw_uint200_t, const char* _msg)
+sol_raw_uint200_t nd_uint200_t(sol_raw_int200_t, const char* _msg)
 {
 	on_entry("uint200", _msg);
 	sol_raw_uint200_t retval = 0;
@@ -839,7 +839,7 @@ sol_raw_int208_t nd_int208_t(sol_raw_int208_t, const char* _msg)
 	return retval;	
 }
 
-sol_raw_uint208_t nd_uint208_t(sol_raw_uint208_t, const char* _msg)
+sol_raw_uint208_t nd_uint208_t(sol_raw_int208_t, const char* _msg)
 {
 	on_entry("uint208", _msg);
 	sol_raw_uint208_t retval = 0;
@@ -863,7 +863,7 @@ sol_raw_int216_t nd_int216_t(sol_raw_int216_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint216_t nd_uint216_t(sol_raw_uint216_t, const char* _msg)
+sol_raw_uint216_t nd_uint216_t(sol_raw_int216_t, const char* _msg)
 {
 	on_entry("uint216", _msg);
 	sol_raw_uint216_t retval = 0;
@@ -887,7 +887,7 @@ sol_raw_int224_t nd_int224_t(sol_raw_int224_t, const char* _msg)
 	return retval;			
 }
 
-sol_raw_uint224_t nd_uint224_t(sol_raw_uint224_t, const char* _msg)
+sol_raw_uint224_t nd_uint224_t(sol_raw_int224_t, const char* _msg)
 {
 	on_entry("uint224", _msg);
 	sol_raw_uint224_t retval = 0;
@@ -911,7 +911,7 @@ sol_raw_int232_t nd_int232_t(sol_raw_int232_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint232_t nd_uint232_t(sol_raw_uint232_t, const char* _msg)
+sol_raw_uint232_t nd_uint232_t(sol_raw_int232_t, const char* _msg)
 {
 	on_entry("uint232", _msg);
 	sol_raw_uint232_t retval = 0;
@@ -935,7 +935,7 @@ sol_raw_int240_t nd_int240_t(sol_raw_int240_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint240_t nd_uint240_t(sol_raw_uint240_t, const char* _msg)
+sol_raw_uint240_t nd_uint240_t(sol_raw_int240_t, const char* _msg)
 {
 	on_entry("uint240", _msg);
 	sol_raw_uint240_t retval = 0;
@@ -959,7 +959,7 @@ sol_raw_int248_t nd_int248_t(sol_raw_int248_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint248_t nd_uint248_t(sol_raw_uint248_t, const char* _msg)
+sol_raw_uint248_t nd_uint248_t(sol_raw_int248_t, const char* _msg)
 {
 	on_entry("uint248", _msg);
 	sol_raw_uint248_t retval = 0;
@@ -983,7 +983,7 @@ sol_raw_int256_t nd_int256_t(sol_raw_int256_t, const char* _msg)
 	return retval;		
 }
 
-sol_raw_uint256_t nd_uint256_t(sol_raw_uint256_t, const char* _msg)
+sol_raw_uint256_t nd_uint256_t(sol_raw_int256_t, const char* _msg)
 {
 	on_entry("uint256", _msg);
 	sol_raw_uint256_t retval = 0;

@@ -240,6 +240,43 @@ BOOST_AUTO_TEST_CASE(unique_sources)
     BOOST_CHECK_EQUAL(expr_13.str(), "GET_ND_RANGE(13,0,2,\"Blah\")");
 }
 
+BOOST_AUTO_TEST_CASE(source_decls)
+{
+    char const* text = "contract X {}";
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "X");
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 8, true, false);
+
+    auto var = make_shared<CIdentifier>("var", false);
+    IntegerType uint_type(32, IntegerType::Modifier::Unsigned);
+    IntegerType sint_type(32, IntegerType::Modifier::Signed);
+    AddressType addr_type(StateMutability::Payable);
+    BoolType bool_type;
+
+    NondetSourceRegistry reg(stack);
+    reg.byte("");
+    reg.range(0, 2, "");
+    reg.increase(var, true, "");
+    reg.raw_val(uint_type, "");
+    reg.raw_val(sint_type, "");
+    reg.raw_val(addr_type, "");
+    reg.raw_val(bool_type, "");
+
+    std::ostringstream actual, expect;
+    reg.print(actual);
+    expect << "extern sol_raw_uint8_t sea_nd_0(void);"
+           << "extern sol_raw_uint8_t sea_nd_1(void);"
+           << "extern sol_raw_uint256_t sea_nd_2(void);"
+           << "extern sol_raw_uint32_t sea_nd_3(void);"
+           << "extern sol_raw_int32_t sea_nd_4(void);"
+           << "extern sol_raw_uint8_t sea_nd_5(void);"
+           << "extern sol_raw_uint8_t sea_nd_6(void);";
+    BOOST_CHECK_EQUAL(actual.str(), expect.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 // -------------------------------------------------------------------------- //

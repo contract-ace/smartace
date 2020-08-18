@@ -56,6 +56,9 @@ public:
     // Requests a non-deterministic value for _decl described by _msg.
 	CExprPtr val(Declaration const& _decl, std::string const& _msg);
 
+    // Prints all non-deterministic methods to _stream.
+    void print(std::ostream& _stream);
+
 private:
     std::vector<Type const*> m_registry;
 

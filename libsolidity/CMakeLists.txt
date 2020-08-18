@@ -182,6 +182,8 @@ set(sources
 	modelcheck/utils/Named.h
 	modelcheck/utils/Types.cpp
 	modelcheck/utils/Types.h
+	modelcheck/utils/Primitives.cpp
+	modelcheck/utils/Primitives.h
 	parsing/DocStringParser.cpp
 	parsing/DocStringParser.h
 	parsing/Parser.cpp

@@ -408,7 +408,15 @@ CFuncDef::CFuncDef(
 
 void CFuncDef::print(ostream & _out) const
 {
-    if (M_MOD == Modifier::INLINE) _out << "static inline ";
+    if (M_MOD == Modifier::INLINE)
+    {
+        _out << "static inline ";
+    }
+    else if (M_MOD == Modifier::EXTERN)
+    {
+        _out << "extern ";
+    }
+
     _out << *M_ID << "(";
     if (M_ARGS.empty())
     {
@@ -423,6 +431,7 @@ void CFuncDef::print(ostream & _out) const
         }
     }
     _out << ")";
+
     if (M_BODY)
     {
         _out << *M_BODY;
