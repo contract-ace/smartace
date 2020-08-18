@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
            << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
            << "timestamp,sol_bool_t paid,sol_address_t origin)";
     expect << "{";
-    expect << "return Init_sol_uint40_t(20);";
+    expect << "{return Init_sol_uint40_t(20);}";
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(payable_method)
            << "timestamp,sol_bool_t paid,sol_address_t origin)";
     expect << "{";
     expect << "if(((paid).v)==(1))(((self)->model_balance).v)+=((value).v);";
-    expect << "return Init_sol_uint40_t(20);";
+    expect << "{return Init_sol_uint40_t(20);}";
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());

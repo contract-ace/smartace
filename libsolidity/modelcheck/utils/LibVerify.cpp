@@ -53,7 +53,8 @@ CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
     {
         auto msg = make_shared<CStringLiteral>(_msg);
         return make_shared<CFuncCall>(
-            "nd_range", CArgList{ lower, make_shared<CIntLiteral>(_u), msg }
+            "nd_range",
+            CArgList{ Literals::ZERO, lower, make_shared<CIntLiteral>(_u), msg }
         );
     }
 }
@@ -61,7 +62,7 @@ CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
 CExprPtr LibVerify::byte(string const& _msg)
 {
     return make_shared<CFuncCall>(
-        "nd_byte", CArgList{ make_shared<CStringLiteral>(_msg) }
+        "nd_byte", CArgList{ Literals::ZERO, make_shared<CStringLiteral>(_msg) }
     );
 }
 
@@ -76,6 +77,7 @@ void LibVerify::log(CBlockList & _block, string _msg)
 CExprPtr LibVerify::increase(CExprPtr _curr, bool _strict, string _msg)
 {
     CFuncCallBuilder call("nd_increase");
+    call.push(Literals::ZERO);
     call.push(_curr);
     call.push(_strict ? Literals::ONE : Literals::ZERO);
     call.push(make_shared<CStringLiteral>(_msg));

@@ -241,7 +241,9 @@ CExprPtr TypeAnalyzer::raw_simple_nd(Type const& _type, string const& _msg) cons
         call << "int" << simple_bit_count(_type) << "_t";
 
         auto msg_lit = make_shared<CStringLiteral>(_msg);
-        return make_shared<CFuncCall>(call.str(), CArgList{msg_lit});
+        return make_shared<CFuncCall>(
+            call.str(), CArgList{ Literals::ZERO, msg_lit }
+        );
     }
 }
 

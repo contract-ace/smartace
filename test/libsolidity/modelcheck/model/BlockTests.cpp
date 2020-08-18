@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(return_statement)
     ostringstream actual_int, expect_int;
     actual_int << *FunctionBlockConverter(*int_func, stack).convert();
     expect_int << "{";
-    expect_int << "return Init_sol_int256_t((10)+(5));";
+    expect_int << "{return Init_sol_int256_t((10)+(5));}";
     expect_int << "}";
     BOOST_CHECK_EQUAL(actual_int.str(), expect_int.str());
 }
@@ -346,8 +346,11 @@ BOOST_AUTO_TEST_CASE(named_function_retvars)
     vector<SourceUnit const*> full({ &unit });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
+    FunctionBlockConverter converter(func, stack);
+    converter.set_for(FunctionSpecialization(func));
+
     ostringstream actual_named, expected_named;
-    actual_named << *FunctionBlockConverter(func, stack).convert();
+    actual_named << *converter.convert();
     expected_named << "{";
     expected_named << "sol_int256_t func_user_a=Init_sol_int256_t(0);";
     expected_named << "((func_user_a).v)=(5);";
@@ -1158,7 +1161,7 @@ BOOST_AUTO_TEST_CASE(constants)
     ostringstream actual_int, expect_int;
     actual_int << *FunctionBlockConverter(*func, stack).convert();
     expect_int << "{";
-    expect_int << "return Init_sol_int256_t(5);";
+    expect_int << "{return Init_sol_int256_t(5);}";
     expect_int << "}";
     BOOST_CHECK_EQUAL(actual_int.str(), expect_int.str());
 }
