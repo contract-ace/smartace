@@ -42,6 +42,7 @@ enum class DocumentationType: uint8_t;
 namespace modelcheck
 {
 class AnalysisStack;
+class NondetSourceRegistry;
 class PrimitiveTypeGenerator;
 };
 
@@ -76,10 +77,14 @@ private:
 		modelcheck::PrimitiveTypeGenerator _gen, std::ostream& _os
 	);
 	void handleCModelHeaders(
-		std::shared_ptr<modelcheck::AnalysisStack> _stack, std::ostream & _os
+		std::shared_ptr<modelcheck::AnalysisStack> _stack,
+		std::shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,
+		std::ostream & _os
 	);
 	void handleCModelBody(
-		std::shared_ptr<modelcheck::AnalysisStack> _stack, std::ostream & _os
+		std::shared_ptr<modelcheck::AnalysisStack> _stack,
+		std::shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,
+		std::ostream & _os
 	);
 	void handleBinary(std::string const& _contract);
 	void handleOpcode(std::string const& _contract);

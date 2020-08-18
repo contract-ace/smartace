@@ -2,6 +2,7 @@
 
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
@@ -20,10 +21,13 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-AddressSpace::AddressSpace(shared_ptr<MapIndexSummary const> _address_data)
- : MIN_ADDR((_address_data->literals().find(0) != _address_data->literals().end()) & 1)
+AddressSpace::AddressSpace(
+    shared_ptr<MapIndexSummary const> _address_data,
+    shared_ptr<NondetSourceRegistry> _nd_reg
+): MIN_ADDR(compute_min_addr(*_address_data))
  , MAX_ADDR(_address_data->representative_count())
  , m_address_data(_address_data)
+ , m_nd_reg(_nd_reg)
  , m_next_addr(MIN_ADDR)
 {
 }
@@ -61,9 +65,8 @@ void AddressSpace::map_constants(CBlockList & _block) const
         }
         else
         {
-            _block.push_back(decl->assign(
-                LibVerify::range(MIN_ADDR, MAX_ADDR, NAME)
-            )->stmt());
+            auto range = m_nd_reg->range(MIN_ADDR, MAX_ADDR, NAME);
+            _block.push_back(decl->assign(move(range))->stmt());
 
             for (auto otr : used_so_far)
             {
@@ -75,6 +78,20 @@ void AddressSpace::map_constants(CBlockList & _block) const
 
             used_so_far.push_back(decl);
         }
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+uint64_t AddressSpace::compute_min_addr(MapIndexSummary const& _address_data)
+{
+    if (_address_data.literals().find(0) == _address_data.literals().end())
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
     }
 }
 

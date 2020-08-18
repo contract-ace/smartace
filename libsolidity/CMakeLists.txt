@@ -152,6 +152,8 @@ set(sources
 	modelcheck/model/Expression.h
 	modelcheck/model/Mapping.h
 	modelcheck/model/Mapping.cpp
+	modelcheck/model/NondetSourceRegistry.h
+	modelcheck/model/NondetSourceRegistry.cpp
 	modelcheck/model/Function.cpp
 	modelcheck/model/Function.h
 	modelcheck/scheduler/ActorModel.cpp

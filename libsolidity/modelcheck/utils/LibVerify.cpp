@@ -1,7 +1,8 @@
 /**
- * @date 2020
  * Data and helper functions for generating the harness. This is meant to reduce
  * code duplication.
+ * 
+ * @date 2020
  */
 
 #include <libsolidity/modelcheck/utils/LibVerify.h>
@@ -18,6 +19,12 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+IntegerType LibVerify::BYTE_TYPE(8, IntegerType::Modifier::Unsigned);
+
+IntegerType LibVerify::INCR_TYPE(256, IntegerType::Modifier::Unsigned);
 
 // -------------------------------------------------------------------------- //
 
@@ -41,7 +48,9 @@ void LibVerify::add_require(CBlockList & _block, CExprPtr _cond, string _msg)
     add_property("sol_require", _block, _cond, _msg);
 }
 
-CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
+CExprPtr LibVerify::range(
+    size_t _loc, uint8_t _l, uint8_t _u, string const& _msg
+)
 {
     // Determines if there is more than one solution.
     auto lower = make_shared<CIntLiteral>(_l);
@@ -52,7 +61,7 @@ CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
     else
     {
         CFuncCallBuilder builder("GET_ND_RANGE");
-        builder.push(Literals::ZERO);
+        builder.push(make_shared<CIntLiteral>(_loc));
         builder.push(move(lower));
         builder.push(make_shared<CIntLiteral>(_u));
         builder.push(make_shared<CStringLiteral>(_msg));
@@ -60,10 +69,10 @@ CExprPtr LibVerify::range(uint8_t _l, uint8_t _u, string const& _msg)
     }
 }
 
-CExprPtr LibVerify::byte(string const& _msg)
+CExprPtr LibVerify::byte(size_t _loc, string const& _msg)
 {
     CFuncCallBuilder builder("GET_ND_BYTE");
-    builder.push(Literals::ZERO);
+    builder.push(make_shared<CIntLiteral>(_loc));
     builder.push(make_shared<CStringLiteral>(_msg));
     return builder.merge_and_pop();
 }
@@ -75,14 +84,16 @@ void LibVerify::log(CBlockList & _block, string _msg)
     _block.push_back(fn->stmt());
 }
 
-CExprPtr LibVerify::increase(CExprPtr _curr, bool _strict, string _msg)
+CExprPtr LibVerify::increase(
+    size_t _loc, CExprPtr _curr, bool _strict, string _msg
+)
 {
-    CFuncCallBuilder call("GET_ND_INCREASE");
-    call.push(Literals::ZERO);
-    call.push(_curr);
-    call.push(_strict ? Literals::ONE : Literals::ZERO);
-    call.push(make_shared<CStringLiteral>(_msg));
-    return call.merge_and_pop();
+    CFuncCallBuilder builder("GET_ND_INCREASE");
+    builder.push(make_shared<CIntLiteral>(_loc));
+    builder.push(_curr);
+    builder.push(_strict ? Literals::ONE : Literals::ZERO);
+    builder.push(make_shared<CStringLiteral>(_msg));
+    return builder.merge_and_pop();
 }
 
 void LibVerify::add_property(

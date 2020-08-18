@@ -19,6 +19,7 @@ namespace modelcheck
 {
 
 class AnalysisStack;
+class NondetSourceRegistry;
 
 // -------------------------------------------------------------------------- //
 
@@ -30,7 +31,10 @@ class EtherMethodGenerator
 {
 public:
     // Ether usage information is extracted from _stack.
-    EtherMethodGenerator(std::shared_ptr<AnalysisStack const> _stack);
+    EtherMethodGenerator(
+        std::shared_ptr<AnalysisStack const> _stack,
+        std::shared_ptr<NondetSourceRegistry> _nd_reg
+    );
 
     // Prints all methods to _stream. If _forward_Declaration is set, the bodies
     // are elided.
@@ -45,6 +49,7 @@ private:
     std::shared_ptr<CVarDecl> const AMT_VAR;
 
     std::shared_ptr<AnalysisStack const> m_stack;
+    std::shared_ptr<NondetSourceRegistry> m_nd_reg;
 
     // Helper method to print pay.
     void generate_pay(std::ostream & _stream, bool _forward_declare);

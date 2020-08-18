@@ -3,10 +3,9 @@
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
-#include <libsolidity/modelcheck/utils/LibVerify.h>
 
 #include <memory>
 
@@ -22,8 +21,10 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 StateGenerator::StateGenerator(
-    shared_ptr<AnalysisStack const> _stack, bool _use_lockstep_time
-): M_USE_LOCKSTEP_TIME(_use_lockstep_time) , m_stack(_stack)
+    shared_ptr<AnalysisStack const> _stack,
+    shared_ptr<NondetSourceRegistry> _nd_reg,
+    bool _use_lockstep_time
+): M_USE_LOCKSTEP_TIME(_use_lockstep_time), m_stack(_stack), m_nd_reg(_nd_reg)
 {
 }
 
@@ -41,7 +42,7 @@ void StateGenerator::declare(CBlockList & _block) const
             val = Literals::ZERO;
             if (M_USE_LOCKSTEP_TIME)
             {
-                val = m_stack->types()->raw_simple_nd(*fld.type, fld.name);
+                val = m_nd_reg->raw_val(*fld.type, fld.name);
             }
         }
         else if (fld.field == CallStateUtilities::Field::Paid)
@@ -72,7 +73,7 @@ void StateGenerator::update_global(CBlockList & _block) const
             fld.field == CallStateUtilities::Field::Timestamp)
         {
             auto state = make_shared<CIdentifier>(fld.name, false);
-            auto step = state->access("v")->assign(LibVerify::increase(
+            auto step = state->access("v")->assign(m_nd_reg->increase(
                 state->access("v"), M_USE_LOCKSTEP_TIME, fld.name
             ))->stmt();
             step_block_list.push_back(step);
@@ -83,7 +84,7 @@ void StateGenerator::update_global(CBlockList & _block) const
     auto step_block = make_shared<CBlock>(move(step_block_list));
     if (M_USE_LOCKSTEP_TIME)
     {
-        auto choice = LibVerify::range(0, 2, "take_step");
+        auto choice = m_nd_reg->range(0, 2, "take_step");
         _block.push_back(make_shared<CIf>(choice, step_block));
     }
     else
@@ -118,7 +119,7 @@ void StateGenerator::update_local(CBlockList & _block) const
             {
                 minaddr += 1;
             }
-            val = LibVerify::range(minaddr, maxaddr, fld.name);
+            val = m_nd_reg->range(minaddr, maxaddr, fld.name);
         }
         else if (fld.field == CallStateUtilities::Field::ReqFail)
         {
@@ -126,7 +127,7 @@ void StateGenerator::update_local(CBlockList & _block) const
         }
         else
         {
-            val = m_stack->types()->raw_simple_nd(*fld.type, fld.name);
+            val = m_nd_reg->raw_val(*fld.type, fld.name);
         }
 
         auto decl = make_shared<CVarDecl>(fld.type_name, fld.name);
@@ -143,7 +144,7 @@ void StateGenerator::pay(CBlockList & _block) const
     auto const VAL_NAME = CallStateUtilities::get_name(VAL_FIELD);
     auto const VAL_TYPE = CallStateUtilities::get_type(VAL_FIELD);
 
-    auto nd = m_stack->types()->raw_simple_nd(*VAL_TYPE, VAL_NAME);
+    auto nd = m_nd_reg->raw_val(*VAL_TYPE, VAL_NAME);
     auto state = make_shared<CIdentifier>(VAL_NAME, false);
 
     _block.push_back(state->access("v")->assign(nd)->stmt());

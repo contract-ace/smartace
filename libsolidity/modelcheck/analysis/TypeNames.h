@@ -34,10 +34,6 @@ namespace modelcheck
 class TypeAnalyzer : public ASTConstVisitor
 {
 public:
-    // Creates a type analyzer with _addrs addresses. Zero addresses is taken to
-    // denote unbounded addresses.
-    TypeAnalyzer(uint64_t _addrs = 0);
-
     // Generates type encoding metadata for all relevant members of _unit. The
     // type annotations may be recovered using the translate method.
     void record(SourceUnit const& _unit);
@@ -50,8 +46,8 @@ public:
     // returned true for _node, whereas is_simple_type has filed.
     std::string get_name(ASTNode const& _node) const;
 
-    // Returns true is an identifier is a pointer. If this cannot be resolved,
-    // false is returned.
+    // Returns true is _id is a pointer. If this cannot be resolved, false is
+    // returned.
     bool is_pointer(Identifier const& _id) const;
 
     // Returns the simple type corresponding to _type.
@@ -60,23 +56,11 @@ public:
     // Produces the initial value of a simple type.
     static CExprPtr init_val_by_simple_type(Type const& _type);
 
-    // Produces a non-deterministic value for a simple type.
-    CExprPtr raw_simple_nd(Type const& _type, std::string const& _msg) const;
-    CExprPtr nd_val_by_simple_type(
-        Type const& _type, std::string const& _msg
-    ) const;
-
-    // Generates the initial value for an AST node.
+    // Generates the initial value for _typename.
 	CExprPtr get_init_val(TypeName const& _typename) const;
-	CExprPtr get_init_val(Declaration const& _decl) const;
 
-    // Generates a non-deterministic value for an AST node.
-	CExprPtr get_nd_val(
-        TypeName const& _typename, std::string const& _msg
-    ) const;
-	CExprPtr get_nd_val(
-        Declaration const& _decl, std::string const& _msg
-    ) const;
+    // Generates the initial value for _decl.
+	CExprPtr get_init_val(Declaration const& _decl) const;
 
     // Provides a view of the map database.
     MapDeflate map_db() const;
@@ -101,8 +85,6 @@ private:
     // value is simple (has no "name"), it is in m_global_context_simple_values.
     static std::map<std::string, std::string> const m_global_context_types;
     static std::set<std::string> const m_global_context_simple_values;
-
-    uint64_t m_address_count = 0;
 
     MapDeflate m_map_db;
 

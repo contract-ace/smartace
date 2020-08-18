@@ -6,6 +6,7 @@
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Ether.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
@@ -24,7 +25,8 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 EtherMethodGenerator::EtherMethodGenerator(
-    shared_ptr<AnalysisStack const> _stack
+    shared_ptr<AnalysisStack const> _stack,
+    shared_ptr<NondetSourceRegistry> _nd_reg
 ): VALUE_T(TypeAnalyzer::get_simple_ctype(
      *CallStateUtilities::get_type(CallStateUtilities::Field::Value)
  ))
@@ -34,7 +36,8 @@ EtherMethodGenerator::EtherMethodGenerator(
  , BAL_VAR(make_shared<CVarDecl>(VALUE_T, "bal", true))
  , DST_VAR(make_shared<CVarDecl>(SENDER_T, "dst"))
  , AMT_VAR(make_shared<CVarDecl>(VALUE_T, "amt"))
- ,m_stack(_stack)
+ , m_stack(_stack)
+ , m_nd_reg(_nd_reg)
 {
 }
 
@@ -94,7 +97,7 @@ void EtherMethodGenerator::generate_send(
     if (!_forward_declare)
     {
         auto fail_rv = make_shared<CReturn>(make_shared<CIntLiteral>(0));
-        auto nd_result = LibVerify::byte("Return value for send/transfer.");
+        auto nd_result = m_nd_reg->byte("Return value for send/transfer.");
         auto bal_cond = make_shared<CBinaryOp>(
             BAL_VAR->access("v"), "<", AMT_VAR->access("v")
         );

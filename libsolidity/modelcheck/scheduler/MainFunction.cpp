@@ -8,6 +8,7 @@
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/Mapping.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
@@ -27,11 +28,14 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 MainFunctionGenerator::MainFunctionGenerator(
-    bool _lockstep_time, shared_ptr<AnalysisStack const> _stack
+    bool _lockstep_time,
+    shared_ptr<AnalysisStack const> _stack,
+    shared_ptr<NondetSourceRegistry> _nd_reg
 ): m_stack(_stack)
- , m_addrspace(_stack->addresses())
- , m_stategen(_stack, _lockstep_time)
- , m_actors(_stack)
+ , m_nd_reg(_nd_reg)
+ , m_addrspace(_stack->addresses(), _nd_reg)
+ , m_stategen(_stack, _nd_reg, _lockstep_time)
+ , m_actors(_stack, _nd_reg)
 {
 }
 
@@ -72,7 +76,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     m_stategen.update_global(transactionals);
     transactionals.push_back(next_case);
     transactionals.push_back(next_case->assign(
-        LibVerify::range(0, call_cases->size(), "next_call")
+        m_nd_reg->range(0, call_cases->size(), "next_call")
     )->stmt());
     transactionals.push_back(call_cases);
 
@@ -139,7 +143,7 @@ CBlockList MainFunctionGenerator::build_case(
         else
         {
             argname = "arg_" + arg->name();
-            value = m_stack->types()->get_nd_val(*arg, arg->name());
+            value = m_nd_reg->val(*arg, arg->name());
         }
 
         auto input = make_shared<CVarDecl>(

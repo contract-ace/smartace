@@ -10,6 +10,7 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 
 #include <sstream>
 
@@ -58,7 +59,8 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     ostringstream output_a;
     vector<ContractDefinition const*> model_a({ ctrt_a });
     auto stack_a = make_shared<AnalysisStack>(model_a, full, 1, false, false);
-    EtherMethodGenerator gen_a(stack_a);
+    auto nd_reg_a = make_shared<NondetSourceRegistry>(stack_a);
+    EtherMethodGenerator gen_a(stack_a, nd_reg_a);
     gen_a.print(output_a, true);
     auto out_a = output_a.str();
     BOOST_CHECK(out_a.find("sol_send") != string::npos);
@@ -68,7 +70,8 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     ostringstream output_b;
     vector<ContractDefinition const*> model_b({ ctrt_b });
     auto stack_b = make_shared<AnalysisStack>(model_b, full, 1, false, false);
-    EtherMethodGenerator gen_b(stack_b);
+    auto nd_reg_b = make_shared<NondetSourceRegistry>(stack_b);
+    EtherMethodGenerator gen_b(stack_b, nd_reg_b);
     gen_b.print(output_b, true);
     auto out_b = output_b.str();
     BOOST_CHECK(out_b.find("sol_send") != string::npos);
@@ -78,7 +81,8 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     ostringstream output_c;
     vector<ContractDefinition const*> model_c({ ctrt_c });
     auto stack_c = make_shared<AnalysisStack>(model_c, full, 1, false, false);
-    EtherMethodGenerator gen_c(stack_c);
+    auto nd_reg_c = make_shared<NondetSourceRegistry>(stack_c);
+    EtherMethodGenerator gen_c(stack_c, nd_reg_c);
     gen_c.print(output_c, true);
     auto out_c = output_c.str();
     BOOST_CHECK(out_c.find("sol_send") == string::npos);
@@ -110,7 +114,8 @@ BOOST_AUTO_TEST_CASE(handles_contract_addresses)
 
     ostringstream actual;
     auto stack = make_shared<AnalysisStack>(model, full, 1, false, false);
-    EtherMethodGenerator gen(stack);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
+    EtherMethodGenerator gen(stack, nd_reg);
     gen.print(actual, false);
 
     ostringstream expect;

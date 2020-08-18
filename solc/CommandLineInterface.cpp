@@ -48,6 +48,7 @@
 #include <libsolidity/modelcheck/model/ADT.h>
 #include <libsolidity/modelcheck/model/Ether.h>
 #include <libsolidity/modelcheck/model/Function.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/scheduler/MainFunction.h>
 #include <libsolidity/modelcheck/utils/AbstractAddressDomain.h>
 #include <libsolidity/modelcheck/utils/Function.h>
@@ -1347,6 +1348,9 @@ void CommandLineInterface::handleCModel()
 	}
 	analysis_stack->environment()->register_primitives(primitive_set);
 
+	// Sets up the non-determinism registry.
+	auto nondet_reg = make_shared<modelcheck::NondetSourceRegistry>(analysis_stack);
+
 	// Outputs model.
 	if (m_args.count(g_argOutputDir))
 	{
@@ -1357,8 +1361,8 @@ void CommandLineInterface::handleCModel()
 
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data, harness_data;
 		handleCModelHarness(harness_data);
-		handleCModelHeaders(analysis_stack, cmodel_h_data);
-		handleCModelBody(analysis_stack, cmodel_cpp_data);
+		handleCModelHeaders(analysis_stack, nondet_reg, cmodel_h_data);
+		handleCModelBody(analysis_stack, nondet_reg, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1372,9 +1376,9 @@ void CommandLineInterface::handleCModel()
 		sout() << "====== primitive.h =====" << endl;
 		handleCModelPrimitives(primitive_set, sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
-		handleCModelHeaders(analysis_stack, sout());
+		handleCModelHeaders(analysis_stack, nondet_reg, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(analysis_stack, sout());
+		handleCModelBody(analysis_stack, nondet_reg, sout());
 		sout() << endl;
 	}
 }
@@ -1399,7 +1403,9 @@ void CommandLineInterface::handleCModelPrimitives(
 }
 
 void CommandLineInterface::handleCModelHeaders(
-	shared_ptr<modelcheck::AnalysisStack> _stack, ostream& _os
+	shared_ptr<modelcheck::AnalysisStack> _stack,
+	shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,
+	ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
@@ -1413,7 +1419,7 @@ void CommandLineInterface::handleCModelHeaders(
 	    << "#include \"primitive.h\"" << endl;
 	_os << "void run_model(void);";
 
-	EtherMethodGenerator(_stack).print(_os, true);
+	EtherMethodGenerator(_stack, _nd_reg).print(_os, true);
 
 	ADTConverter(_stack, sum_maps, address_ct, true).print(_os);
 
@@ -1423,7 +1429,9 @@ void CommandLineInterface::handleCModelHeaders(
 }
 
 void CommandLineInterface::handleCModelBody(
-	shared_ptr<modelcheck::AnalysisStack> _stack, ostream& _os
+	shared_ptr<modelcheck::AnalysisStack> _stack,
+	shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,
+	ostream& _os
 )
 {
 	using dev::solidity::modelcheck::ADTConverter;
@@ -1442,7 +1450,7 @@ void CommandLineInterface::handleCModelBody(
 		_os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
 	}
 
-	EtherMethodGenerator(_stack).print(_os, false);
+	EtherMethodGenerator(_stack, _nd_reg).print(_os, false);
 
 	ADTConverter(_stack, sum_maps, address_ct, false).print(_os);
 
@@ -1454,7 +1462,7 @@ void CommandLineInterface::handleCModelBody(
 		_stack, sum_maps, address_ct, FunctionConverter::View::FULL, false
 	).print(_os);
 
-	MainFunctionGenerator(lockstep_time, _stack).print(_os);
+	MainFunctionGenerator(lockstep_time, _stack, _nd_reg).print(_os);
 }
 
 bool CommandLineInterface::actOnInput()

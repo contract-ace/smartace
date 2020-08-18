@@ -20,6 +20,7 @@ namespace modelcheck
 
 class AnalysisStack;
 class MapIndexSummary;
+class NondetSourceRegistry;
 
 // -------------------------------------------------------------------------- //
 
@@ -30,7 +31,9 @@ class StateGenerator
 {
 public:
     StateGenerator(
-        std::shared_ptr<AnalysisStack const> _stack, bool _use_lockstep_time
+        std::shared_ptr<AnalysisStack const> _stack,
+        std::shared_ptr<NondetSourceRegistry> _nd_reg,
+        bool _use_lockstep_time
     );
 
     // Declares all state variables used to maintain EVM state.
@@ -46,11 +49,12 @@ public:
     void pay(CBlockList & _block) const;
 
 private:
-
     // When true, time and blocknumber advance in lockstep.
     bool const M_USE_LOCKSTEP_TIME;
 
     std::shared_ptr<AnalysisStack const> m_stack;
+
+    std::shared_ptr<NondetSourceRegistry> m_nd_reg;
 };
 
 // -------------------------------------------------------------------------- //

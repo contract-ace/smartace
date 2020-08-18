@@ -8,6 +8,7 @@
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/scheduler/AddressSpace.h>
 #include <libsolidity/modelcheck/scheduler/StateGenerator.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
@@ -48,8 +49,10 @@ Actor::Actor(
 
 // -------------------------------------------------------------------------- //
 
-ActorModel::ActorModel(shared_ptr<AnalysisStack const> _stack)
- : m_stack(_stack)
+ActorModel::ActorModel(
+    shared_ptr<AnalysisStack const> _stack,
+    shared_ptr<NondetSourceRegistry> _nd_reg
+): m_stack(_stack), m_nd_reg(_nd_reg)
 {
     // Generates an actor for each client.
     for (auto const contract : m_stack->model()->bundle())
@@ -138,7 +141,7 @@ void ActorModel::initialize(
                 for (auto const param : ctor->parameters())
                 {
                     string const MSG = ctx->name() + ":" + param->name();
-                    init.push(m_stack->types()->get_nd_val(*param, MSG));
+                    init.push(m_nd_reg->val(*param, MSG));
                 }
             }
         }

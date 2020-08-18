@@ -20,6 +20,7 @@ namespace modelcheck
 {
 
 class MapIndexSummary;
+class NondetSourceRegistry;
 
 // -------------------------------------------------------------------------- //
 
@@ -30,7 +31,10 @@ class MapIndexSummary;
 class AddressSpace
 {
 public:
-    AddressSpace(std::shared_ptr<MapIndexSummary const> _address_data);
+    AddressSpace(
+        std::shared_ptr<MapIndexSummary const> _address_data,
+        std::shared_ptr<NondetSourceRegistry> _nd_reg
+    );
 
     // Returns a unique address. If all possible addresses have been expended,
     // an exception is raised.
@@ -49,8 +53,13 @@ private:
     // Stores all parameters over the address space.
     std::shared_ptr<MapIndexSummary const> m_address_data;
 
+    std::shared_ptr<NondetSourceRegistry> m_nd_reg;
+
     // The last allocated address.
     uint64_t m_next_addr;
+
+    // Computes the value for `MIN_ADDR` from the input `_address_data`.
+    static uint64_t compute_min_addr(MapIndexSummary const& _address_data);
 };
 
 // -------------------------------------------------------------------------- //

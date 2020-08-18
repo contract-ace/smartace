@@ -25,6 +25,7 @@ class AnalysisStack;
 class FlatContract;
 class FunctionSpecialization;
 class MapIndexSummary;
+class NondetSourceRegistry;
 class StateGenerator;
 
 // -------------------------------------------------------------------------- //
@@ -69,7 +70,10 @@ class ActorModel
 {
 public:
     //
-    ActorModel(std::shared_ptr<AnalysisStack const> _stack);
+    ActorModel(
+        std::shared_ptr<AnalysisStack const> _stack,
+        std::shared_ptr<NondetSourceRegistry> _nd_reg
+    );
 
     // Appends a declaration for each actor onto _block.
     void declare(CBlockList & _block) const;
@@ -95,6 +99,8 @@ public:
 
 private:
 	std::shared_ptr<AnalysisStack const> m_stack;
+
+    std::shared_ptr<NondetSourceRegistry> m_nd_reg;
 
     // The list of actors, which is populated after setup.
     std::list<Actor> m_actors;

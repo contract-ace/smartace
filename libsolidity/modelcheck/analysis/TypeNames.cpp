@@ -5,7 +5,6 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/General.h>
-#include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <sstream>
@@ -35,10 +34,6 @@ map<string, string> const TypeAnalyzer::m_global_context_types({
 });
 
 set<string> const TypeAnalyzer::m_global_context_simple_values({"now"});
-
-// -------------------------------------------------------------------------- //
-
-TypeAnalyzer::TypeAnalyzer(uint64_t _addrs): m_address_count(_addrs) {}
 
 // -------------------------------------------------------------------------- //
 
@@ -218,45 +213,6 @@ CExprPtr TypeAnalyzer::init_val_by_simple_type(Type const& _type)
     return InitFunction::wrap(_type, Literals::ZERO);
 }
 
-CExprPtr TypeAnalyzer::raw_simple_nd(Type const& _type, string const& _msg) const
-{
-    if (!is_simple_type(_type))
-    {
-        throw ("nd_val_by_simple_type expects a simple type.");
-    }
-
-    auto const CATEGORY = unwrap(_type).category();
-    if (CATEGORY == Type::Category::Bool) {
-        return LibVerify::range(0, 2, _msg);
-    }
-    else if (CATEGORY == Type::Category::Address)
-    {
-        return LibVerify::range(0, m_address_count, _msg);
-    }
-    else
-    {
-        string macroname = "GET_ND_UINT";
-        if (simple_is_signed(_type))
-        {
-            macroname = "GET_ND_INT";
-        }
-
-        CFuncCallBuilder call(macroname);
-        call.push(Literals::ZERO);
-        call.push(make_shared<CIntLiteral>(simple_bit_count(_type)));
-        call.push(make_shared<CStringLiteral>(_msg));
-        return call.merge_and_pop();
-    }
-}
-
-CExprPtr TypeAnalyzer::nd_val_by_simple_type(
-    Type const& _type, string const& _msg
-) const
-{
-    auto nd_val = raw_simple_nd(_type, _msg);
-    return InitFunction::wrap(_type, move(nd_val));
-}
-
 CExprPtr TypeAnalyzer::get_init_val(TypeName const& _typename) const
 {
     if (has_simple_type(_typename))
@@ -270,28 +226,6 @@ CExprPtr TypeAnalyzer::get_init_val(Declaration const& _decl) const
 {
     if (has_simple_type(_decl)) return init_val_by_simple_type(*_decl.type());
     return InitFunction(*this, _decl).defaulted();
-}
-
-CExprPtr TypeAnalyzer::get_nd_val(
-    TypeName const& _typename, string const& _msg
-) const
-{
-    if (has_simple_type(_typename))
-    {
-        return nd_val_by_simple_type(*_typename.annotation().type, _msg);
-    }
-    return make_shared<CFuncCall>("ND_" + get_name(_typename), CArgList{});
-}
-
-CExprPtr TypeAnalyzer::get_nd_val(
-    Declaration const& _decl, string const& _msg
-) const
-{
-    if (has_simple_type(_decl))
-    {
-        return nd_val_by_simple_type(*_decl.type(), _msg);
-    }
-    return make_shared<CFuncCall>("ND_" + get_name(_decl), CArgList{});
 }
 
 // -------------------------------------------------------------------------- //

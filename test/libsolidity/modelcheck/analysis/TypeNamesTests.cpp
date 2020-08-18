@@ -439,30 +439,6 @@ BOOST_AUTO_TEST_CASE(name_escape)
     BOOST_CHECK_EQUAL(converter.get_name(mapv), "Map_1");
 }
 
-BOOST_AUTO_TEST_CASE(bounded_addr)
-{
-    TypeAnalyzer converter(10);
-
-    AddressType type(StateMutability::Payable);
-    auto raw_nd = converter.raw_simple_nd(type, "Blah");
-
-    std::ostringstream expr;
-    expr << *raw_nd;
-    BOOST_CHECK_EQUAL(expr.str(), "GET_ND_RANGE(0,0,10,\"Blah\")");
-}
-
-BOOST_AUTO_TEST_CASE(bounded_bool)
-{
-    TypeAnalyzer converter;
-
-    BoolType type;
-    auto raw_nd = converter.raw_simple_nd(type, "Blah");
-
-    std::ostringstream expr;
-    expr << *raw_nd;
-    BOOST_CHECK_EQUAL(expr.str(), "GET_ND_RANGE(0,0,2,\"Blah\")");
-}
-
 BOOST_AUTO_TEST_SUITE_END()
 
 }

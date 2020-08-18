@@ -26,6 +26,7 @@ namespace modelcheck
 
 class AnalysisStack;
 class FunctionSpecialization;
+class NondetSourceRegistry;
 
 // -------------------------------------------------------------------------- //
 
@@ -38,7 +39,9 @@ class MainFunctionGenerator
 public:
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
-        bool _lockstep_time, std::shared_ptr<AnalysisStack const> _stack
+        bool _lockstep_time,
+        std::shared_ptr<AnalysisStack const> _stack,
+        std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
 
     // Prints the main function.
@@ -46,6 +49,8 @@ public:
 
 private:
     std::shared_ptr<AnalysisStack const> m_stack;
+
+    std::shared_ptr<NondetSourceRegistry> m_nd_reg;
 
     // Stores data required to handle addresses.
     AddressSpace m_addrspace;

@@ -157,7 +157,7 @@ AnalysisStack::AnalysisStack(
 ): FlatAddressAnalysis(_model, _full, _clients, _concrete_clients)
 {
 	m_environment = make_shared<CallState>(*calls(), _escalates_reqs);
-	m_types = make_shared<TypeAnalyzer>(addresses()->size());
+	m_types = make_shared<TypeAnalyzer>();
 
 	// TODO: deprecate.
 	for (auto const* ast : _full)
