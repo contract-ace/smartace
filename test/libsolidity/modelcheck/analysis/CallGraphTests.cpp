@@ -831,6 +831,41 @@ BOOST_AUTO_TEST_CASE(can_downcast_rvs)
     BOOST_CHECK(call_graph->has_edge(func_d_f, func_b_f));
 }
 
+BOOST_AUTO_TEST_CASE(libs_are_not_internal)
+{
+    char const* text = R"(
+        library X {
+            function incr(uint256 _x) internal pure { _x += 1; }
+        }
+        contract Y {
+            using X for uint256;
+            function g(uint256 _x) internal pure { _x.incr(); }
+            function f(uint256 _x) public pure { g(_x); }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const* ctrt_x = retrieveContractByName(unit, "X");
+    auto const* ctrt_y = retrieveContractByName(unit, "Y");
+
+    vector<ContractDefinition const*> model({ ctrt_y });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
+
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+    CallGraph graph(r, flat_model);
+    BOOST_CHECK_EQUAL(graph.executed_code().size(), 3);
+
+    auto func_x_incr = ctrt_x->definedFunctions()[0];
+    BOOST_CHECK_EQUAL(func_x_incr->name(), "incr");
+
+    auto const& scope = (*flat_model->get(*ctrt_y));
+    BOOST_CHECK_EQUAL(graph.internals(scope).size(), 1);
+    BOOST_CHECK(graph.super_calls(scope, *func_x_incr).empty());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

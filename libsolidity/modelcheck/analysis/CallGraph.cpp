@@ -227,7 +227,10 @@ CallGraph::CodeSet CallGraph::internals(FlatContract const& _scope) const
             auto labels = m_graph->label_of(func, succ);
             if (labels.find(CallTypes::External) == labels.end())
             {
-                functions.push_back(succ);
+                if (labels.find(CallTypes::Library) == labels.end())
+                {
+                    functions.push_back(succ);
+                }
             }
         }
     }
@@ -265,7 +268,10 @@ CallGraph::CodeSet CallGraph::super_calls(
             auto labels = m_graph->label_of(func, succ);
             if (labels.find(CallTypes::External) == labels.end())
             {
-                functions.push_back(succ);
+                if (labels.find(CallTypes::Library) == labels.end())
+                {
+                    functions.push_back(succ);
+                }
             }
         }
     }
