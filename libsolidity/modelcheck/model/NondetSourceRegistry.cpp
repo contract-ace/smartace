@@ -87,8 +87,7 @@ CExprPtr NondetSourceRegistry::raw_val(Type const& _type, string const& _msg)
 
 CExprPtr NondetSourceRegistry::simple_val(Type const& _type, string const& _msg)
 {
-    auto nd_val = raw_val(_type, _msg);
-    return InitFunction::wrap(_type, move(nd_val));
+    return InitFunction::wrap(_type, raw_val(_type, _msg));
 }
 
 CExprPtr NondetSourceRegistry::val(TypeName const& _type, string const& _msg)
@@ -99,8 +98,7 @@ CExprPtr NondetSourceRegistry::val(TypeName const& _type, string const& _msg)
     }
     else
     {
-        string name = m_stack->types()->get_name(_type);
-        return make_shared<CFuncCall>("ND_" + name, CArgList{});
+        return InitFunction(*m_stack->types(), _type).nd();
     }
 }
 
@@ -112,8 +110,7 @@ CExprPtr NondetSourceRegistry::val(Declaration const& _decl, string const& _msg)
     }
     else
     {
-        string name = m_stack->types()->get_name(_decl);
-        return make_shared<CFuncCall>("ND_" + name, CArgList{});
+        return InitFunction(*m_stack->types(), _decl).nd();
     }
 }
 

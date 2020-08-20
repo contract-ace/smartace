@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/model/Block.h>
 #include <libsolidity/modelcheck/model/Mapping.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
@@ -38,6 +39,7 @@ const shared_ptr<CIdentifier> FunctionConverter::TMP =
 
 FunctionConverter::FunctionConverter(
     shared_ptr<AnalysisStack> _stack,
+    shared_ptr<NondetSourceRegistry> _nd_reg,
     bool _add_sums,
     size_t _map_k,
     View _view,
@@ -47,6 +49,7 @@ FunctionConverter::FunctionConverter(
  , M_VIEW(_view)
  , M_FWD_DCL(_fwd_dcl)
  , m_stack(_stack)
+ , m_nd_reg(_nd_reg)
 {
 }
 
@@ -86,6 +89,7 @@ void FunctionConverter::print(ostream& _stream)
 
         // Prints initializer.
         handle_contract_initializer(*contract->raw(), *contract->raw());
+        generate_nondet_initializer(*contract);
 
         // Performs special handling of the fallback method.
         if (auto fallback = contract->fallback())
@@ -188,13 +192,14 @@ CParams FunctionConverter::generate_params(
 
 // -------------------------------------------------------------------------- //
 
-void FunctionConverter::generate_mapping(Mapping const& _mapping)
+void FunctionConverter::generate_mapping(Mapping const& _map)
 {
     if (M_VIEW == View::EXT) return;
-    if (!m_visited.insert(make_pair(&_mapping, nullptr)).second) return;
+    if (!m_visited.insert(make_pair(&_map, nullptr)).second) return;
 
-    MapGenerator gen(_mapping, M_ADD_SUMS, M_MAP_K, *m_stack->types());
+    MapGenerator gen(_map, M_ADD_SUMS, M_MAP_K, *m_stack->types());
     (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
+                 << gen.declare_nondet_initializer(M_FWD_DCL, m_nd_reg)
                  << gen.declare_read(M_FWD_DCL)
                  << gen.declare_write(M_FWD_DCL)
                  << gen.declare_set(M_FWD_DCL);
@@ -212,7 +217,7 @@ void FunctionConverter::generate_structure(Structure const& _struct)
         generate_mapping(*mapping);
     }
 
-    InitFunction initdata(*m_stack->types(), *_struct.raw());
+    InitFunction const INIT_DATA(*m_stack->types(), *_struct.raw());
 
     SolDeclList basic_decls;
     for (auto const& field : _struct.fields())
@@ -222,13 +227,14 @@ void FunctionConverter::generate_structure(Structure const& _struct)
 
     auto init_params = generate_params({}, basic_decls, nullptr, nullptr);
 
-    shared_ptr<CBlock> zero_body, init_body;
+    shared_ptr<CBlock> zero_body, init_body, nondet_body;
     if (!M_FWD_DCL)
     {
+        CBlockList zero_stmts, init_stmts, nondet_stmts;
         string const STRUCT_T = m_stack->types()->get_type(*_struct.raw());
 
-        CBlockList stmts;
-        stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp"));
+        // Default case.
+        zero_stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp"));
         for (auto field : _struct.fields())
         {
             string const NAME = VariableScopeResolver::rewrite(
@@ -237,13 +243,14 @@ void FunctionConverter::generate_structure(Structure const& _struct)
 
             auto member = TMP->access(NAME);
             auto init = m_stack->types()->get_init_val(*field);
-            stmts.push_back(member->assign(move(init))->stmt());
+            zero_stmts.push_back(member->assign(move(init))->stmt());
         }
-        stmts.push_back(make_shared<CReturn>(TMP));
-        zero_body = make_shared<CBlock>(move(stmts));
+        zero_stmts.push_back(make_shared<CReturn>(TMP));
+        zero_body = make_shared<CBlock>(move(zero_stmts));
 
-        auto zinit = initdata.defaulted();
-        stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp", false, zinit));
+        // Init case.
+        auto zinit = INIT_DATA.defaulted();
+        init_stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp", false, zinit));
         for (auto field : basic_decls)
         {
             string const NAME = VariableScopeResolver::rewrite(
@@ -252,16 +259,33 @@ void FunctionConverter::generate_structure(Structure const& _struct)
 
             auto member = TMP->access(NAME);
             auto param = make_shared<CIdentifier>(NAME, false);
-            stmts.push_back(member->assign(move(param))->stmt());
+            init_stmts.push_back(member->assign(move(param))->stmt());
         }
-        stmts.push_back(make_shared<CReturn>(TMP));
-        init_body = make_shared<CBlock>(move(stmts));
+        init_stmts.push_back(make_shared<CReturn>(TMP));
+        init_body = make_shared<CBlock>(move(init_stmts));
+
+        // Nondet case.
+        nondet_stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp"));
+        for (auto field : _struct.fields())
+        {
+            string const NAME = VariableScopeResolver::rewrite(
+                field->name(), false, VarContext::STRUCT
+            );
+            string const MSG = INIT_DATA.name() + ":" + field->name();
+
+            auto member = TMP->access(NAME);
+            auto init = m_nd_reg->val(*field->typeName(), MSG);
+            nondet_stmts.push_back(member->assign(move(init))->stmt());
+        }
+        nondet_stmts.push_back(make_shared<CReturn>(TMP));
+        nondet_body = make_shared<CBlock>(move(nondet_stmts));
     }
 
-    CFuncDef zero(initdata.default_id(), CParams{}, move(zero_body));
-    CFuncDef init(initdata.call_id(), move(init_params), move(init_body));
+    CFuncDef zero(INIT_DATA.default_id(), CParams{}, move(zero_body));
+    CFuncDef init(INIT_DATA.call_id(), move(init_params), move(init_body));
+    CFuncDef nondet(INIT_DATA.nd_id(), CParams{}, move(nondet_body));
 
-    (*m_ostream) << zero << init;
+    (*m_ostream) << zero << init << nondet;
 }
 
 // -------------------------------------------------------------------------- //
@@ -306,6 +330,57 @@ void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
     {
         handle_function(_spec, m_stack->types()->get_type(FUNC), false);
     }
+}
+
+// -------------------------------------------------------------------------- //
+
+void FunctionConverter::generate_nondet_initializer(
+    FlatContract const& _contract
+)
+{
+    InitFunction const INIT_DATA(_contract.name());
+
+    if (M_VIEW == View::INT) return;
+    if (!m_visited.insert(make_pair(&_contract, nullptr)).second) return;
+
+    string const SELF_TYPE = m_stack->types()->get_type(*_contract.raw());
+    CParams params{make_shared<CVarDecl>(SELF_TYPE, "self", true)};
+    auto self_ptr = params[0]->id();
+
+    shared_ptr<CBlock> body;
+    if (!M_FWD_DCL)
+    {
+        CBlockList stmts;
+        {
+            auto const NAME = ContractUtilities::balance_member();
+            auto const* TYPE = ContractUtilities::balance_type();
+
+            auto const MSG = INIT_DATA.name() + ":" + NAME;
+            auto val = m_nd_reg->simple_val(*TYPE, MSG);
+            stmts.push_back(self_ptr->access(NAME)->assign(move(val))->stmt());
+        }
+        for (auto const* decl : _contract.state_variables())
+        {
+            auto const DECLKIND = decl->annotation().type->category();
+            if (DECLKIND == Type::Category::Contract) continue;
+            if (decl->isConstant()) continue;
+
+            string const NAME = VariableScopeResolver::rewrite(
+                decl->name(), false, VarContext::STRUCT
+            );
+            string const MSG = INIT_DATA.name() + ":" + decl->name();
+
+            auto member = self_ptr->access(NAME);
+            auto val = m_nd_reg->val(*decl->typeName(), MSG);
+            stmts.push_back(member->assign(move(val))->stmt());
+        }
+
+        body = make_shared<CBlock>(move(stmts));
+    }
+
+    auto id = make_shared<CVarDecl>("void", INIT_DATA.nd_name());
+    CFuncDef init(id, move(params), move(body));
+    (*m_ostream) << init;
 }
 
 // -------------------------------------------------------------------------- //

@@ -25,6 +25,7 @@ namespace modelcheck
 class AnalysisStack;
 class FlatContract;
 class FunctionSpecialization;
+class NondetSourceRegistry;
 class Structure;
 
 // -------------------------------------------------------------------------- //
@@ -45,6 +46,7 @@ public:
     // Constructs a printer for all functions in the model.
     FunctionConverter(
 		std::shared_ptr<AnalysisStack> _stack,
+		std::shared_ptr<NondetSourceRegistry> _nd_reg,
 		bool _add_sums,
 		size_t _map_k,
 		View _view,
@@ -68,6 +70,8 @@ private:
 
 	std::shared_ptr<AnalysisStack> m_stack;
 
+	std::shared_ptr<NondetSourceRegistry> m_nd_reg;
+
 	std::set<std::pair<void const*, void const*>> m_visited;
 
 	// Formats all Solidity arguments (_decls) as a c-function argument list.
@@ -82,8 +86,8 @@ private:
 		bool _instrumeneted = false
 	);
 
-	// Writes all utility methods associated with _mapping.
-	void generate_mapping(Mapping const& _mapping);
+	// Writes all utility methods associated with _map.
+	void generate_mapping(Mapping const& _map);
 
 	// Writes all utility methods associated with _struct.
 	void generate_structure(Structure const& _struct);
@@ -104,6 +108,9 @@ private:
 		std::string _rv_type,
 		bool _rv_is_ptr
 	);
+
+	//
+	void generate_nondet_initializer(FlatContract const& _contract);
 
 	// Recursively expands the hierarchy of initializations for _for, starting
 	// from base contract _initialized.

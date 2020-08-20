@@ -22,6 +22,7 @@ namespace modelcheck
 {
 
 class TypeAnalyzer;
+class NondetSourceRegistry;
 
 // -------------------------------------------------------------------------- //
 
@@ -45,6 +46,10 @@ public:
     // Declares all structures and functions used by a map.
     CStructDef declare(bool _forward_declare) const;
     CFuncDef declare_zero_initializer(bool _forward_declare) const;
+    CFuncDef declare_nondet_initializer(
+        bool _forward_declare,
+        std::shared_ptr<NondetSourceRegistry> _nd_reg
+    ) const;
     CFuncDef declare_write(bool _forward_declare) const;
     CFuncDef declare_read(bool _forward_declare) const;
     CFuncDef declare_set(bool _forward_declare) const;

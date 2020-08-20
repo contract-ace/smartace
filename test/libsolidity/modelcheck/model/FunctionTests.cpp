@@ -10,6 +10,7 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 
 #include <sstream>
 
@@ -47,16 +48,21 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream actual, expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::FULL, false
+        stack, nd_reg, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
            << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
            << "paid,sol_address_t origin)";
     expect << "{";
     expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
+    expect << "}";
+    expect << "void ND_A(struct A*self)";
+    expect << "{";
+    expect << "((self)->model_balance)=(Init_sol_uint256_t(GET_ND_UINT(0,256,\"A:model_balance\")));";
     expect << "}";
     expect << "sol_uint40_t A_Method_f(struct A*self,sol_address_t sender"
            << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
@@ -85,16 +91,21 @@ BOOST_AUTO_TEST_CASE(payable_method)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream actual, expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::FULL, false
+        stack, nd_reg, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
            << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
            << "paid,sol_address_t origin)";
     expect << "{";
     expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
+    expect << "}";
+    expect << "void ND_A(struct A*self)";
+    expect << "{";
+    expect << "((self)->model_balance)=(Init_sol_uint256_t(GET_ND_UINT(0,256,\"A:model_balance\")));";
     expect << "}";
     expect << "sol_uint40_t A_Method_f(struct A*self,sol_address_t sender"
            << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
@@ -129,12 +140,13 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream actual, expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::FULL, false
+        stack, nd_reg, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
-    // -- Init_0_A_Struct_B
+    // -- InitZero_A_Struct_B
     expect << "struct A_Struct_B ZeroInit_A_Struct_B(void)";
     expect << "{";
     expect << "struct A_Struct_B tmp;";
@@ -148,6 +160,13 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "((tmp).user_a)=(user_a);";
     expect << "return tmp;";
     expect << "}";
+    // -- ND_A_Struct_B
+    expect << "struct A_Struct_B ND_A_Struct_B(void)";
+    expect << "{";
+    expect << "struct A_Struct_B tmp;";
+    expect << "((tmp).user_a)=(Init_sol_uint256_t(GET_ND_UINT(0,256,\"A_Struct_B:a\")));";
+    expect << "return tmp;";
+    expect << "}";
     // -- Init_A
     expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
            << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t "
@@ -157,6 +176,14 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     expect << "((self)->user_a)=(Init_sol_uint256_t(0));";
     expect << "((self)->user_b)=(Init_sol_uint256_t(10));";
     expect << "((self)->user_c)=(ZeroInit_A_Struct_B());";
+    expect << "}";
+    // -- ND_A
+    expect << "void ND_A(struct A*self)";
+    expect << "{";
+    expect << "((self)->model_balance)=(Init_sol_uint256_t(GET_ND_UINT(1,256,\"A:model_balance\")));";
+    expect << "((self)->user_a)=(Init_sol_uint256_t(GET_ND_UINT(2,256,\"A:a\")));";
+    expect << "((self)->user_b)=(Init_sol_uint256_t(GET_ND_UINT(3,256,\"A:b\")));";
+    expect << "((self)->user_c)=(ND_A_Struct_B());";
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
@@ -182,10 +209,11 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream actual, expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::FULL, false
+        stack, nd_reg, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
     // -- Ctor_A
     expect << "void A_Constructor(struct A*self,sol_address_t sender"
@@ -205,6 +233,13 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     expect << "((self)->user_b)=(Init_sol_uint256_t(0));";
     expect << "A_Constructor(self,sender,value,blocknum,timestamp"
            << ",Init_sol_bool_t(0),origin,user___a);";
+    expect << "}";
+    // -- ND_A
+    expect << "void ND_A(struct A*self)";
+    expect << "{";
+    expect << "((self)->model_balance)=(Init_sol_uint256_t(GET_ND_UINT(0,256,\"A:model_balance\")));";
+    expect << "((self)->user_a)=(Init_sol_uint256_t(GET_ND_UINT(1,256,\"A:a\")));";
+    expect << "((self)->user_b)=(Init_sol_uint256_t(GET_ND_UINT(2,256,\"A:b\")));";
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
@@ -234,12 +269,13 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream actual, expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::FULL, false
+        stack, nd_reg, false, 1, FunctionConverter::View::FULL, false
     ).print(actual);
-    // -- Init_0_A_Struct_B
+    // -- InitZero_A_Struct_B
     expect << "struct A_Struct_B ZeroInit_A_Struct_B(void)";
     expect << "{";
     expect << "struct A_Struct_B tmp;";
@@ -253,7 +289,14 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "((tmp).user_i1)=(user_i1);";
     expect << "return tmp;";
     expect << "}";
-    // -- Init_0_A_Struct_C
+    // -- ND_A_Struct_B
+    expect << "struct A_Struct_B ND_A_Struct_B(void)";
+    expect << "{";
+    expect << "struct A_Struct_B tmp;";
+    expect << "((tmp).user_i1)=(Init_sol_int256_t(GET_ND_INT(0,256,\"A_Struct_B:i1\")));";
+    expect << "return tmp;";
+    expect << "}";
+    // -- InitZero_A_Struct_C
     expect << "struct A_Struct_C ZeroInit_A_Struct_C(void)";
     expect << "{";
     expect << "struct A_Struct_C tmp;";
@@ -274,12 +317,28 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     expect << "((tmp).user_ui1)=(user_ui1);";
     expect << "return tmp;";
     expect << "}";
+    // -- ND_A_Struct_C
+    expect << "struct A_Struct_C ND_A_Struct_C(void)";
+    expect << "{";
+    expect << "struct A_Struct_C tmp;";
+    expect << "((tmp).user_i1)=(Init_sol_int256_t(GET_ND_INT(1,256,\"A_Struct_C:i1\")));";
+    expect << "((tmp).user_b1)=(ND_A_Struct_B());";
+    expect << "((tmp).user_i2)=(Init_sol_int256_t(GET_ND_INT(2,256,\"A_Struct_C:i2\")));";
+    expect << "((tmp).user_ui1)=(Init_sol_uint256_t(GET_ND_UINT(3,256,\"A_Struct_C:ui1\")));";
+    expect << "((tmp).user_b2)=(ND_A_Struct_B());";
+    expect << "return tmp;";
+    expect << "}";
     // -- Init_A
     expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t "
            << "value,sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t"
            << " paid,sol_address_t origin)";
     expect << "{";
     expect << "((self)->model_balance)=(Init_sol_uint256_t(0));";
+    expect << "}";
+    // -- ND_A
+    expect << "void ND_A(struct A*self)";
+    expect << "{";
+    expect << "((self)->model_balance)=(Init_sol_uint256_t(GET_ND_UINT(4,256,\"A:model_balance\")));";
     expect << "}";
 
     BOOST_CHECK_EQUAL(actual.str(), expect.str());
@@ -305,25 +364,29 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::EXT, true
+        stack, nd_reg, false, 1, FunctionConverter::View::EXT, true
     ).print(ext_actual);
     ext_expect << "void Init_A(struct A*self,sol_address_t sender,sol_uint256_t"
                << " value,sol_uint256_t blocknum,sol_uint256_t timestamp,"
                << "sol_bool_t paid,sol_address_t origin);";
+    ext_expect << "void ND_A(struct A*self);";
     ext_expect << "void A_Method_f(struct A*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum,sol_uint256_t "
                << "timestamp,sol_bool_t paid,sol_address_t origin);";
 
     ostringstream int_actual, int_expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::INT, true
+        stack, nd_reg, false, 1, FunctionConverter::View::INT, true
     ).print(int_actual);
     int_expect << "struct A_Struct_B ZeroInit_A_Struct_B(void);";
     int_expect << "struct A_Struct_B Init_A_Struct_B(sol_int256_t user_i);";
+    int_expect << "struct A_Struct_B ND_A_Struct_B(void);";
     int_expect << "struct Map_1 ZeroInit_Map_1(void);";
+    int_expect << "struct Map_1 ND_Map_1(void);";
     int_expect << "sol_int256_t Read_Map_1(struct Map_1*arr,sol_address_t "
                << "key_0);";
     int_expect << "void Write_Map_1(struct Map_1*arr,sol_address_t key_0"
@@ -356,10 +419,11 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream ext_actual, ext_expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::EXT, true
+        stack, nd_reg, false, 1, FunctionConverter::View::EXT, true
     ).print(ext_actual);
     ext_expect << "void C_Constructor(struct C*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"
@@ -369,6 +433,7 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
                << ",sol_uint256_t value,sol_uint256_t blocknum"
                << ",sol_uint256_t timestamp,sol_bool_t paid"
                << ",sol_address_t origin);";
+    ext_expect << "void ND_C(struct C*self);";
     ext_expect << "void Init_A_For_B(struct B*self,sol_address_t sender"
                << ",sol_uint256_t value,sol_uint256_t blocknum"
                << ",sol_uint256_t timestamp,sol_bool_t paid"
@@ -377,6 +442,7 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
                << ",sol_uint256_t value,sol_uint256_t blocknum"
                << ",sol_uint256_t timestamp,sol_bool_t paid"
                << ",sol_address_t origin);";
+    ext_expect << "void ND_B(struct B*self);";
 
     BOOST_CHECK_EQUAL(ext_actual.str(), ext_expect.str());
 }
@@ -401,14 +467,17 @@ BOOST_AUTO_TEST_CASE(inherited_duplicates)
     vector<ContractDefinition const*> model({ ctrt_b, ctrt_c });
     vector<SourceUnit const*> full({ &ast });
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream actual, expect;
     FunctionConverter(
-        stack, false, 1, FunctionConverter::View::INT, true
+        stack, nd_reg, false, 1, FunctionConverter::View::INT, true
     ).print(actual);
     expect << "struct A_Struct_X ZeroInit_A_Struct_X(void);";
     expect << "struct A_Struct_X Init_A_Struct_X(sol_int256_t user_i);";
+    expect << "struct A_Struct_X ND_A_Struct_X(void);";
     expect << "struct Map_1 ZeroInit_Map_1(void);";
+    expect << "struct Map_1 ND_Map_1(void);";
     expect << "sol_int256_t Read_Map_1(struct Map_1*arr,sol_address_t key_0);";
     expect << "void Write_Map_1(struct Map_1*arr,sol_address_t key_0"
            << ",sol_int256_t dat);";

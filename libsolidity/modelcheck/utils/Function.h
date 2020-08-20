@@ -61,6 +61,9 @@ public:
     // An initialization call for a structure type-defined as _type.
     InitFunction(std::string _type);
 
+    // Returns the name of the underlying type.
+    std::string name() const;
+
     // Returns a call builder, configured for the standard initializer.
     CFuncCallBuilder call_builder() const;
 
@@ -79,6 +82,15 @@ public:
     // Returns the name of the zero initializer.
     std::string default_name() const;
 
+    // Returns the non-deterministic initializer for this type.
+    CExprPtr nd() const;
+
+    // Returns the identifier corresponding to nd().
+    std::shared_ptr<CVarDecl> nd_id() const;
+
+    // Returns the name corresponding to nd_id().
+    std::string nd_name() const;
+
     // For a simple type, _type, this returns a call to the initializer of _type.
     // against _expr. Otherwise, _expr is returned unmodified.
     static CExprPtr wrap(Type const& _type, CExprPtr _expr);
@@ -90,6 +102,7 @@ private:
     // The prefixes used to distinguish initialization calls, i.e., `Init_`.
     static std::string const PREFIX;
     static std::string const DEFAULT_PREFIX;
+    static std::string const ND_PREFIX;
 
     std::string const M_NAME;
     std::string const M_TYPE;

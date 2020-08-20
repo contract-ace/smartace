@@ -41,6 +41,7 @@ bool collid(FunctionDefinition const& _f1, FunctionDefinition const& _f2)
 string const InitFunction::INIT_VAR = "dest";
 string const InitFunction::PREFIX = "Init_";
 string const InitFunction::DEFAULT_PREFIX = "ZeroInit_";
+string const InitFunction::ND_PREFIX = "ND_";
 
 string InitFunction::specialize_name(
     TypeAnalyzer const& _converter,
@@ -80,6 +81,11 @@ InitFunction::InitFunction(string _type)
 {
 }
 
+string InitFunction::name() const
+{
+    return M_NAME;
+}
+
 CFuncCallBuilder InitFunction::call_builder() const
 {
     return CFuncCallBuilder(call_name());
@@ -108,6 +114,21 @@ shared_ptr<CVarDecl> InitFunction::default_id() const
 string InitFunction::default_name() const
 {
     return DEFAULT_PREFIX + M_NAME;
+}
+
+CExprPtr InitFunction::nd() const
+{
+    return make_shared<CFuncCall>(nd_name(), CArgList{});
+}
+
+shared_ptr<CVarDecl> InitFunction::nd_id() const
+{
+    return make_id(nd_name());
+}
+
+string InitFunction::nd_name() const
+{
+    return ND_PREFIX + M_NAME;
 }
 
 CExprPtr InitFunction::wrap(Type const& _type, CExprPtr _expr)

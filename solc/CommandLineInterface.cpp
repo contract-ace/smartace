@@ -1417,7 +1417,7 @@ void CommandLineInterface::handleCModelHeaders(
 	using dev::solidity::modelcheck::FunctionConverter;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
-	size_t address_ct = _stack->addresses()->size();
+	size_t addr_ct = _stack->addresses()->size();
 
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
@@ -1425,10 +1425,10 @@ void CommandLineInterface::handleCModelHeaders(
 
 	EtherMethodGenerator(_stack, _nd_reg).print(_os, true);
 
-	ADTConverter(_stack, sum_maps, address_ct, true).print(_os);
+	ADTConverter(_stack, sum_maps, addr_ct, true).print(_os);
 
 	FunctionConverter(
-		_stack, sum_maps, address_ct, FunctionConverter::View::EXT, true
+		_stack, _nd_reg, sum_maps, addr_ct, FunctionConverter::View::EXT, true
 	).print(_os);
 }
 
@@ -1444,7 +1444,7 @@ void CommandLineInterface::handleCModelBody(
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
-	size_t address_ct = _stack->addresses()->size();
+	size_t addr_ct = _stack->addresses()->size();
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 
 	_os << "#include \"cmodel.h\"" << endl;
@@ -1456,14 +1456,14 @@ void CommandLineInterface::handleCModelBody(
 
 	EtherMethodGenerator(_stack, _nd_reg).print(_os, false);
 
-	ADTConverter(_stack, sum_maps, address_ct, false).print(_os);
+	ADTConverter(_stack, sum_maps, addr_ct, false).print(_os);
 
 	FunctionConverter(
-		_stack, sum_maps, address_ct, FunctionConverter::View::INT, true
+		_stack, _nd_reg, sum_maps, addr_ct, FunctionConverter::View::INT, true
 	).print(_os);
 
 	FunctionConverter(
-		_stack, sum_maps, address_ct, FunctionConverter::View::FULL, false
+		_stack, _nd_reg, sum_maps, addr_ct, FunctionConverter::View::FULL, false
 	).print(_os);
 
 	MainFunctionGenerator(lockstep_time, _stack, _nd_reg).print(_os);

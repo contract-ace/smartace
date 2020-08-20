@@ -4,6 +4,7 @@
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
+#include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 
 #include <sstream>
@@ -93,6 +94,49 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
     }
 
     auto id = InitFunction(M_MAP_RECORD).default_id();
+    return CFuncDef(move(id), {}, move(body));
+}
+
+// -------------------------------------------------------------------------- //
+
+CFuncDef MapGenerator::declare_nondet_initializer(
+    bool _forward_declare, shared_ptr<NondetSourceRegistry> _nd_reg
+) const
+{
+    shared_ptr<CBlock> body;
+    if (!_forward_declare)
+    {
+        CBlockList block;
+        block.push_back(M_TMP);
+
+        if (M_KEEP_SUM)
+        {
+            auto const MSG = M_MAP_RECORD.name + ":model_sum";
+            auto val = _nd_reg->val(*M_MAP_RECORD.value_type, MSG);
+            block.push_back(M_TMP->access("sum")->assign(val)->stmt());
+        }
+        
+        KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
+        do
+        {
+            string suffix = indices.suffix();
+
+            if (indices.is_full())
+            {
+                auto const FLD = "data" + suffix;
+                auto const MSG = M_MAP_RECORD.name + ":" + FLD;
+
+                auto val = _nd_reg->val(*M_MAP_RECORD.value_type, MSG);
+                auto set = M_TMP->access(FLD)->assign(move(val))->stmt();
+                block.push_back(move(set));
+            }
+        } while (indices.next());
+        
+        block.push_back(make_shared<CReturn>(M_TMP->id()));
+        body = make_shared<CBlock>(move(block));
+    }
+
+    auto id = InitFunction(M_MAP_RECORD).nd_id();
     return CFuncDef(move(id), {}, move(body));
 }
 
