@@ -211,6 +211,7 @@ void MapIndexSummary::extract_literals(ContractDefinition const& _src)
     // Summarizes functions.
     for (auto const* func : _src.definedFunctions())
     {
+        if (!func->isImplemented()) continue;
         ScopedSwap<CallableDeclaration const*> scope(m_context, func);
         func->body().accept(*this);
     }
