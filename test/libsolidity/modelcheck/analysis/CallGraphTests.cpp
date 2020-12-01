@@ -866,6 +866,32 @@ BOOST_AUTO_TEST_CASE(libs_are_not_internal)
     BOOST_CHECK(graph.super_calls(scope, *func_x_incr).empty());
 }
 
+BOOST_AUTO_TEST_CASE(transfer_calls)
+{
+    char const* text = R"(
+        contract X {
+            function f(address payable _x) public {
+                _x.transfer(5);
+                require(_x.send(5));
+                _x.call.value(5)("");
+            }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const* ctrt_x = retrieveContractByName(unit, "X");
+
+    vector<ContractDefinition const*> model({ ctrt_x });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
+
+    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+    CallGraph graph(r, flat_model);
+    BOOST_CHECK_EQUAL(graph.executed_code().size(), 1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

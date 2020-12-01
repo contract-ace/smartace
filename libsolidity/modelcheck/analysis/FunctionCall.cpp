@@ -70,6 +70,11 @@ bool FunctionCallAnalyzer::is_in_library() const
 	return false;
 }
 
+bool FunctionCallAnalyzer::is_low_level() const
+{
+    return m_low_level;
+}
+
 bool FunctionCallAnalyzer::context_is_this() const
 {
 	if (auto id = dynamic_cast<Identifier const*>(m_context))
@@ -172,6 +177,11 @@ bool FunctionCallAnalyzer::visit(MemberAccess const& _node)
     {
         m_gas = move(m_last);
     }
+	else if (_node.memberName() == "call")
+	{
+		m_low_level = true;
+        m_context = (&ExpressionCleaner(_node.expression()).clean());
+	}
     else if (_node.memberName() == "value")
     {
         m_value = move(m_last);

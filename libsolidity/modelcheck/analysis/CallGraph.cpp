@@ -131,10 +131,13 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
 	FunctionCallKind const KIND = _node.annotation().kind;
 	if (KIND != FunctionCallKind::FunctionCall) return;
 
+    // If the call is low-level, it isn't analyzed at this level.
+	FunctionCallAnalyzer call(_node);
+    if (call.is_low_level()) return;
+
     // Otherwise checks if this is a contract method call.
     shared_ptr<FlatContract> scope;
     FunctionDefinition const* resolution = nullptr;
-	FunctionCallAnalyzer call(_node);
     m_labels.clear();
     if (call.is_in_library())
     {

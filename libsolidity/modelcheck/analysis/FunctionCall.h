@@ -56,6 +56,9 @@ public:
     // If true, this is a library call.
     bool is_in_library() const;
 
+    // If true, this is a low-level operation through `.call`.
+    bool is_low_level() const;
+
     // If true, the call is a remote call to "this".
     bool context_is_this() const;
 
@@ -85,6 +88,8 @@ private:
     ASTPointer<Expression const> m_gas = nullptr;
     Expression const* m_context = nullptr;
     Identifier const* m_root = nullptr;
+
+    bool m_low_level = false;
 };
 
 // -------------------------------------------------------------------------- //
