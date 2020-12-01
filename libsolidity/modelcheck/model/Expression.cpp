@@ -628,7 +628,11 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 
 	// TODO: error logging.
 	FunctionCallAnalyzer::CallGroup group = calldata.classify();
-	if (group == FunctionCallAnalyzer::CallGroup::Method)
+	if (calldata.is_low_level())
+	{
+		print_call(calldata);
+	}
+	else if (group == FunctionCallAnalyzer::CallGroup::Method)
 	{
 		print_method(calldata);
 	}
@@ -846,6 +850,41 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 	fn.push(srcbalref);
 	fn.push(m_subexpr, &ADR_TYPE);
 	fn.push(AMT, m_stack, M_DECLS, false, &AMT_TYPE);
+	m_subexpr = fn.merge_and_pop();
+}
+
+void ExpressionConverter::print_call(FunctionCallAnalyzer const& _call)
+{
+	const AddressType ADR_TYPE(StateMutability::Payable);
+	const IntegerType AMT_TYPE(256, IntegerType::Modifier::Unsigned);
+	const ArrayType DAT_TYPE(DataLocation::Memory, true);
+
+	// Computes source balance.
+	auto const BAL_MEMBER = ContractUtilities::balance_member();
+	auto src = make_shared<CIdentifier>("self", true);
+	auto srcbal = make_shared<CMemberAccess>(src, BAL_MEMBER);
+
+	// Generates source balance and amount arguments.
+	auto srcbalref = make_shared<CReference>(srcbal);
+	auto const& DAT = *_call.args().front();
+
+	// Stores the recipient into m_subexpr.
+	FunctionCallAnalyzer call(_call);
+	call.context()->accept(*this);
+
+	// Generates the call.
+	CFuncCallBuilder fn("sol_call");
+	fn.push(srcbalref);
+	fn.push(m_subexpr, &ADR_TYPE);
+	if (_call.value())
+	{
+		fn.push(*_call.value(), m_stack, M_DECLS, false, &AMT_TYPE);
+	}
+	else
+	{
+		fn.push(Literals::ZERO, &AMT_TYPE);
+	}
+	fn.push(DAT, m_stack, M_DECLS, false, &DAT_TYPE);
 	m_subexpr = fn.merge_and_pop();
 }
 

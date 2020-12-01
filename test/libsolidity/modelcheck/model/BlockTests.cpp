@@ -1192,6 +1192,38 @@ BOOST_AUTO_TEST_CASE(escalation)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(low_level_calls)
+{
+    char const* text = R"(
+		contract A {
+			function f(address payable dst) public {
+                dst.call.value(5)("");
+                dst.call("");
+            }
+		}
+	)";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, true);
+
+    ostringstream actual, expected;
+    actual << *FunctionBlockConverter(func, stack).convert();
+    expected << "{";
+    expected << "sol_call(&((self)->model_balance),Init_sol_address_t("
+             << "(func_user_dst).v),Init_sol_uint256_t(5),Init_sol_uint256_t("
+             << "6142509188972423790));";
+    expected << "sol_call(&((self)->model_balance),Init_sol_address_t("
+             << "(func_user_dst).v),Init_sol_uint256_t(0),Init_sol_uint256_t("
+             << "6142509188972423790));";
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //
