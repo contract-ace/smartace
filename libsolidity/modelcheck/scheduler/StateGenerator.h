@@ -52,6 +52,9 @@ private:
     // When true, time and blocknumber advance in lockstep.
     bool const M_USE_LOCKSTEP_TIME;
 
+    // Utility variable to track the address of the last sender.
+    static const std::string LAST_SENDER;
+
     std::shared_ptr<AnalysisStack const> m_stack;
 
     std::shared_ptr<NondetSourceRegistry> m_nd_reg;

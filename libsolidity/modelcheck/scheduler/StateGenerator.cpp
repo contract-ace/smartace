@@ -20,6 +20,10 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+const string StateGenerator::LAST_SENDER = "last_sender";
+
+// -------------------------------------------------------------------------- //
+
 StateGenerator::StateGenerator(
     shared_ptr<AnalysisStack const> _stack,
     shared_ptr<NondetSourceRegistry> _nd_reg,
@@ -56,6 +60,11 @@ void StateGenerator::declare(CBlockList & _block) const
             auto id = make_shared<CVarDecl>(fld.type_name, fld.name);
             _block.push_back(id);
             _block.push_back(id->access("v")->assign(val)->stmt());
+        }
+        else if (fld.field == CallStateUtilities::Field::Sender)
+        {
+            auto id = make_shared<CVarDecl>(fld.type_name, LAST_SENDER);
+            _block.push_back(id);
         }
     }
 }
@@ -104,6 +113,7 @@ void StateGenerator::update_local(CBlockList & _block) const
         if (fld.field == CallStateUtilities::Field::Block) continue;
         if (fld.field == CallStateUtilities::Field::Timestamp) continue;
 
+        // Generates txn field.
         CExprPtr val;
         if (fld.field == CallStateUtilities::Field::Value)
         {
@@ -130,9 +140,18 @@ void StateGenerator::update_local(CBlockList & _block) const
             val = m_nd_reg->raw_val(*fld.type, fld.name);
         }
 
+        // Generates source code.
         auto decl = make_shared<CVarDecl>(fld.type_name, fld.name);
         _block.push_back(decl);
         _block.push_back(decl->access("v")->assign(val)->stmt());
+
+        // Stores txn selection for use in properties.
+        if (fld.field == CallStateUtilities::Field::Sender)
+        {
+            auto last = make_shared<CIdentifier>(LAST_SENDER, false);
+            auto curr = decl->id()->access("v");
+            _block.push_back(last->access("v")->assign(curr)->stmt());
+        }
     }
 }
 
