@@ -9,7 +9,6 @@
 #define GHOST_VAR 
 
 // Switches interger implementations based on preprocessor flags.
-// TODO: refine this.
 #ifdef MC_USE_BOOST_MP
     #ifndef __cplusplus
     #error A C++ compiler is required for Boost.
@@ -86,8 +85,10 @@ typedef BOOST_INT(248) sol_raw_int248_t;
 typedef BOOST_UINT(248) sol_raw_uint248_t;
 typedef BOOST_INT(256) sol_raw_int256_t;
 typedef BOOST_UINT(256) sol_raw_uint256_t;
+#define SOL_UINT256_MAX sol_raw_uint256_t("0xFFFFFFFFFFFFFFFF")
 #elif defined MC_USE_STDINT
 #include <stdint.h>
+// TODO(scottwe): this should be 256 but we don't support it.
 typedef int8_t sol_raw_int8_t;
 typedef uint8_t sol_raw_uint8_t;
 typedef int16_t sol_raw_int16_t;
@@ -152,14 +153,9 @@ typedef int64_t sol_raw_int248_t;
 typedef uint64_t sol_raw_uint248_t;
 typedef int64_t sol_raw_int256_t;
 typedef uint64_t sol_raw_uint256_t;
-// TODO(scottwe): this should be 256 but we don't support it.
 #define SOL_UINT256_MAX UINT64_MAX
 #else
 #error An integer model is required.
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 // Overapproximation of keccak256.
@@ -308,7 +304,3 @@ sol_raw_int248_t nd_int248_t(sol_raw_int248_t _sea_hint, const char* _msg);
 sol_raw_uint248_t nd_uint248_t(sol_raw_int248_t _sea_hint, const char* _msg);
 sol_raw_int256_t nd_int256_t(sol_raw_int256_t _sea_hint, const char* _msg);
 sol_raw_uint256_t nd_uint256_t(sol_raw_int256_t _sea_hint, const char* _msg);
-
-#ifdef __cplusplus
-}
-#endif
