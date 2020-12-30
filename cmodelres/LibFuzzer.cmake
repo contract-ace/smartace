@@ -12,11 +12,16 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CORPUS_DIR_FULL}
 )
 
+# Parameters to configure libfuzzer.
+set(FUZZ_MAX_LEN "20000" CACHE STRING "Maximum length of a test input (forwarded).")
+set(FUZZ_RUNS "1000000" CACHE STRING "Number of individual test runs (forwarded).")
+set(FUZZ_TIMEOUT "15" CACHE STRING "Timeout in seconds (forwarded).")
+
 # User-facing command to generate fuzztest, and execute it with the default arguments.
 set(CMODEL_FUZZ_ARGS "")
-list(APPEND CMODEL_FUZZ_ARGS "-max_len=20000")
-list(APPEND CMODEL_FUZZ_ARGS "-runs=1000000")
-list(APPEND CMODEL_FUZZ_ARGS "-timeout=15")
+list(APPEND CMODEL_FUZZ_ARGS "-max_len=${FUZZ_MAX_LEN}")
+list(APPEND CMODEL_FUZZ_ARGS "-runs=${FUZZ_RUNS}")
+list(APPEND CMODEL_FUZZ_ARGS "-timeout=${FUZZ_TIMEOUT}")
 list(APPEND CMODEL_FUZZ_ARGS "-use_value_profile=1")
 list(APPEND CMODEL_FUZZ_ARGS "-print_final_stats=1")
 add_custom_target(
