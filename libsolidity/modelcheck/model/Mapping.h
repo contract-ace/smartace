@@ -46,13 +46,8 @@ public:
     // Declares all structures and functions used by a map.
     CStructDef declare(bool _forward_declare) const;
     CFuncDef declare_zero_initializer(bool _forward_declare) const;
-    CFuncDef declare_nondet_initializer(
-        bool _forward_declare,
-        std::shared_ptr<NondetSourceRegistry> _nd_reg
-    ) const;
     CFuncDef declare_write(bool _forward_declare) const;
     CFuncDef declare_read(bool _forward_declare) const;
-    CFuncDef declare_set(bool _forward_declare) const;
 
 private:
     // Utility to iterate all key combinations.
@@ -108,21 +103,6 @@ private:
 
     // Key fields.
     std::vector<std::shared_ptr<CVarDecl>> m_keys;
-
-    // Helper utilities to generate in-place loop "iteration". The {name}{i}
-    // member can be rationalized at the {name} structure of the {i}-th element
-    // in an array of structures. The resulting if-else structures correspond to
-    // iterating over such a structure. expand_init unrolls the initialization
-    // loop with each data field set to _init_data. expand_iteration unrolls the
-    // _i-th iteration of a search loop, where the search is for an _i such that
-    // _key == curr{i}. If an empty slot is found, that index is used instead.
-    // In either case, once a match has been found, _exec is inlined. _last is
-    // taken to be either null, or the {i-1}-th term.
-    std::shared_ptr<CBlock> expand_init(CExprPtr _init_data) const;
-
-    // Helper method to generate update functions. The _maintain_sum field is
-    // meant to disable sum instrumentation when "Set_" is in use.
-    std::shared_ptr<CBlock> expand_update(bool _maintain_sum) const;
 
     // Generate the (_depth)-th block in either a read or write method, for a
     // nested mapping. _suffix is used to identify the key. _is_writer

@@ -109,9 +109,6 @@ private:
 		bool _rv_is_ptr
 	);
 
-	//
-	void generate_nondet_initializer(FlatContract const& _contract);
-
 	// Recursively expands the hierarchy of initializations for _for, starting
 	// from base contract _initialized.
 	std::string handle_contract_initializer(

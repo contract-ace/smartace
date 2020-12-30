@@ -89,31 +89,14 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto init_val = M_CONVERTER.get_init_val(*M_MAP_RECORD.value_type);
-        body = expand_init(move(init_val));
-    }
-
-    auto id = InitFunction(M_MAP_RECORD).default_id();
-    return CFuncDef(move(id), {}, move(body));
-}
-
-// -------------------------------------------------------------------------- //
-
-CFuncDef MapGenerator::declare_nondet_initializer(
-    bool _forward_declare, shared_ptr<NondetSourceRegistry> _nd_reg
-) const
-{
-    shared_ptr<CBlock> body;
-    if (!_forward_declare)
-    {
         CBlockList block;
         block.push_back(M_TMP);
 
+        auto init_val = M_CONVERTER.get_init_val(*M_MAP_RECORD.value_type);
+
         if (M_KEEP_SUM)
         {
-            auto const MSG = M_MAP_RECORD.name + ":model_sum";
-            auto val = _nd_reg->val(*M_MAP_RECORD.value_type, MSG);
-            block.push_back(M_TMP->access("sum")->assign(val)->stmt());
+            block.push_back(M_TMP->access("sum")->assign(init_val)->stmt());
         }
         
         KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
@@ -123,12 +106,9 @@ CFuncDef MapGenerator::declare_nondet_initializer(
 
             if (indices.is_full())
             {
-                auto const FLD = "data" + suffix;
-                auto const MSG = M_MAP_RECORD.name + ":" + FLD;
-
-                auto val = _nd_reg->val(*M_MAP_RECORD.value_type, MSG);
-                auto set = M_TMP->access(FLD)->assign(move(val))->stmt();
-                block.push_back(move(set));
+                block.push_back(
+                    M_TMP->access("data" + suffix)->assign(init_val)->stmt()
+                );
             }
         } while (indices.next());
         
@@ -136,7 +116,7 @@ CFuncDef MapGenerator::declare_nondet_initializer(
         body = make_shared<CBlock>(move(block));
     }
 
-    auto id = InitFunction(M_MAP_RECORD).nd_id();
+    auto id = InitFunction(M_MAP_RECORD).default_id();
     return CFuncDef(move(id), {}, move(body));
 }
 
@@ -154,41 +134,18 @@ CFuncDef MapGenerator::declare_write(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        body = expand_update(M_KEEP_SUM);
-    }
+        CBlockList block{expand_access(0, "", true, M_KEEP_SUM)};
 
-    return CFuncDef(move(fid), move(params), move(body));
-}
-
-// -------------------------------------------------------------------------- //
-
-CFuncDef MapGenerator::declare_set(bool _forward_declare) const
-{
-    auto fid = make_shared<CVarDecl>("void", "Set_" + M_MAP_RECORD.name);
-
-    CParams params;
-    params.push_back(M_ARR);
-    params.insert(params.end(), m_keys.begin(), m_keys.end());
-    params.push_back(M_DAT);
-
-    shared_ptr<CBlock> body;
-    if (!_forward_declare)
-    {
         if (M_KEEP_SUM)
         {
-            body = expand_update(false);
+            block.push_back(make_shared<CBinaryOp>(
+                M_ARR->access("sum")->access("v"),
+                "+=",
+                M_DAT->id()->access("v")
+            )->stmt());
         }
-        else
-        {
-            CFuncCallBuilder write_call("Write_" + M_MAP_RECORD.name);
-            write_call.push(M_ARR->id());
-            for (auto key : m_keys) write_call.push(key->id());
-            write_call.push(M_DAT->id());
 
-            body = make_shared<CBlock>(CBlockList{
-                write_call.merge_and_pop_stmt()
-            });
-        }
+        body = make_shared<CBlock>(block);
     }
 
     return CFuncDef(move(fid), move(params), move(body));
@@ -217,53 +174,6 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
     }
 
     return CFuncDef(move(fid), move(params), move(body));
-}
-
-// -------------------------------------------------------------------------- //
-
-shared_ptr<CBlock> MapGenerator::expand_init(CExprPtr _init_data) const
-{
-    CBlockList block;
-    block.push_back(M_TMP);
-
-    if (M_KEEP_SUM)
-    {
-        block.push_back(M_TMP->access("sum")->assign(_init_data)->stmt());
-    }
-    
-    KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
-    do
-    {
-        string suffix = indices.suffix();
-
-        if (indices.is_full())
-        {
-            block.push_back(
-                M_TMP->access("data" + suffix)->assign(_init_data)->stmt()
-            );
-        }
-    } while (indices.next());
-    
-    block.push_back(make_shared<CReturn>(M_TMP->id()));
-    return make_shared<CBlock>(move(block));
-}
-
-// -------------------------------------------------------------------------- //
-
-shared_ptr<CBlock> MapGenerator::expand_update(bool _maintain_sum) const
-{
-    CBlockList block{expand_access(0, "", true, _maintain_sum)};
-
-    if (_maintain_sum)
-    {
-        block.push_back(make_shared<CBinaryOp>(
-            M_ARR->access("sum")->access("v"),
-            "+=",
-            M_DAT->id()->access("v")
-        )->stmt());
-    }
-
-    return make_shared<CBlock>(block);
 }
 
 // -------------------------------------------------------------------------- //

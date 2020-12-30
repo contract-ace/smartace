@@ -89,7 +89,6 @@ void FunctionConverter::print(ostream& _stream)
 
         // Prints initializer.
         handle_contract_initializer(*contract->raw(), *contract->raw());
-        generate_nondet_initializer(*contract);
 
         // Performs special handling of the fallback method.
         if (auto fallback = contract->fallback())
@@ -199,10 +198,8 @@ void FunctionConverter::generate_mapping(Mapping const& _map)
 
     MapGenerator gen(_map, M_ADD_SUMS, M_MAP_K, *m_stack->types());
     (*m_ostream) << gen.declare_zero_initializer(M_FWD_DCL)
-                 << gen.declare_nondet_initializer(M_FWD_DCL, m_nd_reg)
                  << gen.declare_read(M_FWD_DCL)
-                 << gen.declare_write(M_FWD_DCL)
-                 << gen.declare_set(M_FWD_DCL);
+                 << gen.declare_write(M_FWD_DCL);
 }
 
 // -------------------------------------------------------------------------- //
@@ -330,57 +327,6 @@ void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
     {
         handle_function(_spec, m_stack->types()->get_type(FUNC), false);
     }
-}
-
-// -------------------------------------------------------------------------- //
-
-void FunctionConverter::generate_nondet_initializer(
-    FlatContract const& _contract
-)
-{
-    InitFunction const INIT_DATA(_contract.name());
-
-    if (M_VIEW == View::INT) return;
-    if (!m_visited.insert(make_pair(&_contract, nullptr)).second) return;
-
-    string const SELF_TYPE = m_stack->types()->get_type(*_contract.raw());
-    CParams params{make_shared<CVarDecl>(SELF_TYPE, "self", true)};
-    auto self_ptr = params[0]->id();
-
-    shared_ptr<CBlock> body;
-    if (!M_FWD_DCL)
-    {
-        CBlockList stmts;
-        {
-            auto const NAME = ContractUtilities::balance_member();
-            auto const* TYPE = ContractUtilities::balance_type();
-
-            auto const MSG = INIT_DATA.name() + ":" + NAME;
-            auto val = m_nd_reg->simple_val(*TYPE, MSG);
-            stmts.push_back(self_ptr->access(NAME)->assign(move(val))->stmt());
-        }
-        for (auto const* decl : _contract.state_variables())
-        {
-            auto const DECLKIND = decl->annotation().type->category();
-            if (DECLKIND == Type::Category::Contract) continue;
-            if (decl->isConstant()) continue;
-
-            string const NAME = VariableScopeResolver::rewrite(
-                decl->name(), false, VarContext::STRUCT
-            );
-            string const MSG = INIT_DATA.name() + ":" + decl->name();
-
-            auto member = self_ptr->access(NAME);
-            auto val = m_nd_reg->val(*decl->typeName(), MSG);
-            stmts.push_back(member->assign(move(val))->stmt());
-        }
-
-        body = make_shared<CBlock>(move(stmts));
-    }
-
-    auto id = make_shared<CVarDecl>("void", INIT_DATA.nd_name());
-    CFuncDef init(id, move(params), move(body));
-    (*m_ostream) << init;
 }
 
 // -------------------------------------------------------------------------- //
