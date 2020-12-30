@@ -38,12 +38,20 @@ else()
     message(WARNING "Failed to find klee include directory. See -DKLEE_LIB.")
 endif()
 
-# Locates llvm-link, as required by KLEE.
-find_program(
-    LLVM_LINK_EXE
-    NAMES "llvm-link-10" "llvm-link-mp-10" "llvm-link"
-    DOC "The linker for llvm(-10)."
-)
+# Locates llvm-link, to merge bc's for KLEE.
+if ("${CMAKE_C_COMPILER_VERSION}" MATCHES "^10\.")
+    find_program(
+        LLVM_LINK_EXE
+        NAMES "llvm-link-10" "llvm-link-mp-10" "llvm-link"
+        DOC "The linker for llvm(-10)."
+    )
+elseif("${CMAKE_C_COMPILER_VERSION}" MATCHES "^6\.")
+    find_program(
+        LLVM_LINK_EXE
+        NAMES "llvm-link-6.0" "llvm-link-mp-6.0" "llvm-link"
+        DOC "The linker for llvm(-6)."
+    )
+endif()
 
 if(LLVM_LINK_EXE)
     message(STATUS "llvm-link found: ${LLVM_LINK_EXE}")
@@ -88,32 +96,32 @@ if(KLEE_EXE)
     # Target for klee
     if(KLEE_EXE)
         set(KLEE_ARGS "")
-        list (APPEND KLEE_ARGS "--simplify-sym-indices")
-        list (APPEND KLEE_ARGS "--write-cvcs")
-        list (APPEND KLEE_ARGS "--write-cov")
-        list (APPEND KLEE_ARGS "--output-module")
-        list (APPEND KLEE_ARGS "--max-memory=1000")
-        list (APPEND KLEE_ARGS "--disable-inlining")
-        list (APPEND KLEE_ARGS "--optimize")
-        list (APPEND KLEE_ARGS "--use-forked-solver")
-        list (APPEND KLEE_ARGS "--use-cex-cache")
-        list (APPEND KLEE_ARGS "--libc=klee")
-        list (APPEND KLEE_ARGS "--external-calls=all")
-        list (APPEND KLEE_ARGS "--only-output-states-covering-new")
-        list (APPEND KLEE_ARGS "--max-sym-array-size=4096")
-        list (APPEND KLEE_ARGS "--max-time=60min")
-        list (APPEND KLEE_ARGS "--watchdog")
-        list (APPEND KLEE_ARGS "--max-memory-inhibit=false")
-        list (APPEND KLEE_ARGS "--max-static-fork-pct=1")
-        list (APPEND KLEE_ARGS "--max-static-solve-pct=1")
-        list (APPEND KLEE_ARGS "--max-static-cpfork-pct=1")
-        list (APPEND KLEE_ARGS "--switch-type=internal")
-        list (APPEND KLEE_ARGS "--search=random-path")
-        list (APPEND KLEE_ARGS "--search=nurs:covnew")
-        list (APPEND KLEE_ARGS "--use-batching-search")
-        list (APPEND KLEE_ARGS "--batch-instructions=10000")
-        list (APPEND KLEE_ARGS "--silent-klee-assume")
-        list (APPEND KLEE_ARGS "--max-forks=512")
+        list(APPEND KLEE_ARGS "--simplify-sym-indices")
+        list(APPEND KLEE_ARGS "--write-cvcs")
+        list(APPEND KLEE_ARGS "--write-cov")
+        list(APPEND KLEE_ARGS "--output-module")
+        list(APPEND KLEE_ARGS "--max-memory=1000")
+        list(APPEND KLEE_ARGS "--disable-inlining")
+        list(APPEND KLEE_ARGS "--optimize")
+        list(APPEND KLEE_ARGS "--use-forked-solver")
+        list(APPEND KLEE_ARGS "--use-cex-cache")
+        list(APPEND KLEE_ARGS "--libc=klee")
+        list(APPEND KLEE_ARGS "--external-calls=all")
+        list(APPEND KLEE_ARGS "--only-output-states-covering-new")
+        list(APPEND KLEE_ARGS "--max-sym-array-size=4096")
+        list(APPEND KLEE_ARGS "--max-time=60min")
+        list(APPEND KLEE_ARGS "--watchdog")
+        list(APPEND KLEE_ARGS "--max-memory-inhibit=false")
+        list(APPEND KLEE_ARGS "--max-static-fork-pct=1")
+        list(APPEND KLEE_ARGS "--max-static-solve-pct=1")
+        list(APPEND KLEE_ARGS "--max-static-cpfork-pct=1")
+        list(APPEND KLEE_ARGS "--switch-type=internal")
+        list(APPEND KLEE_ARGS "--search=random-path")
+        list(APPEND KLEE_ARGS "--search=nurs:covnew")
+        list(APPEND KLEE_ARGS "--use-batching-search")
+        list(APPEND KLEE_ARGS "--batch-instructions=10000")
+        list(APPEND KLEE_ARGS "--silent-klee-assume")
+        list(APPEND KLEE_ARGS "--max-forks=512")
 
         add_custom_target(
             symbex
