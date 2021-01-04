@@ -179,6 +179,9 @@ uint8_t sol_continue(void);
 // This method is called once before each transaction.
 void sol_on_transaction(void);
 
+// Returns true if representatives are used in place of users.
+uint8_t sol_is_using_reps(void);
+
 // Placeholder calls for require() and assert() in solidity.
 void sol_require(sol_raw_uint8_t _cond, const char* _msg);
 void sol_assert(sol_raw_uint8_t cond, const char* _msg);

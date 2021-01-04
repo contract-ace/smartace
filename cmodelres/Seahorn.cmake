@@ -52,7 +52,8 @@ set(HORN_SOLVER_LIA "lia")
 set(HORN_SOLVER_NLIA "nlia")
 set(HORN_SOLVER_BV "bv")
 set(HORN_SOLVER_MODES ${HORN_SOLVER_LIA} ${HORN_SOLVER_NLIA} ${HORN_SOLVER_BV})
-set(SEA_HORN_SOLVER ${HORN_SOLVER_LIA} CACHE STRING "Theories available to spacer (lia/nlia/bv).")
+set(HORN_SOLVER_MSG "Theories available to spacer (lia/nlia/bv).")
+set(SEA_HORN_SOLVER ${HORN_SOLVER_LIA} CACHE STRING ${HORN_SOLVER_MSG})
 set_property(CACHE SEA_HORN_SOLVER PROPERTY STRINGS ${HORN_SOLVER_MODES})
 
 # Configures YAML files.

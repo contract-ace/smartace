@@ -36,6 +36,13 @@ void sol_on_transaction(void) {}
 
 // -------------------------------------------------------------------------- //
 
+uint8_t sol_is_using_reps(void)
+{
+    return 0;
+}
+
+// -------------------------------------------------------------------------- //
+
 void sol_assert(sol_raw_uint8_t _cond, const char* _msg)
 {
     klee_assert(_cond);

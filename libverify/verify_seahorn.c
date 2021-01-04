@@ -36,6 +36,13 @@ void sol_on_transaction(void) {}
 
 // -------------------------------------------------------------------------- //
 
+uint8_t sol_is_using_reps(void)
+{
+    return 1;
+}
+
+// -------------------------------------------------------------------------- //
+
 #ifdef MC_LOG_ALL
 void log_assertion(const char* _type, sol_raw_uint8_t _cond, const char* _msg)
 {

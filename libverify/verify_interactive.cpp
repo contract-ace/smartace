@@ -24,10 +24,13 @@ static const char g_solHelpCliMsg[] = "display options and settings";
 static const char g_solZRetCliArg[] = "return-0";
 static const char g_solZRetCliMsg[] = "when true, assertions return 0";
 static const char g_solTransNCliArg[] = "count-transactions";
-static const char gTransNCliMsg[] = "when true, logs total transactions";
+static const char g_solTransNCliMsg[] = "when true, logs total transactions";
+static const char g_solUseRepsArg[] = "use-reps";
+static const char g_solUseRepsMsg[] = "when true, users are representative";
 
 static bool g_solZRet;
 static bool g_solLogTrans;
+static bool g_solUseReps;
 
 void sol_setup(int _argc, const char **_argv)
 {
@@ -41,7 +44,8 @@ void sol_setup(int _argc, const char **_argv)
         desc.add_options()
             (g_solHelpCliArg, g_solHelpCliMsg)
             (g_solZRetCliArg, po::bool_switch(&g_solZRet), g_solZRetCliMsg)
-            (g_solTransNCliArg, po::bool_switch(&g_solLogTrans), gTransNCliMsg);
+            (g_solTransNCliArg, po::bool_switch(&g_solLogTrans), g_solTransNCliMsg)
+            (g_solUseRepsArg, po::bool_switch(&g_solUseReps), g_solUseRepsMsg);
     
         po::variables_map args;
         po::store(po::parse_command_line(_argc, _argv, desc), args);
@@ -84,6 +88,13 @@ uint8_t sol_continue(void)
 void sol_on_transaction(void)
 {
     ++g_solTransactionNumber;
+}
+
+// -------------------------------------------------------------------------- //
+
+uint8_t sol_is_using_reps(void)
+{
+    return g_solUseReps;
 }
 
 // -------------------------------------------------------------------------- //

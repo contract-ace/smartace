@@ -68,11 +68,18 @@ void MainFunctionGenerator::print(ostream& _stream)
     m_actors.assign_addresses(main, m_addrspace);
     m_actors.initialize(main, m_stategen);
 
+    // Generates body for interference block.
+    CBlockList interference;
+
     // Generates transactionals loop.
     CBlockList transactionals;
     transactionals.push_back(
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
+    transactionals.push_back(make_shared<CIf>(
+        make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
+        make_shared<CBlock>(move(interference))
+    ));
     m_stategen.update_global(transactionals);
     transactionals.push_back(next_case);
     transactionals.push_back(next_case->assign(
