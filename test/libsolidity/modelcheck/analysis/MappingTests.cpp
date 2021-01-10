@@ -43,6 +43,12 @@ BOOST_AUTO_TEST_CASE(basic_lookup)
 
     MapDeflate lookup;
 
+    BOOST_CHECK(lookup.resolve(*ctrt.stateVariables()[0]));
+    BOOST_CHECK_THROW(
+        lookup.try_resolve(*ctrt.stateVariables()[0]),
+        runtime_error
+    );
+
     for (unsigned int i = 0; i < 5; ++i)
     {
         for (auto sv : ctrt.stateVariables())
@@ -54,30 +60,30 @@ BOOST_AUTO_TEST_CASE(basic_lookup)
 
             if (sv->name() == "a")
             {
-                BOOST_CHECK(!res.name.empty());
-                BOOST_CHECK_EQUAL(res.key_types.size(), 1);
+                BOOST_CHECK(!res->name.empty());
+                BOOST_CHECK_EQUAL(res->key_types.size(), 1);
                 BOOST_CHECK(
-                    res.value_type->annotation().type->category()
+                    res->value_type->annotation().type->category()
                     ==
                     Type::Category::Address
                 );
             }
             else if (sv->name() == "b")
             {
-                BOOST_CHECK(!res.name.empty());
-                BOOST_CHECK_EQUAL(res.key_types.size(), 3);
+                BOOST_CHECK(!res->name.empty());
+                BOOST_CHECK_EQUAL(res->key_types.size(), 3);
                 BOOST_CHECK(
-                    res.key_types.front()->annotation().type->category()
+                    res->key_types.front()->annotation().type->category()
                     ==
                     Type::Category::Integer
                 );
                 BOOST_CHECK(
-                    res.key_types.back()->annotation().type->category()
+                    res->key_types.back()->annotation().type->category()
                     ==
                     Type::Category::Bool
                 );
                 BOOST_CHECK(
-                    res.value_type->annotation().type->category()
+                    res->value_type->annotation().type->category()
                     ==
                     Type::Category::Struct
                 );

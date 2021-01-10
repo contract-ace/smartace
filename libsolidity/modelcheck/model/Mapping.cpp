@@ -3,6 +3,7 @@
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
+#include <libsolidity/modelcheck/utils/KeyIterator.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/Function.h>
@@ -29,14 +30,14 @@ MapGenerator::MapGenerator(
  , M_KEEP_SUM(_keep_sum)
  , M_TYPE(_converter.get_type(_src))
  , M_CONVERTER(_converter)
- , M_MAP_RECORD(_converter.map_db().resolve(_src))
- , M_VAL_T(_converter.get_type(*M_MAP_RECORD.value_type))
+ , M_MAP_RECORD(_converter.map_db().try_resolve(_src))
+ , M_VAL_T(_converter.get_type(*M_MAP_RECORD->value_type))
  , M_TMP(make_shared<CVarDecl>(M_TYPE, "tmp", false))
  , M_ARR(make_shared<CVarDecl>(M_TYPE, "arr", true))
  , M_DAT(make_shared<CVarDecl>(M_VAL_T, "dat"))
 {
-    m_keys.reserve(M_MAP_RECORD.key_types.size());
-    for (auto const* KEY : M_MAP_RECORD.key_types)
+    m_keys.reserve(M_MAP_RECORD->key_types.size());
+    for (auto const* KEY : M_MAP_RECORD->key_types)
     {
         m_keys.push_back(make_shared<CVarDecl>(
             M_CONVERTER.get_type(*KEY), "key_" + to_string(m_keys.size()))
@@ -65,21 +66,21 @@ CStructDef MapGenerator::declare(bool _forward_declare) const
 
         if (M_LEN > 0)
         {
-            KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
+            KeyIterator indices(M_LEN, M_MAP_RECORD->key_types.size());
             do
             {
-                string suffix = indices.suffix();
-
                 if (indices.is_full())
                 {
-                    t->push_back(make_shared<CVarDecl>(
-                        M_VAL_T, "data" + suffix)
+                    string const SUFFIX = indices.suffix();
+
+                    t->push_back(
+                        make_shared<CVarDecl>(M_VAL_T, "data" + SUFFIX)
                     );
                 }
             } while (indices.next());
         }
     }
-    return CStructDef(M_MAP_RECORD.name, move(t));
+    return CStructDef(M_MAP_RECORD->name, move(t));
 }
 
 // -------------------------------------------------------------------------- //
@@ -92,22 +93,22 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
         CBlockList block;
         block.push_back(M_TMP);
 
-        auto init_val = M_CONVERTER.get_init_val(*M_MAP_RECORD.value_type);
+        auto init_val = M_CONVERTER.get_init_val(*M_MAP_RECORD->value_type);
 
         if (M_KEEP_SUM)
         {
             block.push_back(M_TMP->access("sum")->assign(init_val)->stmt());
         }
         
-        KeyIterator indices(M_LEN, M_MAP_RECORD.key_types.size());
+        KeyIterator indices(M_LEN, M_MAP_RECORD->key_types.size());
         do
         {
-            string suffix = indices.suffix();
-
             if (indices.is_full())
             {
+                string const SUFFIX = indices.suffix();
+
                 block.push_back(
-                    M_TMP->access("data" + suffix)->assign(init_val)->stmt()
+                    M_TMP->access("data" + SUFFIX)->assign(init_val)->stmt()
                 );
             }
         } while (indices.next());
@@ -116,7 +117,7 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
         body = make_shared<CBlock>(move(block));
     }
 
-    auto id = InitFunction(M_MAP_RECORD).default_id();
+    auto id = InitFunction(*M_MAP_RECORD).default_id();
     return CFuncDef(move(id), {}, move(body));
 }
 
@@ -124,7 +125,7 @@ CFuncDef MapGenerator::declare_zero_initializer(bool _forward_declare) const
 
 CFuncDef MapGenerator::declare_write(bool _forward_declare) const
 {
-    auto fid = make_shared<CVarDecl>("void", "Write_" + M_MAP_RECORD.name);
+    auto fid = make_shared<CVarDecl>("void", "Write_" + M_MAP_RECORD->name);
 
     CParams params;
     params.push_back(M_ARR);
@@ -155,7 +156,7 @@ CFuncDef MapGenerator::declare_write(bool _forward_declare) const
 
 CFuncDef MapGenerator::declare_read(bool _forward_declare) const
 {
-    auto const NAME = "Read_" + M_MAP_RECORD.name;
+    auto const NAME = "Read_" + M_MAP_RECORD->name;
     auto fid = make_shared<CVarDecl>(M_VAL_T, NAME);
 
     CParams params;
@@ -165,7 +166,7 @@ CFuncDef MapGenerator::declare_read(bool _forward_declare) const
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
-        auto default_val = M_CONVERTER.get_init_val(*M_MAP_RECORD.value_type);
+        auto default_val = M_CONVERTER.get_init_val(*M_MAP_RECORD->value_type);
 
         body = make_shared<CBlock>(CBlockList{
             expand_access(0, "", false, false),
@@ -182,7 +183,7 @@ CStmtPtr MapGenerator::expand_access(
     size_t _depth, string const& _suffix, bool _is_writer, bool _maintain_sum
 ) const
 {
-    if (_depth == M_MAP_RECORD.key_types.size())
+    if (_depth == M_MAP_RECORD->key_types.size())
     {
         auto const DATA = M_ARR->access("data" + _suffix);
         if (_is_writer)
@@ -222,7 +223,7 @@ CStmtPtr MapGenerator::expand_access(
         CBlockList stmts;
         if (_depth == 0)
         {
-            for (size_t i = 0; i < M_MAP_RECORD.key_types.size(); ++i)
+            for (size_t i = 0; i < M_MAP_RECORD->key_types.size(); ++i)
             {
                 auto const REQ_KEY = m_keys[i]->access("v");
                 auto key = make_shared<CIntLiteral>(M_LEN);
@@ -237,64 +238,6 @@ CStmtPtr MapGenerator::expand_access(
         stmts.push_back(stmt);
         return make_shared<CBlock>(move(stmts));
     }
-}
-
-// -------------------------------------------------------------------------- //
-
-MapGenerator::KeyIterator::KeyIterator(
-    size_t _width, size_t _depth
-): M_WIDTH(_width), M_DEPTH(_depth), m_indices({0}) { }
-
-// -------------------------------------------------------------------------- //
-
-string MapGenerator::KeyIterator::suffix() const
-{
-    string suffix;
-    for (auto idx : m_indices) suffix += "_" + to_string(idx);
-    return suffix;
-}
-
-// -------------------------------------------------------------------------- //
-
-bool MapGenerator::KeyIterator::is_full() const
-{
-    return (m_indices.size() == M_DEPTH);
-}
-
-// -------------------------------------------------------------------------- //
-
-size_t MapGenerator::KeyIterator::top() const
-{
-    return m_indices.back();
-}
-
-// -------------------------------------------------------------------------- //
-
-size_t MapGenerator::KeyIterator::size() const
-{
-    return m_indices.size();
-}
-
-// -------------------------------------------------------------------------- //
-
-bool MapGenerator::KeyIterator::next()
-{
-    if (!is_full())
-    {
-        m_indices.push_back(0);
-    }
-    else
-    {
-        ++m_indices.back();
-        while (m_indices.back() == M_WIDTH)
-        {
-            m_indices.pop_back();
-            if (m_indices.empty()) break;
-            ++m_indices.back();
-        }
-    }
-
-    return !m_indices.empty();
 }
 
 // -------------------------------------------------------------------------- //

@@ -66,21 +66,27 @@ public:
         std::vector<ElementaryTypeName const*> key_types;
         TypeName const* value_type;
     };
+    using Record = std::shared_ptr<FlatMap const>;
 
     // Either registers _map with the MapDeflate lookup, or returns the pre-
     // existing entry. When no entry is found, this flatten _map, and registers
     // it in the map lookup. For a Mapping typename of the form
     // mapping(A => mapping(B => mapping(C => ...))). a FlatMap with key
     // tuple(A, B, C, ...) will be produced.
-    FlatMap query(Mapping const& _mapping);
+    Record query(Mapping const& _mapping);
+
+    // Queries the FlatMap for the given declaration, and returns a nullptr on
+    // failed lookup.
+    Record resolve(Mapping const& _dcl) const;
+    Record resolve(VariableDeclaration const& _decl) const;
 
     // Queries the FlatMap for the given declaration, and throws an exception on
     // failed lookup.
-    FlatMap resolve(Mapping const& _decl) const;
-    FlatMap resolve(VariableDeclaration const& _decl) const;
+    Record try_resolve(Mapping const& _decl) const;
+    Record try_resolve(VariableDeclaration const& _dcl) const;
 
 private:
-    std::map<Mapping const*, FlatMap> m_flatset;
+    std::map<Mapping const*, std::shared_ptr<FlatMap>> m_flatset;
 };
 
 // -------------------------------------------------------------------------- //

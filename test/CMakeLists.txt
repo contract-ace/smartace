@@ -20,7 +20,7 @@ file(GLOB libsolidity_modelcheck_utils_sources
     "libsolidity/modelcheck/utils/*.cpp")
 
 add_executable(soltest ${sources} ${headers}
-${contracts_sources} ${contracts_headers}
+    ${contracts_sources} ${contracts_headers}
     ${libyul_sources} ${libyul_headers}
     ${libsolidity_sources} ${libsolidity_headers}
     ${libsolidity_util_sources} ${libsolidity_util_headers}

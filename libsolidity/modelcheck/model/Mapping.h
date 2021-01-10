@@ -50,40 +50,6 @@ public:
     CFuncDef declare_read(bool _forward_declare) const;
 
 private:
-    // Utility to iterate all key combinations.
-    class KeyIterator
-    {
-    public:
-        // Creates an iterator over all length 1 to length _depth strings over
-        // the alphabet [0, 1, ..., _width-1].
-        KeyIterator(size_t _width, size_t _depth);
-
-        // Returns the current string as (s_0)_(s_2)_..._(s_{i}), where i is
-        // some length from 1 to _depth. This value changes only after a call to
-        // next.
-        std::string suffix() const;
-
-        // Returns true if the current suffix is of maximum length.
-        bool is_full() const;
-
-        // Returns the symbol most recently appended to the suffix.
-        size_t top() const;
-
-        // Returns the current suffix length.
-        size_t size() const;
-
-        // Updates all view fields. Returns true if there is a suffix left to iterate.
-        bool next();
-    
-    private:
-        // The dimensions of the search space.
-        size_t M_WIDTH;
-        size_t M_DEPTH;
-
-        // The current string.
-        std::list<size_t> m_indices;
-    };
-
     // The number of elements modeling the map.
     size_t const M_LEN;
     bool const M_KEEP_SUM;
@@ -91,7 +57,7 @@ private:
 
     // Allows types to be resolved.
     TypeAnalyzer const& M_CONVERTER;
-    MapDeflate::FlatMap const M_MAP_RECORD;
+    std::shared_ptr<MapDeflate::FlatMap const> const M_MAP_RECORD;
 
     // Const type names to simplify generation.
     std::string const M_VAL_T;

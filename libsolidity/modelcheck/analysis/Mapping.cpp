@@ -37,44 +37,51 @@ bool MappingExtractor::visit(Mapping const& _node)
 
 // -------------------------------------------------------------------------- //
 
-MapDeflate::FlatMap MapDeflate::query(Mapping const& _map)
+MapDeflate::Record MapDeflate::query(Mapping const& _map)
 {
-    auto & flatmap = m_flatset[&_map];
+    auto flatmap = make_shared<FlatMap>();
+    m_flatset[&_map] = flatmap;
 
-    if (flatmap.name.empty())
+    if (flatmap->name.empty())
     {
-        flatmap.name = "Map_" + to_string(m_flatset.size());
+        flatmap->name = "Map_" + to_string(m_flatset.size());
         
         Mapping const* curpos = (&_map);
         while (curpos != nullptr)
         {
-            flatmap.value_type = &curpos->valueType();
-            flatmap.key_types.push_back(&curpos->keyType());
-            curpos = dynamic_cast<Mapping const*>(flatmap.value_type);
+            flatmap->value_type = &curpos->valueType();
+            flatmap->key_types.push_back(&curpos->keyType());
+            curpos = dynamic_cast<Mapping const*>(flatmap->value_type);
         }
     }
 
     return flatmap;
 }
 
-MapDeflate::FlatMap MapDeflate::resolve(Mapping const& _mapping) const
+MapDeflate::Record MapDeflate::resolve(Mapping const& _mapping) const
 {
     auto const& record = m_flatset.find(&_mapping);
-    if (record == m_flatset.end())
-    {
-        throw runtime_error("MapDeflate used to resolve unknown declaration.");
-    }
+    if (record == m_flatset.end()) return nullptr;
     return record->second;
 }
 
-MapDeflate::FlatMap MapDeflate::resolve(VariableDeclaration const& _decl) const
+MapDeflate::Record MapDeflate::resolve(VariableDeclaration const& _decl) const
 {
     auto const* mapping = dynamic_cast<Mapping*>(_decl.typeName());
-    if (!mapping)
-    {
-        throw runtime_error("Unable to extract Mapping from IndexAccess");
-    }
+    if (!mapping) return nullptr;
     return resolve(*mapping);
+}
+
+MapDeflate::Record MapDeflate::try_resolve(Mapping const& _mapping) const
+{
+    if (auto res = resolve(_mapping)) return res;
+    throw runtime_error("MapDeflate used to resolve unknown declaration.");
+}
+
+MapDeflate::Record MapDeflate::try_resolve(VariableDeclaration const& _decl) const
+{
+    if (auto res = resolve(_decl)) return res;
+    throw runtime_error("Unable to extract Mapping from IndexAccess");
 }
 
 // -------------------------------------------------------------------------- //

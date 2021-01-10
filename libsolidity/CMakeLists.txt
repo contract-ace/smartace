@@ -176,6 +176,8 @@ set(sources
 	modelcheck/utils/Ether.h
 	modelcheck/utils/Function.cpp
 	modelcheck/utils/Function.h
+	modelcheck/utils/KeyIterator.cpp
+	modelcheck/utils/KeyIterator.h
 	modelcheck/utils/LibVerify.cpp
 	modelcheck/utils/LibVerify.h
 	modelcheck/utils/Named.cpp

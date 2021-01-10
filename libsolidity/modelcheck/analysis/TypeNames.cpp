@@ -286,11 +286,11 @@ bool TypeAnalyzer::visit(FunctionTypeName const& _node)
 bool TypeAnalyzer::visit(Mapping const& _node)
 {
     auto const& record = m_map_db.query(_node);
-    m_name_lookup.insert({&_node, record.name});
-    m_type_lookup.insert({&_node, "struct " + record.name});
+    m_name_lookup.insert({&_node, record->name});
+    m_type_lookup.insert({&_node, "struct " + record->name});
 
-    for (auto const* key : record.key_types) key->accept(*this);
-    record.value_type->accept(*this);
+    for (auto const* key : record->key_types) key->accept(*this);
+    record->value_type->accept(*this);
 
     return false;
 }
@@ -306,8 +306,8 @@ bool TypeAnalyzer::visit(IndexAccess const& _node)
     FlatIndex idx(_node);
     auto const& record = m_map_db.resolve(idx.decl());
 
-    m_type_lookup.insert({&_node, get_type(*record.value_type)});
-    m_name_lookup.insert({&_node, record.name});
+    m_type_lookup.insert({&_node, get_type(*record->value_type)});
+    m_name_lookup.insert({&_node, record->name});
 
     for (auto const* idx_expr : idx.indices()) idx_expr->accept(*this);
     idx.base().accept(*this);
