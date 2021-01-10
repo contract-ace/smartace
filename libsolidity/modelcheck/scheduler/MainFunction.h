@@ -61,6 +61,18 @@ private:
     // Stores data required to handle contract instances.
     ActorModel m_actors;
 
+    // Expands and applies interference to all mappings in _decl. Assumes that
+    // _decl is a sub-structure in _contract, that _path is the path to _decls,
+    // and _block is the destination for the statements. The _display field is
+    // a human readable version of the map for playback.
+    void expand_interference(
+        std::string _display,
+        CExprPtr _path,
+        FlatContract const& _contract,
+        CBlockList & _block,
+        VariableDeclaration const* _decl
+    );
+
     // For each method on each contract, this will generate a case for the
     // switch block. Note that _args have been initialized first by
     // analyze_decls.

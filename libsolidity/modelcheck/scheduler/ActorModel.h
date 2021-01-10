@@ -52,8 +52,7 @@ struct Actor
     // Specializations of all member funtions
     std::list<FunctionSpecialization> specs;
 
-    // Maintains a path of accesses, from parent contract decl to child contract
-    // decl.
+    // Maintains an access path, from parent contract to child contract.
     CExprPtr path;
 
     // If true, the actor has been used to spawn a child contract.

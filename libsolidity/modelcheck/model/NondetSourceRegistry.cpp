@@ -96,6 +96,10 @@ CExprPtr NondetSourceRegistry::val(TypeName const& _type, string const& _msg)
     {
         return simple_val(*_type.annotation().type, _msg);
     }
+    else if(_type.annotation().type->category() == Type::Category::Mapping)
+    {
+        return nullptr;
+    }
     else
     {
         return InitFunction(*m_stack->types(), _type).nd();
@@ -107,6 +111,10 @@ CExprPtr NondetSourceRegistry::val(Declaration const& _decl, string const& _msg)
     if (has_simple_type(_decl))
     {
         return simple_val(*_decl.type(), _msg);
+    }
+    else if(_decl.type()->category() == Type::Category::Mapping)
+    {
+        return nullptr;
     }
     else
     {

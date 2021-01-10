@@ -50,10 +50,12 @@ public:
     // Requests a non-deterministic value for _type described by _msg.
     CExprPtr simple_val(Type const& _type, std::string const& _msg);
 
-    // Requests a non-deterministic value for _type described by _msg.
+    // Requests a non-deterministic value for _type described by _msg. If the
+    // type is a mapping, then nullptr is returned.
 	CExprPtr val(TypeName const& _type, std::string const& _msg);
 
-    // Requests a non-deterministic value for _decl described by _msg.
+    // Requests a non-deterministic value for _decl described by _msg. If the
+    // type is a mapping, then nullptr is returned.
 	CExprPtr val(Declaration const& _decl, std::string const& _msg);
 
     // Prints all non-deterministic methods to _stream.

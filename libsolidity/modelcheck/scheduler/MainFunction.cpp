@@ -14,6 +14,11 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 
+
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/utils/KeyIterator.h>
+
+
 #include <set>
 
 using namespace std;
@@ -70,6 +75,20 @@ void MainFunctionGenerator::print(ostream& _stream)
 
     // Generates body for interference block.
     CBlockList interference;
+    for (auto actor : m_actors.inspect())
+    {
+        auto const& contract = (*actor.contract);
+        for (auto decl : contract.state_variables())
+        {
+            expand_interference(
+                actor.contract->name(),
+                actor.decl->id(),
+                contract,
+                interference,
+                decl
+            );
+        }
+    }
 
     // Generates transactionals loop.
     CBlockList transactionals;
@@ -98,6 +117,59 @@ void MainFunctionGenerator::print(ostream& _stream)
     // Implements body as a run_model function.
     auto id = make_shared<CVarDecl>("void", "run_model");
     _stream << CFuncDef(id, CParams{}, make_shared<CBlock>(move(main)));
+}
+
+// -------------------------------------------------------------------------- //
+
+void MainFunctionGenerator::expand_interference(
+    string _display,
+    CExprPtr _path,
+    FlatContract const& _contract,
+    CBlockList & _block,
+    VariableDeclaration const* _decl
+)
+{
+    // Updates path.
+    auto const NAME = VariableScopeResolver::rewrite(
+        _decl->name(), false, VarContext::STRUCT
+    );
+    _path = make_shared<CMemberAccess>(_path, NAME);
+    _display += "::" + _decl->name();
+
+    // Determines if _decl is a map/struct.
+    if (auto rec = _contract.find_structure(_decl))
+    {
+        // If _decl is a struct, expand to all children.
+        for (auto child : rec->fields())
+        {
+            expand_interference(
+                _display, _path, _contract, _block, child.get()
+            );
+        }
+    }
+    else if (auto entry = m_stack->types()->map_db().resolve(*_decl))
+    {
+        // Non-deterministically initializes each field.
+        auto const WIDTH = m_stack->addresses()->size();
+        auto const DEPTH = entry->key_types.size();
+        KeyIterator indices(WIDTH, DEPTH);
+        do
+        {
+            if (indices.is_full())
+            {
+                // Determine field.
+                string const FIELD = "data" + indices.suffix();
+                auto const DATA = make_shared<CMemberAccess>(_path, FIELD);
+
+                // Create non-deterministic value.
+                string const MSG = _display + "::" + indices.suffix();
+                auto const ND = m_nd_reg->val(*entry->value_type, MSG);
+
+                // Initializes.
+                _block.push_back(DATA->assign(ND)->stmt());
+            }
+        } while (indices.next());
+    }
 }
 
 // -------------------------------------------------------------------------- //

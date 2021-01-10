@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/utils/Named.h>
 
 #include <list>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -62,11 +63,18 @@ public:
     // Returns the structures defined by this contract.
     std::list<std::shared_ptr<Structure const>> structures() const;
 
+    // Searches for a structure that mathces the declaration.
+    std::shared_ptr<Structure const>
+        find_structure(VariableDeclaration const* _decl) const;
+
     // TODO(scottwe): temporary solution to simplify transition.
     ContractDefinition const* raw() const;
 
 private:
     std::list<std::shared_ptr<Structure const>> m_structures;
+
+    std::map<StructDefinition const *, std::shared_ptr<Structure const>>
+        m_structure_lookup;
 
     // TODO(scottwe): temporary solution to simplify transition.
     ContractDefinition const* m_raw;

@@ -271,8 +271,10 @@ void FunctionConverter::generate_structure(Structure const& _struct)
             string const MSG = INIT_DATA.name() + ":" + field->name();
 
             auto member = TMP->access(NAME);
-            auto init = m_nd_reg->val(*field->typeName(), MSG);
-            nondet_stmts.push_back(member->assign(move(init))->stmt());
+            if (auto init = m_nd_reg->val(*field->typeName(), MSG))
+            {
+                nondet_stmts.push_back(member->assign(move(init))->stmt());
+            }
         }
         nondet_stmts.push_back(make_shared<CReturn>(TMP));
         nondet_body = make_shared<CBlock>(move(nondet_stmts));

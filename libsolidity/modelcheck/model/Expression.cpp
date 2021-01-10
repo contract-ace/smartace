@@ -118,7 +118,7 @@ bool ExpressionConverter::visit(Assignment const& _node)
 			// TODO: "Write" should not be hard-coded.
 			FlatIndex idx(*map);
 			auto record = m_stack->types()->map_db().resolve(idx.decl());
-			generate_mapping_call("Write", move(record), move(idx), move(rhs));
+			generate_mapping_call("Write", *record, move(idx), move(rhs));
 		}
 		else
 		{
@@ -249,7 +249,7 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 			FlatIndex idx(_node);
 			auto record = m_stack->types()->map_db().resolve(idx.decl());
 
-			if (idx.indices().size() != record.key_types.size())
+			if (idx.indices().size() != record->key_types.size())
 			{
 				throw runtime_error("Partial map lookup unsupported.");
 			}
@@ -259,7 +259,7 @@ bool ExpressionConverter::visit(IndexAccess const& _node)
 			}
 
 			// TODO: "Read" should not be hard-coded.
-			generate_mapping_call("Read", record, idx, nullptr);
+			generate_mapping_call("Read", *record, idx, nullptr);
 
 			if (is_wrapped_type(*_node.annotation().type))
 			{

@@ -40,6 +40,7 @@ StructureContainer::StructureContainer(ContractDefinition const& _contract)
         for (auto structure : (*itr)->definedStructs())
         {
             m_structures.push_back(make_shared<Structure>(*structure));
+            m_structure_lookup[structure] = m_structures.back();
         }
     }
 }
@@ -47,6 +48,20 @@ StructureContainer::StructureContainer(ContractDefinition const& _contract)
 list<shared_ptr<Structure const>> StructureContainer::structures() const
 {
     return m_structures;
+}
+
+shared_ptr<Structure const>
+    StructureContainer::find_structure(VariableDeclaration const* _decl) const
+{
+    if (auto type = dynamic_cast<StructType const*>(_decl->type()))
+    {
+        auto result = m_structure_lookup.find(&type->structDefinition());
+        if (result != m_structure_lookup.end())
+        {
+            return result->second;
+        }
+    }
+    return nullptr;
 }
 
 ContractDefinition const* StructureContainer::raw() const { return m_raw; }
