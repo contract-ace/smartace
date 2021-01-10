@@ -102,7 +102,7 @@ if(SEA_EXE)
         )
         add_custom_target(
             sea_inspect
-            COMMAND ${SEA_EXE} yama ${SEA_COMMON_YAMA} inspect --cfg-dot "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
+            COMMAND ${SEA_EXE} inspect --cfg-dot "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
             SOURCES "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
         )
     endif()
