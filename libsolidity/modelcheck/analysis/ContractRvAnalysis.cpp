@@ -110,13 +110,17 @@ bool ContractRvAnalyzer::visit(FunctionCall const& _node)
         {
             if (call.is_super())
             {
-                m_procedural_calls.insert(make_pair(m_src, &call.decl()));
+                m_procedural_calls.insert(make_pair(m_src, &call.method_decl()));
             }
             else
             {
                 auto user = m_src;
  
-                if (dynamic_cast<FunctionCall const*>(call.context()))
+                if (call.is_getter())
+                {
+                    return false;
+                }
+                else if (dynamic_cast<FunctionCall const*>(call.context()))
                 {
                     // TODO(scottwe): find a solution for this case.
                     // TODO(scottwe): one case is no child classes...
@@ -137,14 +141,14 @@ bool ContractRvAnalyzer::visit(FunctionCall const& _node)
                     user = (&m_allocation_graph->specialize(*decl));
                 }
 
-                string const& name = call.decl().name();
+                string const& name = call.method_decl().name();
                 auto match = find_named_match<FunctionDefinition>(user, name);
                 m_procedural_calls.insert(make_pair(user, match));
             }
         }
         else if (call.is_in_library())
         {
-            m_procedural_calls.insert(make_pair(nullptr, &call.decl()));
+            m_procedural_calls.insert(make_pair(nullptr, &call.method_decl()));
         }
         else if (call.classify() == FunctionCallAnalyzer::CallGroup::Delegate)
         {
@@ -332,7 +336,7 @@ ContractDefinition const& ContractExpressionAnalyzer::resolve(
         FunctionCallAnalyzer calldata(*call);
 
         // Determines the key for this call.
-        auto key = make_pair(_ctx, &calldata.decl());
+        auto key = make_pair(_ctx, &calldata.method_decl());
         if (calldata.is_in_library())
         {
             key.first = nullptr;

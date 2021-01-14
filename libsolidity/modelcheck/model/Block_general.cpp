@@ -200,10 +200,7 @@ bool GeneralBlockConverter::visit(Throw const&)
 
 bool GeneralBlockConverter::visit(EmitStatement const& _node)
 {
-	auto const& LOC = _node.eventCall().location();
-	auto const& SRC = LOC.source->source();
-	string event = SRC.substr(LOC.start, LOC.end - LOC.start);
-	event.erase(remove(event.begin(), event.end(), '\n'), event.end());
+	string event = get_ast_string(&_node.eventCall());
 
 	CFuncCallBuilder sol_emit_call("sol_emit");
 	sol_emit_call.push(make_shared<CStringLiteral>(event));
@@ -276,7 +273,7 @@ bool GeneralBlockConverter::visit(ExpressionStatement const& _node)
 				FunctionCallAnalyzer call(*rhs);
 
 				// Generates temporary variables for each return value.
-				for (auto entry : call.decl().returnParameters())
+				for (auto entry : call.method_decl().returnParameters())
 				{
 					string name = "blockvar_" + to_string(tmp_vars.size());
 					auto type = m_stack->types()->get_type(*entry.get());

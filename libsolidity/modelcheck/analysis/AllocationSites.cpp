@@ -110,10 +110,10 @@ bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
             else if (call.is_super() || call.is_in_library() || !call.context())
             {
                 // Case: Internal method call.
-                auto match = (&call.decl());
+                auto match = (&call.method_decl());
                 if (!call.is_super() && !call.is_in_library())
                 {
-                    string const& name = call.decl().name();
+                    string const& name = call.method_decl().name();
                     match = find_named_match<FunctionDefinition>(&m_src, name);
                 }
                 def = handle_call_type(*match);

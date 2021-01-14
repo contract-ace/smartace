@@ -37,6 +37,17 @@ string get_error_type(ASTNode const* _node)
 
 // -------------------------------------------------------------------------- //
 
+string get_ast_string(ASTNode const* _node)
+{
+	auto const& LOC = _node->location();
+	auto const& SRC = LOC.source->source();
+	string str = SRC.substr(LOC.start, LOC.end - LOC.start);
+	str.erase(remove(str.begin(), str.end(), '\n'), str.end());
+    return str;
+}
+
+// -------------------------------------------------------------------------- //
+
 ExpressionCleaner::ExpressionCleaner(Expression const& _expr)
 {
     m_res = (&_expr);

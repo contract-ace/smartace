@@ -725,9 +725,16 @@ void ExpressionConverter::print_function(FunctionCall const& _call)
 
 void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 {
-	FunctionSpecialization call(_calldata.decl());
+	// Special case for getters.
+	if (_calldata.is_getter())
+	{
+		print_adt_member(*_calldata.context(), _calldata.getter_decl().name());
+		m_subexpr = make_shared<CMemberAccess>(move(m_subexpr), "v");
+		return;
+	}
 
 	// Determines call name and locality of call.
+	FunctionSpecialization call(_calldata.method_decl());
 	bool is_ext_call = (!_calldata.is_super() && _calldata.context());
 	if (_calldata.is_super())
 	{

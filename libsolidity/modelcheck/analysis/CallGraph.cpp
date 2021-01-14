@@ -35,7 +35,7 @@ shared_ptr<FlatContract> devirtualize(
     }
     else if (_func.is_super())
     {
-        auto new_scope = _func.decl().scope();
+        auto new_scope = _func.method_decl().scope();
         auto context = dynamic_cast<ContractDefinition const*>(new_scope);
         scope = _model.get(*context);
     }
@@ -142,26 +142,29 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
     if (call.is_in_library())
     {
         m_labels = { CallTypes::Library };
-        resolution = (&call.decl());
+        resolution = (&call.method_decl());
     }
     else if (call.classify() == FunctionCallAnalyzer::CallGroup::Method)
     {
-        // Sets the context label. Note context, library, and super are mutually
-        // exclusive so this is fine.
-        if (call.context())
+        if (!call.is_getter())
         {
-            m_labels = { CallTypes::External };
-        }
+            // Sets the context label. Note context, library, and super are
+            // mutually exclusive so this is fine.
+            if (call.context())
+            {
+                m_labels = { CallTypes::External };
+            }
 
-        // Resolves the function using the scope of this call.
-        scope = devirtualize(m_scope.back(), *m_expr_resolver, *m_model, call);
-        resolution = (&scope->resolve(call.decl()));
+            // Resolves the function using the scope of this call.
+            scope = devirtualize(m_scope.back(), *m_expr_resolver, *m_model, call);
+            resolution = (&scope->resolve(call.method_decl()));
 
-        // If this is a super call, the scope really shouldn't change.
-        if (call.is_super())
-        {
-            m_labels = { CallTypes::Super };
-            scope = m_scope.back();
+            // If this is a super call, the scope really shouldn't change.
+            if (call.is_super())
+            {
+                m_labels = { CallTypes::Super };
+                scope = m_scope.back();
+            }
         }
     }
     else if (call.classify() == FunctionCallAnalyzer::CallGroup::Constructor)

@@ -62,11 +62,17 @@ public:
     // If true, the call is a remote call to "this".
     bool context_is_this() const;
 
+    // If true, the call is to a getter.
+    bool is_getter() const;
+
     // Returns the type metadata for the underlying method.
     FunctionType const& type() const;
 
     // Returns the declaration of the method being called.
-    FunctionDefinition const& decl() const;
+    FunctionDefinition const& method_decl() const;
+
+    // Returns the variable referenced by a getter.
+    VariableDeclaration const& getter_decl() const;
 
     // Classifies the method into a group handled by SmartACE.
     CallGroup classify() const;
@@ -76,13 +82,19 @@ protected:
     bool visit(FunctionCall const& _node) override;
     bool visit(Identifier const& _node) override;
 
+    bool visit(FunctionDefinition const& _node) override;
+    bool visit(VariableDeclaration const& _node) override;
+
 private:
+    FunctionCall const* M_CALL;
+
     ASTPointer<Expression const> m_last;
 
     std::vector<ASTPointer<Expression const>> m_args;
     FunctionTypePointer m_type;
 
-    FunctionDefinition const* m_decl = nullptr;
+    FunctionDefinition const* m_method_decl = nullptr;
+    VariableDeclaration const* m_getter_decl = nullptr;
 
     ASTPointer<Expression const> m_value = nullptr;
     ASTPointer<Expression const> m_gas = nullptr;

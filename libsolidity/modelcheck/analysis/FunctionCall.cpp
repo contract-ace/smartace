@@ -17,6 +17,7 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 FunctionCallAnalyzer::FunctionCallAnalyzer(FunctionCall const& _call)
+ : M_CALL(&_call)
 {
     m_args = _call.arguments();
 
@@ -26,8 +27,7 @@ FunctionCallAnalyzer::FunctionCallAnalyzer(FunctionCall const& _call)
 
     if (m_type && m_type->hasDeclaration())
     {
-        m_decl
-            = dynamic_cast<FunctionDefinition const*>(&m_type->declaration());
+		m_type->declaration().accept(*this);
     }
 
     _call.expression().accept(*this);
@@ -62,9 +62,9 @@ bool FunctionCallAnalyzer::is_super() const
 
 bool FunctionCallAnalyzer::is_in_library() const
 {
-	if (m_decl)
+	if (m_method_decl)
 	{
-    	auto scope = dynamic_cast<ContractDefinition const*>(decl().scope());
+    	auto scope = dynamic_cast<ContractDefinition const*>(method_decl().scope());
 		return (scope && scope->isLibrary());
 	}
 	return false;
@@ -84,22 +84,42 @@ bool FunctionCallAnalyzer::context_is_this() const
 	return false;
 }
 
+bool FunctionCallAnalyzer::is_getter() const
+{
+	return (m_getter_decl != nullptr);
+}
+
 FunctionType const& FunctionCallAnalyzer::type() const
 {
     if (!m_type)
     {
-        throw runtime_error("Function encountered without type annotations.");
+		string error = "Function call encountered without type annotations: ";
+		error += get_ast_string(M_CALL);
+        throw runtime_error(error);
     }
     return (*m_type);
 }
 
-FunctionDefinition const& FunctionCallAnalyzer::decl() const
+FunctionDefinition const& FunctionCallAnalyzer::method_decl() const
 {
-    if (!m_decl)
+    if (!m_method_decl)
     {
-		throw runtime_error("Function encountered without declaration.");
+		string error = "Method encountered without declaration: ";
+		error += get_ast_string(M_CALL);
+		throw runtime_error(error);
     }
-    return (*m_decl);
+    return (*m_method_decl);
+}
+
+VariableDeclaration const& FunctionCallAnalyzer::getter_decl() const
+{
+    if (!m_getter_decl)
+    {
+		string error = "Getter encountered without declaration: ";
+		error += get_ast_string(M_CALL);
+		throw runtime_error(error);
+    }
+    return (*m_getter_decl);
 }
 
 FunctionCallAnalyzer::CallGroup FunctionCallAnalyzer::classify() const
@@ -224,6 +244,20 @@ bool FunctionCallAnalyzer::visit(Identifier const& _node)
 {
     m_root = (&_node);
     return false;
+}
+
+// -------------------------------------------------------------------------- //
+
+bool FunctionCallAnalyzer::visit(FunctionDefinition const& _node)
+{
+	m_method_decl = (&_node);
+	return false;
+}
+
+bool FunctionCallAnalyzer::visit(VariableDeclaration const& _node)
+{
+	m_getter_decl = (&_node);
+	return false;
 }
 
 // -------------------------------------------------------------------------- //

@@ -29,6 +29,13 @@ std::string get_error_type(ASTNode const* _node);
 // -------------------------------------------------------------------------- //
 
 /**
+ * Stringifies an AST node for logging or error reporting.
+ */
+std::string get_ast_string(ASTNode const* _node);
+
+// -------------------------------------------------------------------------- //
+
+/**
  * This searches the inheritance hierarchy of _base to find instances of T with
  * the name _target. The top instance is returned. If no matches are found, the
  * nullptr is returned.
