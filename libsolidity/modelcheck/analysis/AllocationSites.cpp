@@ -276,12 +276,24 @@ bool AllocationGraph::retval_is_allocated(VariableDeclaration const& _var) const
 ContractDefinition const&
     AllocationGraph::specialize(VariableDeclaration const& _var) const
 {
-    auto itr = m_truetypes.find(&_var);
-    if ((itr == m_truetypes.end()) || (itr->second == nullptr))
+    if (_var.isCallableParameter() && !_var.isReturnParameter())
     {
-        throw runtime_error("Unable to find declaration: " + _var.name());
+        // TODO(scottwe): temporary solution assumes given type.
+        if (auto type = dynamic_cast<ContractType const*>(_var.type()))
+        {
+            return type->contractDefinition();
+        }
+        throw runtime_error("Unsupported contract parameter: " + _var.name());
     }
-    return (*itr->second);
+    else
+    {
+        auto itr = m_truetypes.find(&_var);
+        if ((itr == m_truetypes.end()) || (itr->second == nullptr))
+        {
+            throw runtime_error("Unable to find declaration: " + _var.name());
+        }
+        return (*itr->second);
+    }
 }
 
 void AllocationGraph::analyze(
