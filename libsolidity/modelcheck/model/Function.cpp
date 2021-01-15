@@ -154,8 +154,8 @@ CParams FunctionConverter::generate_params(
         string name = RV.name();
         if (name.empty())
         {
-            // TODO(scottwe): generalize to unnamed tuple return values.
-            throw runtime_error("Tuple return values must be named.");
+            // There are no collisions since variable names start with letters.
+            name = to_string(i);
         }
         name = VariableScopeResolver::rewrite(name, _instrumeneted, _context);
 

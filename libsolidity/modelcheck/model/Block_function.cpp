@@ -49,30 +49,43 @@ void FunctionBlockConverter::enter(
 	for (size_t i = 0; i < m_rvs.size(); ++i)
 	{
 		auto rv = m_rvs[i];
-		if (rv->name().empty()) continue;
-		_decls.record_declaration(*rv);
-		auto RV_TYPE = m_stack->types()->get_type(*rv);
-		auto RV_NAME = _decls.resolve_declaration(*rv);
-		auto RV_INIT = m_stack->types()->get_init_val(*rv);
-		bool const IS_REF = decl_is_ref(*rv);
-		auto decl = make_shared<CVarDecl>(RV_TYPE, RV_NAME, IS_REF, RV_INIT);
-		m_rv_decls.push_back(decl);
-		if (i == 0)
+		bool const IS_UNNAMED_RV = rv->name().empty();
+
+		string rv_name;
+		if (IS_UNNAMED_RV)
 		{
-			_stmts.push_back(decl);
+			rv_name = VariableScopeResolver::rewrite(
+				to_string(i), false, VarContext::FUNCTION
+			);
 		}
 		else
+		{
+			_decls.record_declaration(*rv);
+			rv_name = _decls.resolve_declaration(*rv);
+		}
+
+		string const RV_TYPE = m_stack->types()->get_type(*rv);
+		auto const RV_INIT = m_stack->types()->get_init_val(*rv);
+		bool const IS_REF = decl_is_ref(*rv);
+		
+		auto decl = make_shared<CVarDecl>(RV_TYPE, rv_name, IS_REF, RV_INIT);
+		m_rv_decls.push_back(decl);
+		if (i > 0)
 		{
 			auto deref_var = make_shared<CDereference>(decl->id());
 			auto assign_expr = make_shared<CBinaryOp>(deref_var, "=", RV_INIT);
 			_stmts.push_back(assign_expr->stmt());
+		}
+		else if (!IS_UNNAMED_RV)
+		{
+			_stmts.push_back(decl);
 		}
 	}
 }
 
 void FunctionBlockConverter::exit(CBlockList & _stmts, VariableScopeResolver &)
 {
-    if (!m_rv_decls.empty())
+    if (!m_rvs.empty() && (!m_rvs[0]->name().empty()))
     {
 		_stmts.push_back(make_shared<CReturn>(m_rv_decls[0]->id()));
     }
