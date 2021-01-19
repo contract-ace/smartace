@@ -118,7 +118,7 @@ string VariableScopeResolver::resolve_sym(string const& _sym) const
             return rewrite(_sym, shadow, VarContext::FUNCTION);
         }
     }
-    return "self->" + rewrite(_sym, shadow, VarContext::STRUCT);
+    return "self->" + rewrite(_sym, false, VarContext::STRUCT);
 }
 
 // -------------------------------------------------------------------------- //

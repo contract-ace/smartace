@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(shadow_scope)
 
     Identifier id1(langutil::SourceLocation(), make_shared<string>("var"));
     Identifier id2(langutil::SourceLocation(), make_shared<string>("a"));
-    BOOST_CHECK_EQUAL(resolver.resolve_identifier(id1), "self->model_var");
+    BOOST_CHECK_EQUAL(resolver.resolve_identifier(id1), "self->user_var");
     BOOST_CHECK_EQUAL(resolver.resolve_identifier(id2), "func_model_a");
 }
 
