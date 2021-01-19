@@ -93,7 +93,8 @@ void FunctionConverter::print(ostream& _stream)
         // Performs special handling of the fallback method.
         if (auto fallback = contract->fallback())
         {
-            handle_function(FunctionSpecialization(*fallback), "void", false);
+            FunctionSpecialization const SPECS(*fallback, *contract->raw());
+            handle_function(SPECS, "void", false);
         }
 
         // Prints all user-defined public methods.

@@ -45,6 +45,12 @@ Actor::Actor(
     {
         specs.emplace_back(*method, *contract->raw());
     }
+
+    // Analyzes fallback.
+    if (auto fallback = _contract->fallback())
+    {
+        specs.emplace_back(*fallback, *contract->raw());
+    }
 }
 
 // -------------------------------------------------------------------------- //

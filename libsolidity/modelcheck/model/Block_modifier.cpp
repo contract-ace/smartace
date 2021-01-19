@@ -71,7 +71,6 @@ size_t ModifierBlockConverter::Factory::len() const
 
 // -------------------------------------------------------------------------- //
 
-
 bool ModifierBlockConverter::Factory::empty() const
 {
     return m_filtered_mods.empty();

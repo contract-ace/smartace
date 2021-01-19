@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(basic_lookup)
 
     MapDeflate lookup;
 
-    BOOST_CHECK(lookup.resolve(*ctrt.stateVariables()[0]));
+    BOOST_CHECK(lookup.resolve(*ctrt.stateVariables()[0]) == nullptr);
     BOOST_CHECK_THROW(
         lookup.try_resolve(*ctrt.stateVariables()[0]),
         runtime_error
