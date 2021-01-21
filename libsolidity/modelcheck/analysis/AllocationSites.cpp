@@ -87,6 +87,23 @@ AllocationSummary::Visitor::Visitor(
     {
         throw runtime_error("AllocationSite analysis exceeded depth limit.");
     }
+
+    if (_context.isConstructor())
+    {
+        for (auto mod : _context.modifiers())
+        {
+            // TODO: unify with code in Block_function.
+            auto const DECL = mod->name()->annotation().referencedDeclaration;
+            if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
+            {
+                if (auto ctor = contract->constructor())
+                {
+                    ctor->accept(*this);
+                }
+            }
+        }
+    }
+
     _context.accept(*this);
 }
 
