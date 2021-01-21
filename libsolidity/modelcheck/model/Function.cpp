@@ -88,7 +88,7 @@ void FunctionConverter::print(ostream& _stream)
         }
 
         // Prints initializer.
-        handle_contract_initializer(*contract->raw(), *contract->raw());
+        handle_contract_initializer(*contract, contract->tree());
 
         // Performs special handling of the fallback method.
         if (auto fallback = contract->fallback())
@@ -192,6 +192,38 @@ CParams FunctionConverter::generate_params(
 
 // -------------------------------------------------------------------------- //
 
+void FunctionConverter::expand_default_init(
+    VariableDeclaration const* _decl,
+    CBlockList & _stmts,
+    shared_ptr<CIdentifier> _self
+) const
+{
+    auto const DECLKIND = _decl->annotation().type->category();
+    if (DECLKIND == Type::Category::Contract) return;
+
+    if (_decl->isConstant()) return;
+
+    auto const NAME = VariableScopeResolver::rewrite(
+            _decl->name(), false, VarContext::STRUCT
+    );
+
+    CExprPtr v0;
+    if (_decl->value())
+    {
+        v0 = ExpressionConverter(*_decl->value(), m_stack, {}).convert();
+        v0 = InitFunction::wrap(*_decl->type(), move(v0));
+    }
+    else
+    {
+        v0 = m_stack->types()->get_init_val(*_decl);
+    }
+
+    auto member = _self->access(NAME);
+    _stmts.push_back(member->assign(move(v0))->stmt());
+}
+
+// -------------------------------------------------------------------------- //
+
 void FunctionConverter::generate_mapping(Mapping const& _map)
 {
     if (M_VIEW == View::EXT) return;
@@ -235,13 +267,7 @@ void FunctionConverter::generate_structure(Structure const& _struct)
         zero_stmts.push_back(make_shared<CVarDecl>(STRUCT_T, "tmp"));
         for (auto field : _struct.fields())
         {
-            string const NAME = VariableScopeResolver::rewrite(
-                field->name(), false, VarContext::STRUCT
-            );
-
-            auto member = TMP->access(NAME);
-            auto init = m_stack->types()->get_init_val(*field);
-            zero_stmts.push_back(member->assign(move(init))->stmt());
+            expand_default_init(field.get(), zero_stmts, TMP);
         }
         zero_stmts.push_back(make_shared<CReturn>(TMP));
         zero_body = make_shared<CBlock>(move(zero_stmts));
@@ -335,81 +361,51 @@ void FunctionConverter::generate_function(FunctionSpecialization const& _spec)
 // -------------------------------------------------------------------------- //
 
 string FunctionConverter::handle_contract_initializer(
-    ContractDefinition const& _initialized, ContractDefinition const& _for
+    FlatContract const& _for, InheritanceTree const& _tree
 )
 {
-    InitFunction const INIT_DATA(*m_stack->types(), _initialized, _for);
+    InitFunction const INIT_DATA(*m_stack->types(), *_tree.raw(), *_for.raw());
     auto const NAME = INIT_DATA.call_name();
-    auto const* LOCAL_CTOR = _initialized.constructor();
 
     if (M_VIEW == View::INT) return NAME;
-    if (!m_visited.insert(make_pair(&_initialized, &_for)).second) return NAME;
+    if (!m_visited.insert(make_pair(_tree.raw(), &_for)).second) return NAME;
 
     CParams params;
     string ctor_name;
     {
         SolDeclList decls;
-        if (LOCAL_CTOR)
+        if (auto ctor = _tree.constructor())
         {
-            decls = LOCAL_CTOR->parameters();
-
             ctor_name = handle_function(
-                FunctionSpecialization(*LOCAL_CTOR, _for), "void", false
+                FunctionSpecialization(*ctor, *_for.raw()), "void", false
             );
+            decls = ctor->parameters();
         }
-        params = generate_params({}, decls, &_for, nullptr);
+        params = generate_params({}, decls, _for.raw(), nullptr);
     }
 
-    // TODO(scottwe): factour out this analysis into flat model.
     auto self_ptr = params[0]->id();
     vector<CFuncCallBuilder> parent_initializers;
-    for (auto spec : _initialized.baseContracts())
+    for (auto call_data : _tree.baseContracts())
     {
-        auto const* raw = spec->name().annotation().referencedDeclaration;
-        auto const& parent = dynamic_cast<ContractDefinition const&>(*raw);
+        auto call = handle_contract_initializer(_for, *call_data.parent);
 
-        if (parent.isInterface()) continue;
-
-        auto parent_call = handle_contract_initializer(parent, _for);
-
-        parent_initializers.emplace_back(parent_call);
+        parent_initializers.emplace_back(call);
         auto & builder = parent_initializers.back();
 
         builder.push(self_ptr);
         m_stack->environment()->compute_next_state_for(
             builder, false, true, nullptr
         );
-        if (LOCAL_CTOR)
+
+        if (auto ctor = call_data.parent->constructor())
         {
-            for (auto const CTOR_MOD : LOCAL_CTOR->modifiers())
+            VariableScopeResolver resolver(CodeType::INITBLOCK);
+            for (size_t i = 0; i < call_data.args.size(); ++i)
             {
-                auto const MOD_REF
-                    = CTOR_MOD->name()->annotation().referencedDeclaration;
-                if (MOD_REF->name() == parent.name())
-                {
-                    if (auto const* CARGS = CTOR_MOD->arguments())
-                    {
-                        auto const& PARGS = parent.constructor()->parameters();
-                        VariableScopeResolver resolver(CodeType::INITBLOCK);
-                        for (size_t i = 0; i < PARGS.size(); ++i)
-                        {
-                            auto const& V = *CARGS->at(i);
-                            auto const* T = PARGS[i]->annotation().type;
-                            builder.push(V, m_stack, resolver, false, T);
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-        if (spec->arguments())
-        {
-            for (size_t i = 0; i < spec->arguments()->size(); ++i)
-            {
-                auto const& arg = (*(*spec->arguments())[i]);
-                auto const& param = (*parent.constructor()->parameters()[i]);
-                auto const* type = param.annotation().type;
-                builder.push(arg, m_stack, {}, type);
+                auto const& V = *call_data.args.at(i);
+                auto const* T = ctor->parameters()[i]->annotation().type;
+                builder.push(V, m_stack, resolver, false, T);
             }
         }
     }
@@ -418,7 +414,7 @@ string FunctionConverter::handle_contract_initializer(
     if (!M_FWD_DCL)
     {
         CBlockList stmts;
-        if (&_initialized == &_for)
+        if (_tree.raw() == _for.raw())
         {
             auto const NAME = ContractUtilities::balance_member();
             auto const* TYPE = ContractUtilities::balance_type();
@@ -430,39 +426,18 @@ string FunctionConverter::handle_contract_initializer(
         {
             stmts.push_back(initializer.merge_and_pop_stmt());
         }
-        for (auto const* decl : _initialized.stateVariables())
+        for (auto const* decl : _tree.decls())
         {
-            auto const DECLKIND = decl->annotation().type->category();
-            if (DECLKIND == Type::Category::Contract) continue;
-
-            if (decl->isConstant()) continue;
-
-            auto const NAME = VariableScopeResolver::rewrite(
-                decl->name(), false, VarContext::STRUCT
-            );
-
-            CExprPtr v0;
-            if (decl->value())
-            {
-                v0 = ExpressionConverter(*decl->value(), m_stack, {}).convert();
-                v0 = InitFunction::wrap(*decl->type(), move(v0));
-            }
-            else
-            {
-                v0 = m_stack->types()->get_init_val(*decl);
-            }
-
-            auto member = self_ptr->access(NAME);
-            stmts.push_back(member->assign(move(v0))->stmt());
+            expand_default_init(decl, stmts, self_ptr);
         }
-        if (LOCAL_CTOR)
+        if (auto ctor = _tree.constructor())
         {
             CFuncCallBuilder builder(ctor_name);
             builder.push(self_ptr);
             m_stack->environment()->compute_next_state_for(
                 builder, false, true, nullptr
             );
-            for (auto decl : LOCAL_CTOR->parameters())
+            for (auto decl : ctor->parameters())
             {
                 auto const NAME = VariableScopeResolver::rewrite(
                     decl->name(), false, VarContext::STRUCT

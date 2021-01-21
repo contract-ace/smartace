@@ -20,8 +20,127 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
+InheritanceTree::InheritanceTree(ContractDefinition const& _contract)
+{
+    // Prepares map.
+    LinearData linear;
+    for (auto relative : _contract.annotation().linearizedBaseContracts)
+    {
+        linear[relative->name()]
+            = LinearRecord{ relative, (relative == &_contract) };
+    }
+
+    // Calls initializer.
+    initialize(linear, &_contract);
+}
+
+FunctionDefinition const* InheritanceTree::constructor() const
+{
+    return m_ctor;
+}
+
+vector<VariableDeclaration const*> const& InheritanceTree::decls() const
+{
+    return m_decls;
+}
+
+list<InheritanceTree::InheritedCall>
+const& InheritanceTree::baseContracts() const
+{
+    return m_calls;
+}
+
+ContractDefinition const* InheritanceTree::raw() const
+{
+    return m_raw;
+}
+
+InheritanceTree::InheritanceTree(
+    LinearData & _linear, ContractDefinition const* _contract
+)
+{
+    initialize(_linear, _contract);
+}
+
+void InheritanceTree::initialize(
+    LinearData & _linear, ContractDefinition const* _contract
+)
+{
+    // Sets variables.
+    m_raw = _contract;
+    m_ctor = _contract->constructor();
+    m_decls = _contract->stateVariables();
+
+    // Handles constructor calls (represented as modifiers).
+    // This happens if there is a constructor, and at least one base class.
+    if (_linear.size() > 1 && m_ctor)
+    {
+        auto const& MODS = m_ctor->modifiers();
+        if (!m_ctor->modifiers().empty())
+        {
+            // Modifier lookup.
+            for (auto mod : MODS)
+            {
+                auto REF = mod->name()->annotation().referencedDeclaration;
+                analyze_ancestor(_linear, mod->arguments(), *REF);
+            }
+        }
+    }
+
+    // Handles direct constructor calls.
+    for (auto parent : _contract->baseContracts())
+    {
+        auto REF = parent->name().annotation().referencedDeclaration;
+        analyze_ancestor(_linear, parent->arguments(), *REF);
+    }
+}
+
+void InheritanceTree::analyze_ancestor(
+    LinearData & _linear,
+    vector<ASTPointer<Expression>> const* _args,
+    Declaration const& _decl
+)
+{
+    auto itr = _linear.find(_decl.name());
+
+    // Ensure contract can be initialized.
+    if (itr->second.contract->isInterface()) return;
+    if (itr->second.visited) return;
+
+    // Checks if arguments are passed to contract.
+    if (!_args)
+    {
+        if (auto ctor = itr->second.contract->constructor())
+        {
+            if (!ctor->parameters().empty())
+            {
+                m_abstract = true;
+                return;
+            }
+        }
+    }
+
+    // Records visit.
+    itr->second.visited = true;
+
+    m_calls.emplace_back();
+
+    if (_args) m_calls.back().args = (*_args);
+
+    shared_ptr<InheritanceTree>
+        parent(new InheritanceTree(_linear, itr->second.contract));
+    m_calls.back().parent = move(parent);
+}
+
+bool InheritanceTree::is_abstract() const
+{
+    return m_abstract;
+}
+
+// -------------------------------------------------------------------------- //
+
 FlatContract::FlatContract(ContractDefinition const& _contract)
- : StructureContainer(_contract), m_fallback(nullptr)
+ : StructureContainer(_contract), m_tree(_contract)
 {
     MappingExtractor extractor;
 
@@ -110,6 +229,11 @@ FunctionDefinition const* FlatContract::fallback() const
     return m_fallback;
 }
 
+InheritanceTree const& FlatContract::tree() const
+{
+    return m_tree;
+}
+
 FunctionDefinition const&
     FlatContract::resolve(FunctionDefinition const& _func) const
 {
@@ -187,7 +311,9 @@ FlatModel::FlatModel(
     // Records the deployed contracts in the model.
     for (auto contract : _model)
     {
-        m_bundle.push_back(m_lookup[contract]);
+        auto flat = m_lookup[contract];
+        if (flat->tree().is_abstract()) continue;
+        m_bundle.push_back(flat);
     }
 }
 

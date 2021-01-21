@@ -1295,7 +1295,8 @@ void CommandLineInterface::handleCModel()
 			auto actors = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
 			for (auto actor : actors)
 			{
-				if (actor->isLibrary() || actor->isInterface()) continue;
+				if (actor->isLibrary()) continue;
+				if (actor->isInterface()) continue;
 				contract_names[actor->name()] = actor;
 			}
 		}
@@ -1323,10 +1324,9 @@ void CommandLineInterface::handleCModel()
 			major_actors.reserve(major_actors.size() + actors.size());
 			for (auto actor : actors)
 			{
-				if (!(actor->isInterface() || actor->isLibrary()))
-				{
-					major_actors.push_back(actor);
-				}
+				if (actor->isLibrary()) continue;
+				if (actor->isInterface()) continue;
+				major_actors.push_back(actor);
 			}
 		}
 	}

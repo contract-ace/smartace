@@ -27,6 +27,79 @@ class Structure;
 // -------------------------------------------------------------------------- //
 
 /**
+ * A tree that describes the order of constructor calls, and sub-class
+ * initialization. The tree corresponds to the linearized inheritance.
+ */
+class InheritanceTree
+{
+public:
+    //
+    struct InheritedCall
+    {
+        std::shared_ptr<InheritanceTree> parent;
+        std::vector<ASTPointer<Expression>> args;
+    };
+
+    //
+    InheritanceTree(ContractDefinition const& _contract);
+
+    //
+    FunctionDefinition const* constructor() const;
+
+    //
+    std::vector<VariableDeclaration const*> const& decls() const;
+
+    //
+    std::list<InheritedCall> const& baseContracts() const;
+
+    //
+    ContractDefinition const* raw() const;
+
+    //
+    bool is_abstract() const;
+
+protected:
+    // 
+    struct LinearRecord
+    {
+        ContractDefinition const* contract;
+        bool visited;
+    };
+    using LinearData = std::map<std::string, LinearRecord>;
+
+    //
+    InheritanceTree(LinearData & _linear, ContractDefinition const* _contract);
+
+private:
+    //
+    void initialize(LinearData & _linear, ContractDefinition const* _contract);
+
+    //
+    void analyze_ancestor(
+        LinearData & _linear,
+        std::vector<ASTPointer<Expression>> const* _args,
+        Declaration const& _decl
+    );
+
+    //
+    FunctionDefinition const* m_ctor;
+
+    //
+    std::vector<VariableDeclaration const*> m_decls;
+
+    //
+    std::list<InheritedCall> m_calls;
+
+    //
+    ContractDefinition const* m_raw;
+
+    //
+    bool m_abstract = false;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * Creates a flat interface around the contract.
  */
 class FlatContract : public StructureContainer
@@ -53,6 +126,9 @@ public:
     // Returns the fallback method.
     FunctionDefinition const* fallback() const;
 
+    // Returns the inheritance tree.
+    InheritanceTree const& tree() const;
+
     // Finds a method matching _func, or throws.
     FunctionDefinition const&
         resolve(FunctionDefinition const& _func) const;
@@ -69,7 +145,9 @@ private:
     VariableList m_vars;
 
     FunctionList m_constructors;
-    FunctionDefinition const* m_fallback;
+    FunctionDefinition const* m_fallback = nullptr;
+
+    InheritanceTree m_tree;
 
     std::list<Mapping const*> m_mappings;
 };

@@ -25,6 +25,7 @@ namespace modelcheck
 class AnalysisStack;
 class FlatContract;
 class FunctionSpecialization;
+class InheritanceTree;
 class NondetSourceRegistry;
 class Structure;
 
@@ -86,6 +87,13 @@ private:
 		bool _instrumeneted = false
 	);
 
+	//
+	void expand_default_init(
+		VariableDeclaration const* _decl,
+		CBlockList & _stmts,
+		std::shared_ptr<CIdentifier> _self
+	) const;
+
 	// Writes all utility methods associated with _map.
 	void generate_mapping(Mapping const& _map);
 
@@ -112,7 +120,7 @@ private:
 	// Recursively expands the hierarchy of initializations for _for, starting
 	// from base contract _initialized.
 	std::string handle_contract_initializer(
-    	ContractDefinition const& _initialized, ContractDefinition const& _for
+    	FlatContract const& _for, InheritanceTree const& _tree
 	);
 };
 
