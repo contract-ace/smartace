@@ -159,13 +159,23 @@ protected:
     void endVisit(FunctionCall const& _node) override;
 
 private:
+    struct Location
+    {
+        std::shared_ptr<FlatContract> entry;
+        std::shared_ptr<FlatContract> scope;
+    };
+
+    // Resolves the location for _func, assuming that _func was called from the
+    // current scope. Library calls are treated as no change in scope.
+    Location devirtualize(FunctionCallAnalyzer const& _func) const;
+
     std::shared_ptr<ContractExpressionAnalyzer const> m_expr_resolver;
     std::shared_ptr<FlatModel const> m_model;
 
     std::shared_ptr<Graph> m_graph;
 
     std::list<FunctionDefinition const*> m_stack;
-    std::list<std::shared_ptr<FlatContract>> m_scope;
+    std::list<Location> m_locations;
     std::set<CallTypes> m_labels;
 };
 

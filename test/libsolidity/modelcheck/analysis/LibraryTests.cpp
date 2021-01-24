@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(library)
     vector<ContractDefinition const*> model({ ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
-    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     auto call_graph = make_shared<CallGraph>(r, flat_model);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_EQUAL(flat_model->view().front()->interface().size(), 1);

@@ -1,5 +1,6 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
@@ -163,18 +164,6 @@ FunctionSpecialization::FunctionSpecialization(
     FunctionDefinition const& _def, ContractDefinition const& _for
 ): M_CALL(&_def), M_SRC(&get_scope(_def)), M_USER(&_for)
 {
-}
-
-unique_ptr<FunctionSpecialization> FunctionSpecialization::super() const
-{
-    if (auto superfunc = func().annotation().superFunction)
-    {
-        if (superfunc->isImplemented())
-        {
-            return make_unique<FunctionSpecialization>(*superfunc, use_by());
-        }
-    }
-    return nullptr;
 }
 
 string FunctionSpecialization::name(size_t _depth) const

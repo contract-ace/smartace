@@ -237,7 +237,14 @@ InheritanceTree const& FlatContract::tree() const
 FunctionDefinition const&
     FlatContract::resolve(FunctionDefinition const& _func) const
 {
-    if (_func.functionType(false))
+    if (_func.isFallback())
+    {
+        if (m_fallback)
+        {
+            return (*m_fallback);
+        }
+    }
+    else if (_func.functionType(false))
     {
         for (auto method : m_public)
         {
@@ -251,7 +258,12 @@ FunctionDefinition const&
             if (collid(_func, *method)) return (*method);
         }
     }
-    throw runtime_error("Could not resolve function against flat contract.");
+
+    string const FN = _func.name();
+    string const MSG1 = "Could not resolve function (";
+    string const MSG2 = ") against flat contract (";
+    string const MSG3 = ").";
+    throw runtime_error(MSG1 + FN + MSG2 + name() + MSG3);
 }
 
 list<Mapping const*> FlatContract::mappings() const
@@ -293,18 +305,34 @@ FlatModel::FlatModel(
 
     // Performs a second pass to add parents and children.
     auto processed = visited;
-    for (auto contract : processed)
+    for (auto raw_contract : processed)
     {
-        for (auto parent : contract->annotation().linearizedBaseContracts)
+        auto contract = m_lookup[raw_contract];
+
+        // Initializes all parents.
+        auto const& LBC = raw_contract->annotation().linearizedBaseContracts;
+        auto & ancestors = m_ancestors[contract.get()];
+        ancestors.reserve(LBC.size());
+        for (auto raw_parent : LBC)
         {
-            if (!visited.insert(parent).second) continue;
-            m_lookup[parent] = make_shared<FlatContract>(*parent);
+            shared_ptr<FlatContract> parent;
+            if (visited.insert(raw_parent).second)
+            {
+                parent = make_shared<FlatContract>(*raw_parent);
+                m_lookup[raw_parent] = parent;
+            }
+            else
+            {
+                parent = m_lookup[raw_parent];
+            }
+            ancestors.push_back(parent);
         }
 
-        for (auto child : _allocation_graph.children_of(contract))
+        // Associates all parents to their children.
+        for (auto child : _allocation_graph.children_of(raw_contract))
         {
             ChildRecord record{m_lookup[child.type], child.dest->name()};
-            m_children[m_lookup[contract].get()].push_back(std::move(record));
+            m_children[contract.get()].push_back(std::move(record));
         }
     }
 
@@ -340,6 +368,24 @@ std::vector<FlatModel::ChildRecord>
         return match->second;
     }
     return {};
+}
+
+shared_ptr<FlatContract> FlatModel::next_ancestor(
+    FlatContract const& _contract, FlatContract const& _ancestor
+) const
+{
+    auto match = m_ancestors.find(&_contract);
+    if (match != m_ancestors.end())
+    {
+        for (size_t i = 0; i < match->second.size() - 1; ++i)
+        {
+            if (match->second[i].get() == (&_ancestor))
+            {
+                return match->second[i + 1];
+            }
+        }
+    }
+    return nullptr;
 }
 
 // -------------------------------------------------------------------------- //

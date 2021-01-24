@@ -33,33 +33,34 @@ class Structure;
 class InheritanceTree
 {
 public:
-    //
+    // A constructor invocation, and the corresponding arguments.
     struct InheritedCall
     {
         std::shared_ptr<InheritanceTree> parent;
         std::vector<ASTPointer<Expression>> args;
     };
 
-    //
+    // Expands the constructor calls from _contract into a tee.
     InheritanceTree(ContractDefinition const& _contract);
 
-    //
+    // Returns the constructor for this contract, if defined.
     FunctionDefinition const* constructor() const;
 
-    //
+    // Returns all variables initialized at this level.
     std::vector<VariableDeclaration const*> const& decls() const;
 
-    //
+    // Returns all ancestors initialized from this level, in order from least
+    // derived to most derived.
     std::list<InheritedCall> const& baseContracts() const;
 
-    //
+    // TODO: Deprecate.
     ContractDefinition const* raw() const;
 
-    //
+    // If true, this contract cannot construct one of its base classes.
     bool is_abstract() const;
 
 protected:
-    // 
+    // A record used to track the contracts initialized so far.
     struct LinearRecord
     {
         ContractDefinition const* contract;
@@ -67,33 +68,28 @@ protected:
     };
     using LinearData = std::map<std::string, LinearRecord>;
 
-    //
+    // Recursive ctor. to enable the sharing of _linear.
     InheritanceTree(LinearData & _linear, ContractDefinition const* _contract);
 
 private:
-    //
+    // Work-around since the public ctor. cannot delegate to the protected ctor.
     void initialize(LinearData & _linear, ContractDefinition const* _contract);
 
-    //
+    // Constructs the ancestor specified by _decl, if not visited in _linear.
     void analyze_ancestor(
         LinearData & _linear,
         std::vector<ASTPointer<Expression>> const* _args,
         Declaration const& _decl
     );
 
-    //
     FunctionDefinition const* m_ctor;
 
-    //
     std::vector<VariableDeclaration const*> m_decls;
 
-    //
     std::list<InheritedCall> m_calls;
 
-    //
     ContractDefinition const* m_raw;
 
-    //
     bool m_abstract = false;
 };
 
@@ -185,14 +181,21 @@ public:
     // Returns nullptr on failure.
     std::shared_ptr<FlatContract> get(ContractDefinition const& _src) const;
 
-    // Retrieves the children of the contract.
+    // Retrieves the children of _contract.
+    // TODO: This name is misleading. This is not inheritance.
     std::vector<ChildRecord> children_of(FlatContract const& _contract) const;
+
+    // Retrieves the ancestor of _contract that precedes _ancestor .
+    std::shared_ptr<FlatContract> next_ancestor(
+        FlatContract const& _contract, FlatContract const& _ancestor
+    ) const;
 
 private:
     FlatList m_contracts;
     FlatList m_bundle;
     std::map<ContractDefinition const*, std::shared_ptr<FlatContract>> m_lookup;
     std::map<FlatContract const*, std::vector<ChildRecord>> m_children;
+    std::map<FlatContract const*, FlatList> m_ancestors;
 };
 
 // -------------------------------------------------------------------------- //

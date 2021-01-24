@@ -33,7 +33,7 @@ map<string, string> const TypeAnalyzer::m_global_context_types({
     {"sha3", ""/*TODO(scottwe): byte32*/}, {"suicide", "void"}
 });
 
-set<string> const TypeAnalyzer::m_global_context_simple_values({"now"});
+set<string> const TypeAnalyzer::m_global_simple_values({"now"});
 
 // -------------------------------------------------------------------------- //
 
@@ -367,8 +367,8 @@ void TypeAnalyzer::endVisit(Identifier const& _node)
         m_type_lookup.insert({&_node, MAGIC_RES->second});
         m_in_storage.insert({&_node, false});
 
-        auto const MAGIC_SIMP = m_global_context_simple_values.find(NODE_NAME);
-        if (MAGIC_SIMP != m_global_context_simple_values.end())
+        auto const MAGIC_SIMPLE = m_global_simple_values.find(NODE_NAME);
+        if (MAGIC_SIMPLE != m_global_simple_values.end())
         {
             m_name_lookup.insert({&_node, NODE_NAME});
         }

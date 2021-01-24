@@ -69,19 +69,21 @@ BOOST_AUTO_TEST_CASE(end_to_end)
     }
 
     BOOST_CHECK_NE(stack->model().get(), nullptr);
+    shared_ptr<FlatContract> flat;
     if (stack->model())
     {
         BOOST_CHECK_EQUAL(stack->model()->bundle().size(), 2);
+        flat = stack->model()->get(*ctrt);
     }
 
     BOOST_CHECK_NE(stack->contracts().get(), nullptr);
-    if (stack->contracts())
+    if (stack->contracts() && flat)
     {
         auto stmt = ctrt->definedFunctions()[0]->body().statements()[0];
         auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
         auto assign = dynamic_cast<Assignment const*>(&expr_stmt->expression());
         auto id = (&assign->leftHandSide());
-        BOOST_CHECK_EQUAL(stack->contracts()->resolve(*id, ctrt).name(), "X");
+        BOOST_CHECK_EQUAL(stack->contracts()->resolve(*id, flat)->name(), "X");
     }
 
     BOOST_CHECK_NE(stack->calls().get(), nullptr);

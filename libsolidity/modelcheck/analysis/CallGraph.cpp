@@ -18,48 +18,6 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-shared_ptr<FlatContract> devirtualize(
-    shared_ptr<FlatContract> _scope,
-    ContractExpressionAnalyzer const& _expr_resolver,
-    FlatModel const& _model,
-    FunctionCallAnalyzer const& _func
-)
-{
-    shared_ptr<FlatContract> scope;
-
-    // Best effort to devirtualize.
-    auto ctx = _func.context();
-    if (_func.is_in_library())
-    {
-        scope = _scope;
-    }
-    else if (_func.is_super())
-    {
-        auto new_scope = _func.method_decl().scope();
-        auto context = dynamic_cast<ContractDefinition const*>(new_scope);
-        scope = _model.get(*context);
-    }
-    else if (ctx && !_func.context_is_this())
-    {
-        auto const& context = _expr_resolver.resolve(*ctx, _scope->raw());
-        scope = _model.get(context);
-    }
-    else
-    {
-        scope = _scope;
-    }
-
-    // Failed to devirtualize.
-    if (!scope)
-    {
-        throw runtime_error("Failed to devirtualize external call.");
-    }
-
-    return scope;
-}
-
-// -------------------------------------------------------------------------- //
-
 CallGraphBuilder::CallGraphBuilder(
     shared_ptr<ContractExpressionAnalyzer const> _expr_resolver
 ): m_expr_resolver(_expr_resolver) {}
@@ -72,12 +30,19 @@ shared_ptr<CallGraphBuilder::Graph>
     m_graph = make_shared<CallGraphBuilder::Graph>();
     for (auto contract : _model->view())
     {
-        m_scope.push_back(contract);
+        m_locations.emplace_back(Location{ contract, contract });
 
         // All public interfaces all explored in the model.
         for (auto func : contract->interface())
         {
+            auto scope = dynamic_cast<ContractDefinition const*>(func->scope());
+            m_locations.emplace_back();
+            m_locations.back().entry = contract;
+            m_locations.back().scope = m_model->get(*scope);
+
             func->accept(*this);
+
+            m_locations.pop_back();
         }
 
         // All constructors are called at least once, implicitly.
@@ -92,7 +57,7 @@ shared_ptr<CallGraphBuilder::Graph>
             fallback->accept(*this);
         }
 
-        m_scope.pop_back();
+        m_locations.pop_back();
     }
     return std::move(m_graph);
 }
@@ -136,7 +101,7 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
     if (call.is_low_level()) return;
 
     // Otherwise checks if this is a contract method call.
-    shared_ptr<FlatContract> scope;
+    Location loc;
     FunctionDefinition const* resolution = nullptr;
     m_labels.clear();
     if (call.is_in_library())
@@ -154,28 +119,26 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
             {
                 m_labels = { CallTypes::External };
             }
-
-            // Resolves the function using the scope of this call.
-            scope = devirtualize(m_scope.back(), *m_expr_resolver, *m_model, call);
-            resolution = (&scope->resolve(call.method_decl()));
-
-            // If this is a super call, the scope really shouldn't change.
             if (call.is_super())
             {
                 m_labels = { CallTypes::Super };
-                scope = m_scope.back();
             }
+
+            // Resolves the function using the scope of this call.
+            loc = devirtualize(call);
+            resolution = (&loc.scope->resolve(call.method_decl()));
         }
     }
     else if (call.classify() == FunctionCallAnalyzer::CallGroup::Constructor)
     {
         auto raw_type = _node.annotation().type;
-        auto contract = dynamic_cast<ContractType const*>(raw_type);
-        scope = m_model->get(contract->contractDefinition());
-        if (!scope->constructors().empty())
+        auto contract_type = dynamic_cast<ContractType const*>(raw_type);
+        loc.entry = m_model->get(contract_type->contractDefinition());
+        loc.scope = loc.entry;
+        if (!loc.scope->constructors().empty())
         {
             m_labels = { CallTypes::Alloc };
-            resolution = scope->constructors().front();
+            resolution = loc.scope->constructors().front();
         }
     }
     else if (call.classify() == FunctionCallAnalyzer::CallGroup::Delegate)
@@ -186,10 +149,59 @@ void CallGraphBuilder::endVisit(FunctionCall const& _node)
     // Follows the call, if it was resolved
     if (resolution)
     {
-        m_scope.push_back(scope);
+        m_locations.push_back(std::move(loc));
         resolution->accept(*this);
-        m_scope.pop_back();
+        m_locations.pop_back();
     }
+}
+
+CallGraphBuilder::Location
+    CallGraphBuilder::devirtualize(FunctionCallAnalyzer const& _func) const
+{
+    // The library case bypasses most checks.
+    Location new_loc;
+    Location const& old_loc = m_locations.back();
+    if (_func.is_in_library())
+    {
+        new_loc.entry = old_loc.entry;
+        new_loc.scope = old_loc.entry;
+        return new_loc;
+    }
+
+    // Best effort to follow super calls and external calls.
+    auto ctx = _func.context();
+    if (_func.is_super())
+    {
+        // The super call must be resolved manually due to diamond inheritance.
+        auto parent = m_model->next_ancestor(*old_loc.entry, *old_loc.scope);
+        auto const& superfunc = parent->resolve(_func.method_decl());
+        auto context = dynamic_cast<ContractDefinition const*>(superfunc.scope());
+        new_loc.entry = old_loc.entry;
+        new_loc.scope = m_model->get(*context);
+    }
+    else
+    {
+        // Determines if the entry context changes..
+        auto context = old_loc.entry;
+        if (ctx && !_func.context_is_this())
+        {
+            context = m_expr_resolver->resolve(*ctx, context);
+        }
+
+        // If this is not a super call, then the "scope" resets.
+        auto const& actual = context->resolve(_func.method_decl());
+        auto scope = dynamic_cast<ContractDefinition const*>(actual.scope());
+        new_loc.entry = context;
+        new_loc.scope = m_model->get(*scope);
+    }
+
+    // Failed to devirtualize.
+    if (!new_loc.entry || !new_loc.scope)
+    {
+        throw runtime_error("Failed to devirtualize external call.");
+    }
+
+    return new_loc;
 }
 
 // -------------------------------------------------------------------------- //
@@ -221,9 +233,8 @@ CallGraph::CodeSet CallGraph::internals(FlatContract const& _scope) const
 
     // TODO: precompute.
     set<FunctionDefinition const*> visited;
-    for (auto itr = functions.begin(); itr != functions.end(); ++itr)
+    for (auto func : functions)
     {
-        FunctionDefinition const* func = (*itr);
         if (!visited.insert(func).second) continue;
 
         if (!func->functionType(false)) methods.insert(func);
@@ -262,9 +273,8 @@ CallGraph::CodeSet CallGraph::super_calls(
 
     // TODO: precompute.
     set<FunctionDefinition const*> visited;
-    for (auto itr = functions.begin(); itr != functions.end(); ++itr)
+    for (auto func : functions)
     {
-        FunctionDefinition const* func = (*itr);
         if (!visited.insert(func).second) continue;
 
         if (collid(_call, *func)) chain.insert(func);

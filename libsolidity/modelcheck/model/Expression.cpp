@@ -4,6 +4,7 @@
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
@@ -738,20 +739,26 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	bool is_ext_call = (!_calldata.is_super() && _calldata.context());
 	if (_calldata.is_super())
 	{
-		call = FunctionSpecialization(call.func(), M_DECLS.spec()->use_by());
+		// TODO: all should be flat model.
+		auto ancestor = m_stack->model()->next_ancestor(
+			*m_stack->model()->get(M_DECLS.spec()->use_by()),
+			*m_stack->model()->get(M_DECLS.spec()->source())
+		);
+		call = FunctionSpecialization(
+			ancestor->resolve(call.func()), M_DECLS.spec()->use_by()
+		);
 	}
 	else if (!_calldata.is_in_library())
 	{
 		// If the context is not an LValue, then the context is "this".
-		auto user = (&M_DECLS.spec()->use_by());
+		auto user = m_stack->model()->get(M_DECLS.spec()->use_by());
 		if (is_ext_call && !_calldata.context_is_this())
 		{
-			user = (&m_stack->contracts()->resolve(*_calldata.context(), user));
+			user = m_stack->contracts()->resolve(*_calldata.context(), user);
 		}
 
-		string const& target = call.func().name();
-		auto match = find_named_match<FunctionDefinition>(user, target);
-		call = FunctionSpecialization(*match, *user);
+		auto const& match = user->resolve(call.func());
+		call = FunctionSpecialization(match, *user->raw());
 	}
 
 	// Determines if method must produce return value by reference.

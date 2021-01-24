@@ -67,7 +67,7 @@ ContractExprAnalysis::ContractExprAnalysis(InheritanceModel const& _model)
  : InheritanceAnalysis(_model)
 {
 	m_contracts
-		= make_shared<ContractExpressionAnalyzer>(*model(), allocations());
+		= make_shared<ContractExpressionAnalyzer>(model(), allocations());
 }
 
 shared_ptr<ContractExpressionAnalyzer const>

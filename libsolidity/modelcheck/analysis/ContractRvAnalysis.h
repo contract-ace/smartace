@@ -30,7 +30,8 @@ public:
     // Given _func returns a contract reference, this analyzer will aggregate
     // all possible return values for _func in contract _src.
     ContractRvAnalyzer(
-        ContractDefinition const& _src,
+        std::shared_ptr<FlatContract> _src,
+        std::shared_ptr<FlatModel const> _model,
         std::shared_ptr<AllocationGraph const> _allocation_graph,
         FunctionDefinition const& _func
     );
@@ -38,18 +39,19 @@ public:
     // Given _func is a library method which returns a contract, this analyzer
     // will aggregate all possible return values for _func.
     ContractRvAnalyzer(
+        std::shared_ptr<FlatModel const> _model,
         std::shared_ptr<AllocationGraph const> _allocation_graph,
         FunctionDefinition const& _func
     );
 
     // Produces a union of all types returned by reference.
-    std::set<ContractDefinition const*> internals() const;
+    std::set<std::shared_ptr<FlatContract>> internals() const;
 
-    // Produces a union of all types which reference arbitrary addresses.
-    std::set<ContractDefinition const*> externals() const;
+    // Produces a union of all types that reference arbitrary addresses.
+    std::set<std::shared_ptr<FlatContract>> externals() const;
 
     // A list of external calls which can be returned by the method.
-    using Key = std::pair<ContractDefinition const*, FunctionDefinition const*>;
+    using Key = std::pair<std::shared_ptr<FlatContract>, FunctionDefinition const*>;
     std::set<Key> dependencies() const;
 
 protected:
@@ -65,15 +67,18 @@ protected:
 	bool visit(Identifier const& _node) override;
 
 private:
-    std::set<ContractDefinition const*> m_internal_refs;
-    std::set<ContractDefinition const*> m_external_refs;
+    std::set<std::shared_ptr<FlatContract>> m_internal_refs;
+    std::set<std::shared_ptr<FlatContract>> m_external_refs;
     std::set<Key> m_procedural_calls;
 
-    ContractDefinition const* m_src;
+    std::shared_ptr<FlatContract> m_src;
 
-    bool m_is_in_return;
+    bool m_is_in_return = false;
 
+    std::shared_ptr<FlatModel const> m_model;
     std::shared_ptr<AllocationGraph const> m_allocation_graph;
+
+    FunctionDefinition const& m_func;
 
     // Assumes _ref is the current AST node. If _ref is a feasible return value
     // it is registered as a potential return type.
@@ -88,7 +93,7 @@ public:
     // Extracts the true return value for each contract typed method in _model,
     // using the allocation records in _allocation_graph. 
     ContractRvLookup(
-        FlatModel const& _model,
+        std::shared_ptr<FlatModel const> _model,
         std::shared_ptr<AllocationGraph const> _allocation_graph
     );
 
@@ -96,10 +101,12 @@ public:
     std::map<Key, std::shared_ptr<ContractRvAnalyzer>> registry;
 
 private:
+    std::shared_ptr<FlatModel const> m_model;
     std::shared_ptr<AllocationGraph const> m_allocation_graph;
 
     //
-    Key record(FlatContract const& _src, FunctionDefinition const& _func);
+    Key
+    record(std::shared_ptr<FlatContract> _src, FunctionDefinition const& _func);
 
     //
     bool check_method_rv(FunctionDefinition const& _func);
@@ -118,7 +125,7 @@ public:
     // Extracts the true return value for each contract typed method in _model,
     // using the allocation records in _allocation_graph. 
     ContractExpressionAnalyzer(
-        FlatModel const& _model,
+        std::shared_ptr<FlatModel const> _model,
         std::shared_ptr<AllocationGraph const> _allocation_graph
     );
 
@@ -130,14 +137,14 @@ public:
     // _ctx.
     //
     // Valid types for _expr include MemberAccess, Identifier, and FunctionCall.
-    ContractDefinition const& resolve(
-        Expression const& _expr, ContractDefinition const* _ctx
-    ) const;
+    std::shared_ptr<FlatContract>
+    resolve(Expression const& _expr, std::shared_ptr<FlatContract> _ctx) const;
 
 private:
+    std::shared_ptr<FlatModel const> m_model;
     std::shared_ptr<AllocationGraph const> m_allocation_graph;
 
-    std::map<ContractRvLookup::Key, ContractDefinition const*> m_rv_types;
+    std::map<ContractRvLookup::Key, std::shared_ptr<FlatContract>> m_rv_types;
 };
 
 // -------------------------------------------------------------------------- //

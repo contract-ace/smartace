@@ -2,6 +2,7 @@
 
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/utils/AST.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
 
 #include <stdexcept>
@@ -88,11 +89,11 @@ AllocationSummary::Visitor::Visitor(
         throw runtime_error("AllocationSite analysis exceeded depth limit.");
     }
 
+    // TODO: move InheritanceTree higher, and then replace this.
     if (_context.isConstructor())
     {
         for (auto mod : _context.modifiers())
         {
-            // TODO: unify with code in Block_function.
             auto const DECL = mod->name()->annotation().referencedDeclaration;
             if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
             {
@@ -127,9 +128,37 @@ bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
             else if (call.is_super() || call.is_in_library() || !call.context())
             {
                 // Case: Internal method call.
-                auto match = (&call.method_decl());
-                if (!call.is_super() && !call.is_in_library())
+                FunctionDefinition const& request = call.method_decl();
+                FunctionDefinition const* match = nullptr;
+                if (call.is_super())
                 {
+                    // TODO: Could this be factored out, and reused?
+                    auto const& LBC = m_src.annotation().linearizedBaseContracts;
+                    size_t i;
+                    for (i = 0; i < LBC.size(); ++i)
+                    {
+                        if (LBC[i] == m_context.scope()) break;
+                    }
+                    for (i = i + 1; i < LBC.size(); ++i)
+                    {
+                        for (auto candidate : LBC[i]->definedFunctions())
+                        {
+                            if (collid(request, *candidate))
+                            {
+                                match = candidate;
+                                break;
+                            }
+                        }
+                        if (match) break;
+                    }
+                }
+                else if (call.is_in_library())
+                {
+                    match = (&request);
+                }
+                else
+                {
+                    // TODO: Factor out?
                     string const& name = call.method_decl().name();
                     match = find_named_match<FunctionDefinition>(&m_src, name);
                 }

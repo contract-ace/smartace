@@ -84,7 +84,7 @@ private:
     // m_global_context_types provides a basic mapping from name to type. If the
     // value is simple (has no "name"), it is in m_global_context_simple_values.
     static std::map<std::string, std::string> const m_global_context_types;
-    static std::set<std::string> const m_global_context_simple_values;
+    static std::set<std::string> const m_global_simple_values;
 
     MapDeflate m_map_db;
 

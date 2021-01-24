@@ -18,28 +18,30 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 ContractRvAnalyzer::ContractRvAnalyzer(
-    ContractDefinition const& _src,
+    shared_ptr<FlatContract> _src,
+    shared_ptr<FlatModel const> _model,
     shared_ptr<AllocationGraph const> _allocation_graph,
     FunctionDefinition const& _func
-): m_src(&_src), m_allocation_graph(_allocation_graph)
+): m_src(_src),
+   m_model(_model),
+   m_allocation_graph(_allocation_graph),
+   m_func(_func)
 {
     _func.body().accept(*this);
 }
 
 ContractRvAnalyzer::ContractRvAnalyzer(
+    shared_ptr<FlatModel const> _model,
     shared_ptr<AllocationGraph const> _allocation_graph,
     FunctionDefinition const& _func
-): m_src(nullptr), m_allocation_graph(_allocation_graph)
-{
-    _func.body().accept(*this);
-}
+): ContractRvAnalyzer(nullptr, _model, _allocation_graph, _func) {}
 
-set<ContractDefinition const*> ContractRvAnalyzer::internals() const
+set<shared_ptr<FlatContract>> ContractRvAnalyzer::internals() const
 {
     return m_internal_refs;
 }
 
-set<ContractDefinition const*> ContractRvAnalyzer::externals() const
+set<shared_ptr<FlatContract>> ContractRvAnalyzer::externals() const
 {
     return m_external_refs;
 }
@@ -110,7 +112,12 @@ bool ContractRvAnalyzer::visit(FunctionCall const& _node)
         {
             if (call.is_super())
             {
-                m_procedural_calls.insert(make_pair(m_src, &call.method_decl()));
+                auto scope = m_model->get(
+                    dynamic_cast<ContractDefinition const&>(*m_func.scope())
+                );
+                auto ancestor = m_model->next_ancestor(*m_src, *scope);
+                auto const& supercall = ancestor->resolve(call.method_decl());
+                m_procedural_calls.insert(make_pair(m_src, &supercall));
             }
             else
             {
@@ -138,11 +145,14 @@ bool ContractRvAnalyzer::visit(FunctionCall const& _node)
                     {
                         throw runtime_error("State var needed for contract rv");
                     }
-                    user = (&m_allocation_graph->specialize(*decl));
+                    user = (m_model->get(m_allocation_graph->specialize(*decl)));
                 }
 
-                string const& name = call.method_decl().name();
-                auto match = find_named_match<FunctionDefinition>(user, name);
+                FunctionDefinition const* match = (&call.method_decl());
+                if (!call.is_in_library())
+                {
+                    match = (&user->resolve(*match));
+                }
                 m_procedural_calls.insert(make_pair(user, match));
             }
         }
@@ -159,7 +169,7 @@ bool ContractRvAnalyzer::visit(FunctionCall const& _node)
     {
         auto type = _node.annotation().type;
         auto contract = dynamic_cast<ContractType const*>(type);
-        m_external_refs.insert(&contract->contractDefinition());
+        m_external_refs.insert(m_model->get(contract->contractDefinition()));
     }
 
     return false;
@@ -192,7 +202,8 @@ void ContractRvAnalyzer::record_ref(Expression const& _ref)
     {
         if (auto decl = expr_to_decl(_ref))
         {
-            m_internal_refs.insert(&m_allocation_graph->specialize(*decl));
+            auto const& specialization = m_allocation_graph->specialize(*decl);
+            m_internal_refs.insert(m_model->get(specialization));
         }
     }
 }
@@ -200,57 +211,55 @@ void ContractRvAnalyzer::record_ref(Expression const& _ref)
 // -------------------------------------------------------------------------- //
 
 ContractRvLookup::ContractRvLookup(
-    FlatModel const& _model, shared_ptr<AllocationGraph const> _allocation_graph
-): m_allocation_graph(_allocation_graph)
+    shared_ptr<FlatModel const> _model,
+    shared_ptr<AllocationGraph const> _allocation_graph
+): m_model(_model), m_allocation_graph(_allocation_graph)
 {
     // First, the contract methods used by the model are recorded.
     set<Key> seen;
-    for (auto contract : _model.view())
+    for (auto contract : _model->view())
     {
         for (auto func : contract->interface())
         {
             if (check_method_rv(*func))
             {
-                seen.insert(record(*contract, *func));
+                seen.insert(record(contract, *func));
             }
         }
         for (auto func : contract->internals())
         {
             if (check_method_rv(*func))
             {
-                seen.insert(record(*contract, *func));
+                seen.insert(record(contract, *func));
             }
         }
     }
     list<Key> pending(seen.begin(), seen.end());
 
-    // Next, the required libraries are analyzed and added.
+    // Next, the required libraries and nested supercalls are analyzed and added.
     for (auto key : pending)
     {
         auto record = registry[key];
         for (auto dep : record->dependencies())
         {
-            if (dep.first == nullptr)
+            if (seen.insert(dep).second)
             {
-                if (seen.insert(dep).second)
-                {
-                    registry[dep] = make_shared<ContractRvAnalyzer>(
-                        m_allocation_graph, *key.second
-                    );
-                    pending.push_back(dep);
-                }
+                registry[dep] = make_shared<ContractRvAnalyzer>(
+                    key.first, m_model, m_allocation_graph, *key.second
+                );
+                pending.push_back(dep);
             }
         }
     }
 }
 
 ContractRvLookup::Key ContractRvLookup::record(
-    FlatContract const& _src, FunctionDefinition const& _func
+    shared_ptr<FlatContract> _src, FunctionDefinition const& _func
 )
 {
-    auto key = make_pair(_src.raw(), &_func);
+    auto key = make_pair(_src, &_func);
     registry[key] = make_shared<ContractRvAnalyzer>(
-        *_src.raw(), m_allocation_graph, _func
+        _src, m_model, m_allocation_graph, _func
     );
     return key;
 }
@@ -273,8 +282,9 @@ bool ContractRvLookup::check_method_rv(FunctionDefinition const& _func)
 // -------------------------------------------------------------------------- //
 
 ContractExpressionAnalyzer::ContractExpressionAnalyzer(
-    FlatModel const& _model, shared_ptr<AllocationGraph const> _allocation_graph
-): m_allocation_graph(_allocation_graph)
+    shared_ptr<FlatModel const> _model,
+    shared_ptr<AllocationGraph const> _allocation_graph
+): m_model(_model), m_allocation_graph(_allocation_graph)
 {
     ContractRvLookup lookup(_model, _allocation_graph);
     for (auto entry : lookup.registry)
@@ -287,8 +297,8 @@ ContractExpressionAnalyzer::ContractExpressionAnalyzer(
         seen.insert(entry.first);
 
         // Aggregates all internals and externals across all dependencies.
-        set<ContractDefinition const*> internal = src.internals();
-        set<ContractDefinition const*> external = src.externals();
+        set<shared_ptr<FlatContract>> internal = src.internals();
+        set<shared_ptr<FlatContract>> external = src.externals();
         for (auto key : pending)
         {
             if (seen.insert(key).second)
@@ -318,15 +328,17 @@ ContractExpressionAnalyzer::ContractExpressionAnalyzer(
     }
 }
 
-ContractDefinition const& ContractExpressionAnalyzer::resolve(
-    Expression const& _expr, ContractDefinition const* _ctx
+shared_ptr<FlatContract> ContractExpressionAnalyzer::resolve(
+    Expression const& _expr, shared_ptr<FlatContract> _ctx
 ) const
 {
     // Ensures the type matches the request.
     auto type = _expr.annotation().type;
     if (type->category() != Type::Category::Contract)
     {
-        throw runtime_error("Resolve must be called on a contract typed expr.");
+        auto const EXPR = get_ast_string(&_expr);
+        auto const MSG = "Resolve canned on non-contract type expression: ";
+        throw runtime_error(MSG + EXPR);
     }
 
     // Functions are handled differently.
@@ -343,16 +355,20 @@ ContractDefinition const& ContractExpressionAnalyzer::resolve(
         }
         else if (calldata.context() && !calldata.context_is_this())
         {
-            key.first = (&resolve(*calldata.context(), _ctx));
+            key.first = resolve(*calldata.context(), _ctx);
         }
 
         // Resolves the key.
         auto match =  m_rv_types.find(key);
         if (match == m_rv_types.end())
         {
-            throw runtime_error("Unable to resolve rv type of call");
+            auto const CTX = _ctx->name();
+            auto const EXPR = get_ast_string(&_expr);
+            auto const MSG1 = "Unable to resolve the following rv (contract ";
+            auto const MSG2 = "): ";
+            throw runtime_error(MSG1 + CTX + MSG2 + EXPR);
         }
-        return (*match->second);
+        return match->second;
     }
     else
     {
@@ -361,7 +377,8 @@ ContractDefinition const& ContractExpressionAnalyzer::resolve(
         {
             throw runtime_error("Unable to resolve expression to decl.");
         }
-        return m_allocation_graph->specialize(*decl);
+        
+        return m_model->get(m_allocation_graph->specialize(*decl));
     }
 }
 

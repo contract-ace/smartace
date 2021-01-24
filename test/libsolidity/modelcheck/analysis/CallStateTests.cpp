@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(add_to_primitives)
     vector<ContractDefinition const*> model({ ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
-    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
 
     CallState call_state(call_graph, false);
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     vector<ContractDefinition const*> model_a({ ctrt_a });
     auto alloc_graph_a = make_shared<AllocationGraph>(model_a);
     auto flat_model_a = make_shared<FlatModel>(model_a, *alloc_graph_a);
-    auto r_a = make_shared<ContractExpressionAnalyzer>(*flat_model_a, alloc_graph_a);
+    auto r_a = make_shared<ContractExpressionAnalyzer>(flat_model_a, alloc_graph_a);
     CallGraph call_graph_a(r_a, flat_model_a);
     CallState call_state_a(call_graph_a, false);
     BOOST_CHECK(!call_state_a.uses_pay());
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     vector<ContractDefinition const*> model_b({ ctrt_b });
     auto alloc_graph_b = make_shared<AllocationGraph>(model_b);
     auto flat_model_b = make_shared<FlatModel>(model_b, *alloc_graph_b);
-    auto r_b = make_shared<ContractExpressionAnalyzer>(*flat_model_b, alloc_graph_b);
+    auto r_b = make_shared<ContractExpressionAnalyzer>(flat_model_b, alloc_graph_b);
     CallGraph call_graph_b(r_b, flat_model_b);
     CallState call_state_b(call_graph_b, false);
     BOOST_CHECK(!call_state_b.uses_pay());
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     vector<ContractDefinition const*> model_c({ ctrt_c });
     auto alloc_graph_c = make_shared<AllocationGraph>(model_c);
     auto flat_model_c = make_shared<FlatModel>(model_c, *alloc_graph_c);
-    auto r_c = make_shared<ContractExpressionAnalyzer>(*flat_model_c, alloc_graph_c);
+    auto r_c = make_shared<ContractExpressionAnalyzer>(flat_model_c, alloc_graph_c);
     CallGraph call_graph_c(r_a, flat_model_c);
     CallState call_state_c(call_graph_c, false);
     BOOST_CHECK(call_state_c.uses_pay());
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(escalate_reqs)
     vector<ContractDefinition const*> model({ ctrt_x });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
-    auto r = make_shared<ContractExpressionAnalyzer>(*flat_model, alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
 
     CallState call_state_a(call_graph, false);

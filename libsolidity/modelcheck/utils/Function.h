@@ -21,6 +21,7 @@ namespace solidity
 namespace modelcheck
 {
 
+class FlatModel;
 class TypeAnalyzer;
 
 // -------------------------------------------------------------------------- //
@@ -146,10 +147,6 @@ public:
     FunctionSpecialization(
         FunctionDefinition const& _def, ContractDefinition const& _for
     );
-
-    // Returns the specialization of this method's super call. If no super call
-    // exists this throws.
-    std::unique_ptr<FunctionSpecialization> super() const;
 
     // Returns the SmartACE name for the method. Format:
     // - Ctor:             {BASE}_Constructor
