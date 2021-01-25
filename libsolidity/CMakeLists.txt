@@ -130,6 +130,8 @@ set(sources
 	modelcheck/analysis/Primitives.h
 	modelcheck/analysis/Structure.cpp
 	modelcheck/analysis/Structure.h
+	modelcheck/analysis/TightBundle.cpp
+	modelcheck/analysis/TightBundle.h
 	modelcheck/analysis/TypeNames.cpp
 	modelcheck/analysis/TypeNames.h
 	modelcheck/analysis/VariableScope.cpp
