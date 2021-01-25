@@ -36,14 +36,15 @@ public:
         std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
 
-    // Prints all methods to _stream. If _forward_Declaration is set, the bodies
-    // are elided.
+    // Prints all methods to _stream. If _forward_declare is set, the bodies are
+    // elided.
     void print(std::ostream & _stream, bool _forward_declare);
 
 private:
     std::string const VALUE_T;
     std::string const SENDER_T;
 
+    std::shared_ptr<CVarDecl> const SRC_VAR;
     std::shared_ptr<CVarDecl> const BAL_VAR;
     std::shared_ptr<CVarDecl> const DST_VAR;
     std::shared_ptr<CVarDecl> const AMT_VAR;

@@ -33,6 +33,7 @@ EtherMethodGenerator::EtherMethodGenerator(
  , SENDER_T(TypeAnalyzer::get_simple_ctype(
      *CallStateUtilities::get_type(CallStateUtilities::Field::Sender)
  ))
+ , SRC_VAR(make_shared<CVarDecl>(SENDER_T, "src"))
  , BAL_VAR(make_shared<CVarDecl>(VALUE_T, "bal", true))
  , DST_VAR(make_shared<CVarDecl>(SENDER_T, "dst"))
  , AMT_VAR(make_shared<CVarDecl>(VALUE_T, "amt"))
@@ -93,6 +94,7 @@ void EtherMethodGenerator::generate_send(
     ostream & _stream, bool _forward_declare
 )
 {
+    // Generates body.
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
@@ -141,20 +143,37 @@ void EtherMethodGenerator::generate_send(
         body = make_shared<CBlock>(move(statements));
     }
 
+    // Expands parameters.
+    CParams params;
+    for (auto const& fld: m_stack->environment()->order())
+    {
+        params.push_back(make_shared<CVarDecl>(fld.type_name, fld.name, false));
+    }
+    params.push_back(SRC_VAR);
+    params.push_back(BAL_VAR);
+    params.push_back(DST_VAR);
+    params.push_back(AMT_VAR);
+
+    // Generates code.
     auto id = make_shared<CVarDecl>("uint8_t", Ether::SEND);
-    _stream << CFuncDef(id, CParams{BAL_VAR, DST_VAR, AMT_VAR}, body);
+    _stream << CFuncDef(id, move(params), body);
 }
 
 void EtherMethodGenerator::generate_transfer(
     ostream & _stream, bool _forward_declare
 )
 {
+    // Generates body.
     shared_ptr<CBlock> body;
     if (!_forward_declare)
     {
         string err_msg("Transfer failed.");
 
         CFuncCallBuilder send_call(Ether::SEND);
+        m_stack->environment()->compute_next_state_for(
+            send_call, false, true, nullptr
+        );
+        send_call.push(SRC_VAR->id());
         send_call.push(BAL_VAR->id());
         send_call.push(DST_VAR->id());
         send_call.push(AMT_VAR->id());
@@ -164,8 +183,21 @@ void EtherMethodGenerator::generate_transfer(
         body = make_shared<CBlock>(move(statements));
     }
 
+
+    // Expands parameters.
+    CParams params;
+    for (auto const& fld: m_stack->environment()->order())
+    {
+        params.push_back(make_shared<CVarDecl>(fld.type_name, fld.name, false));
+    }
+    params.push_back(SRC_VAR);
+    params.push_back(BAL_VAR);
+    params.push_back(DST_VAR);
+    params.push_back(AMT_VAR);
+
+    // Generates code.
     auto id = make_shared<CVarDecl>("void", Ether::TRANSFER);
-    _stream << CFuncDef(id, CParams{BAL_VAR, DST_VAR, AMT_VAR}, body);
+    _stream << CFuncDef(id, move(params), body);
 }
 
 // -------------------------------------------------------------------------- //

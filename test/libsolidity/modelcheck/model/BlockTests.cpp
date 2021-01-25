@@ -545,14 +545,20 @@ BOOST_AUTO_TEST_CASE(payment_to_addr_calls)
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
-    expected << "sol_transfer(&((self)->model_balance),Init_sol_address_t("
-             << "(func_user_dst).v),Init_sol_uint256_t(5));";
-    expected << "sol_send(&((self)->model_balance),Init_sol_address_t("
-             << "(func_user_dst).v),Init_sol_uint256_t(10));";
-    expected << "sol_send(&((self)->model_balance),Init_sol_address_t("
-             << "(func_user_dst).v),Init_sol_uint256_t(15));";
-    expected << "sol_send(&((self)->model_balance),Init_sol_address_t(((int)("
-             << "g_literal_address_20))),Init_sol_uint256_t(25));";
+    expected << "sol_transfer(sender,value,blocknum,timestamp,"
+             << "Init_sol_bool_t(0),origin,(self)->model_address,"
+             << "&((self)->model_balance),Init_sol_address_t((func_user_dst).v),"
+             << "Init_sol_uint256_t(5));";
+    expected << "sol_send(sender,value,blocknum,timestamp,Init_sol_bool_t(0),"
+             << "origin,(self)->model_address,&((self)->model_balance),"
+             << "Init_sol_address_t((func_user_dst).v),Init_sol_uint256_t(10));";
+    expected << "sol_send(sender,value,blocknum,timestamp,Init_sol_bool_t(0),"
+             << "origin,(self)->model_address,&((self)->model_balance),"
+             << "Init_sol_address_t((func_user_dst).v),Init_sol_uint256_t(15));";
+    expected << "sol_send(sender,value,blocknum,timestamp,Init_sol_bool_t(0),"
+             << "origin,(self)->model_address,&((self)->model_balance),"
+             << "Init_sol_address_t(((int)(g_literal_address_20))),"
+             << "Init_sol_uint256_t(25));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

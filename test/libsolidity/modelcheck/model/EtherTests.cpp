@@ -119,8 +119,10 @@ BOOST_AUTO_TEST_CASE(handles_contract_addresses)
     gen.print(actual, false);
 
     ostringstream expect;
-    expect << "uint8_t sol_send(sol_uint256_t*bal,sol_address_t dst"
-           << ",sol_uint256_t amt)"
+    expect << "uint8_t sol_send(sol_address_t sender,sol_uint256_t value,"
+           << "sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t paid,"
+           << "sol_address_t origin,sol_address_t src,sol_uint256_t*bal,"
+           << "sol_address_t dst,sol_uint256_t amt)"
            << "{"
            << "if(((bal)->v)<((amt).v))return 0;"
            << "if(((dst).v)==(0)){return 0;}"

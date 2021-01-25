@@ -847,12 +847,14 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 	const IntegerType AMT_TYPE(256, IntegerType::Modifier::Unsigned);
 
 	// Computes source balance.
+	auto const SRC_MEMBER = ContractUtilities::address_member();
 	auto const BAL_MEMBER = ContractUtilities::balance_member();
-	auto src = make_shared<CIdentifier>("self", true);
-	auto srcbal = make_shared<CMemberAccess>(src, BAL_MEMBER);
+	auto self = make_shared<CIdentifier>("self", true);
+	auto selfsrc = make_shared<CMemberAccess>(self, SRC_MEMBER);
+	auto selfbal = make_shared<CMemberAccess>(self, BAL_MEMBER);
 
 	// Generates source balance and amount arguments.
-	auto srcbalref = make_shared<CReference>(srcbal);
+	auto selfbalref = make_shared<CReference>(selfbal);
 	auto const& AMT = *_call.arguments()[0];
 
 	// Stores the recipient into m_subexpr.
@@ -861,7 +863,9 @@ void ExpressionConverter::print_payment(FunctionCall const& _call, bool _nothrow
 
 	// Generates the call.
 	CFuncCallBuilder fn(_nothrow ? Ether::SEND : Ether::TRANSFER);
-	fn.push(srcbalref);
+	m_stack->environment()->compute_next_state_for(fn, false, true, nullptr);
+	fn.push(selfsrc);
+	fn.push(selfbalref);
 	fn.push(m_subexpr, &ADR_TYPE);
 	fn.push(AMT, m_stack, M_DECLS, false, &AMT_TYPE);
 	m_subexpr = fn.merge_and_pop();
