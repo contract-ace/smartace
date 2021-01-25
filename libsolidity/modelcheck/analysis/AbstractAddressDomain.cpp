@@ -168,14 +168,7 @@ list<AddressVariables::AddressEntry> const& AddressVariables::access(
 
 MapIndexSummary::MapIndexSummary(
     bool _concrete, uint64_t _clients, uint64_t _contracts
-): IS_CONCRETE(_concrete)
- , m_client_reps(_clients)
- , m_contract_reps(_contracts)
- , m_max_interference(0)
- , m_is_address_cast(false)
- , m_uses_contract_address(false)
- , m_context(nullptr)
- , m_literals({0})
+): IS_CONCRETE(_concrete), m_client_reps(_clients), m_contract_reps(_contracts)
 {
 }
 

@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/Library.h>
+#include <libsolidity/modelcheck/analysis/TightBundle.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 
 #include <stdexcept>
@@ -33,20 +34,12 @@ AllocationAnalysis::AllocationAnalysis(InheritanceModel const& _model)
 		auto const& count = to_string(VIOLATIONS.size());
         throw runtime_error("AllocationAnalysis violations: " + count);
     }
-
-	m_model_cost = 0;
-	for (auto actor : _model)
-	{
-		m_model_cost += m_allocation_graph->cost_of(actor);
-	}
 }
 
 shared_ptr<AllocationGraph const> AllocationAnalysis::allocations() const
 {
     return m_allocation_graph;
 }
-
-size_t AllocationAnalysis::model_cost() const { return m_model_cost; }
 
 // -------------------------------------------------------------------------- //
 
@@ -63,8 +56,21 @@ shared_ptr<FlatModel const> InheritanceAnalysis::model() const
 
 // -------------------------------------------------------------------------- //
 
-ContractExprAnalysis::ContractExprAnalysis(InheritanceModel const& _model)
+TightBundleAnalysis::TightBundleAnalysis(InheritanceModel const& _model)
  : InheritanceAnalysis(_model)
+{
+	m_tight_bundle = make_shared<TightBundleModel>(*model());
+}
+
+shared_ptr<TightBundleModel const> TightBundleAnalysis::tight_bundle() const
+{
+	return m_tight_bundle;
+}
+
+// -------------------------------------------------------------------------- //
+
+ContractExprAnalysis::ContractExprAnalysis(InheritanceModel const& _model)
+ : TightBundleAnalysis(_model)
 {
 	m_contracts
 		= make_shared<ContractExpressionAnalyzer>(model(), allocations());
@@ -112,7 +118,7 @@ FlatAddressAnalysis::FlatAddressAnalysis(
 ): LibraryAnalysis(_model)
 {
 	m_addresses = make_shared<MapIndexSummary>(
-		_concrete_clients, _clients, model_cost()
+		_concrete_clients, _clients, tight_bundle()->size()
 	);
 
 	for (auto const* ast : _full)

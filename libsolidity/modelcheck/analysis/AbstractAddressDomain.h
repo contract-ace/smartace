@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <list>
+#include <memory>
 #include <set>
 
 namespace dev
@@ -21,6 +22,8 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+class FlatModel;
 
 // -------------------------------------------------------------------------- //
 
@@ -104,9 +107,11 @@ public:
     MapIndexSummary(bool _concrete, uint64_t _clients, uint64_t _contracts);
     
     // A first-pass analysis which inspects contract code and extracts literals.
+    // TODO: Use flat model.
     void extract_literals(ContractDefinition const& _src);
 
     // A second-pass which computes the minimal interference needed.
+    // TODO: Use flat model.
     void compute_interference(ContractDefinition const& _src);
 
     // Produces all address entries recorded against _src.
@@ -149,17 +154,17 @@ private:
 
     uint64_t m_client_reps;
     uint64_t m_contract_reps;
-    uint64_t m_max_interference;
+    uint64_t m_max_interference = 0;
 
-    bool m_is_address_cast;
-    bool m_uses_contract_address;
+    bool m_is_address_cast = false;
+    bool m_uses_contract_address = false;
     
-    CallableDeclaration const* m_context;
+    CallableDeclaration const* m_context = nullptr;
 
     AddressVariables m_cache;
 
     ViolationGroup m_violations;
-    std::set<dev::u256> m_literals;
+    std::set<dev::u256> m_literals = { 0 };
 };
 
 // -------------------------------------------------------------------------- //

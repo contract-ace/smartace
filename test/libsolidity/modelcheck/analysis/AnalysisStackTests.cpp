@@ -16,6 +16,7 @@
 #include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/Library.h>
+#include <libsolidity/modelcheck/analysis/TightBundle.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 
 using namespace std;
@@ -62,7 +63,6 @@ BOOST_AUTO_TEST_CASE(end_to_end)
     auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
 
     BOOST_CHECK_NE(stack->allocations().get(), nullptr);
-    BOOST_CHECK_EQUAL(stack->model_cost(), 8);
     if (stack->allocations())
     {
         BOOST_CHECK_EQUAL(stack->allocations()->cost_of(ctrt), 4);
@@ -74,6 +74,12 @@ BOOST_AUTO_TEST_CASE(end_to_end)
     {
         BOOST_CHECK_EQUAL(stack->model()->bundle().size(), 2);
         flat = stack->model()->get(*ctrt);
+    }
+
+    BOOST_CHECK_NE(stack->tight_bundle().get(), nullptr);
+    if (stack->tight_bundle())
+    {
+        BOOST_CHECK_EQUAL(stack->tight_bundle()->size(), 8);
     }
 
     BOOST_CHECK_NE(stack->contracts().get(), nullptr);

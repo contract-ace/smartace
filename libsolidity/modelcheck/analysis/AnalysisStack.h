@@ -34,6 +34,7 @@ class ContractExpressionAnalyzer;
 class FlatModel;
 class LibrarySummary;
 class MapIndexSummary;
+class TightBundleModel;
 class TypeAnalyzer;
 
 using InheritanceModel = std::vector<ContractDefinition const*>;
@@ -53,12 +54,8 @@ public:
     // Describes all virtual allocations in the bundle.
     std::shared_ptr<AllocationGraph const> allocations() const;
 
-    // Returns the total number of clients in the model.
-    size_t model_cost() const;
-
 private:
     std::shared_ptr<AllocationGraph> m_allocation_graph;
-    size_t m_model_cost;
 };
 
 // -------------------------------------------------------------------------- //
@@ -83,10 +80,31 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
+ * The third pass of analysis assigns unique identifiers to each contract
+ * instance. This is different from FlatContracts. There may be two or more
+ * instances of a single flat contract in a tightly coupled smart contract
+ * bundle.
+ */
+class TightBundleAnalysis : public InheritanceAnalysis
+{
+public:
+    // Equivalent to TightBundleModel(*model()).
+    TightBundleAnalysis(InheritanceModel const& _model);
+
+    // A unique identity for each contract instance.
+    std::shared_ptr<TightBundleModel const> tight_bundle() const;
+
+private:
+    std::shared_ptr<TightBundleModel> m_tight_bundle;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * The third pass of analysis upcasts all contract return values. The end result
  * is a mapping from contract expressions to upcast contracts.
  */
-class ContractExprAnalysis : public InheritanceAnalysis
+class ContractExprAnalysis : public TightBundleAnalysis
 {
 public:
     // Equivalent to ContractExpressionAnalyzer(*model(), *allocations()).
