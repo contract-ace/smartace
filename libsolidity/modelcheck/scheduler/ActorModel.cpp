@@ -5,6 +5,7 @@
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/analysis/TightBundle.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
@@ -31,7 +32,7 @@ Actor::Actor(
     std::shared_ptr<FlatContract const> _contract,
     size_t _id,
     CExprPtr _path
-): contract(_contract), path(_path)
+): contract(_contract), path(_path), address(_id)
 {
     // Reserves a unique identifier for the actor.
     decl = make_shared<CVarDecl>(
@@ -43,13 +44,13 @@ Actor::Actor(
     // Analyzes all children and function calls.
     for (auto method : _contract->interface())
     {
-        specs.emplace_back(*method, *contract->raw());
+        specs.emplace_back(*method, *_contract->raw());
     }
 
     // Analyzes fallback.
     if (auto fallback = _contract->fallback())
     {
-        specs.emplace_back(*fallback, *contract->raw());
+        specs.emplace_back(*fallback, *_contract->raw());
     }
 }
 
@@ -61,10 +62,12 @@ ActorModel::ActorModel(
 ): m_stack(_stack), m_nd_reg(_nd_reg)
 {
     // Generates an actor for each client.
-    for (auto const contract : m_stack->model()->bundle())
+    for (auto contract : m_stack->tight_bundle()->view())
     {
-        m_actors.emplace_back(m_stack, contract, m_actors.size(), nullptr);
-        recursive_setup(m_actors.back());
+        m_actors.emplace_back(
+            m_stack, contract->details(), contract->address(), nullptr
+        );
+        recursive_setup(contract, m_actors.back());
     }
 
     // Extracts the address variable for each contract.
@@ -99,7 +102,6 @@ ActorModel::ActorModel(
 
 void ActorModel::declare(CBlockList & _block) const
 {
-    // Declares each actor.
     for (auto const& actor : m_actors)
     {
         _block.push_back(actor.decl);
@@ -158,9 +160,7 @@ void ActorModel::initialize(
 
 // -------------------------------------------------------------------------- //
 
-void ActorModel::assign_addresses(
-    CBlockList & _block, AddressSpace & _addrspace
-) const
+void ActorModel::assign_addresses(CBlockList & _block) const
 {
     // Assigns an address to each contract
     for (auto const& actor : m_actors)
@@ -175,7 +175,7 @@ void ActorModel::assign_addresses(
 
         auto const& ADDR = DECL->access(ContractUtilities::address_member());
         _block.push_back(ADDR->access("v")->assign(
-            make_shared<CIntLiteral>(_addrspace.reserve())
+            make_shared<CIntLiteral>(actor.address)
         )->stmt());
     }
 
@@ -190,7 +190,6 @@ void ActorModel::assign_addresses(
 
 list<shared_ptr<CMemberAccess>> const& ActorModel::vars() const
 {
-    // Returns all address declarations.
     return m_addrvar;
 }
 
@@ -198,25 +197,28 @@ list<shared_ptr<CMemberAccess>> const& ActorModel::vars() const
 
 list<Actor> const& ActorModel::inspect() const
 {
-    // Returns all actors.
     return m_actors;
 }
 
 // -------------------------------------------------------------------------- //
 
-void ActorModel::recursive_setup(Actor & _parent)
+void ActorModel::recursive_setup(
+    shared_ptr<BundleContract const> _src, Actor & _parent
+)
 {
-    for (auto const& record : m_stack->model()->children_of(*_parent.contract))
+    for (auto record : _src->children())
     {
         _parent.has_children = true;
 
         auto const NAME = VariableScopeResolver::rewrite(
-            record.var, false, VarContext::STRUCT
+            record->var(), false, VarContext::STRUCT
         );
         auto const PATH = make_shared<CMemberAccess>(_parent.decl->id(), NAME);
 
-        m_actors.emplace_back(m_stack, record.child, m_actors.size(), PATH);
-        recursive_setup(m_actors.back());
+        m_actors.emplace_back(
+            m_stack, record->details(), record->address(), PATH
+        );
+        recursive_setup(record, m_actors.back());
     }
 }
 

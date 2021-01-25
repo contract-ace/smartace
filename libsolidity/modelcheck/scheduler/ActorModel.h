@@ -22,6 +22,7 @@ namespace modelcheck
 
 class AddressSpace;
 class AnalysisStack;
+class BundleContract;
 class FlatContract;
 class FunctionSpecialization;
 class MapIndexSummary;
@@ -36,6 +37,8 @@ class StateGenerator;
  */
 struct Actor
 {
+    // Declares a new actor based on _contract, with address _id, at allocation
+    // site _path.
     Actor(
         std::shared_ptr<AnalysisStack const> _stack,
         std::shared_ptr<FlatContract const> _contract,
@@ -55,6 +58,9 @@ struct Actor
     // Maintains an access path, from parent contract to child contract.
     CExprPtr path;
 
+    // The address of the contract.
+    size_t address;
+
     // If true, the actor has been used to spawn a child contract.
     bool has_children;
 };
@@ -68,7 +74,8 @@ struct Actor
 class ActorModel
 {
 public:
-    //
+    // Generates an actor for each Tight Bundle Contract. Note that _nd_reg is
+    // used for all non-deterministic allocations.
     ActorModel(
         std::shared_ptr<AnalysisStack const> _stack,
         std::shared_ptr<NondetSourceRegistry> _nd_reg
@@ -85,10 +92,8 @@ public:
         CBlockList & _block, StateGenerator const& _stategen
     ) const;
 
-    // Appends statements onto _block to allocate addresses for each actor. The
-    // addresses are requested from _addrspace. The call throws if
-    // m_actors.size() exceeds the number of available addresses.
-    void assign_addresses(CBlockList & _block, AddressSpace & _addrspace) const;
+    // Appends statements onto _block to allocate addresses for each actor.
+    void assign_addresses(CBlockList & _block) const;
 
     // Returns a list of contract address declarations.
     std::list<std::shared_ptr<CMemberAccess>> const& vars() const;
@@ -110,7 +115,9 @@ private:
     // Extends setup to children. _path will accumulate the path to the current
     // parent, starting from a top level contract. _allocs is used to find all
     // children while _dependance is used to populate interface methods.
-    void recursive_setup(Actor & _parent);
+    void recursive_setup(
+        std::shared_ptr<BundleContract const> _src, Actor & _parent
+    );
 };
 
 // -------------------------------------------------------------------------- //

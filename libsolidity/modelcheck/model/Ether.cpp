@@ -3,6 +3,7 @@
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/analysis/TightBundle.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
@@ -112,29 +113,19 @@ void EtherMethodGenerator::generate_send(
         // If balance is insufficient this fails.
         statements.push_back(make_shared<CIf>(bal_cond, fail_rv, nullptr));
 
-        // Adds cases for non-payable contract.
-        auto const& bundle = m_stack->model()->bundle();
-        for (size_t i = 0; i <= bundle.size(); ++i)
+        // Adds case for the zero address.
         {
-            // TODO(scottwe): we shouldn't have to "guess" the address here.
-            auto addr_cond = make_shared<CBinaryOp>(
-                DST_VAR->access("v"), "==", make_shared<CIntLiteral>(i)
-            );
-
             CBlockList handler_list;
-            if (i > 0 && bundle[i - 1]->is_payable())
-            {
-                // TODO(scottwe): support sends with fallbacks.
-                string err_msg("Fallback not allowed in.");
-                LibVerify::add_assert(handler_list, Literals::ZERO, err_msg);
-            }
-            else
-            {
-                handler_list.push_back(fail_rv);
-            }
+            auto addr_cond = make_shared<CBinaryOp>(
+                DST_VAR->access("v"), "==", make_shared<CIntLiteral>(0)
+            );
+            handler_list.push_back(fail_rv);
             auto handler = make_shared<CBlock>(move(handler_list));
             statements.push_back(make_shared<CIf>(addr_cond, handler, nullptr));
         }
+
+        // Adds cases for non-payable contract.
+        generate_fallbacks(fail_rv, statements, m_stack->tight_bundle()->view());
 
         // If all addresses pass, we perform a send with some result.
         statements.push_back(bal_change->stmt());
@@ -198,6 +189,39 @@ void EtherMethodGenerator::generate_transfer(
     // Generates code.
     auto id = make_shared<CVarDecl>("void", Ether::TRANSFER);
     _stream << CFuncDef(id, move(params), body);
+}
+
+void EtherMethodGenerator::generate_fallbacks(
+    CStmtPtr const& _error,
+    CBlockList & _statements,
+    vector<shared_ptr<BundleContract const>> _contracts
+) const
+{
+    for (auto contract : _contracts)
+    {
+        size_t addr = contract->address();
+
+        auto addr_cond = make_shared<CBinaryOp>(
+            DST_VAR->access("v"), "==", make_shared<CIntLiteral>(addr)
+        );
+
+        CBlockList handler_list;
+        if (contract->details()->is_payable())
+        {
+            // TODO(scottwe): support sends with fallbacks.
+            string const& NAME = contract->details()->name();
+            string const MSG = "Fallback not allowed in: " + NAME;
+            LibVerify::add_assert(handler_list, Literals::ZERO, MSG);
+        }
+        else
+        {
+            handler_list.push_back(_error);
+        }
+        auto handler = make_shared<CBlock>(move(handler_list));
+        _statements.push_back(make_shared<CIf>(addr_cond, handler, nullptr));
+
+        generate_fallbacks(_error, _statements, contract->children());
+    }
 }
 
 // -------------------------------------------------------------------------- //

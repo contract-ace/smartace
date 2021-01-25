@@ -128,7 +128,53 @@ BOOST_AUTO_TEST_CASE(handles_contract_addresses)
            << "if(((dst).v)==(0)){return 0;}"
            << "if(((dst).v)==(1)){return 0;}"
            << "if(((dst).v)==(2)){return 0;}"
-           << "if(((dst).v)==(3)){sol_assert(0,\"Fallback not allowed in.\");}"
+           << "if(((dst).v)==(3)){sol_assert(0,\"Fallback not allowed in: "
+           << "C\");}"
+           << "((bal)->v)-=((amt).v);"
+           << "return GET_ND_BYTE";
+
+    BOOST_CHECK(actual.str().find(expect.str()) != string::npos);
+}
+
+BOOST_AUTO_TEST_CASE(handles_nested_contracts)
+{
+    char const* text = R"(
+        contract A {
+            function() external payable {
+                require(msg.sender.send(1));
+            }
+        }
+        contract B {
+            A a;
+            constructor() public {
+                a = new A();
+            }
+        }
+    )";
+
+    auto ast = parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(*ast, "B");
+
+    vector<SourceUnit const*> full({ ast });
+    vector<ContractDefinition const*> model({ ctrt });
+
+    ostringstream actual;
+    auto stack = make_shared<AnalysisStack>(model, full, 1, false, false);
+    auto nd_reg = make_shared<NondetSourceRegistry>(stack);
+    EtherMethodGenerator gen(stack, nd_reg);
+    gen.print(actual, false);
+
+    ostringstream expect;
+    expect << "uint8_t sol_send(sol_address_t sender,sol_uint256_t value,"
+           << "sol_uint256_t blocknum,sol_uint256_t timestamp,sol_bool_t paid,"
+           << "sol_address_t origin,sol_address_t src,sol_uint256_t*bal,"
+           << "sol_address_t dst,sol_uint256_t amt)"
+           << "{"
+           << "if(((bal)->v)<((amt).v))return 0;"
+           << "if(((dst).v)==(0)){return 0;}"
+           << "if(((dst).v)==(1)){return 0;}"
+           << "if(((dst).v)==(2)){sol_assert(0,\"Fallback not allowed in: "
+           << "A\");}"
            << "((bal)->v)-=((amt).v);"
            << "return GET_ND_BYTE";
 

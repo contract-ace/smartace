@@ -36,16 +36,12 @@ public:
         std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
 
-    // Returns a unique address. If all possible addresses have been expended,
-    // an exception is raised.
-    uint64_t reserve();
-
     // Generates statements in _block to map all constants to distinct values.
     void map_constants(CBlockList & _block) const;
 
 private:
-    // Stores the minimum allocatable address.
-    const uint64_t MIN_ADDR;
+    // Stores the minimum allocatable address. This accounts for 0.
+    const uint64_t MIN_ADDR = 1;
 
     // The maximum allocated address.
     const uint64_t MAX_ADDR;

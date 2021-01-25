@@ -24,25 +24,10 @@ namespace modelcheck
 AddressSpace::AddressSpace(
     shared_ptr<MapIndexSummary const> _address_data,
     shared_ptr<NondetSourceRegistry> _nd_reg
-): MIN_ADDR(compute_min_addr(*_address_data))
- , MAX_ADDR(_address_data->representative_count())
+): MAX_ADDR(_address_data->representative_count())
  , m_address_data(_address_data)
  , m_nd_reg(_nd_reg)
- , m_next_addr(MIN_ADDR)
 {
-}
-
-// -------------------------------------------------------------------------- //
-
-uint64_t AddressSpace::reserve()
-{
-    uint64_t retval = m_next_addr;
-    if (retval >= MAX_ADDR)
-    {
-        throw runtime_error("AddressSpace::reserve used without free address.");
-    }
-    ++m_next_addr;
-    return retval;
 }
 
 // -------------------------------------------------------------------------- //
@@ -78,20 +63,6 @@ void AddressSpace::map_constants(CBlockList & _block) const
 
             used_so_far.push_back(decl);
         }
-    }
-}
-
-// -------------------------------------------------------------------------- //
-
-uint64_t AddressSpace::compute_min_addr(MapIndexSummary const& _address_data)
-{
-    if (_address_data.literals().find(0) == _address_data.literals().end())
-    {
-        return 0;
-    }
-    else
-    {
-        return 1;
     }
 }
 

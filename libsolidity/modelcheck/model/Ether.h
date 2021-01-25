@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <ostream>
+#include <vector>
 
 #include <libsolidity/modelcheck/codegen/Core.h>
 
@@ -19,6 +20,7 @@ namespace modelcheck
 {
 
 class AnalysisStack;
+class BundleContract;
 class NondetSourceRegistry;
 
 // -------------------------------------------------------------------------- //
@@ -60,6 +62,13 @@ private:
 
     // Helper method to print transfer.
     void generate_transfer(std::ostream & _stream, bool _forward_declare);
+
+    // Helper method to expand internal error cases on send.
+    void generate_fallbacks(
+        CStmtPtr const& _error,
+        CBlockList & _statements,
+        std::vector<std::shared_ptr<BundleContract const>> _contracts
+    ) const;
 };
 
 // -------------------------------------------------------------------------- //

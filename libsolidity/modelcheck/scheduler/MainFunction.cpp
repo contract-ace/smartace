@@ -70,7 +70,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     m_stategen.declare(main);
     m_actors.declare(main);
     m_addrspace.map_constants(main);
-    m_actors.assign_addresses(main, m_addrspace);
+    m_actors.assign_addresses(main);
     m_actors.initialize(main, m_stategen);
 
     // Generates body for interference block.
