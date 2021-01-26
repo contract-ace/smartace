@@ -110,14 +110,25 @@ bool ContractRvAnalyzer::visit(FunctionCall const& _node)
         FunctionCallAnalyzer call(_node);
         if (call.classify() == FunctionCallAnalyzer::CallGroup::Method)
         {
-            if (call.is_super())
+            if (call.is_explicit_super())
+            {
+                m_procedural_calls.insert(make_pair(m_src, &call.method_decl()));
+            }
+            else if (call.is_super())
             {
                 auto scope = m_model->get(
                     dynamic_cast<ContractDefinition const&>(*m_func.scope())
                 );
-                auto ancestor = m_model->next_ancestor(*m_src, *scope);
-                auto const& supercall = ancestor->resolve(call.method_decl());
-                m_procedural_calls.insert(make_pair(m_src, &supercall));
+
+                // TODO: Can this be done more efficiently? (Same as call graph)
+                auto ancestor = scope;
+                FunctionDefinition const* supercall;
+                do
+                {
+                    ancestor = m_model->next_ancestor(*m_src, *ancestor);
+                    supercall = ancestor->try_resolve(call.method_decl());
+                } while (!supercall);
+                m_procedural_calls.insert(make_pair(m_src, supercall));
             }
             else
             {

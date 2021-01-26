@@ -170,12 +170,26 @@ CallGraphBuilder::Location
 
     // Best effort to follow super calls and external calls.
     auto ctx = _func.context();
-    if (_func.is_super())
+    if (_func.is_explicit_super())
+    {
+        auto scope = dynamic_cast<ContractDefinition const*>(
+            _func.method_decl().scope()
+        );
+        new_loc.entry = old_loc.entry;
+        new_loc.scope = m_model->get(*scope);
+    }
+    else if (_func.is_super())
     {
         // The super call must be resolved manually due to diamond inheritance.
-        auto parent = m_model->next_ancestor(*old_loc.entry, *old_loc.scope);
-        auto const& superfunc = parent->resolve(_func.method_decl());
-        auto context = dynamic_cast<ContractDefinition const*>(superfunc.scope());
+        // TODO: Can this be done more efficiently?
+        auto ancestor = old_loc.scope;
+        FunctionDefinition const* supercall;
+        do
+        {
+            ancestor = m_model->next_ancestor(*old_loc.entry, *ancestor);
+            supercall = ancestor->try_resolve(_func.method_decl());
+        } while (!supercall);
+        auto context = dynamic_cast<ContractDefinition const*>(supercall->scope());
         new_loc.entry = old_loc.entry;
         new_loc.scope = m_model->get(*context);
     }

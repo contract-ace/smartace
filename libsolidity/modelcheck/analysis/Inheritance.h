@@ -125,6 +125,10 @@ public:
     // Returns the inheritance tree.
     InheritanceTree const& tree() const;
 
+    // Finds a method matching _func, or returns nullptr.
+    FunctionDefinition const*
+        try_resolve(FunctionDefinition const& _func) const;
+
     // Finds a method matching _func, or throws.
     FunctionDefinition const&
         resolve(FunctionDefinition const& _func) const;

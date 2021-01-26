@@ -55,17 +55,32 @@ Expression const* FunctionCallAnalyzer::context() const
     return m_context;
 }
 
+bool FunctionCallAnalyzer::is_explicit_super() const
+{
+	if (m_root)
+	{
+		if (m_root->annotation().type->category() == Type::Category::TypeType)
+		{
+			return !is_in_library();
+		}
+	}
+	return false;
+}
+
 bool FunctionCallAnalyzer::is_super() const
 {
-    return (m_root && (m_root->name() == "super"));
+	return (is_explicit_super() || (m_root && m_root->name() == "super"));
 }
 
 bool FunctionCallAnalyzer::is_in_library() const
 {
 	if (m_method_decl)
 	{
-    	auto scope = dynamic_cast<ContractDefinition const*>(method_decl().scope());
-		return (scope && scope->isLibrary());
+		auto raw = m_method_decl->scope();
+		if (auto scope = dynamic_cast<ContractDefinition const*>(raw))
+		{
+			return scope->isLibrary();
+		}
 	}
 	return false;
 }

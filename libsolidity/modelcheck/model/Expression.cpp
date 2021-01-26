@@ -737,16 +737,24 @@ void ExpressionConverter::print_method(FunctionCallAnalyzer const& _calldata)
 	// Determines call name and locality of call.
 	FunctionSpecialization call(_calldata.method_decl());
 	bool is_ext_call = (!_calldata.is_super() && _calldata.context());
-	if (_calldata.is_super())
+	if (_calldata.is_explicit_super())
+	{
+		call = FunctionSpecialization(call.func(), M_DECLS.spec()->use_by());
+	}
+	else if (_calldata.is_super())
 	{
 		// TODO: all should be flat model.
-		auto ancestor = m_stack->model()->next_ancestor(
-			*m_stack->model()->get(M_DECLS.spec()->use_by()),
-			*m_stack->model()->get(M_DECLS.spec()->source())
-		);
-		call = FunctionSpecialization(
-			ancestor->resolve(call.func()), M_DECLS.spec()->use_by()
-		);
+		// TODO: Can this be done more efficiently? (Same as call graph)
+		auto ancestor = m_stack->model()->get(M_DECLS.spec()->source());
+		FunctionDefinition const* supercall;
+		do
+		{
+			ancestor = m_stack->model()->next_ancestor(
+				*m_stack->model()->get(M_DECLS.spec()->use_by()), *ancestor);
+			supercall = ancestor->try_resolve(call.func());
+		}
+		while (!supercall);
+		call = FunctionSpecialization(*supercall, M_DECLS.spec()->use_by());
 	}
 	else if (!_calldata.is_in_library())
 	{

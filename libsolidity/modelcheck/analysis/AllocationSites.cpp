@@ -1,9 +1,11 @@
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/General.h>
+// TODO: REMOVE.
 
 #include <stdexcept>
 
@@ -89,23 +91,16 @@ AllocationSummary::Visitor::Visitor(
         throw runtime_error("AllocationSite analysis exceeded depth limit.");
     }
 
-    // TODO: move InheritanceTree higher, and then replace this.
     if (_context.isConstructor())
     {
-        for (auto mod : _context.modifiers())
-        {
-            auto const DECL = mod->name()->annotation().referencedDeclaration;
-            if (auto contract = dynamic_cast<ContractDefinition const*>(DECL))
-            {
-                if (auto ctor = contract->constructor())
-                {
-                    ctor->accept(*this);
-                }
-            }
-        }
+        // TODO: move InheritanceTree higher, and then replace this.
+        InheritanceTree tree(_src);
+        expand_inheritance_tree(InheritanceTree(_src));
     }
-
-    _context.accept(*this);
+    else
+    {
+        _context.accept(*this);
+    }
 }
 
 bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
@@ -130,7 +125,11 @@ bool AllocationSummary::Visitor::visit(FunctionCall const& _node)
                 // Case: Internal method call.
                 FunctionDefinition const& request = call.method_decl();
                 FunctionDefinition const* match = nullptr;
-                if (call.is_super())
+                if (call.is_explicit_super())
+                {
+                    match = (&request);
+                }
+                else if (call.is_super())
                 {
                     // TODO: Could this be factored out, and reused?
                     auto const& LBC = m_src.annotation().linearizedBaseContracts;
@@ -237,6 +236,23 @@ ContractDefinition const* AllocationSummary::Visitor::handle_call_type(
         }
     }
     return _fcache[&_call];
+}
+
+void AllocationSummary::Visitor::expand_inheritance_tree(
+    InheritanceTree const& _tree
+)
+{
+    // Visits constructor.
+    if (auto ctor = _tree.constructor())
+    {
+        ctor->accept(*this);
+    }
+
+    // Unfolds all other constructors.
+    for (auto subtree : _tree.baseContracts())
+    {
+        expand_inheritance_tree(*subtree.parent);
+    }
 }
 
 // -------------------------------------------------------------------------- //

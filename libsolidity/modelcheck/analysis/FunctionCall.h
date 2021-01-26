@@ -50,6 +50,10 @@ public:
     // Returns the context used to invoke the method, if provided.
     Expression const* context() const;
 
+    // If true, this method is a call to a specific super method. If
+    // is_explicit_super() is true, then is_super() is true.
+    bool is_explicit_super() const;
+
     // If true, this method is a call to a super method.
     bool is_super() const;
 

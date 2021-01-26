@@ -29,6 +29,8 @@ namespace solidity
 namespace modelcheck
 {
 
+class InheritanceTree;
+
 // -------------------------------------------------------------------------- //
 
 /**
@@ -109,6 +111,9 @@ private:
         ContractDefinition const* handle_call_type(
             FunctionDefinition const& _call
         );
+
+        // Utility method to handle constructors.
+        void expand_inheritance_tree(InheritanceTree const& _tree);
     };
 };
 

@@ -234,36 +234,49 @@ InheritanceTree const& FlatContract::tree() const
     return m_tree;
 }
 
-FunctionDefinition const&
-    FlatContract::resolve(FunctionDefinition const& _func) const
+FunctionDefinition const*
+    FlatContract::try_resolve(FunctionDefinition const& _func) const
 {
     if (_func.isFallback())
     {
         if (m_fallback)
         {
-            return (*m_fallback);
+            return m_fallback;
         }
     }
     else if (_func.functionType(false))
     {
         for (auto method : m_public)
         {
-            if (collid(_func, *method)) return (*method);
+            if (collid(_func, *method)) return method;
         }
     }
     else
     {
         for (auto method : m_private)
         {
-            if (collid(_func, *method)) return (*method);
+            if (collid(_func, *method)) return method;
         }
     }
 
-    string const FN = _func.name();
-    string const MSG1 = "Could not resolve function (";
-    string const MSG2 = ") against flat contract (";
-    string const MSG3 = ").";
-    throw runtime_error(MSG1 + FN + MSG2 + name() + MSG3);
+    return nullptr;
+}
+
+FunctionDefinition const&
+    FlatContract::resolve(FunctionDefinition const& _func) const
+{
+    if (auto res = try_resolve(_func))
+    {
+        return (*res);
+    }
+    else
+    {
+        string const FN = _func.name();
+        string const MSG1 = "Could not resolve function (";
+        string const MSG2 = ") against flat contract (";
+        string const MSG3 = ").";
+        throw runtime_error(MSG1 + FN + MSG2 + name() + MSG3);
+    }
 }
 
 list<Mapping const*> FlatContract::mappings() const
