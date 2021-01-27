@@ -200,12 +200,25 @@ bool GeneralBlockConverter::visit(Throw const&)
 
 bool GeneralBlockConverter::visit(EmitStatement const& _node)
 {
-	string event = get_ast_string(&_node.eventCall());
+	auto const& call = _node.eventCall();
+	CBlockList stmts;
 
+	// Expands emit parameters.
+	for (auto arg : call.arguments())
+	{
+		expand_expr_into_stmt(*arg);
+		stmts.push_back(last_substmt());
+	}
+
+	// Expands emit.
+	string event = get_ast_string(&call);
 	CFuncCallBuilder sol_emit_call("sol_emit");
 	sol_emit_call.push(make_shared<CStringLiteral>(event));
+	stmts.push_back(make_shared<CExprStmt>(sol_emit_call.merge_and_pop()));
 	new_substmt<CExprStmt>(sol_emit_call.merge_and_pop());
 
+	// Generates emit block.
+	new_substmt<CBlock>(move(stmts));
 	return false;
 }
 
@@ -246,104 +259,8 @@ bool GeneralBlockConverter::visit(VariableDeclarationStatement const& _node)
 
 bool GeneralBlockConverter::visit(ExpressionStatement const& _node)
 {
-	// Extracts top level expression.
 	ExpressionCleaner c_cleaner(_node.expression());
-	auto center = (&c_cleaner.clean());
-
-	// This could be an assignment, which is special-cased on tuples.
-	if (auto op = dynamic_cast<Assignment const*>(center))
-	{
-		// Extracts the LHS.
-		ExpressionCleaner l_cleaner(op->leftHandSide());
-		auto left = (&l_cleaner.clean());
-
-		// Determines if this is a tuple assignment.
-		if (auto lhs = dynamic_cast<TupleExpression const*>(left))
-		{
-			// Extracts the RHS.
-			ExpressionCleaner r_cleaner(op->rightHandSide());
-			auto right = (&r_cleaner.clean());
-
-			CBlockList stmts;
-			vector<shared_ptr<CVarDecl>> tmp_vars;
-
-			// Checks and processes RHS.
-			if (auto rhs = dynamic_cast<FunctionCall const*>(right))
-			{
-				FunctionCallAnalyzer call(*rhs);
-
-				// Generates temporary variables for each return value.
-				for (auto entry : call.method_decl().returnParameters())
-				{
-					string name = "blockvar_" + to_string(tmp_vars.size());
-					auto type = m_stack->types()->get_type(*entry.get());
-					auto decl = make_shared<CVarDecl>(type, name, false);
-					tmp_vars.push_back(decl);
-					stmts.push_back(decl);
-				}
-
-				// Generates the call.
-				vector<CExprPtr> rv_ids;
-				ExpressionConverter expr(*rhs, m_stack, m_decls);
-				for (size_t i = 1; i < tmp_vars.size(); ++i)
-				{
-					auto var = tmp_vars[i];
-					rv_ids.push_back(make_shared<CReference>(var->id()));
-				}
-				expr.set_aux_rvs(rv_ids);
-
-				// Generates the call statement.
-				auto dst = tmp_vars[0]->id()->access("v");
-				auto src = expr.convert();
-				auto assign = make_shared<CBinaryOp>(dst, "=", src);
-				stmts.push_back(assign->stmt());
-			}
-			else if (auto rhs = dynamic_cast<TupleExpression const*>(right))
-			{
-				// Generates temporary variables for each variable on the RHS.
-				for (auto entry : lhs->components())
-				{
-					string name = "blockvar_" + to_string(tmp_vars.size());
-					auto type = m_stack->types()->get_type(*entry.get());
-					auto decl = make_shared<CVarDecl>(type, name, false);
-					tmp_vars.push_back(decl);
-					stmts.push_back(decl);
-				}
-
-				// Assigns RHS values to temp vars.
-				for (size_t i = 0; i < rhs->components().size(); ++i)
-				{
-					auto rhs_id = expand(*rhs->components()[i].get());
-					auto tmp_id = tmp_vars[i]->id()->access("v");
-					auto assign = make_shared<CBinaryOp>(tmp_id, "=", rhs_id);
-					stmts.push_back(assign->stmt());
-				}
-			}
-			else
-			{
-				throw runtime_error("Unexpected LHS tuple.");
-			}
-
-			// Assigns temp vars to LHS.
-			for (size_t i = 0; i < lhs->components().size(); ++i)
-			{
-				if (auto expr = lhs->components()[i])
-				{
-					auto lhs_id = expand(*expr);
-					auto tmp_id = tmp_vars[i]->id()->access("v");
-					auto assign = make_shared<CBinaryOp>(lhs_id, "=", tmp_id);
-					stmts.push_back(assign->stmt());
-				}
-			}
-
-			// Generates tuple-like statement.
-			new_substmt<CBlock>(move(stmts));
-			return false;
-		}
-	}
-
-	// Default case (not tuples).
-	new_substmt<CExprStmt>(expand(*center));
+	expand_expr_into_stmt(c_cleaner.clean());
 	return false;
 }
 
@@ -403,6 +320,107 @@ void GeneralBlockConverter::add_value_handler(CBlockList & _block)
 	auto CHECKS = make_shared<CBinaryOp>(PAID, "==", Literals::ONE);
 	auto CHANGE = CBinaryOp(BAL, "+=", VALUE).stmt();
 	_block.push_back(make_shared<CIf>(CHECKS, CHANGE));
+}
+
+// -------------------------------------------------------------------------- //
+
+void GeneralBlockConverter::expand_expr_into_stmt(Expression const& _expr)
+{
+	// This could be an assignment, which is special-cased on tuples.
+	if (auto op = dynamic_cast<Assignment const*>(&_expr))
+	{
+		// Determines if this is a tuple assignment.
+		ExpressionCleaner l_cleaner(op->leftHandSide());
+		if (auto lhs = dynamic_cast<TupleExpression const*>(&l_cleaner.clean()))
+		{
+			ExpressionCleaner r_cleaner(op->rightHandSide());
+			expand_tuple_assign_into_stmt(*lhs, r_cleaner.clean());
+			return;
+		}
+	}
+
+	// Default case (not tuple assignment).
+	new_substmt<CExprStmt>(expand(_expr));
+}
+
+void GeneralBlockConverter::expand_tuple_assign_into_stmt(
+	TupleExpression const& _lhs, Expression const& _rhs
+)
+{
+	CBlockList stmts;
+	vector<shared_ptr<CVarDecl>> tmp_vars;
+
+	// Checks and processes RHS.
+	if (auto func_rhs = dynamic_cast<FunctionCall const*>(&_rhs))
+	{
+		FunctionCallAnalyzer call(*func_rhs);
+
+		// Generates temporary variables for each return value.
+		for (auto entry : call.method_decl().returnParameters())
+		{
+			string name = "blockvar_" + to_string(tmp_vars.size());
+			auto type = m_stack->types()->get_type(*entry.get());
+			auto decl = make_shared<CVarDecl>(type, name, false);
+			tmp_vars.push_back(decl);
+			stmts.push_back(decl);
+		}
+
+		// Generates the call.
+		vector<CExprPtr> rv_ids;
+		ExpressionConverter expr(*func_rhs, m_stack, m_decls);
+		for (size_t i = 1; i < tmp_vars.size(); ++i)
+		{
+			auto var = tmp_vars[i];
+			rv_ids.push_back(make_shared<CReference>(var->id()));
+		}
+		expr.set_aux_rvs(rv_ids);
+
+		// Generates the call statement.
+		auto dst = tmp_vars[0]->id()->access("v");
+		auto src = expr.convert();
+		auto assign = make_shared<CBinaryOp>(dst, "=", src);
+		stmts.push_back(assign->stmt());
+	}
+	else if (auto tuple_rhs = dynamic_cast<TupleExpression const*>(&_rhs))
+	{
+		// Generates temporary variables for each variable on the RHS.
+		for (auto entry : _lhs.components())
+		{
+			string name = "blockvar_" + to_string(tmp_vars.size());
+			auto type = m_stack->types()->get_type(*entry.get());
+			auto decl = make_shared<CVarDecl>(type, name, false);
+			tmp_vars.push_back(decl);
+			stmts.push_back(decl);
+		}
+
+		// Assigns RHS values to temp vars.
+		for (size_t i = 0; i < tuple_rhs->components().size(); ++i)
+		{
+			auto rhs_id = expand(*tuple_rhs->components()[i].get());
+			auto tmp_id = tmp_vars[i]->id()->access("v");
+			auto assign = make_shared<CBinaryOp>(tmp_id, "=", rhs_id);
+			stmts.push_back(assign->stmt());
+		}
+	}
+	else
+	{
+		throw runtime_error("Unexpected LHS tuple.");
+	}
+
+	// Assigns temp vars to LHS.
+	for (size_t i = 0; i < _lhs.components().size(); ++i)
+	{
+		if (auto expr = _lhs.components()[i])
+		{
+			auto lhs_id = expand(*expr);
+			auto tmp_id = tmp_vars[i]->id()->access("v");
+			auto assign = make_shared<CBinaryOp>(lhs_id, "=", tmp_id);
+			stmts.push_back(assign->stmt());
+		}
+	}
+
+	// Generates tuple-like statement.
+	new_substmt<CBlock>(move(stmts));
 }
 
 // -------------------------------------------------------------------------- //

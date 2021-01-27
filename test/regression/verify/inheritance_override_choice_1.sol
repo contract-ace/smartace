@@ -29,4 +29,5 @@ contract B is A {
 
 contract C is B {
     constructor() public B() {}
+    function f() public {}
 }

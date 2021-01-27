@@ -1230,6 +1230,43 @@ BOOST_AUTO_TEST_CASE(low_level_calls)
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
 
+BOOST_AUTO_TEST_CASE(emit_with_args)
+{
+    char const* text = R"(
+		contract A {
+            event EventTest(uint a, uint b); 
+            function g() public returns (uint) {}
+			function f() public {
+                emit EventTest(g(), g());
+            }
+		}
+	)";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[1];
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+    auto stack = make_shared<AnalysisStack>(model, full, 0, false, true);
+
+    FunctionBlockConverter converter(func, stack);
+    converter.set_for(func);
+
+    ostringstream actual, expected;
+    actual << *converter.convert();
+    expected << "{";
+    expected << "{";
+    expected << "(A_Method_g(self,sender,value,blocknum,timestamp"
+             << ",Init_sol_bool_t(0),origin,reqfail)).v;";
+    expected << "(A_Method_g(self,sender,value,blocknum,timestamp"
+             << ",Init_sol_bool_t(0),origin,reqfail)).v;";
+    expected << "sol_emit(\"EventTest(g(), g())\");";
+    expected << "}";
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

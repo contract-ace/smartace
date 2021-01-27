@@ -23,7 +23,8 @@ contract B is A {
 }
 
 contract C is B {
-    constructor(int _a) public B(5) {
+    constructor() public B(5) {
         assert(a != 5);
     }
+    function f() public {}
 }

@@ -118,6 +118,16 @@ private:
 	// Generates the payment call.
 	static void add_value_handler(CBlockList & _block);
 
+	// Expands an expression, _expr, into a statement. Assumes that _expr is
+	// already clean.
+	void expand_expr_into_stmt(Expression const& _expr);
+
+	// Expands a tuple assignment, _lhs = _rhs, into a statement. Assumes that
+	// _lhs and _rhs are already clean.
+	void expand_tuple_assign_into_stmt(
+		TupleExpression const& _lhs, Expression const& _rhs
+	);
+
 	Block const& M_BODY;
 
 	bool const M_MANAGE_PAY;
