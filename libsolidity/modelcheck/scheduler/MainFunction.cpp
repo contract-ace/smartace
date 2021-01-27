@@ -55,6 +55,7 @@ void MainFunctionGenerator::print(ostream& _stream)
     string default_err("Model failure, next_call out of bounds.");
     LibVerify::add_require(default_case, Literals::ZERO, default_err);
 
+    size_t case_count = 0;
     auto call_cases = make_shared<CSwitch>(next_case->id(), move(default_case));
     for (auto actor : m_actors.inspect())
     {
@@ -62,7 +63,13 @@ void MainFunctionGenerator::print(ostream& _stream)
         {
             auto call_body = build_case(spec, actor.decl);
             call_cases->add_case(call_cases->size(), move(call_body));
+            case_count += 1;
         }
+    }
+
+    if (case_count == 0)
+    {
+        throw runtime_error("Bundle has no public or external calls.");
     }
 
     // Contract setup and tear-down.
