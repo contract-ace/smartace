@@ -422,13 +422,13 @@ string FunctionConverter::handle_contract_initializer(
                 TypeAnalyzer::init_val_by_simple_type(*TYPE)
             )->stmt());
         }
-        for (auto initializer : parent_initializers)
-        {
-            stmts.push_back(initializer.merge_and_pop_stmt());
-        }
         for (auto const* decl : _tree.decls())
         {
             expand_default_init(decl, stmts, self_ptr);
+        }
+        for (auto initializer : parent_initializers)
+        {
+            stmts.push_back(initializer.merge_and_pop_stmt());
         }
         if (auto ctor = _tree.constructor())
         {

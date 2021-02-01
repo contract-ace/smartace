@@ -198,6 +198,13 @@ FlatContract::FlatContract(ContractDefinition const& _contract)
                 m_vars.push_back(v);
                 extractor.record(v);
             }
+            else if (v->visibility() == Declaration::Visibility::Private ||
+                     v->visibility() == Declaration::Visibility::Default)
+            {
+                string const MSG1 = "Two or more private variables named ";
+                string const MSG2 = " in contract ";
+                throw runtime_error(MSG1 + v->name() + MSG2 + name());
+            }
         }
     }
 

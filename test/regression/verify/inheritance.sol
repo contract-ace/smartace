@@ -15,10 +15,10 @@
 contract A {
     int a = 10;
     function f() public view {
-        assert(a != 15);
+        assert(a != 10);
     }
 }
 
 contract B is A {
-    int a = 15;
+    int b = 15;
 }

@@ -22,24 +22,25 @@ contract A {
 }
 
 contract B is A {
-    int c = 15;
-    int d;
+    int d = 10;
     constructor(int _a, int _d) public A(_a) {
         assert(a == 10);
         assert(b == 20);
-        assert(c == 15);
-        assert(d == 0);
+        assert(c == _a);
+        assert(d == 10);
         a = _a;
         d = _d;
     }
 }
 
 contract C is B {
-    int d = 5;
-    constructor(int _a) public B(_a, 10) {
+    int e = 5;
+    constructor(int _a) public B(_a, 20) {
         assert(a == _a);
         assert(b == 20);
-        assert(c == 15);
-        assert(d == 5);
+        assert(c == _a);
+        assert(d == 20);
+        assert(e == 5);
     }
+    function f() public {}
 }
