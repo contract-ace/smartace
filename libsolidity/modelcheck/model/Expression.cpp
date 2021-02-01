@@ -515,25 +515,14 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 
 	if (base_type->category() == Type::Category::Address)
 	{
-		if (auto cast_int = dynamic_cast<IntegerType const*>(cast_type))
-		{
-			if (cast_int->isSigned())
-			{
-				BASE_EXPR.accept(*this);
-			}
-			else
-			{
-				m_subexpr = make_shared<CCast>(move(m_subexpr), "unsigned int");
-			}
-		}
-		else if (cast_type->category() == Type::Category::Enum)
+		if (cast_type->category() == Type::Category::Contract)
 		{
 			// TODO(scottwe): implement.
-			throw runtime_error("Enums are not yet supported.");
+			throw runtime_error("Address to contract casts unimplemented.");
 		}
-		else if (cast_type->category() != Type::Category::Address)
+		else
 		{
-			throw runtime_error("Unsupported address cast.");
+			throw runtime_error("Casts from address disallowed in MiniSol.");
 		}
 	}
 	else if (auto base_int = dynamic_cast<IntegerType const*>(base_type))
@@ -541,7 +530,7 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		if (auto cast_int = dynamic_cast<IntegerType const*>(cast_type))
 		{
 			// TODO(scottwe): take into account bitwidth.
-			// TODO(scottwe): are sign semantics the same in Solidity?
+			// TODO(scottwe): are sign conversion semantics the same in Solidity?
 			if (base_int->isSigned() != cast_int->isSigned())
 			{
 				if (cast_int->isSigned())
@@ -563,8 +552,10 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		}
 		else if (cast_type->category() == Type::Category::Enum)
 		{
-			// TODO(scottwe): implement.
-			throw runtime_error("Enums are not yet supported.");
+			if (base_int->isSigned())
+			{
+				m_subexpr = make_shared<CCast>(move(m_subexpr), "int");
+			}
 		}
 		else
 		{
@@ -614,8 +605,17 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 	}
 	else if (base_type->category() == Type::Category::Enum)
 	{
-		// TODO(scottwe): implement.
-		throw runtime_error("Enums are not yet supported.");
+		if (auto cast_int = dynamic_cast<IntegerType const*>(cast_type))
+		{
+			if (cast_int->isSigned())
+			{
+				m_subexpr = make_shared<CCast>(move(m_subexpr), "int");
+			}
+		}
+		else
+		{
+			throw runtime_error("Enum cast to non-int type is unsupported.");
+		}
 	}
 	else
 	{

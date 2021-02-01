@@ -66,6 +66,11 @@ CExprPtr NondetSourceRegistry::raw_val(Type const& _type, string const& _msg)
         size_t addr_count = m_stack->addresses()->size();
         return range(0, addr_count, _msg);
     }
+    else if (auto enum_type = dynamic_cast<EnumType const*>(&_type))
+    {
+        size_t val_count = enum_type->numberOfMembers();
+        return range(0, val_count, _msg);
+    }
     else
     {
         size_t loc = m_registry.size();
