@@ -515,12 +515,13 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 
 	if (base_type->category() == Type::Category::Address)
 	{
+
 		if (cast_type->category() == Type::Category::Contract)
 		{
 			// TODO(scottwe): implement.
 			throw runtime_error("Address to contract casts unimplemented.");
 		}
-		else
+		else if (cast_type->category() != Type::Category::Address)
 		{
 			throw runtime_error("Casts from address disallowed in MiniSol.");
 		}
@@ -612,7 +613,7 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 				m_subexpr = make_shared<CCast>(move(m_subexpr), "int");
 			}
 		}
-		else
+		else if (cast_type->category() != Type::Category::Enum)
 		{
 			throw runtime_error("Enum cast to non-int type is unsupported.");
 		}

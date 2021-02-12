@@ -82,7 +82,8 @@
         "*.a": "cpp",
         "*.includecache": "cpp",
         "*.marks": "cpp",
-        "makefile": "cpp"
+        "makefile": "cpp",
+        "unordered_set": "cpp"
     },
     "C_Cpp.default.cppStandard": "c++14",
     "C_Cpp.default.defines": ["MC_USE_STDINT"]

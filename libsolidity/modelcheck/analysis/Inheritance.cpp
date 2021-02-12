@@ -44,8 +44,8 @@ vector<VariableDeclaration const*> const& InheritanceTree::decls() const
     return m_decls;
 }
 
-list<InheritanceTree::InheritedCall>
-const& InheritanceTree::baseContracts() const
+list<InheritanceTree::InheritedCall> const&
+InheritanceTree::baseContracts() const
 {
     return m_calls;
 }
@@ -146,6 +146,7 @@ FlatContract::FlatContract(ContractDefinition const& _contract)
 
     map<string, FunctionList> registered_functions;
     set<string> variable_names;
+    set<string> modifier_names;
     for (auto c : _contract.annotation().linearizedBaseContracts)
     {
         // If this is an interface, there is nothing to do.
@@ -190,6 +191,15 @@ FlatContract::FlatContract(ContractDefinition const& _contract)
             }
         }
 
+        // Checks for new modifiers.
+        for (auto m : c->functionModifiers())
+        {
+            if (modifier_names.insert(m->name()).second)
+            {
+                m_modifiers.push_back(m);
+            }
+        }
+
         // Checks for new variables.
         for (auto v : c->stateVariables())
         {
@@ -206,8 +216,15 @@ FlatContract::FlatContract(ContractDefinition const& _contract)
                 throw runtime_error(MSG1 + v->name() + MSG2 + name());
             }
         }
+
+        // Records enum definitions.
+        for (auto e : c->definedEnums())
+        {
+            m_enums.push_back(e);
+        }
     }
 
+    // Generates map list.
     m_mappings = extractor.get();
 }
 
@@ -226,7 +243,7 @@ FlatContract::VariableList const& FlatContract::state_variables() const
     return m_vars;
 }
 
-FlatContract::FunctionList FlatContract::constructors() const
+FlatContract::FunctionList const& FlatContract::constructors() const
 {
     return m_constructors;
 }
@@ -234,6 +251,11 @@ FlatContract::FunctionList FlatContract::constructors() const
 FunctionDefinition const* FlatContract::fallback() const
 {
     return m_fallback;
+}
+
+FlatContract::ModifierList const& FlatContract::modifiers() const
+{
+    return m_modifiers;
 }
 
 InheritanceTree const& FlatContract::tree() const
@@ -286,9 +308,14 @@ FunctionDefinition const&
     }
 }
 
-list<Mapping const*> FlatContract::mappings() const
+list<Mapping const*> const& FlatContract::mappings() const
 {
     return m_mappings;
+}
+
+list<EnumDefinition const*> const& FlatContract::enums() const
+{
+    return m_enums;
 }
 
 bool FlatContract::is_payable() const

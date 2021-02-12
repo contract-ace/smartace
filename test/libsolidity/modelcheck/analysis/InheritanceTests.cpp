@@ -145,6 +145,79 @@ BOOST_AUTO_TEST_CASE(fallback)
     BOOST_CHECK(FlatContract(ctrt_c).fallback() != nullptr);
 }
 
+BOOST_AUTO_TEST_CASE(modifier_order)
+{
+    char const* text = R"(
+        contract A {
+            modifier m1() { _; }
+            modifier m2() { _; }
+            modifier m3() { _; }
+        }
+        contract B is A {
+            modifier m4() { _; }
+            modifier m5() { _; }
+        }
+        contract C is B {
+            modifier m2() { _; }
+            modifier m4() { _; }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt_c = *retrieveContractByName(unit, "C");
+    FlatContract flat(ctrt_c);
+
+    BOOST_CHECK_EQUAL(flat.modifiers().size(), 5);
+    if (flat.modifiers().size() == 5)
+    {
+        for (auto mod : flat.modifiers())
+        {
+            auto scope = dynamic_cast<ContractDefinition const*>(mod->scope());
+            if (mod->name() == "m1")
+            {
+                BOOST_CHECK_EQUAL(scope->name(), "A");
+            }
+            else if (mod->name() == "m2")
+            { 
+                BOOST_CHECK_EQUAL(scope->name(), "C");
+            }
+            else if (mod->name() == "m3")
+            {
+                BOOST_CHECK_EQUAL(scope->name(), "A");
+            }
+            else if (mod->name() == "m4")
+            {
+                BOOST_CHECK_EQUAL(scope->name(), "C");
+            }
+            else if (mod->name() == "m5")
+            {
+                BOOST_CHECK_EQUAL(scope->name(), "B");
+            }
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(enums)
+{
+    char const* text = R"(
+        contract A {
+            enum EnumA { EnumA1, EnumA2 }
+        }
+        contract B is A {
+            enum EnumB { EnumB1, EnumB2 }
+        }
+        contract C is B {
+            enum EnumC { EnumC1, EnumC2 }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    const auto& ctrt_c = *retrieveContractByName(unit, "C");
+    FlatContract flat(ctrt_c);
+
+    BOOST_CHECK_EQUAL(flat.enums().size(), 3);
+}
+
 BOOST_AUTO_TEST_CASE(model)
 {
     char const* text = R"(

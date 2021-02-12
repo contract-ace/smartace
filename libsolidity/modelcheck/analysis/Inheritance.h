@@ -102,6 +102,7 @@ class FlatContract : public StructureContainer
 {
 public:
     using FunctionList = std::list<FunctionDefinition const*>;
+    using ModifierList = std::list<ModifierDefinition const*>;
     using VariableList = std::list<VariableDeclaration const*>;
 
     // Flattens the inheritance tree of _contract.
@@ -117,10 +118,13 @@ public:
     VariableList const& state_variables() const;
 
     // Returns the constructor chain.
-    FunctionList constructors() const;
+    FunctionList const& constructors() const;
 
     // Returns the fallback method.
     FunctionDefinition const* fallback() const;
+
+    // Returns the accessible modifiers.
+    ModifierList const& modifiers() const;
 
     // Returns the inheritance tree.
     InheritanceTree const& tree() const;
@@ -134,7 +138,10 @@ public:
         resolve(FunctionDefinition const& _func) const;
 
     // Returns the mappings defiend (directly) by this contract.
-    std::list<Mapping const*> mappings() const;
+    std::list<Mapping const*> const& mappings() const;
+
+    // Returns the enums used by this contract.
+    std::list<EnumDefinition const*> const& enums() const;
 
     // Returns true if the contract is payable.
     bool is_payable() const;
@@ -147,9 +154,13 @@ private:
     FunctionList m_constructors;
     FunctionDefinition const* m_fallback = nullptr;
 
+    ModifierList m_modifiers;
+
     InheritanceTree m_tree;
 
     std::list<Mapping const*> m_mappings;
+
+    std::list<EnumDefinition const*> m_enums;
 };
 
 // -------------------------------------------------------------------------- //
