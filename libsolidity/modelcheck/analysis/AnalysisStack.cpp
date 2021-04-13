@@ -23,8 +23,12 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-AllocationAnalysis::AllocationAnalysis(InheritanceModel const& _model)
+AllocationAnalysis::AllocationAnalysis(
+	InheritanceModel const& _model, AnalysisSettings const&_settings
+)
 {
+	(void) _settings;
+
     m_allocation_graph = make_shared<AllocationGraph>(_model);
 
 	auto const& VIOLATIONS = m_allocation_graph->violations();
@@ -43,8 +47,9 @@ shared_ptr<AllocationGraph const> AllocationAnalysis::allocations() const
 
 // -------------------------------------------------------------------------- //
 
-InheritanceAnalysis::InheritanceAnalysis(InheritanceModel const& _model)
- : AllocationAnalysis(_model)
+InheritanceAnalysis::InheritanceAnalysis(
+	InheritanceModel const& _model, AnalysisSettings const&_settings
+): AllocationAnalysis(_model, _settings)
 {
 	m_flat_model = make_shared<FlatModel>(_model, *allocations());
 }
@@ -56,8 +61,9 @@ shared_ptr<FlatModel const> InheritanceAnalysis::model() const
 
 // -------------------------------------------------------------------------- //
 
-TightBundleAnalysis::TightBundleAnalysis(InheritanceModel const& _model)
- : InheritanceAnalysis(_model)
+TightBundleAnalysis::TightBundleAnalysis(
+	InheritanceModel const& _model, AnalysisSettings const&_settings
+): InheritanceAnalysis(_model, _settings)
 {
 	m_tight_bundle = make_shared<TightBundleModel>(*model());
 }
@@ -69,8 +75,9 @@ shared_ptr<TightBundleModel const> TightBundleAnalysis::tight_bundle() const
 
 // -------------------------------------------------------------------------- //
 
-ContractExprAnalysis::ContractExprAnalysis(InheritanceModel const& _model)
- : TightBundleAnalysis(_model)
+ContractExprAnalysis::ContractExprAnalysis(
+	InheritanceModel const& _model, AnalysisSettings const&_settings
+): TightBundleAnalysis(_model, _settings)
 {
 	m_contracts
 		= make_shared<ContractExpressionAnalyzer>(model(), allocations());
@@ -84,8 +91,9 @@ shared_ptr<ContractExpressionAnalyzer const>
 
 // -------------------------------------------------------------------------- //
 
-FlatCallAnalysis::FlatCallAnalysis(InheritanceModel const& _model)
- : ContractExprAnalysis(_model)
+FlatCallAnalysis::FlatCallAnalysis(
+	InheritanceModel const& _model, AnalysisSettings const&_settings
+): ContractExprAnalysis(_model, _settings)
 {
 	m_call_graph = make_shared<CallGraph>(contracts(), model());
 }
@@ -97,8 +105,9 @@ shared_ptr<CallGraph const> FlatCallAnalysis::calls() const
 
 // -------------------------------------------------------------------------- //
 
-LibraryAnalysis::LibraryAnalysis(InheritanceModel const& _model)
- : FlatCallAnalysis(_model)
+LibraryAnalysis::LibraryAnalysis(
+	InheritanceModel const& _model, AnalysisSettings const&_settings
+): FlatCallAnalysis(_model, _settings)
 {
 	m_libraries = make_shared<LibrarySummary>(*calls());
 }
@@ -113,12 +122,13 @@ shared_ptr<LibrarySummary const> LibraryAnalysis::libraries() const
 FlatAddressAnalysis::FlatAddressAnalysis(
 	InheritanceModel const& _model,
 	std::vector<SourceUnit const*> _full,
-	size_t _clients,
-	bool _concrete_clients
-): LibraryAnalysis(_model)
+	AnalysisSettings const&_settings
+): LibraryAnalysis(_model, _settings)
 {
 	m_addresses = make_shared<MapIndexSummary>(
-		_concrete_clients, _clients, tight_bundle()->size()
+		_settings.use_concrete_users,
+		_settings.persistent_user_count,
+		tight_bundle()->size()
 	);
 
 	for (auto const* ast : _full)
@@ -157,12 +167,10 @@ shared_ptr<MapIndexSummary const> FlatAddressAnalysis::addresses() const
 AnalysisStack::AnalysisStack(
 	InheritanceModel const& _model,
 	std::vector<SourceUnit const*> _full,
-	size_t _clients,
-	bool _concrete_clients,
-	bool _escalates_reqs
-): FlatAddressAnalysis(_model, _full, _clients, _concrete_clients)
+	AnalysisSettings const&_settings
+): FlatAddressAnalysis(_model, _full, _settings)
 {
-	m_environment = make_shared<CallState>(*calls(), _escalates_reqs);
+	m_environment = make_shared<CallState>(*calls(), _settings.escalate_reqs);
 	m_types = make_shared<TypeAnalyzer>();
 
 	// TODO: deprecate.

@@ -1332,12 +1332,13 @@ void CommandLineInterface::handleCModel()
 	}
 
 	// Runs full analysis stack.
-	size_t client_count = m_args[g_argModelMapLen].as<size_t>();
-	bool concrete_addrs = (m_args.count(g_argModelConcrete) > 0);
-	bool escalate_reqs = (m_args.count(g_argModelFailOnRequire) > 0);
-	auto analysis_stack = make_shared<modelcheck::AnalysisStack>(
-		major_actors, asts, client_count, concrete_addrs, escalate_reqs
-	);
+	struct modelcheck::AnalysisSettings settings;
+	settings.persistent_user_count = m_args[g_argModelMapLen].as<size_t>();
+	settings.use_concrete_users = (m_args.count(g_argModelConcrete) > 0);
+	settings.use_global_contracts = (m_args.count(g_argModelFailOnRequire) > 0);
+	settings.escalate_reqs = (m_args.count(g_argModelFailOnRequire) > 0);
+	auto analysis_stack
+		= make_shared<modelcheck::AnalysisStack>(major_actors, asts, settings);
 
 	// Aggregates primitive types.
 	// TODO(scottwe): use flat model and move to model.

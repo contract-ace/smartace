@@ -56,7 +56,13 @@ string _convert_assignment(Token tok)
     );
 
     Assignment assign(SourceLocation(), id, tok, op);
-    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, settings);
     auto r = _prime_resolver(id_name);
 
     ostringstream oss;
@@ -76,7 +82,13 @@ string _convert_bin_op(Token tok)
     id_b->annotation().type = new IntegerType(32);
 
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
-    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, settings);
     auto r = _prime_resolver(name_a);
 
     ostringstream oss;
@@ -87,7 +99,13 @@ string _convert_bin_op(Token tok)
 string _convert_unary_op(Token tok, shared_ptr<Expression> expr, bool prefix)
 {
     UnaryOperation op(SourceLocation(), tok, expr, prefix);
-    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, settings);
     auto r = _prime_resolver(make_shared<string>("a"));
 
     ostringstream oss;
@@ -98,7 +116,13 @@ string _convert_unary_op(Token tok, shared_ptr<Expression> expr, bool prefix)
 string _convert_literal(Token tok, string src, SubD subdom = SubD::None)
 {
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
-    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, settings);
 
     ostringstream oss;
     oss << *ExpressionConverter(lit, s, {}).convert();
@@ -126,7 +150,13 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
     var_c->annotation().type = new IntegerType(32);
 
     Conditional cond(SourceLocation(), var_a, var_b, var_c);
-    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, settings);
     auto r = _prime_resolver(name_a);
 
     ostringstream oss;
@@ -193,7 +223,13 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
     // TODO(scottwe): three_tuple
     // TODO(scottwe): empty array
     // TODO(scottwe): n element array, large n
-    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, settings);
 
     ostringstream oss;
     oss << *ExpressionConverter(one_tuple, s, {}).convert();
@@ -302,7 +338,12 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
     id_a.annotation().type = new IntegerType(32);
     id_b.annotation().type = new IntegerType(32);
 
-    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, 0, false, false);
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto s = make_shared<AnalysisStack>(TEST_MODEL, TEST_UNITS, settings);
     auto r = _prime_resolver(name_a);
 
     ostringstream a_oss, b_oss, msg_oss;

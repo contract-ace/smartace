@@ -60,7 +60,13 @@ BOOST_AUTO_TEST_CASE(end_to_end)
 
     vector<ContractDefinition const*> model({ ctrt, ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     BOOST_CHECK_NE(stack->allocations().get(), nullptr);
     if (stack->allocations())
@@ -133,7 +139,13 @@ BOOST_AUTO_TEST_CASE(libraries)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     auto libraries = stack->libraries()->view();
     BOOST_CHECK_EQUAL(libraries.size(), 2);
@@ -158,8 +170,19 @@ BOOST_AUTO_TEST_CASE(params)
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
 
-    auto stack_nparam = make_shared<AnalysisStack>(model, full, 0, false, false);
-    auto stack_wparam = make_shared<AnalysisStack>(model, full, 5, true, true);
+    AnalysisSettings nparam_set;
+    nparam_set.persistent_user_count = 0;
+    nparam_set.use_concrete_users = false;
+    nparam_set.use_global_contracts = false;
+    nparam_set.escalate_reqs = false;
+    auto stack_nparam = make_shared<AnalysisStack>(model, full, nparam_set);
+
+    AnalysisSettings wparam_set;
+    wparam_set.persistent_user_count = 5;
+    wparam_set.use_concrete_users = true;
+    wparam_set.use_global_contracts = false;
+    wparam_set.escalate_reqs = true;
+    auto stack_wparam = make_shared<AnalysisStack>(model, full, wparam_set);
 
     BOOST_CHECK_EQUAL(stack_nparam->addresses()->size(), 3);
     BOOST_CHECK_EQUAL(stack_nparam->addresses()->max_interference(), 1);

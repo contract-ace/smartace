@@ -220,7 +220,7 @@ BOOST_AUTO_TEST_CASE(external_call)
     auto ext = retrieveContractByName(ast, "Ext");
 
     auto func_f = ctrt->definedFunctions()[1];
-    auto extcall = ext->definedFunctions()[1];
+    auto extcall = ext->definedFunctions()[0];
 
     BOOST_CHECK_EQUAL(func_f->name(), "f");
     BOOST_CHECK_EQUAL(extcall->name(), "f");

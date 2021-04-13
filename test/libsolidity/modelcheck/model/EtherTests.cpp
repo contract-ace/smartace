@@ -56,9 +56,15 @@ BOOST_AUTO_TEST_CASE(detects_payments)
 
     vector<SourceUnit const*> full({ ast });
 
+    AnalysisSettings settings;
+    settings.persistent_user_count = 1;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+
     ostringstream output_a;
     vector<ContractDefinition const*> model_a({ ctrt_a });
-    auto stack_a = make_shared<AnalysisStack>(model_a, full, 1, false, false);
+    auto stack_a = make_shared<AnalysisStack>(model_a, full, settings);
     auto nd_reg_a = make_shared<NondetSourceRegistry>(stack_a);
     EtherMethodGenerator gen_a(stack_a, nd_reg_a);
     gen_a.print(output_a, true);
@@ -69,7 +75,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
 
     ostringstream output_b;
     vector<ContractDefinition const*> model_b({ ctrt_b });
-    auto stack_b = make_shared<AnalysisStack>(model_b, full, 1, false, false);
+    auto stack_b = make_shared<AnalysisStack>(model_b, full, settings);
     auto nd_reg_b = make_shared<NondetSourceRegistry>(stack_b);
     EtherMethodGenerator gen_b(stack_b, nd_reg_b);
     gen_b.print(output_b, true);
@@ -80,7 +86,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
 
     ostringstream output_c;
     vector<ContractDefinition const*> model_c({ ctrt_c });
-    auto stack_c = make_shared<AnalysisStack>(model_c, full, 1, false, false);
+    auto stack_c = make_shared<AnalysisStack>(model_c, full, settings);
     auto nd_reg_c = make_shared<NondetSourceRegistry>(stack_c);
     EtherMethodGenerator gen_c(stack_c, nd_reg_c);
     gen_c.print(output_c, true);
@@ -112,8 +118,14 @@ BOOST_AUTO_TEST_CASE(handles_contract_addresses)
     vector<SourceUnit const*> full({ ast });
     vector<ContractDefinition const*> model({ ctrt_a, ctrt_b, ctrt_c });
 
+    AnalysisSettings settings;
+    settings.persistent_user_count = 1;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
+
     ostringstream actual;
-    auto stack = make_shared<AnalysisStack>(model, full, 1, false, false);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
     EtherMethodGenerator gen(stack, nd_reg);
     gen.print(actual, false);
@@ -158,8 +170,14 @@ BOOST_AUTO_TEST_CASE(handles_nested_contracts)
     vector<SourceUnit const*> full({ ast });
     vector<ContractDefinition const*> model({ ctrt });
 
+    AnalysisSettings settings;
+    settings.persistent_user_count = 1;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
+
     ostringstream actual;
-    auto stack = make_shared<AnalysisStack>(model, full, 1, false, false);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
     EtherMethodGenerator gen(stack, nd_reg);
     gen.print(actual, false);

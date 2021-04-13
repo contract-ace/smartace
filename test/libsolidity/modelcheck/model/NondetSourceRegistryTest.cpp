@@ -39,7 +39,13 @@ BOOST_AUTO_TEST_CASE(byte)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     NondetSourceRegistry reg(stack);
     auto raw_nd = reg.byte("Blah");
@@ -57,7 +63,13 @@ BOOST_AUTO_TEST_CASE(range)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     NondetSourceRegistry reg(stack);
     auto raw_nd = reg.range(2, 9, "Blah");
@@ -75,7 +87,13 @@ BOOST_AUTO_TEST_CASE(increase)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     NondetSourceRegistry reg(stack);
     auto var = make_shared<CIdentifier>("var", false);
@@ -94,7 +112,13 @@ BOOST_AUTO_TEST_CASE(raw_int)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     IntegerType type(32, IntegerType::Modifier::Signed);
     NondetSourceRegistry reg(stack);
@@ -113,7 +137,13 @@ BOOST_AUTO_TEST_CASE(raw_uint)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     IntegerType type(32, IntegerType::Modifier::Unsigned);
     NondetSourceRegistry reg(stack);
@@ -132,7 +162,13 @@ BOOST_AUTO_TEST_CASE(raw_addr)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 8, true, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 8;
+    settings.use_concrete_users = true;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     AddressType type(StateMutability::Payable);
     NondetSourceRegistry reg(stack);
@@ -151,7 +187,13 @@ BOOST_AUTO_TEST_CASE(raw_bool)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     BoolType type;
     NondetSourceRegistry reg(stack);
@@ -170,7 +212,13 @@ BOOST_AUTO_TEST_CASE(unique_sources)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 8, true, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 8;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     auto var = make_shared<CIdentifier>("var", false);
     IntegerType uint_type(32, IntegerType::Modifier::Unsigned);
@@ -248,7 +296,13 @@ BOOST_AUTO_TEST_CASE(source_decls)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &unit });
-    auto stack = make_shared<AnalysisStack>(model, full, 8, true, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 8;
+    settings.use_concrete_users = true;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
 
     auto var = make_shared<CIdentifier>("var", false);
     IntegerType uint_type(32, IntegerType::Modifier::Unsigned);

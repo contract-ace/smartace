@@ -47,7 +47,13 @@ BOOST_AUTO_TEST_CASE(simple_contract)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -80,7 +86,13 @@ BOOST_AUTO_TEST_CASE(simple_map)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -125,7 +137,13 @@ BOOST_AUTO_TEST_CASE(simple_struct)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -166,7 +184,13 @@ BOOST_AUTO_TEST_CASE(simple_func)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -209,7 +233,13 @@ BOOST_AUTO_TEST_CASE(simple_void_func)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -252,7 +282,13 @@ BOOST_AUTO_TEST_CASE(struct_nesting)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -306,7 +342,13 @@ BOOST_AUTO_TEST_CASE(multiple_contracts)
 
     vector<ContractDefinition const*> model({ ctrt_a, ctrt_c });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -363,7 +405,13 @@ BOOST_AUTO_TEST_CASE(nested_maps)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -412,7 +460,13 @@ BOOST_AUTO_TEST_CASE(nontrivial_retval)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg = make_shared<NondetSourceRegistry>(stack);
 
     ostringstream adt_actual, func_actual;
@@ -477,7 +531,13 @@ BOOST_AUTO_TEST_CASE(reproducible)
 
     vector<ContractDefinition const*> model({ ctrt });
     vector<SourceUnit const*> full({ &ast });
-    auto stack = make_shared<AnalysisStack>(model, full, 0, false, false);
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = false;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
     auto nd_reg_1 = make_shared<NondetSourceRegistry>(stack);
     auto nd_reg_2 = make_shared<NondetSourceRegistry>(stack);
 

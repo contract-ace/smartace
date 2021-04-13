@@ -42,6 +42,25 @@ using InheritanceModel = std::vector<ContractDefinition const*>;
 // -------------------------------------------------------------------------- //
 
 /**
+ *
+ */
+struct AnalysisSettings
+{
+    // The number of additional, persistent users, required by the properties.
+    size_t persistent_user_count = 0;
+    // If true, each user is treated as if it were in a small model (rather than
+    // an equivalence class).
+    bool use_concrete_users = false;
+    // If true, contracts may be represented by global variables (e.g., if the
+    // client's fallback an be executed through a transfer or send).
+    bool use_global_contracts = false;
+    // If true, all require statements will be replaced by assertion statements.
+    bool escalate_reqs = false;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * The first pass of analysis devirtualizes contracts.
  */
 class AllocationAnalysis
@@ -49,7 +68,9 @@ class AllocationAnalysis
 public:
     // Equivalent to AllocationGraph(_model), with some additional error
     // handling and post analysis summary.
-    AllocationAnalysis(InheritanceModel const& _model);
+    AllocationAnalysis(
+        InheritanceModel const& _model, AnalysisSettings const& _settings
+    );
 
     // Describes all virtual allocations in the bundle.
     std::shared_ptr<AllocationGraph const> allocations() const;
@@ -68,7 +89,9 @@ class InheritanceAnalysis : public AllocationAnalysis
 {
 public:
     // Equivalent to calling FlatModel(_model, *allocations()).
-    InheritanceAnalysis(InheritanceModel const& _model);
+    InheritanceAnalysis(
+        InheritanceModel const& _model, AnalysisSettings const& _settings
+    );
 
     // Describes all contracts in the model.
     std::shared_ptr<FlatModel const> model() const;
@@ -89,7 +112,9 @@ class TightBundleAnalysis : public InheritanceAnalysis
 {
 public:
     // Equivalent to TightBundleModel(*model()).
-    TightBundleAnalysis(InheritanceModel const& _model);
+    TightBundleAnalysis(
+        InheritanceModel const& _model, AnalysisSettings const& _settings
+    );
 
     // A unique identity for each contract instance.
     std::shared_ptr<TightBundleModel const> tight_bundle() const;
@@ -108,7 +133,9 @@ class ContractExprAnalysis : public TightBundleAnalysis
 {
 public:
     // Equivalent to ContractExpressionAnalyzer(*model(), *allocations()).
-    ContractExprAnalysis(InheritanceModel const& _model);
+    ContractExprAnalysis(
+        InheritanceModel const& _model, AnalysisSettings const& _settings
+    );
 
     // Describes all calls made within the bundle.
     std::shared_ptr<ContractExpressionAnalyzer const> contracts() const;
@@ -127,7 +154,9 @@ class FlatCallAnalysis : public ContractExprAnalysis
 {
 public:
     // Equivalent to calling CallGraph(*model(), *allocations()).
-    FlatCallAnalysis(InheritanceModel const& _model);
+    FlatCallAnalysis(
+        InheritanceModel const& _model, AnalysisSettings const& _settings
+    );
 
     // Describes all calls made within the bundle.
     std::shared_ptr<CallGraph const> calls() const;
@@ -145,7 +174,9 @@ class LibraryAnalysis : public FlatCallAnalysis
 {
 public:
     // Equivalent to calling LibrarySummary(*calls()).
-    LibraryAnalysis(InheritanceModel const& _model);
+    LibraryAnalysis(
+        InheritanceModel const& _model, AnalysisSettings const& _settings
+    );
 
     // Describes all libraries in use by the bundle.
     std::shared_ptr<LibrarySummary const> libraries() const;
@@ -164,13 +195,12 @@ class FlatAddressAnalysis : public LibraryAnalysis
 {
 public:
     // Equivalent to calling FlatAddressAnalysis(_concrete, _clients,
-    // model_cost()), followed by some error handling and analysis.
+    // tight_bundle()->size()), followed by some error handling and analysis.
     // TODO(scottwe): deprecate _full.
     FlatAddressAnalysis(
         InheritanceModel const& _model,
         std::vector<SourceUnit const*> _full,
-        size_t _clients,
-        bool _concrete_clients
+        AnalysisSettings const& _settings
     );
 
     // Describes the address requirements of the bundle.
@@ -191,17 +221,12 @@ class AnalysisStack : public FlatAddressAnalysis
 public:
     // Initializes all analyses which can be performed after analying the
     // address access patterns. The _model parameter is used to specify the
-    // contracts to encode. The _clients field gives the number of distinguished
-    // clients, while _concrete_clients escalates all clients to a concrete
-    // execution. The _escalates_reqs parameter will force all requirements to
-    // be escalated into assertions.
+    // contracts to encode. All other arguments are specified by _settings.
     // TODO(scottwe): deprecate _full.
     AnalysisStack(
         InheritanceModel const& _model,
         std::vector<SourceUnit const*> _full,
-        size_t _clients,
-        bool _concrete_clients,
-        bool _escalates_reqs
+        AnalysisSettings const& _settings
     );
 
     // Characterizes the environment needed by each call.
