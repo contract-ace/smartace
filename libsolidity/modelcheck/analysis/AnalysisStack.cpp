@@ -61,23 +61,9 @@ shared_ptr<FlatModel const> InheritanceAnalysis::model() const
 
 // -------------------------------------------------------------------------- //
 
-TightBundleAnalysis::TightBundleAnalysis(
-	InheritanceModel const& _model, AnalysisSettings const&_settings
-): InheritanceAnalysis(_model, _settings)
-{
-	m_tight_bundle = make_shared<TightBundleModel>(*model());
-}
-
-shared_ptr<TightBundleModel const> TightBundleAnalysis::tight_bundle() const
-{
-	return m_tight_bundle;
-}
-
-// -------------------------------------------------------------------------- //
-
 ContractExprAnalysis::ContractExprAnalysis(
 	InheritanceModel const& _model, AnalysisSettings const&_settings
-): TightBundleAnalysis(_model, _settings)
+): InheritanceAnalysis(_model, _settings)
 {
 	m_contracts
 		= make_shared<ContractExpressionAnalyzer>(model(), allocations());
@@ -119,11 +105,41 @@ shared_ptr<LibrarySummary const> LibraryAnalysis::libraries() const
 
 // -------------------------------------------------------------------------- //
 
+EnvironmentAnalysis::EnvironmentAnalysis(
+	InheritanceModel const& _model, AnalysisSettings const&_settings
+): LibraryAnalysis(_model, _settings)
+{
+	m_environment = make_shared<CallState>(*calls(), _settings.escalate_reqs);
+}
+
+shared_ptr<CallState const> EnvironmentAnalysis::environment() const
+{
+	return m_environment;
+}
+
+// -------------------------------------------------------------------------- //
+
+TightBundleAnalysis::TightBundleAnalysis(
+	InheritanceModel const& _model, AnalysisSettings const&_settings
+): EnvironmentAnalysis(_model, _settings)
+{
+	m_tight_bundle = make_shared<TightBundleModel>(
+		*model(), *environment(), _settings.allow_fallbacks
+	);
+}
+
+shared_ptr<TightBundleModel const> TightBundleAnalysis::tight_bundle() const
+{
+	return m_tight_bundle;
+}
+
+// -------------------------------------------------------------------------- //
+
 FlatAddressAnalysis::FlatAddressAnalysis(
 	InheritanceModel const& _model,
 	std::vector<SourceUnit const*> _full,
 	AnalysisSettings const&_settings
-): LibraryAnalysis(_model, _settings)
+): TightBundleAnalysis(_model, _settings)
 {
 	m_addresses = make_shared<MapIndexSummary>(
 		_settings.use_concrete_users,
@@ -170,7 +186,6 @@ AnalysisStack::AnalysisStack(
 	AnalysisSettings const&_settings
 ): FlatAddressAnalysis(_model, _full, _settings)
 {
-	m_environment = make_shared<CallState>(*calls(), _settings.escalate_reqs);
 	m_types = make_shared<TypeAnalyzer>();
 
 	// TODO: deprecate.
@@ -178,11 +193,6 @@ AnalysisStack::AnalysisStack(
 	{
 		m_types->record(*ast);
 	}
-}
-
-shared_ptr<CallState const> AnalysisStack::environment() const
-{
-	return m_environment;
 }
 
 shared_ptr<TypeAnalyzer const> AnalysisStack::types() const

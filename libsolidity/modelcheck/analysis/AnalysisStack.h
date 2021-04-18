@@ -56,12 +56,14 @@ struct AnalysisSettings
     bool use_global_contracts = false;
     // If true, all require statements will be replaced by assertion statements.
     bool escalate_reqs = false;
+    // If true, fallbacks through sends and transfers are allowed.
+    bool allow_fallbacks = false;
 };
 
 // -------------------------------------------------------------------------- //
 
 /**
- * The first pass of analysis devirtualizes contracts.
+ * This pass of analysis devirtualizes contracts.
  */
 class AllocationAnalysis
 {
@@ -82,8 +84,8 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The second pass of analysis uses the devirtualization graph to build a model
- * free from hierarchies.
+ * This pass of analysis uses the devirtualization graph to build a model free
+ * from hierarchies.
  */
 class InheritanceAnalysis : public AllocationAnalysis
 {
@@ -103,33 +105,10 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The third pass of analysis assigns unique identifiers to each contract
- * instance. This is different from FlatContracts. There may be two or more
- * instances of a single flat contract in a tightly coupled smart contract
- * bundle.
+ * This pass of analysis upcasts all contract return values. The end result is
+ * a mapping from contract expressions to upcast contracts.
  */
-class TightBundleAnalysis : public InheritanceAnalysis
-{
-public:
-    // Equivalent to TightBundleModel(*model()).
-    TightBundleAnalysis(
-        InheritanceModel const& _model, AnalysisSettings const& _settings
-    );
-
-    // A unique identity for each contract instance.
-    std::shared_ptr<TightBundleModel const> tight_bundle() const;
-
-private:
-    std::shared_ptr<TightBundleModel> m_tight_bundle;
-};
-
-// -------------------------------------------------------------------------- //
-
-/**
- * The third pass of analysis upcasts all contract return values. The end result
- * is a mapping from contract expressions to upcast contracts.
- */
-class ContractExprAnalysis : public TightBundleAnalysis
+class ContractExprAnalysis : public InheritanceAnalysis
 {
 public:
     // Equivalent to ContractExpressionAnalyzer(*model(), *allocations()).
@@ -147,8 +126,7 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The fourth pass of analysis constructs a call graph for all contracts in the
- * model.
+ * This pass of analysis constructs a call graph for all contracts in the model.
  */
 class FlatCallAnalysis : public ContractExprAnalysis
 {
@@ -168,7 +146,7 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The fifth pass uses call data to determine the mappings in use.
+ * This pass uses call data to determine the mappings in use.
  */
 class LibraryAnalysis : public FlatCallAnalysis
 {
@@ -188,10 +166,52 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The sixth pass of analysis ensures that addresses are used appropriately,
- * and computes the required parameters for compositional reasoning.
+ * This pass uses call data to determine the minimal blockchain environment.
  */
-class FlatAddressAnalysis : public LibraryAnalysis
+class EnvironmentAnalysis : public LibraryAnalysis
+{
+public:
+    // Equivalent to calling CallState(*calls()).
+    EnvironmentAnalysis(
+        InheritanceModel const& _model, AnalysisSettings const& _settings
+    );
+
+    // Characterizes the environment needed by each call.
+    std::shared_ptr<CallState const> environment() const;
+
+private:
+    std::shared_ptr<CallState> m_environment;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * This pass of analysis assigns unique identifiers to each contract instance.
+ * This is different from FlatContracts. There may be two or more instances of a
+ * single flat contract in a tightly coupled smart contract bundle.
+ */
+class TightBundleAnalysis : public EnvironmentAnalysis
+{
+public:
+    // Equivalent to TightBundleModel(*model()).
+    TightBundleAnalysis(
+        InheritanceModel const& _model, AnalysisSettings const& _settings
+    );
+
+    // A unique identity for each contract instance.
+    std::shared_ptr<TightBundleModel const> tight_bundle() const;
+
+private:
+    std::shared_ptr<TightBundleModel> m_tight_bundle;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Thiss pass of analysis ensures that addresses are used appropriately, and
+ * computes the required parameters for compositional reasoning.
+ */
+class FlatAddressAnalysis : public TightBundleAnalysis
 {
 public:
     // Equivalent to calling FlatAddressAnalysis(_concrete, _clients,
@@ -213,8 +233,8 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * The final pass generates stand-alone modules such as the type translator and
- * the call state environment.
+ * This pass generates stand-alone modules such as the type translator and the
+ * call state environment.
  */
 class AnalysisStack : public FlatAddressAnalysis
 {
@@ -229,14 +249,10 @@ public:
         AnalysisSettings const& _settings
     );
 
-    // Characterizes the environment needed by each call.
-    std::shared_ptr<CallState const> environment() const;
-
     // Returns the type analyzer.
     std::shared_ptr<TypeAnalyzer const> types() const;
 
 private:
-    std::shared_ptr<CallState> m_environment;
     std::shared_ptr<TypeAnalyzer> m_types;
 };
 
