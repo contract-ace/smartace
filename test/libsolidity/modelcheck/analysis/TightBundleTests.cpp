@@ -10,6 +10,9 @@
 #include <test/libsolidity/AnalysisFramework.h>
 
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallGraph.h>
+#include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 
 #include <set>
@@ -60,19 +63,24 @@ BOOST_AUTO_TEST_CASE(contract)
     auto ctrt_e = retrieveContractByName(unit, "E");
 
     vector<ContractDefinition const*> model({ ctrt_d, ctrt_e });
-    AllocationGraph graph(model);
-    FlatModel flat_model(model, graph);
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    CallState call_state(call_graph, false);
 
-    BOOST_CHECK_EQUAL(flat_model.view().size(), 5);
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 5);
 
-    auto flat_a = flat_model.get(*ctrt_a);
-    auto flat_b = flat_model.get(*ctrt_b);
+    auto flat_a = flat_model->get(*ctrt_a);
+    auto flat_b = flat_model->get(*ctrt_b);
 
     BOOST_CHECK_NE(flat_a, nullptr);
     BOOST_CHECK_NE(flat_b, nullptr);
     
     size_t size = 0;
-    BundleContract const bundle_contract(flat_model, flat_b, size, "");
+    BundleContract const bundle_contract(
+        *flat_model, call_state, false, flat_b, size, ""
+    );
 
     BOOST_CHECK_EQUAL(size, 3);
     BOOST_CHECK_EQUAL(bundle_contract.address(), 1);
@@ -123,18 +131,21 @@ BOOST_AUTO_TEST_CASE(full)
     auto ctrt_e = retrieveContractByName(unit, "E");
 
     vector<ContractDefinition const*> model({ ctrt_d, ctrt_e });
-    AllocationGraph graph(model);
-    FlatModel flat_model(model, graph);
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    CallState call_state(call_graph, false);
 
-    BOOST_CHECK_EQUAL(flat_model.view().size(), 5);
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 5);
 
-    auto flat_d = flat_model.get(*ctrt_d);
-    auto flat_e = flat_model.get(*ctrt_e);
+    auto flat_d = flat_model->get(*ctrt_d);
+    auto flat_e = flat_model->get(*ctrt_e);
 
     BOOST_CHECK_NE(flat_d, nullptr);
     BOOST_CHECK_NE(flat_e, nullptr);
     
-    TightBundleModel tight_model(flat_model);
+    TightBundleModel tight_model(*flat_model, call_state, false);
 
     BOOST_CHECK_EQUAL(tight_model.size(), 7);
     BOOST_CHECK_EQUAL(tight_model.view().size(), 2);
@@ -147,6 +158,62 @@ BOOST_AUTO_TEST_CASE(full)
     {
         auto tight_contract = tight_model.view()[1];
         BOOST_CHECK_EQUAL(tight_contract->details().get(), flat_e.get());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(fallbacks)
+{
+    char const* text = R"(
+		contract A {
+            function() external {}
+        }
+        contract B {
+            function f() public payable {
+                msg.sender.send(msg.value);
+            }
+        }
+	)";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt_a = retrieveContractByName(unit, "A");
+    auto ctrt_b = retrieveContractByName(unit, "B");
+
+    vector<ContractDefinition const*> model({ ctrt_a, ctrt_b });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    CallState call_state(call_graph, false);
+
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 2);
+
+    auto flat_a = flat_model->get(*ctrt_a);
+    auto flat_b = flat_model->get(*ctrt_b);
+
+    TightBundleModel tight_model_false(*flat_model, call_state, false);
+    BOOST_CHECK_EQUAL(tight_model_false.view().size(), 2);
+    if (tight_model_false.view().size() >= 1)
+    {
+        auto tight_contract = tight_model_false.view()[0];
+        BOOST_CHECK(!tight_contract->can_fallback_through_send());
+    }
+    if (tight_model_false.view().size() >= 2)
+    {
+        auto tight_contract = tight_model_false.view()[1];
+        BOOST_CHECK(!tight_contract->can_fallback_through_send());
+    }
+    
+    TightBundleModel tight_model_true(*flat_model, call_state, true);
+    BOOST_CHECK_EQUAL(tight_model_true.view().size(), 2);
+    if (tight_model_true.view().size() >= 1)
+    {
+        auto tight_contract = tight_model_true.view()[0];
+        BOOST_CHECK(tight_contract->can_fallback_through_send());
+    }
+    if (tight_model_true.view().size() >= 2)
+    {
+        auto tight_contract = tight_model_true.view()[1];
+        BOOST_CHECK(!tight_contract->can_fallback_through_send());
     }
 }
 
