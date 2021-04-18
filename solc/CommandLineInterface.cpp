@@ -135,6 +135,7 @@ static string const g_strModelLockstepTime = "lockstep-time";
 static string const g_strModelActor = "bundle";
 static string const g_strModelConcrete = "concrete";
 static string const g_strModelFailOnRequire = "fail-on-require";
+static string const g_strModelAllowFallbacks = "allow-fallbacks";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -194,6 +195,7 @@ static string const g_argModelLockstepTime = g_strModelLockstepTime;
 static string const g_argModelActor = g_strModelActor;
 static string const g_argModelConcrete = g_strModelConcrete;
 static string const g_argModelFailOnRequire = g_strModelFailOnRequire;
+static string const g_argModelAllowFallbacks = g_strModelAllowFallbacks;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -824,7 +826,12 @@ Allowed options)",
 		)
 		(g_argModelConcrete.c_str(), "Forces all client to be concrete. This corresponds to a bounded model.")
 		(g_argModelMapSum.c_str(), "Auto-instruments all maps with sum variables.")
-		(g_argModelFailOnRequire.c_str(), "Escalates requirement failures to assertion failures.");
+		(g_argModelFailOnRequire.c_str(), "Escalates requirement failures to assertion failures.")
+		(
+			g_argModelAllowFallbacks.c_str(),
+			po::value<bool>()->value_name("on")->default_value(true),
+			"Allows contracts to be escalated to the global scope, if the fallback of the contract is callable."
+		);
 	desc.add(smartaceOptions);
 
 	po::options_description allOptions = desc;
@@ -1337,6 +1344,7 @@ void CommandLineInterface::handleCModel()
 	settings.use_concrete_users = (m_args.count(g_argModelConcrete) > 0);
 	settings.use_global_contracts = (m_args.count(g_argModelFailOnRequire) > 0);
 	settings.escalate_reqs = (m_args.count(g_argModelFailOnRequire) > 0);
+	settings.allow_fallbacks = m_args[g_argModelAllowFallbacks].as<bool>();
 	auto analysis_stack
 		= make_shared<modelcheck::AnalysisStack>(major_actors, asts, settings);
 
@@ -1449,24 +1457,31 @@ void CommandLineInterface::handleCModelBody(
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 
 	_os << "#include \"cmodel.h\"" << endl;
+
+	// Generates global constants for literal addresses.
 	for (auto lit : _stack->addresses()->literals())
 	{
 		auto const NAME = modelcheck::AbstractAddressDomain::literal_name(lit);
 		_os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
 	}
 
-	EtherMethodGenerator(_stack, _nd_reg).print(_os, false);
-
+	// Generates structure definitions.
 	ADTConverter(_stack, sum_maps, addr_ct, false).print(_os);
 
+	// Generates send/transfer/etc calls using global contracts.
+	EtherMethodGenerator(_stack, _nd_reg).print(_os, false);
+
+	// Forward declares internal function calls.
 	FunctionConverter(
 		_stack, _nd_reg, sum_maps, addr_ct, FunctionConverter::View::INT, true
 	).print(_os);
 
+	// Generates bodies for each function call.
 	FunctionConverter(
 		_stack, _nd_reg, sum_maps, addr_ct, FunctionConverter::View::FULL, false
 	).print(_os);
 
+	// Generates harness.
 	MainFunctionGenerator(lockstep_time, _stack, _nd_reg).print(_os);
 }
 
