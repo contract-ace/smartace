@@ -207,7 +207,10 @@ public:
 	public:
 		// Preprocesses _func to generate all of its modifiers. _name is the
 		// name to associate with _func.
-		Factory(FunctionSpecialization const& _spec);
+		Factory(
+			std::shared_ptr<AnalysisStack const> _stack,
+			FunctionSpecialization const& _spec
+		);
 
 		// Generates the _i-th modifier for _func, where _i is zero-indexed.
 		ModifierBlockConverter generate(

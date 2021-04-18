@@ -2,8 +2,9 @@
 
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
-#include <libsolidity/modelcheck/codegen/Details.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/AST.h>
@@ -21,17 +22,22 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 ModifierBlockConverter::ModifierBlockConverter::Factory::Factory(
+    shared_ptr<AnalysisStack const> _stack,
     FunctionSpecialization const& _spec
 ): M_SPEC(_spec)
 {
+    auto contract = _stack->model()->get(_spec.use_by());
+
     for (auto mod : _spec.func().modifiers())
     {
-        auto contract = &_spec.source();
         string const& target = mod->name()->name();
 
-        if (auto match = find_named_match<ModifierDefinition>(contract, target))
+        for (auto match : contract->modifiers())
         {
-            m_filtered_mods.push_back(make_pair(match, mod.get()));
+            if (match->name() == target)
+            {
+                m_filtered_mods.push_back(make_pair(match, mod.get()));
+            }
         }
     }
 }

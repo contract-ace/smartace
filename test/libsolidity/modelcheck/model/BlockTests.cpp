@@ -1103,8 +1103,8 @@ BOOST_AUTO_TEST_CASE(modifier_nesting)
 
     FunctionSpecialization spec_f(*func_f);
     FunctionSpecialization spec_g(*func_g);
-    ModifierBlockConverter::Factory f_factory(spec_f);
-    ModifierBlockConverter::Factory g_factory(spec_g);
+    ModifierBlockConverter::Factory f_factory(stack, spec_f);
+    ModifierBlockConverter::Factory g_factory(stack, spec_g);
 
     ostringstream f0_actual, f0_expect;
     f0_actual << *f_factory.generate(0, stack).convert();
@@ -1176,7 +1176,7 @@ BOOST_AUTO_TEST_CASE(modifier_retval)
 
     ostringstream expected, actual;
     FunctionSpecialization spec(func);
-    ModifierBlockConverter::Factory factory(spec);
+    ModifierBlockConverter::Factory factory(stack, spec);
     actual << *factory.generate(0, stack).convert();
     expected << "{";
     expected << "sol_int256_t func_model_rv;";
@@ -1219,7 +1219,7 @@ BOOST_AUTO_TEST_CASE(modifier_args)
 
     ostringstream expected, actual;
     FunctionSpecialization spec(func);
-    ModifierBlockConverter::Factory factory(spec);
+    ModifierBlockConverter::Factory factory(stack, spec);
     actual << *factory.generate(0, stack).convert();
     expected << "{";
     expected << "sol_int256_t func_user_a=Init_sol_int256_t("

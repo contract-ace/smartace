@@ -477,7 +477,7 @@ string FunctionConverter::handle_function(
     }
 
     // Filters modifiers from constructors.
-    ModifierBlockConverter::Factory mods(_spec);
+    ModifierBlockConverter::Factory mods(m_stack, _spec);
 
     // Generates a declaration for the base call.
     auto const CONTEXT = VarContext::FUNCTION;
