@@ -46,7 +46,14 @@ MainFunctionGenerator::MainFunctionGenerator(
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::print(ostream& _stream)
+void MainFunctionGenerator::print_globals(std::ostream& _stream)
+{
+    m_actors.declare_global(_stream);
+}
+
+// -------------------------------------------------------------------------- //
+
+void MainFunctionGenerator::print_main(ostream& _stream)
 {
     // Generates function switch.
     auto next_case = make_shared<CVarDecl>("uint8_t", "next_call");

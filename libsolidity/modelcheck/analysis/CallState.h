@@ -67,7 +67,9 @@ public:
         CFuncCallBuilder & _builder,
         bool _external,
         bool _for_contract,
-        CExprPtr _value
+        CExprPtr _value,
+        CExprPtr _sender = nullptr,
+        CExprPtr _balance = nullptr
     ) const;
 
     // Returns true if send is required.

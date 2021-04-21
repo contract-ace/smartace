@@ -829,7 +829,7 @@ Allowed options)",
 		(g_argModelFailOnRequire.c_str(), "Escalates requirement failures to assertion failures.")
 		(
 			g_argModelAllowFallbacks.c_str(),
-			po::value<bool>()->value_name("on")->default_value(true),
+			po::value<bool>()->value_name("on")->default_value(false),
 			"Allows contracts to be escalated to the global scope, if the fallback of the contract is callable."
 		);
 	desc.add(smartaceOptions);
@@ -1468,6 +1468,10 @@ void CommandLineInterface::handleCModelBody(
 	// Generates structure definitions.
 	ADTConverter(_stack, sum_maps, addr_ct, false).print(_os);
 
+	// Lifts all global contracts.
+	MainFunctionGenerator main(lockstep_time, _stack, _nd_reg);
+	main.print_globals(_os);
+
 	// Generates send/transfer/etc calls using global contracts.
 	EtherMethodGenerator(_stack, _nd_reg).print(_os, false);
 
@@ -1482,7 +1486,7 @@ void CommandLineInterface::handleCModelBody(
 	).print(_os);
 
 	// Generates harness.
-	MainFunctionGenerator(lockstep_time, _stack, _nd_reg).print(_os);
+	main.print_main(_os);
 }
 
 bool CommandLineInterface::actOnInput()

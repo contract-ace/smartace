@@ -10,6 +10,7 @@
 #include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Ether.h>
+#include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 
 #include <sstream>
@@ -112,6 +113,7 @@ void EtherMethodGenerator::generate_send(
 
         // If balance is insufficient this fails.
         statements.push_back(make_shared<CIf>(bal_cond, fail_rv, nullptr));
+        statements.push_back(bal_change->stmt());
 
         // Adds case for the zero address.
         {
@@ -125,10 +127,11 @@ void EtherMethodGenerator::generate_send(
         }
 
         // Adds cases for non-payable contract.
-        generate_fallbacks(fail_rv, statements, m_stack->tight_bundle()->view());
+        generate_fallbacks(
+            true, fail_rv, statements, m_stack->tight_bundle()->view()
+        );
 
-        // If all addresses pass, we perform a send with some result.
-        statements.push_back(bal_change->stmt());
+        // If no cases match, we perform a send with some result.
         statements.push_back(make_shared<CReturn>(nd_result));
 
         body = make_shared<CBlock>(move(statements));
@@ -192,6 +195,7 @@ void EtherMethodGenerator::generate_transfer(
 }
 
 void EtherMethodGenerator::generate_fallbacks(
+    bool _root,
     CStmtPtr const& _error,
     CBlockList & _statements,
     vector<shared_ptr<BundleContract const>> _contracts
@@ -208,10 +212,39 @@ void EtherMethodGenerator::generate_fallbacks(
         CBlockList handler_list;
         if (contract->details()->is_payable())
         {
-            // TODO(scottwe): support sends with fallbacks.
-            string const& NAME = contract->details()->name();
-            string const MSG = "Fallback not allowed in: " + NAME;
-            LibVerify::add_assert(handler_list, Literals::ZERO, MSG);
+            if (contract->can_fallback_through_send())
+            {
+                string name = "contract_" + to_string(contract->address());
+                CExprPtr id = make_shared<CIdentifier>(name, !_root);
+                if (_root)
+                {
+                    id = make_shared<CReference>(id);
+                }
+
+                auto fallback = contract->details()->fallback();
+                FunctionSpecialization call(*fallback);
+
+                CFuncCallBuilder builder(call.name(0));
+                builder.push(id);
+
+                m_stack->environment()->compute_next_state_for(
+		            builder,
+                    true,
+                    true,
+                    AMT_VAR->id(),
+                    SRC_VAR->id(),
+                    BAL_VAR->id()
+	            );
+
+                handler_list.push_back(builder.merge_and_pop_stmt());
+                LibVerify::log(handler_list, "Fallback at " + name + ".");
+            }
+            else
+            {
+                string const& NAME = contract->details()->name();
+                string const MSG = "Fallback not allowed in: " + NAME;
+                LibVerify::add_assert(handler_list, Literals::ZERO, MSG);
+            }
         }
         else
         {
@@ -220,7 +253,7 @@ void EtherMethodGenerator::generate_fallbacks(
         auto handler = make_shared<CBlock>(move(handler_list));
         _statements.push_back(make_shared<CIf>(addr_cond, handler, nullptr));
 
-        generate_fallbacks(_error, _statements, contract->children());
+        generate_fallbacks(false, _error, _statements, contract->children());
     }
 }
 

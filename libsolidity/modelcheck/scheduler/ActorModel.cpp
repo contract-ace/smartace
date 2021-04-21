@@ -29,28 +29,30 @@ namespace modelcheck
 
 Actor::Actor(
     shared_ptr<AnalysisStack const> _stack,
-    std::shared_ptr<FlatContract const> _contract,
-    size_t _id,
+    std::shared_ptr<BundleContract const> _contract,
     CExprPtr _path
-): contract(_contract), path(_path), address(_id)
+): contract(_contract->details())
+ , path(_path)
+ , address(_contract->address())
+ , global(_contract->can_fallback_through_send())
 {
     // Reserves a unique identifier for the actor.
     decl = make_shared<CVarDecl>(
-        _stack->types()->get_type(*_contract->raw()),
-        "contract_" + to_string(_id),
+        _stack->types()->get_type(*contract->raw()),
+        "contract_" + to_string(address),
         _path != nullptr
     );
 
     // Analyzes all children and function calls.
-    for (auto method : _contract->interface())
+    for (auto method : contract->interface())
     {
-        specs.emplace_back(*method, *_contract->raw());
+        specs.emplace_back(*method, *contract->raw());
     }
 
     // Analyzes fallback.
-    if (auto fallback = _contract->fallback())
+    if (auto fallback = contract->fallback())
     {
-        specs.emplace_back(*fallback, *_contract->raw());
+        specs.emplace_back(*fallback, *contract->raw());
     }
 }
 
@@ -64,9 +66,7 @@ ActorModel::ActorModel(
     // Generates an actor for each client.
     for (auto contract : m_stack->tight_bundle()->view())
     {
-        m_actors.emplace_back(
-            m_stack, contract->details(), contract->address(), nullptr
-        );
+        m_actors.emplace_back(m_stack, contract, nullptr);
         recursive_setup(contract, m_actors.back());
     }
 
@@ -100,11 +100,27 @@ ActorModel::ActorModel(
 
 // -------------------------------------------------------------------------- //
 
+void ActorModel::declare_global(ostream& _stream) const
+{
+    for (auto const& actor : m_actors)
+    {
+        if (actor.global)
+        {
+            _stream << (*actor.decl);
+        }
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
 void ActorModel::declare(CBlockList & _block) const
 {
     for (auto const& actor : m_actors)
     {
-        _block.push_back(actor.decl);
+        if (!actor.global)
+        {
+            _block.push_back(actor.decl);
+        }
     }
 }
 
@@ -215,9 +231,7 @@ void ActorModel::recursive_setup(
         );
         auto const PATH = make_shared<CMemberAccess>(_parent.decl->id(), NAME);
 
-        m_actors.emplace_back(
-            m_stack, record->details(), record->address(), PATH
-        );
+        m_actors.emplace_back(m_stack, record, PATH);
         recursive_setup(record, m_actors.back());
     }
 }

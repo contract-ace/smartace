@@ -41,8 +41,7 @@ struct Actor
     // site _path.
     Actor(
         std::shared_ptr<AnalysisStack const> _stack,
-        std::shared_ptr<FlatContract const> _contract,
-        size_t _id,
+        std::shared_ptr<BundleContract const> _contract,
         CExprPtr _path
     );
 
@@ -63,6 +62,9 @@ struct Actor
 
     // If true, the actor has been used to spawn a child contract.
     bool has_children;
+
+    // If true, the contract must appear in the global scope.
+    bool global;
 };
 
 // -------------------------------------------------------------------------- //
@@ -81,7 +83,10 @@ public:
         std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
 
-    // Appends a declaration for each actor onto _block.
+    // Generates global actor declarations.
+    void declare_global(std::ostream& _stream) const;
+
+    // Appends a declaration for (non-global) each actor onto _block.
     void declare(CBlockList & _block) const;
 
     // Writes an initialization call to _block, for each actor. Nested actors

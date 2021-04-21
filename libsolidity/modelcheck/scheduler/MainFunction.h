@@ -44,8 +44,11 @@ public:
         std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
 
+    // Prints global declarations.
+    void print_globals(std::ostream& _stream);
+
     // Prints the main function.
-    void print(std::ostream& _stream);
+    void print_main(std::ostream& _stream);
 
 private:
     std::shared_ptr<AnalysisStack const> m_stack;

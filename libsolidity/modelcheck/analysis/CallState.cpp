@@ -86,7 +86,9 @@ void CallState::compute_next_state_for(
     CFuncCallBuilder & _builder,
     bool _external,
     bool _for_contract,
-    CExprPtr _value
+    CExprPtr _value,
+    CExprPtr _sender,
+    CExprPtr _balance
 ) const
 {
 	auto self_id = make_shared<CIdentifier>("self", true);
@@ -95,16 +97,30 @@ void CallState::compute_next_state_for(
         if (!_for_contract && f.contract_only) continue;
 		if (_external && f.field == CallStateUtilities::Field::Sender)
 		{
-			string const ADDRESS = ContractUtilities::address_member();
-			_builder.push(make_shared<CMemberAccess>(self_id, ADDRESS));
+            if (_sender)
+            {
+                _builder.push(_sender);
+            }
+            else
+            {
+			    string const ADDRESS = ContractUtilities::address_member();
+			    _builder.push(make_shared<CMemberAccess>(self_id, ADDRESS));
+            }
 		}
 		else if (_external && f.field == CallStateUtilities::Field::Value)
 		{
 			if (_value)
 			{
-				string const BAL = ContractUtilities::balance_member();
 				CFuncCallBuilder val_builder(Ether::PAY);
-				val_builder.push(make_shared<CReference>(self_id->access(BAL)));
+                if (_balance)
+                {
+                    val_builder.push(_balance);
+                }
+                else
+                {
+				    string const BAL = ContractUtilities::balance_member();
+				    val_builder.push(make_shared<CReference>(self_id->access(BAL)));
+                }
 				val_builder.push(_value);
 				_builder.push(val_builder.merge_and_pop());
 			}

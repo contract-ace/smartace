@@ -65,6 +65,7 @@ private:
 
     // Helper method to expand internal error cases on send.
     void generate_fallbacks(
+        bool _root,
         CStmtPtr const& _error,
         CBlockList & _statements,
         std::vector<std::shared_ptr<BundleContract const>> _contracts
