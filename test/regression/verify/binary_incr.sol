@@ -2,7 +2,7 @@
 //
 // RUN: %solc %s --c-model --output-dir=%t
 // RUN: cd %t
-// RUN: cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify"
+// RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make cex
 // RUN: [ -f cex.ll ]
 // RUN: make witness | OutputCheck %s --comment=//

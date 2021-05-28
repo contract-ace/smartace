@@ -1,6 +1,6 @@
 // RUN: %solc %s --bundle=C --c-model --output-dir=%t
 // RUN: cd %t
-// RUN: cmake -DSEA_PATH=%seapath
+// RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make verify 2>&1 | OutputCheck %s --comment=//
 // CHECK: unsat
 

@@ -1,6 +1,6 @@
 // RUN: %solc %s --c-model --output-dir=%t
 // RUN: cd %t
-// RUN: cmake -DSEA_PATH=%seapath
+// RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make verify | OutputCheck %s --comment=//
 // RUN: make cex
 // [ ! -f cex.ll ]
