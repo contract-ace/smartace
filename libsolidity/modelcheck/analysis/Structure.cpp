@@ -31,16 +31,41 @@ StructDefinition const* Structure::raw() const { return m_raw; }
 
 // -------------------------------------------------------------------------- //
 
-StructureContainer::StructureContainer(ContractDefinition const& _contract)
- : Named(_contract), m_raw(&_contract)
+shared_ptr<Structure const> StructureStore::get(StructDefinition const *_struct)
+{
+    auto result = m_structure_lookup.find(_struct);
+    if (result != m_structure_lookup.end())
+    {
+        return result->second;
+    }
+    else
+    {
+        auto record = make_shared<Structure>(*_struct);
+        m_structure_lookup[_struct] = record;
+        return record;
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+StructureContainer::StructureContainer(
+    ContractDefinition const& _contract, StructureStore & _store
+): Named(_contract), m_raw(&_contract)
 {
     auto const& contracts = _contract.annotation().linearizedBaseContracts;
     for (auto itr = contracts.crbegin(); itr != contracts.crend(); ++itr)
     {
+        // Records declarations.
         for (auto structure : (*itr)->definedStructs())
         {
-            m_structures.push_back(make_shared<Structure>(*structure));
+            m_structures.push_back(_store.get(structure));
             m_structure_lookup[structure] = m_structures.back();
+        }
+
+        // Records library uses.
+        for (auto decl : _contract.stateVariables())
+        {
+            record(*decl);
         }
     }
 }
@@ -65,6 +90,24 @@ shared_ptr<Structure const>
 }
 
 ContractDefinition const* StructureContainer::raw() const { return m_raw; }
+
+void StructureContainer::record(VariableDeclaration const& _decl)
+{
+    
+    if (auto type = dynamic_cast<StructType const*>(_decl.type()))
+    {
+        auto const& STRUCT = type->structDefinition();
+        auto result = m_structure_lookup.find(&STRUCT);
+        if (result == m_structure_lookup.end())
+        {
+            m_structure_lookup[&STRUCT] = make_shared<Structure>(STRUCT);
+            for (auto decl : STRUCT.members())
+            {
+                record(*decl);
+            }
+        }
+    }
+}
 
 // -------------------------------------------------------------------------- //
 

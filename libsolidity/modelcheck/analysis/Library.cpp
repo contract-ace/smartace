@@ -18,8 +18,10 @@ class CallGraph;
 // -------------------------------------------------------------------------- //
 
 Library::Library(
-    ContractDefinition const& _library, list<FunctionDefinition const*> _calls
-): StructureContainer(_library), m_functions(_calls)
+    ContractDefinition const& _library,
+    list<FunctionDefinition const*> _calls,
+    StructureStore & _store
+): StructureContainer(_library, _store), m_functions(_calls)
 {
 }
 
@@ -30,8 +32,9 @@ list<FunctionDefinition const*> Library::functions() const
 
 // -------------------------------------------------------------------------- //
 
-LibrarySummary::LibrarySummary(CallGraph const& _calls)
-{
+LibrarySummary::LibrarySummary(
+    CallGraph const& _calls, StructureStore & _store
+) {
     // Computes library usage across all code.
     map<ContractDefinition const*, list<FunctionDefinition const*>> libraries;
     for (auto func : _calls.executed_code())
@@ -46,7 +49,8 @@ LibrarySummary::LibrarySummary(CallGraph const& _calls)
     // Generates the mappings.
     for (auto lib : libraries)
     {
-        m_libraries.push_back(make_shared<Library>(*lib.first, lib.second));
+        auto record = make_shared<Library>(*lib.first, lib.second, _store);
+        m_libraries.push_back(std::move(record));
     }
 }
 

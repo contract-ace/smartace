@@ -52,11 +52,35 @@ private:
 
 // -------------------------------------------------------------------------- //
 
+/**
+ * An internal database, used to share structures between contracts and
+ * libraries.
+ */
+class StructureStore
+{
+public:
+    // Returns the SmartACE representation of _struct. If _struct has already
+    // been queried, then a cached version is returned.
+    std::shared_ptr<Structure const> get(StructDefinition const *_struct);
+
+private:
+    std::map<StructDefinition const *, std::shared_ptr<Structure const>>
+        m_structure_lookup;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Interface to collection of structure declarations (i.e., contracts or
+ * libraries).
+ */
 class StructureContainer : public Named
 {
 public:
     // Creates a container which wraps the structures found on _contract.
-    explicit StructureContainer(ContractDefinition const& _contract);
+    explicit StructureContainer(
+        ContractDefinition const& _contract, StructureStore & _store
+    );
 
     virtual ~StructureContainer() = default;
 
@@ -78,6 +102,9 @@ private:
 
     // TODO(scottwe): temporary solution to simplify transition.
     ContractDefinition const* m_raw;
+
+    // Helper method to extract structures from variable declarations.
+    void record(VariableDeclaration const& _decl);
 };
 
 // -------------------------------------------------------------------------- //

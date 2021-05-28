@@ -34,6 +34,7 @@ class ContractExpressionAnalyzer;
 class FlatModel;
 class LibrarySummary;
 class MapIndexSummary;
+class StructureStore;
 class TightBundleModel;
 class TypeAnalyzer;
 
@@ -42,7 +43,7 @@ using InheritanceModel = std::vector<ContractDefinition const*>;
 // -------------------------------------------------------------------------- //
 
 /**
- *
+ * All settings for the analysis stack.
  */
 struct AnalysisSettings
 {
@@ -63,9 +64,23 @@ struct AnalysisSettings
 // -------------------------------------------------------------------------- //
 
 /**
+ * Sets up underlying structures needed by the analysis stack.
+ */
+class BaseAnalysis
+{
+public:
+    BaseAnalysis();
+
+protected:
+    std::shared_ptr<StructureStore> m_structure_store;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
  * This pass of analysis devirtualizes contracts.
  */
-class AllocationAnalysis
+class AllocationAnalysis : public BaseAnalysis
 {
 public:
     // Equivalent to AllocationGraph(_model), with some additional error

@@ -77,7 +77,8 @@ BOOST_AUTO_TEST_CASE(container)
     const auto& unit = *parseAndAnalyse(text);
     auto ctrt = retrieveContractByName(unit, "A");
 
-    StructureContainer container(*ctrt);
+    StructureStore store;
+    StructureContainer container(*ctrt, store);
 
     BOOST_CHECK_EQUAL(container.name(), "A");
     BOOST_CHECK_EQUAL(container.structures().size(), 3);
@@ -110,11 +111,36 @@ BOOST_AUTO_TEST_CASE(container_inheritance)
     const auto& unit = *parseAndAnalyse(text);
     auto ctrt = retrieveContractByName(unit, "C");
 
-    StructureContainer container(*ctrt);
+    StructureStore store;
+    StructureContainer container(*ctrt, store);
 
     BOOST_CHECK_EQUAL(container.structures().size(), 3);
     BOOST_CHECK_EQUAL(container.structures().front()->name(), "X");
     BOOST_CHECK_EQUAL(container.structures().back()->name(), "Y");
+}
+
+BOOST_AUTO_TEST_CASE(lib_structures)
+{
+    char const* text = R"(
+        library Lib {
+            struct X {
+                int a;
+            }
+        }
+        contract A {
+            Lib.X x;
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    
+    auto const* var = ctrt->stateVariables()[0];
+    BOOST_CHECK(var != nullptr);
+
+    StructureStore store;
+    StructureContainer container(*ctrt, store);
+    BOOST_CHECK(container.find_structure(var) != nullptr);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

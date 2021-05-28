@@ -56,9 +56,10 @@ BOOST_AUTO_TEST_CASE(interface)
     const auto& ctrt_b = *retrieveContractByName(unit, "B");
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
 
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_a).interface().size(), 2);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_b).interface().size(), 4);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_c).interface().size(), 4);
+    StructureStore store;
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_a, store).interface().size(), 2);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_b, store).interface().size(), 4);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_c, store).interface().size(), 4);
 }
 
 BOOST_AUTO_TEST_CASE(variables)
@@ -98,11 +99,12 @@ BOOST_AUTO_TEST_CASE(variables)
     const auto& ctrt_d = *retrieveContractByName(unit, "D");
     const auto& ctrt_e = *retrieveContractByName(unit, "E");
 
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_a).state_variables().size(), 3);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_b).state_variables().size(), 5);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_c).state_variables().size(), 6);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_d).state_variables().size(), 3);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_e).state_variables().size(), 9);
+    StructureStore store;
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_a, store).state_variables().size(), 3);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_b, store).state_variables().size(), 5);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_c, store).state_variables().size(), 6);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_d, store).state_variables().size(), 3);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_e, store).state_variables().size(), 9);
 }
 
 BOOST_AUTO_TEST_CASE(constructors)
@@ -121,10 +123,11 @@ BOOST_AUTO_TEST_CASE(constructors)
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
     const auto& ctrt_e = *retrieveContractByName(unit, "E");
 
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_a).constructors().size(), 0);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_b).constructors().size(), 1);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_c).constructors().size(), 2);
-    BOOST_CHECK_EQUAL(FlatContract(ctrt_e).constructors().size(), 3);
+    StructureStore store;
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_a, store).constructors().size(), 0);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_b, store).constructors().size(), 1);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_c, store).constructors().size(), 2);
+    BOOST_CHECK_EQUAL(FlatContract(ctrt_e, store).constructors().size(), 3);
 }
 
 BOOST_AUTO_TEST_CASE(fallback)
@@ -140,9 +143,10 @@ BOOST_AUTO_TEST_CASE(fallback)
     const auto& ctrt_b = *retrieveContractByName(unit, "B");
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
 
-    BOOST_CHECK(FlatContract(ctrt_a).fallback() == nullptr);
-    BOOST_CHECK(FlatContract(ctrt_b).fallback() != nullptr);
-    BOOST_CHECK(FlatContract(ctrt_c).fallback() != nullptr);
+    StructureStore store;
+    BOOST_CHECK(FlatContract(ctrt_a, store).fallback() == nullptr);
+    BOOST_CHECK(FlatContract(ctrt_b, store).fallback() != nullptr);
+    BOOST_CHECK(FlatContract(ctrt_c, store).fallback() != nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(modifier_order)
@@ -163,9 +167,10 @@ BOOST_AUTO_TEST_CASE(modifier_order)
         }
     )";
 
+    StructureStore store;
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
-    FlatContract flat(ctrt_c);
+    FlatContract flat(ctrt_c, store);
 
     BOOST_CHECK_EQUAL(flat.modifiers().size(), 5);
     if (flat.modifiers().size() == 5)
@@ -211,9 +216,10 @@ BOOST_AUTO_TEST_CASE(enums)
         }
     )";
 
+    StructureStore store;
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
-    FlatContract flat(ctrt_c);
+    FlatContract flat(ctrt_c, store);
 
     BOOST_CHECK_EQUAL(flat.enums().size(), 3);
 }
@@ -243,9 +249,10 @@ BOOST_AUTO_TEST_CASE(model)
     auto ctrt_d = retrieveContractByName(unit, "D");
     auto ctrt_e = retrieveContractByName(unit, "E");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt_d, ctrt_e });
     AllocationGraph graph(model);
-    FlatModel flat_model(model, graph);
+    FlatModel flat_model(model, graph, store);
 
     BOOST_CHECK_EQUAL(flat_model.view().size(), 5);
 
@@ -272,9 +279,10 @@ BOOST_AUTO_TEST_CASE(super_classes_in_model)
     auto ctrt_a = retrieveContractByName(unit, "A");
     auto ctrt_b = retrieveContractByName(unit, "B");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt_b });
     AllocationGraph graph(model);
-    FlatModel flat_model(model, graph);
+    FlatModel flat_model(model, graph, store);
 
     BOOST_CHECK_EQUAL(flat_model.view().size(), 1);
     BOOST_CHECK_NE(flat_model.get(*ctrt_a), nullptr);
@@ -298,9 +306,10 @@ BOOST_AUTO_TEST_CASE(child_entries_are_added)
     auto ctrt_a = retrieveContractByName(unit, "A");
     auto ctrt_b = retrieveContractByName(unit, "B");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt_b });
     AllocationGraph graph(model);
-    FlatModel flat_model(model, graph);
+    FlatModel flat_model(model, graph, store);
 
     auto children = flat_model.children_of(*flat_model.get(*ctrt_b));
     BOOST_CHECK_EQUAL(children.size(), 2);
@@ -337,7 +346,8 @@ BOOST_AUTO_TEST_CASE(model_works)
     });
     AllocationGraph graph(model);
 
-    FlatModel flat_model(model, graph);
+    StructureStore store;
+    FlatModel flat_model(model, graph, store);
     BOOST_CHECK_EQUAL(flat_model.view().size(), 3);
     BOOST_CHECK_EQUAL(flat_model.bundle().size(), 6);
 
@@ -363,7 +373,8 @@ BOOST_AUTO_TEST_CASE(structs_work)
     vector<ContractDefinition const*> model({ ctrt_a });
     AllocationGraph graph(model);
 
-    FlatModel flat_model(model, graph);
+    StructureStore store;
+    FlatModel flat_model(model, graph, store);
     BOOST_CHECK_EQUAL(flat_model.view().size(), 1);
     
     auto flat_a = flat_model.get(*ctrt_a);
@@ -390,7 +401,8 @@ BOOST_AUTO_TEST_CASE(mappings_work)
     vector<ContractDefinition const*> model({ ctrt_a });
     AllocationGraph graph(model);
 
-    FlatModel flat_model(model, graph);
+    StructureStore store;
+    FlatModel flat_model(model, graph, store);
     BOOST_CHECK_EQUAL(flat_model.view().size(), 1);
     
     auto flat_a = flat_model.get(*ctrt_a);
@@ -417,7 +429,8 @@ BOOST_AUTO_TEST_CASE(payable)
     vector<ContractDefinition const*> model({ ctrt_a, ctrt_b, ctrt_c });
     AllocationGraph graph(model);
 
-    FlatModel flat_model(model, graph);
+    StructureStore store;
+    FlatModel flat_model(model, graph, store);
     BOOST_CHECK_EQUAL(flat_model.view().size(), 3);
     
     auto flat_a = flat_model.get(*ctrt_a);

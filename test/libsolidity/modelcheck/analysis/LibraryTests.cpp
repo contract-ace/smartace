@@ -53,16 +53,17 @@ BOOST_AUTO_TEST_CASE(library)
     const auto& unit = *parseAndAnalyse(text);
     auto ctrt = retrieveContractByName(unit, "A");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     auto call_graph = make_shared<CallGraph>(r, flat_model);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_EQUAL(flat_model->view().front()->interface().size(), 1);
     BOOST_CHECK_EQUAL(call_graph->executed_code().size(), 3);
 
-    LibrarySummary summary(*call_graph);
+    LibrarySummary summary(*call_graph, store);
     BOOST_CHECK_EQUAL(summary.view().size(), 1);
     BOOST_CHECK_EQUAL(summary.view().front()->functions().size(), 2);
 }

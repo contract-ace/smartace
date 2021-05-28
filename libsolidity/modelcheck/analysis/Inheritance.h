@@ -106,7 +106,9 @@ public:
     using VariableList = std::list<VariableDeclaration const*>;
 
     // Flattens the inheritance tree of _contract.
-    explicit FlatContract(ContractDefinition const& _contract);
+    explicit FlatContract(
+        ContractDefinition const& _contract, StructureStore & _store
+    );
 
     // Returns all exposed methods of the contract.
     FunctionList const& interface() const;
@@ -183,7 +185,9 @@ public:
     // using _allocation_graph. Afterwards, it is flattened to a set of
     // vertices, and each vertex is replaced by a FlatContract.
     FlatModel(
-        ContractList const _model, AllocationGraph const& _allocation_graph
+        ContractList const _model,
+        AllocationGraph const& _allocation_graph,
+        StructureStore & _store
     );
 
     // Gives access to the bundle.

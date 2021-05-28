@@ -174,7 +174,8 @@ BOOST_AUTO_TEST_CASE(call_graph_builder)
     vector<ContractDefinition const*> model({ ctrt_c });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 3);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -282,7 +283,8 @@ BOOST_AUTO_TEST_CASE(call_graph_build_with_inheritance)
     vector<ContractDefinition const*> model({ ctrt_b });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -314,7 +316,8 @@ BOOST_AUTO_TEST_CASE(call_graph_build_with_downcasting)
     vector<ContractDefinition const*> model({ ctrt_c });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 2);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -350,7 +353,8 @@ BOOST_AUTO_TEST_CASE(call_graph_with_super)
     vector<ContractDefinition const*> model({ ctrt_b });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -389,7 +393,8 @@ BOOST_AUTO_TEST_CASE(call_graph_with_fallback_internals)
     vector<ContractDefinition const*> model({ ctrt_a });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -437,19 +442,21 @@ BOOST_AUTO_TEST_CASE(executable_code)
     auto const* ctrt_z = retrieveContractByName(unit, "Z");
     auto const* ctrt_q = retrieveContractByName(unit, "Q");
 
+    StructureStore store;
+
     vector<ContractDefinition const*> model_all({ ctrt_x, ctrt_y, ctrt_z, ctrt_q });
     auto alloc_graph = make_shared<AllocationGraph>(model_all);
-    auto flat_model = make_shared<FlatModel>(model_all, *alloc_graph);
+    auto flat_model = make_shared<FlatModel>(model_all, *alloc_graph, store);
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
     vector<ContractDefinition const*> model_x({ ctrt_x });
     vector<ContractDefinition const*> model_y({ ctrt_y });
     vector<ContractDefinition const*> model_z({ ctrt_z });
     vector<ContractDefinition const*> model_q({ ctrt_z, ctrt_q });
-    auto flat_model_x = make_shared<FlatModel>(model_x, *alloc_graph);
-    auto flat_model_y = make_shared<FlatModel>(model_y, *alloc_graph);
-    auto flat_model_z = make_shared<FlatModel>(model_z, *alloc_graph);
-    auto flat_model_q = make_shared<FlatModel>(model_q, *alloc_graph);
+    auto flat_model_x = make_shared<FlatModel>(model_x, *alloc_graph, store);
+    auto flat_model_y = make_shared<FlatModel>(model_y, *alloc_graph, store);
+    auto flat_model_z = make_shared<FlatModel>(model_z, *alloc_graph, store);
+    auto flat_model_q = make_shared<FlatModel>(model_q, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model_x->view().size(), 1);
     BOOST_CHECK_EQUAL(flat_model_y->view().size(), 1);
     BOOST_CHECK_EQUAL(flat_model_z->view().size(), 1);
@@ -496,9 +503,10 @@ BOOST_AUTO_TEST_CASE(linearizes_direct_super_calls)
     auto const* ctrt_z = retrieveContractByName(unit, "Z");
     auto const* ctrt_y = retrieveContractByName(unit, "Y");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt_r });
     auto alloc_graph = make_shared<AllocationGraph>(model);
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_NE(flat_model->get(*ctrt_y).get(), nullptr);
@@ -543,9 +551,10 @@ BOOST_AUTO_TEST_CASE(linearizes_mixed_super_calls)
     auto const* ctrt_x = retrieveContractByName(unit, "X");
     auto const* ctrt_y = retrieveContractByName(unit, "Y");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt_x, ctrt_y });
     auto alloc_graph = make_shared<AllocationGraph>(model);
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 2);
     BOOST_CHECK_NE(flat_model->get(*ctrt_x).get(), nullptr);
@@ -597,9 +606,10 @@ BOOST_AUTO_TEST_CASE(linearizes_indirect_super_calls)
     auto const* ctrt_y = retrieveContractByName(unit, "Y");
     auto const* ctrt_z = retrieveContractByName(unit, "Z");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt_z });
     auto alloc_graph = make_shared<AllocationGraph>(model);
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_NE(flat_model->get(*ctrt_z).get(), nullptr);
@@ -641,9 +651,10 @@ BOOST_AUTO_TEST_CASE(internals)
     auto const* ctrt_y = retrieveContractByName(unit, "Y");
     auto const* ctrt_z = retrieveContractByName(unit, "Z");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt_z });
     auto alloc_graph = make_shared<AllocationGraph>(model);
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_NE(flat_model->get(*ctrt_z).get(), nullptr);
@@ -682,7 +693,8 @@ BOOST_AUTO_TEST_CASE(lib_calls)
     vector<ContractDefinition const*> model({ ctrt_y });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -725,9 +737,10 @@ BOOST_AUTO_TEST_CASE(super_is_temporary)
     auto const& unit = *parseAndAnalyse(text);
     auto const* ctrt_y = retrieveContractByName(unit, "Y");
 
+    StructureStore store;
     vector<ContractDefinition const*> model({ ctrt_y });
     auto alloc_graph = make_shared<AllocationGraph>(model);
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
     BOOST_CHECK_NE(flat_model->get(*ctrt_y).get(), nullptr);
@@ -764,7 +777,8 @@ BOOST_AUTO_TEST_CASE(internals_from_fallback)
     vector<ContractDefinition const*> model({ ctrt_a });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -821,7 +835,8 @@ BOOST_AUTO_TEST_CASE(can_downcast_rvs)
     vector<ContractDefinition const*> model({ ctrt_d });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
@@ -851,7 +866,8 @@ BOOST_AUTO_TEST_CASE(libs_are_not_internal)
     vector<ContractDefinition const*> model({ ctrt_y });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -884,7 +900,8 @@ BOOST_AUTO_TEST_CASE(transfer_calls)
     vector<ContractDefinition const*> model({ ctrt_x });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -916,7 +933,8 @@ BOOST_AUTO_TEST_CASE(diamond_inheritance_executed_code)
     vector<ContractDefinition const*> model({ ctrt_e });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
@@ -948,7 +966,8 @@ BOOST_AUTO_TEST_CASE(diamond_inheritance_super)
     vector<ContractDefinition const*> model({ ctrt_e });
     auto alloc_graph = make_shared<AllocationGraph>(model);
 
-    auto flat_model = make_shared<FlatModel>(model, *alloc_graph);
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
     BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
 
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);

@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/Library.h>
+#include <libsolidity/modelcheck/analysis/Structure.h>
 #include <libsolidity/modelcheck/analysis/TightBundle.h>
 #include <libsolidity/modelcheck/analysis/TypeNames.h>
 
@@ -20,6 +21,11 @@ namespace solidity
 {
 namespace modelcheck
 {
+
+// -------------------------------------------------------------------------- //
+
+BaseAnalysis::BaseAnalysis()
+ : m_structure_store(make_shared<StructureStore>()) {}
 
 // -------------------------------------------------------------------------- //
 
@@ -51,7 +57,8 @@ InheritanceAnalysis::InheritanceAnalysis(
 	InheritanceModel const& _model, AnalysisSettings const&_settings
 ): AllocationAnalysis(_model, _settings)
 {
-	m_flat_model = make_shared<FlatModel>(_model, *allocations());
+	m_flat_model
+		= make_shared<FlatModel>(_model, *allocations(), *m_structure_store);
 }
 
 shared_ptr<FlatModel const> InheritanceAnalysis::model() const
@@ -95,7 +102,7 @@ LibraryAnalysis::LibraryAnalysis(
 	InheritanceModel const& _model, AnalysisSettings const&_settings
 ): FlatCallAnalysis(_model, _settings)
 {
-	m_libraries = make_shared<LibrarySummary>(*calls());
+	m_libraries = make_shared<LibrarySummary>(*calls(), *m_structure_store);
 }
 
 shared_ptr<LibrarySummary const> LibraryAnalysis::libraries() const

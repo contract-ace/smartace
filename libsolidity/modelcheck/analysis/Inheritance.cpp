@@ -139,8 +139,9 @@ bool InheritanceTree::is_abstract() const
 
 // -------------------------------------------------------------------------- //
 
-FlatContract::FlatContract(ContractDefinition const& _contract)
- : StructureContainer(_contract), m_tree(_contract)
+FlatContract::FlatContract(
+    ContractDefinition const& _contract, StructureStore & _store
+): StructureContainer(_contract, _store), m_tree(_contract)
 {
     MappingExtractor extractor;
 
@@ -327,7 +328,8 @@ bool FlatContract::is_payable() const
 
 FlatModel::FlatModel(
     FlatModel::ContractList const _model,
-    AllocationGraph const& _allocation_graph
+    AllocationGraph const& _allocation_graph,
+    StructureStore & _store
 )
 {
     // Iterates through all children.
@@ -340,7 +342,7 @@ FlatModel::FlatModel(
         if (!visited.insert(contract).second) continue;
 
         // Records the contract.
-        m_contracts.push_back(make_shared<FlatContract>(*contract));
+        m_contracts.push_back(make_shared<FlatContract>(*contract, _store));
         m_lookup[contract] = m_contracts.back();
 
         // Adds children to the list.
@@ -365,7 +367,7 @@ FlatModel::FlatModel(
             shared_ptr<FlatContract> parent;
             if (visited.insert(raw_parent).second)
             {
-                parent = make_shared<FlatContract>(*raw_parent);
+                parent = make_shared<FlatContract>(*raw_parent, _store);
                 m_lookup[raw_parent] = parent;
             }
             else
