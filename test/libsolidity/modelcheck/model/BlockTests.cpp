@@ -629,7 +629,7 @@ BOOST_AUTO_TEST_CASE(payment_to_addr_calls)
              << "Init_sol_address_t((func_user_dst).v),Init_sol_uint256_t(15));";
     expected << "sol_send(sender,value,blocknum,timestamp,Init_sol_bool_t(0),"
              << "origin,(self)->model_address,&((self)->model_balance),"
-             << "Init_sol_address_t(((int)(g_literal_address_20))),"
+             << "Init_sol_address_t(g_literal_address_20),"
              << "Init_sol_uint256_t(25));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
@@ -905,7 +905,7 @@ BOOST_AUTO_TEST_CASE(type_casting)
     ostringstream actual, expected;
     actual << *FunctionBlockConverter(func, stack).convert();
     expected << "{";
-    expected << "((int)(g_literal_address_5));";
+    expected << "g_literal_address_5;";
     expected << "(self->user_a).v;";
     expected << "(self->user_s).v;";
     expected << "((unsigned int)((self->user_s).v));";

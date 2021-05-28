@@ -546,10 +546,8 @@ void ExpressionConverter::print_cast(FunctionCall const& _call)
 		}
 		else if (cast_type->category() == Type::Category::Address)
 		{
-			if (!base_int->isSigned())
-			{
-				m_subexpr = make_shared<CCast>(move(m_subexpr), "int");
-			}
+			// Literal -> Address does not require a cast.
+			return;
 		}
 		else if (cast_type->category() == Type::Category::Enum)
 		{
