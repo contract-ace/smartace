@@ -44,7 +44,6 @@ void TypeAnalyzer::record(SourceUnit const& _unit)
     // Pass 1: assign types to all contracts and structures.
     for (auto contract : contracts)
     {
-        ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
         string cname = escape_decl_name(*contract);
 
         for (auto e : contract->definedEnums())
@@ -69,8 +68,6 @@ void TypeAnalyzer::record(SourceUnit const& _unit)
     // types may be referenced within function bodies.
     for (auto con : contracts)
     {
-        ScopedSwap<ContractDefinition const*> swap(m_curr_contract, con);
-
         for (auto structure : con->definedStructs())
         {
             for (auto decl : structure->members())
@@ -115,8 +112,6 @@ void TypeAnalyzer::record(SourceUnit const& _unit)
     for (auto contract : contracts)
     {
         if (contract->isInterface()) continue;
-
-        ScopedSwap<ContractDefinition const*> swap(m_curr_contract, contract);
 
         for (auto fun : contract->definedFunctions())
         {
@@ -247,7 +242,6 @@ bool TypeAnalyzer::visit(VariableDeclaration const& _node)
             _node.value()->accept(*this);
         }
 
-        ScopedSwap<VariableDeclaration const*> decl_swap(m_curr_decl, &_node);
         auto const& VAR_TYPENAME = *_node.typeName();
         VAR_TYPENAME.accept(*this);
         m_type_lookup.insert({&_node, get_type(VAR_TYPENAME)});
@@ -277,9 +271,8 @@ bool TypeAnalyzer::visit(UserDefinedTypeName const& _node)
     return false;
 }
 
-bool TypeAnalyzer::visit(FunctionTypeName const& _node)
+bool TypeAnalyzer::visit(FunctionTypeName const&)
 {
-    (void) _node;
     throw runtime_error("Function type unsupported.");
 }
 
@@ -289,15 +282,17 @@ bool TypeAnalyzer::visit(Mapping const& _node)
     m_name_lookup.insert({&_node, record->name});
     m_type_lookup.insert({&_node, "struct " + record->name});
 
-    for (auto const* key : record->key_types) key->accept(*this);
+    for (auto const* key : record->key_types)
+    {
+        key->accept(*this);
+    }
     record->value_type->accept(*this);
 
     return false;
 }
 
-bool TypeAnalyzer::visit(ArrayTypeName const& _node)
+bool TypeAnalyzer::visit(ArrayTypeName const&)
 {
-    (void) _node;
     throw runtime_error("Array type unsupported.");
 }
 
@@ -309,7 +304,10 @@ bool TypeAnalyzer::visit(IndexAccess const& _node)
     m_type_lookup.insert({&_node, get_type(*record->value_type)});
     m_name_lookup.insert({&_node, record->name});
 
-    for (auto const* idx_expr : idx.indices()) idx_expr->accept(*this);
+    for (auto const* idx_expr : idx.indices())
+    {
+        idx_expr->accept(*this);
+    }
     idx.base().accept(*this);
 
     return false;
@@ -323,25 +321,20 @@ bool TypeAnalyzer::visit(EventDefinition const&) { return false; }
 
 void TypeAnalyzer::endVisit(ParameterList const& _node)
 {
-    if (m_is_retval)
+    if (!m_is_retval) return;
+
+    string ctype = "void";
+    if (_node.parameters().size() > 0)
     {
-        string ctype;
-        if (_node.parameters().size() > 0)
+        // We treat the first return value as the canonical return type.
+        auto const& PARAM = *_node.parameters()[0];
+        ctype = get_type(PARAM);
+        if (!has_simple_type(PARAM))
         {
-            // We treat the first return value as the canonical return type.
-            auto const& PARAM = *_node.parameters()[0];
-            ctype = get_type(PARAM);
-            if (!has_simple_type(PARAM))
-            {
-                m_name_lookup.insert({&_node, get_name(PARAM)});
-            }
+            m_name_lookup.insert({&_node, get_name(PARAM)});
         }
-        else
-        {
-            ctype = "void";
-        }
-        m_type_lookup.insert({&_node, ctype});
     }
+    m_type_lookup.insert({&_node, ctype});
 }
 
 void TypeAnalyzer::endVisit(MemberAccess const& _node)
@@ -359,7 +352,11 @@ void TypeAnalyzer::endVisit(MemberAccess const& _node)
 void TypeAnalyzer::endVisit(Identifier const& _node)
 {
     auto const& NODE_NAME = _node.name();
-    if (NODE_NAME == "super") return;
+    if (NODE_NAME == "super" || NODE_NAME == "this")
+    {
+        m_in_storage.insert({&_node, true});
+        return;
+    }
 
     auto const MAGIC_RES = m_global_context_types.find(NODE_NAME);
     if (MAGIC_RES != m_global_context_types.end())
@@ -375,21 +372,12 @@ void TypeAnalyzer::endVisit(Identifier const& _node)
     }
     else
     {
-        Declaration const* ref = nullptr;
-        auto loc = VariableDeclaration::Location::Unspecified;
+        Declaration const* ref = _node.annotation().referencedDeclaration;
 
-        if (NODE_NAME == "this")
+        auto loc = VariableDeclaration::Location::Unspecified;
+        if (auto var = dynamic_cast<VariableDeclaration const*>(ref))
         {
-            ref = m_curr_contract;
-            loc = VariableDeclaration::Storage;
-        }
-        else
-        {
-            ref = _node.annotation().referencedDeclaration;
-            if (auto var = dynamic_cast<VariableDeclaration const*>(ref))
-            {
-                loc = var->referenceLocation();
-            }
+            loc = var->referenceLocation();
         }
 
         m_type_lookup.insert({&_node, get_type(*ref)});

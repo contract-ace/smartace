@@ -257,34 +257,6 @@ BOOST_AUTO_TEST_CASE(global_context_ids)
     converter.record(unit);
 }
 
-// Tests that the "this" special keyword is mapped back to the present contract.
-BOOST_AUTO_TEST_CASE(this_keyword_ids)
-{
-    using ExprStmtPtr = ExpressionStatement const*;
-    using IdenExprPtr = Identifier const*;
-
-    char const* text = R"(
-        contract A {
-            function f() public {
-                this;
-            }
-        }
-    )";
-
-    auto const& ast = *parseAndAnalyse(text);
-    auto const& ctrt = *retrieveContractByName(ast, "A");
-    auto const& func = *ctrt.definedFunctions()[0];
-
-    auto const& stmt = *func.body().statements()[0];
-    auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
-    auto const& iden = *dynamic_cast<IdenExprPtr>(&expr);
-
-    TypeAnalyzer converter;
-    converter.record(ast);
-
-    BOOST_CHECK_EQUAL(converter.get_name(iden), "A");
-}
-
 // Tests that identifiers are mapped back to their referenced declarations.
 BOOST_AUTO_TEST_CASE(regular_id)
 {

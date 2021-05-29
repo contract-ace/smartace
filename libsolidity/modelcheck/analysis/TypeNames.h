@@ -69,9 +69,9 @@ protected:
     bool visit(VariableDeclaration const& _node) override;
 	bool visit(ElementaryTypeName const& _node) override;
 	bool visit(UserDefinedTypeName const& _node) override;
-	bool visit(FunctionTypeName const& _node) override;
+	bool visit(FunctionTypeName const&) override;
     bool visit(Mapping const& _node) override;
-	bool visit(ArrayTypeName const& _node) override;
+	bool visit(ArrayTypeName const&) override;
     bool visit(IndexAccess const& _node) override;
     bool visit(EmitStatement const&) override;
     bool visit(EventDefinition const&) override;
@@ -92,8 +92,6 @@ private:
     std::map<ASTNode const*, std::string> m_type_lookup;
     std::map<Identifier const*, bool> m_in_storage;
 
-    ContractDefinition const* m_curr_contract = nullptr;
-    VariableDeclaration const* m_curr_decl = nullptr;
     bool m_is_retval = false;
 };
 
