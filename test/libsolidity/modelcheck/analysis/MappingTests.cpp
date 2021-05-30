@@ -212,11 +212,34 @@ BOOST_AUTO_TEST_CASE(extraction_ctor)
     BOOST_CHECK(refs.find(decls[4]->typeName()) != refs.end());
 }
 
+BOOST_AUTO_TEST_CASE(disallows_map_struct_map_pattern)
+{
+    char const* text = R"(
+        contract A {
+            struct B {
+                mapping(address => int) b;
+            }
+            mapping(address => B) bb;
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto mapping = ctrt->stateVariables()[0];
+
+
+    Mapping const* m = dynamic_cast<Mapping const*>(mapping->typeName());
+    BOOST_CHECK_NE(m, nullptr);
+
+    MapDeflate lookup;
+    BOOST_CHECK_THROW(lookup.query(*m), runtime_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 // -------------------------------------------------------------------------- //
 
-}
+}        
 }
 }
 }

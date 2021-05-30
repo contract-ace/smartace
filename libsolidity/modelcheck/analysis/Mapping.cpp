@@ -39,9 +39,14 @@ bool MappingExtractor::visit(Mapping const& _node)
 
 MapDeflate::Record MapDeflate::query(Mapping const& _map)
 {
+    const string STRUCT_TO_MAP_ERR =
+        "A mapping must not map to a structure with a mapping field.";
+
+    // Creates new flat map.
     auto flatmap = make_shared<FlatMap>();
     m_flatset[&_map] = flatmap;
 
+    // Generates key and value fields.
     if (flatmap->name.empty())
     {
         flatmap->name = "Map_" + to_string(m_flatset.size());
@@ -53,8 +58,26 @@ MapDeflate::Record MapDeflate::query(Mapping const& _map)
             flatmap->key_types.push_back(&curpos->keyType());
             curpos = dynamic_cast<Mapping const*>(flatmap->value_type);
         }
+
+        // Ensures that value is not a struct with a nested mapping. Note that in
+        // principle it would be easy to encode a (mapping -> structure -> mapping).
+        // However, it is not clear what the structure of each compositional
+        // invariant should be, so such contracts are not supported for now.
+        auto vtype = flatmap->value_type->annotation().type;
+        if (auto stype = dynamic_cast<StructType const*>(vtype))
+        {
+            auto const& DEF = stype->structDefinition();
+            for (auto field : DEF.members())
+            {
+                if (dynamic_cast<Mapping const*>(field->typeName()))
+                {
+                    throw runtime_error(STRUCT_TO_MAP_ERR);
+                }
+            }
+        }
     }
 
+    // Returns the result.
     return flatmap;
 }
 
