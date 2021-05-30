@@ -1,7 +1,7 @@
 #include <libsolidity/modelcheck/utils/Function.h>
 
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
 #include <libsolidity/modelcheck/utils/Types.h>
 
 #include <sstream>

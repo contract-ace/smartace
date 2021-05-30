@@ -1,15 +1,18 @@
 /**
- * Tests for libsolidity/modelcheck/analysis/TypeNames.
+ * Tests for libsolidity/modelcheck/analysis/TypeAnalyzer.
  * 
  * @date 2019
  */
 
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
 
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
 
-#include <libsolidity/analysis/GlobalContext.h>
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallGraph.h>
+#include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 
 #include <sstream>
 
@@ -47,8 +50,13 @@ BOOST_AUTO_TEST_CASE(contract_and_structs)
     auto const& ctrt_a = *retrieveContractByName(ast, "A");
     auto const& ctrt_b = *retrieveContractByName(ast, "B");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt_a, &ctrt_b });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     BOOST_CHECK_EQUAL(converter.get_name(ctrt_a), "A");
     BOOST_CHECK_EQUAL(converter.get_type(ctrt_a), "struct A");
@@ -98,8 +106,13 @@ BOOST_AUTO_TEST_CASE(simple_types)
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     for (auto member : ctrt.stateVariables())
     {
@@ -116,8 +129,14 @@ BOOST_AUTO_TEST_CASE(contract_state_variable)
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     for (auto decl : ctrt.stateVariables())
     {
@@ -140,8 +159,13 @@ BOOST_AUTO_TEST_CASE(struct_member_variable)
     auto const& ctrt = *retrieveContractByName(ast, "A");
     auto const& structs = *ctrt.definedStructs()[0];
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     for (auto decl : structs.members())
     {
@@ -165,8 +189,13 @@ BOOST_AUTO_TEST_CASE(map_variable)
 
     const auto& map_var = *ctrt.stateVariables()[0];
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     BOOST_CHECK_EQUAL(converter.get_name(map_var), "Map_1");
 }
@@ -186,75 +215,19 @@ BOOST_AUTO_TEST_CASE(function)
     auto const& ctrt = *retrieveContractByName(ast, "A");
     auto const& funcs = ctrt.definedFunctions();
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     auto const& f1 = (funcs[0]->name() == "f") ? *funcs[0] : *funcs[1];
     BOOST_CHECK_EQUAL(converter.get_type(f1), "sol_int256_t");
 
     auto const& f2 = (funcs[0]->name() != "f") ? *funcs[0] : *funcs[1];
     BOOST_CHECK_EQUAL(converter.get_type(f2), "void");
-}
-
-// Integration test which should fail if a new member is added to the global
-// context, and that variable is not added to the type translator's lookup. This
-// lookup is m_global_context. Success occurs when no exceptions are thrown.
-//
-// This test works by building a source unit with a single contract, consisting
-// of a single function, consisting of expression statements using each global
-// context identifier. The resulting contract may not be "valid" due to the use
-// of MagicTypes.
-BOOST_AUTO_TEST_CASE(global_context_ids)
-{
-    vector<ASTPointer<Statement>> stmts;
-    vector<ASTPointer<VariableDeclaration>> params;
-    vector<ASTPointer<ModifierInvocation>> invocs;
-    vector<ASTPointer<InheritanceSpecifier>> parents;
-
-    GlobalContext ctx;
-    auto decls = ctx.declarations();
-    for (auto decl : decls)
-    {
-        auto name = make_shared<string>(decl->name());
-        auto stmt = make_shared<ExpressionStatement>(
-            SourceLocation(),
-            nullptr,
-            make_shared<Identifier>(SourceLocation(), name)
-        );
-
-        stmts.push_back(stmt);
-    }
-    BOOST_CHECK_EQUAL(decls.size(), stmts.size());
-
-    auto func = make_shared<FunctionDefinition>(
-        SourceLocation(),
-        make_shared<string>("f"),
-        Declaration::Visibility::Default,
-        StateMutability::NonPayable,
-        false,
-        nullptr,
-        make_shared<ParameterList>(SourceLocation(), params),
-        invocs,
-        make_shared<ParameterList>(SourceLocation(), params),
-        make_shared<Block>(SourceLocation(), nullptr, stmts)
-    );
-    BOOST_CHECK_EQUAL(func->body().statements().size(), stmts.size());
-
-    auto contract = make_shared<ContractDefinition>(
-        SourceLocation(),
-        make_shared<string>("A"),
-        nullptr,
-        parents,
-        vector<ASTPointer<ASTNode>>{func}
-    );
-    func->setScope(contract.get());
-    BOOST_CHECK_EQUAL(contract->definedFunctions().size(), 1);
-
-    SourceUnit unit(SourceLocation(), {contract});
-    BOOST_CHECK_EQUAL(unit.nodes().size(), 1);
-
-    TypeAnalyzer converter;
-    converter.record(unit);
 }
 
 // Tests that identifiers are mapped back to their referenced declarations.
@@ -280,8 +253,13 @@ BOOST_AUTO_TEST_CASE(regular_id)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& iden = *dynamic_cast<IdenExprPtr>(&expr);
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     BOOST_CHECK_EQUAL(converter.get_type(iden), "sol_uint256_t");
 }
@@ -311,8 +289,13 @@ BOOST_AUTO_TEST_CASE(contract_access)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& mmbr = *dynamic_cast<MmbrExprPtr>(&expr);
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     BOOST_CHECK_EQUAL(converter.get_type(mmbr), "sol_uint256_t");
 }
@@ -342,8 +325,13 @@ BOOST_AUTO_TEST_CASE(struct_access)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& mmbr = *dynamic_cast<MmbrExprPtr>(&expr);
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     BOOST_CHECK_EQUAL(converter.get_name(mmbr), "Map_1");
 }
@@ -380,8 +368,13 @@ BOOST_AUTO_TEST_CASE(identifiers_as_pointers)
     auto const& expr_4 = dynamic_cast<ExprStmtPtr>(&stmt_4)->expression();
     auto const& idx2 = *dynamic_cast<IndnExprPtr>(&expr_4);
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     BOOST_CHECK_EQUAL(converter.is_pointer(idx1), true);
     BOOST_CHECK_EQUAL(converter.is_pointer(idx2), false);
@@ -403,8 +396,13 @@ BOOST_AUTO_TEST_CASE(name_escape)
     auto const& strt = *ctrt.definedStructs()[0];
     auto const& mapv = *ctrt.stateVariables()[0];
 
-    TypeAnalyzer converter;
-    converter.record(ast);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &ast }, call_graph);
 
     BOOST_CHECK_EQUAL(converter.get_name(ctrt), "A__B");
     BOOST_CHECK_EQUAL(converter.get_name(strt), "A__B_Struct_C__D");

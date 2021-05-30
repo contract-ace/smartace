@@ -1,5 +1,6 @@
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
 
+#include <libsolidity/modelcheck/analysis/CallGraph.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/utils/Function.h>
@@ -37,9 +38,20 @@ set<string> const TypeAnalyzer::m_global_simple_values({"now"});
 
 // -------------------------------------------------------------------------- //
 
-void TypeAnalyzer::record(SourceUnit const& _unit)
+TypeAnalyzer::TypeAnalyzer(
+    vector<SourceUnit const*> _units, CallGraph const& _calls
+)
 {
-    auto contracts = ASTNode::filteredNodes<ContractDefinition>(_unit.nodes());
+    // TODO: deprecate and transition to FlatModel and LibrarySummary.
+    vector<ContractDefinition const*> contracts;
+    for (auto unit : _units)
+    {
+        auto tmp = ASTNode::filteredNodes<ContractDefinition>(unit->nodes());
+        for (auto c : tmp)
+        {
+            contracts.push_back(c);
+        }
+    }
 
     // Pass 1: assign types to all contracts and structures.
     for (auto contract : contracts)
@@ -80,49 +92,37 @@ void TypeAnalyzer::record(SourceUnit const& _unit)
         {
             decl->accept(*this);
         }
+    }
+    for (auto fun : _calls.executed_code())
+    {
+        fun->parameterList().accept(*this);
+        if (fun->isConstructor()) continue;
 
-        if (!con->isInterface())
+        auto const* returnParams = fun->returnParameterList().get();
         {
-            for (auto fun : con->definedFunctions())
-            {
-                fun->parameterList().accept(*this);
-                if (fun->isConstructor()) continue;
-
-                auto const* returnParams = fun->returnParameterList().get();
-                {
-                    ScopedSwap<bool> swap(m_is_retval, true);
-                    returnParams->accept(*this);
-                }
-
-                // TODO: is this still used?
-                auto const FUNC_RETURN_TYPE = get_type(*returnParams);
-                auto const FUNC_NAME = FunctionSpecialization(*fun).name(0);
-                m_name_lookup.insert({fun, FUNC_NAME});
-                m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
-            }
-
-            for (auto modifier : con->functionModifiers())
-            {
-                modifier->parameterList().accept(*this);
-            }
+            ScopedSwap<bool> swap(m_is_retval, true);
+            returnParams->accept(*this);
         }
+
+        // TODO: is this still used?
+        auto const FUNC_RETURN_TYPE = get_type(*returnParams);
+        auto const FUNC_NAME = FunctionSpecialization(*fun).name(0);
+        m_name_lookup.insert({fun, FUNC_NAME});
+        m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
+    }
+    for (auto modifier : _calls.applied_modifiers())
+    {
+        modifier->parameterList().accept(*this);
     }
 
     // Pass 3: assign types to Solidity expressions, where applicable.
-    for (auto contract : contracts)
+    for (auto fun : _calls.executed_code())
     {
-        if (contract->isInterface()) continue;
-
-        for (auto fun : contract->definedFunctions())
-        {
-            if (!fun->isImplemented()) continue;
-            fun->body().accept(*this);
-        }
-
-        for (auto modifier : contract->functionModifiers())
-        {
-            modifier->body().accept(*this);
-        }
+        fun->body().accept(*this);
+    }
+    for (auto modifier : _calls.applied_modifiers())
+    {
+        modifier->body().accept(*this);
     }
 }
 
@@ -219,7 +219,10 @@ CExprPtr TypeAnalyzer::get_init_val(TypeName const& _typename) const
 
 CExprPtr TypeAnalyzer::get_init_val(Declaration const& _decl) const
 {
-    if (has_simple_type(_decl)) return init_val_by_simple_type(*_decl.type());
+    if (has_simple_type(_decl))
+    {
+        return init_val_by_simple_type(*_decl.type());
+    }
     return InitFunction(*this, _decl).defaulted();
 }
 

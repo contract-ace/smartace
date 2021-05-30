@@ -1,7 +1,7 @@
 #include <libsolidity/modelcheck/model/Block.h>
 
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
 #include <libsolidity/modelcheck/model/Expression.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 #include <libsolidity/modelcheck/utils/Function.h>

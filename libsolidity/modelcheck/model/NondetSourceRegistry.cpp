@@ -1,7 +1,7 @@
 #include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/utils/Function.h>

@@ -132,8 +132,8 @@ set(sources
 	modelcheck/analysis/Structure.h
 	modelcheck/analysis/TightBundle.cpp
 	modelcheck/analysis/TightBundle.h
-	modelcheck/analysis/TypeNames.cpp
-	modelcheck/analysis/TypeNames.h
+	modelcheck/analysis/TypeAnalyzer.cpp
+	modelcheck/analysis/TypeAnalyzer.h
 	modelcheck/analysis/VariableScope.cpp
 	modelcheck/analysis/VariableScope.h
 	modelcheck/codegen/Core.cpp

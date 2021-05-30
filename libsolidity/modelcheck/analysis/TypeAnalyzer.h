@@ -24,6 +24,8 @@ namespace solidity
 namespace modelcheck
 {
 
+class CallGraph;
+
 // -------------------------------------------------------------------------- //
 
 /*
@@ -34,9 +36,8 @@ namespace modelcheck
 class TypeAnalyzer : public ASTConstVisitor
 {
 public:
-    // Generates type encoding metadata for all relevant members of _unit. The
-    // type annotations may be recovered using the translate method.
-    void record(SourceUnit const& _unit);
+    //
+    TypeAnalyzer(std::vector<SourceUnit const*> _units, CallGraph const& _calls);
 
     // Returns the CType used to model _node, given that has_record has returned
     // true for _node.

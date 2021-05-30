@@ -9,7 +9,7 @@
 #include <libsolidity/modelcheck/analysis/Library.h>
 #include <libsolidity/modelcheck/analysis/Structure.h>
 #include <libsolidity/modelcheck/analysis/TightBundle.h>
-#include <libsolidity/modelcheck/analysis/TypeNames.h>
+#include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
 
 #include <stdexcept>
 
@@ -193,13 +193,8 @@ AnalysisStack::AnalysisStack(
 	AnalysisSettings const&_settings
 ): FlatAddressAnalysis(_model, _full, _settings)
 {
-	m_types = make_shared<TypeAnalyzer>();
-
-	// TODO: deprecate.
-	for (auto const* ast : _full)
-	{
-		m_types->record(*ast);
-	}
+	// TODO: deprecate the use of _full.
+	m_types = make_shared<TypeAnalyzer>(_full, *calls());
 }
 
 shared_ptr<TypeAnalyzer const> AnalysisStack::types() const
