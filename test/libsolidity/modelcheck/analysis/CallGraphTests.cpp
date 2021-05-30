@@ -181,8 +181,9 @@ BOOST_AUTO_TEST_CASE(call_graph_builder)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
     CallGraphBuilder builder(r);
-    auto call_graph = builder.build(flat_model);
-    BOOST_CHECK_EQUAL(call_graph->vertices().size(), 11);
+    auto data = builder.build(flat_model);
+    auto & call_graph = data->call_graph;
+    BOOST_CHECK_EQUAL(call_graph.vertices().size(), 11);
 
     auto func_a_f = ctrt_a->definedFunctions()[0];
     auto func_a_g = ctrt_a->definedFunctions()[1];
@@ -208,60 +209,60 @@ BOOST_AUTO_TEST_CASE(call_graph_builder)
     BOOST_CHECK_EQUAL(func_c_g->name(), "g");
     BOOST_CHECK_EQUAL(func_c_h->name(), "h");
 
-    BOOST_CHECK(call_graph->has_vertex(func_a_f));
-    BOOST_CHECK(call_graph->has_vertex(func_a_g));
-    BOOST_CHECK(call_graph->has_vertex(func_a_h));
-    BOOST_CHECK(call_graph->has_vertex(func_b));
-    BOOST_CHECK(call_graph->has_vertex(func_b_f));
-    BOOST_CHECK(call_graph->has_vertex(func_b_g));
-    BOOST_CHECK(call_graph->has_vertex(func_b_h));
-    BOOST_CHECK(call_graph->has_vertex(func_c));
-    BOOST_CHECK(call_graph->has_vertex(func_c_f));
-    BOOST_CHECK(call_graph->has_vertex(func_c_g));
-    BOOST_CHECK(call_graph->has_vertex(func_c_h));
+    BOOST_CHECK(call_graph.has_vertex(func_a_f));
+    BOOST_CHECK(call_graph.has_vertex(func_a_g));
+    BOOST_CHECK(call_graph.has_vertex(func_a_h));
+    BOOST_CHECK(call_graph.has_vertex(func_b));
+    BOOST_CHECK(call_graph.has_vertex(func_b_f));
+    BOOST_CHECK(call_graph.has_vertex(func_b_g));
+    BOOST_CHECK(call_graph.has_vertex(func_b_h));
+    BOOST_CHECK(call_graph.has_vertex(func_c));
+    BOOST_CHECK(call_graph.has_vertex(func_c_f));
+    BOOST_CHECK(call_graph.has_vertex(func_c_g));
+    BOOST_CHECK(call_graph.has_vertex(func_c_h));
 
     auto func_a_p = ctrt_a->definedFunctions()[3];
     auto func_b_p = ctrt_b->definedFunctions()[4];
     auto func_c_p = ctrt_c->definedFunctions()[4];
-    BOOST_CHECK(!call_graph->has_vertex(func_a_p));
-    BOOST_CHECK(!call_graph->has_vertex(func_b_p));
-    BOOST_CHECK(!call_graph->has_vertex(func_c_p));
+    BOOST_CHECK(!call_graph.has_vertex(func_a_p));
+    BOOST_CHECK(!call_graph.has_vertex(func_b_p));
+    BOOST_CHECK(!call_graph.has_vertex(func_c_p));
 
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_a_f).size(), 0);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_a_g).size(), 0);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_a_h).size(), 0);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_b).size(), 0);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_b_f).size(), 1);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_b_g).size(), 1);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_b_h).size(), 3);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_c).size(), 1);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_c_f).size(), 0);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_c_g).size(), 1);
-    BOOST_CHECK_EQUAL(call_graph->neighbours(func_c_h).size(), 2);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_a_f).size(), 0);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_a_g).size(), 0);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_a_h).size(), 0);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_b).size(), 0);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_b_f).size(), 1);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_b_g).size(), 1);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_b_h).size(), 3);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_c).size(), 1);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_c_f).size(), 0);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_c_g).size(), 1);
+    BOOST_CHECK_EQUAL(call_graph.neighbours(func_c_h).size(), 2);
 
-    BOOST_CHECK(call_graph->has_edge(func_b_f, func_b_f));
-    BOOST_CHECK(call_graph->label_of(func_b_f, func_b_f).empty());
-    BOOST_CHECK(call_graph->has_edge(func_b_g, func_a_f));
-    BOOST_CHECK_EQUAL(call_graph->label_of(func_b_g, func_a_f).size(), 1);
-    BOOST_CHECK(call_graph->has_edge(func_b_h, func_a_g));
-    BOOST_CHECK_EQUAL(call_graph->label_of(func_b_h, func_a_g).size(), 1);
-    BOOST_CHECK(call_graph->has_edge(func_b_h, func_b_f));
-    BOOST_CHECK(call_graph->label_of(func_b_h, func_b_f).empty());
-    BOOST_CHECK(call_graph->has_edge(func_b_h, func_b_g));
-    BOOST_CHECK(call_graph->label_of(func_b_h, func_b_g).empty());
-    BOOST_CHECK(call_graph->has_edge(func_c, func_b));
-    BOOST_CHECK_EQUAL(call_graph->label_of(func_c, func_b).size(), 1);
-    BOOST_CHECK(call_graph->has_edge(func_c_g, func_a_h));
-    BOOST_CHECK_EQUAL(call_graph->label_of(func_c_g, func_a_h).size(), 1);
-    BOOST_CHECK(call_graph->has_edge(func_c_h, func_b_g));
-    BOOST_CHECK_EQUAL(call_graph->label_of(func_c_h, func_b_g).size(), 1);
-    BOOST_CHECK(call_graph->has_edge(func_c_h, func_b_h));
-    BOOST_CHECK_EQUAL(call_graph->label_of(func_c_h, func_b_h).size(), 1);
+    BOOST_CHECK(call_graph.has_edge(func_b_f, func_b_f));
+    BOOST_CHECK(call_graph.label_of(func_b_f, func_b_f).empty());
+    BOOST_CHECK(call_graph.has_edge(func_b_g, func_a_f));
+    BOOST_CHECK_EQUAL(call_graph.label_of(func_b_g, func_a_f).size(), 1);
+    BOOST_CHECK(call_graph.has_edge(func_b_h, func_a_g));
+    BOOST_CHECK_EQUAL(call_graph.label_of(func_b_h, func_a_g).size(), 1);
+    BOOST_CHECK(call_graph.has_edge(func_b_h, func_b_f));
+    BOOST_CHECK(call_graph.label_of(func_b_h, func_b_f).empty());
+    BOOST_CHECK(call_graph.has_edge(func_b_h, func_b_g));
+    BOOST_CHECK(call_graph.label_of(func_b_h, func_b_g).empty());
+    BOOST_CHECK(call_graph.has_edge(func_c, func_b));
+    BOOST_CHECK_EQUAL(call_graph.label_of(func_c, func_b).size(), 1);
+    BOOST_CHECK(call_graph.has_edge(func_c_g, func_a_h));
+    BOOST_CHECK_EQUAL(call_graph.label_of(func_c_g, func_a_h).size(), 1);
+    BOOST_CHECK(call_graph.has_edge(func_c_h, func_b_g));
+    BOOST_CHECK_EQUAL(call_graph.label_of(func_c_h, func_b_g).size(), 1);
+    BOOST_CHECK(call_graph.has_edge(func_c_h, func_b_h));
+    BOOST_CHECK_EQUAL(call_graph.label_of(func_c_h, func_b_h).size(), 1);
 
-    auto const& ext_label = call_graph->label_of(func_b_g, func_a_f);
+    auto const& ext_label = call_graph.label_of(func_b_g, func_a_f);
     BOOST_CHECK(ext_label.find(CallTypes::External) != ext_label.end());
 
-    auto const& alloc_label = call_graph->label_of(func_c, func_b);
+    auto const& alloc_label = call_graph.label_of(func_c, func_b);
     BOOST_CHECK(alloc_label.find(CallTypes::Alloc) != alloc_label.end());
 }
 
@@ -290,8 +291,9 @@ BOOST_AUTO_TEST_CASE(call_graph_build_with_inheritance)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
     CallGraphBuilder builder(r);
-    auto call_graph = builder.build(flat_model);
-    BOOST_CHECK_EQUAL(call_graph->vertices().size(), 2);
+    auto data = builder.build(flat_model);
+    auto & call_graph = data->call_graph;
+    BOOST_CHECK_EQUAL(call_graph.vertices().size(), 2);
 }
 
 BOOST_AUTO_TEST_CASE(call_graph_build_with_downcasting)
@@ -323,8 +325,9 @@ BOOST_AUTO_TEST_CASE(call_graph_build_with_downcasting)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
     CallGraphBuilder builder(r);
-    auto call_graph = builder.build(flat_model);
-    BOOST_CHECK_EQUAL(call_graph->vertices().size(), 3);
+    auto data = builder.build(flat_model);
+    auto & call_graph = data->call_graph;
+    BOOST_CHECK_EQUAL(call_graph.vertices().size(), 3);
 }
 
 BOOST_AUTO_TEST_CASE(call_graph_with_super)
@@ -360,13 +363,14 @@ BOOST_AUTO_TEST_CASE(call_graph_with_super)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
     CallGraphBuilder builder(r);
-    auto call_graph = builder.build(flat_model);
-    BOOST_CHECK_EQUAL(call_graph->vertices().size(), 3);
-    BOOST_CHECK(call_graph->has_vertex(func_a_f));
-    BOOST_CHECK(call_graph->has_vertex(ctrt_b->definedFunctions()[0]));
-    BOOST_CHECK(call_graph->has_vertex(func_b_g));
+    auto data = builder.build(flat_model);
+    auto & call_graph = data->call_graph;
+    BOOST_CHECK_EQUAL(call_graph.vertices().size(), 3);
+    BOOST_CHECK(call_graph.has_vertex(func_a_f));
+    BOOST_CHECK(call_graph.has_vertex(ctrt_b->definedFunctions()[0]));
+    BOOST_CHECK(call_graph.has_vertex(func_b_g));
 
-    auto const& labels = call_graph->label_of(func_b_g, func_a_f);
+    auto const& labels = call_graph.label_of(func_b_g, func_a_f);
     BOOST_CHECK_EQUAL(labels.size(), 1);
     BOOST_CHECK(labels.find(CallTypes::Super) != labels.end());
 }
@@ -400,12 +404,13 @@ BOOST_AUTO_TEST_CASE(call_graph_with_fallback_internals)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
     CallGraphBuilder builder(r);
-    auto call_graph = builder.build(flat_model);
-    BOOST_CHECK_EQUAL(call_graph->vertices().size(), 2);
-    BOOST_CHECK(call_graph->has_vertex(func_a_f));
-    BOOST_CHECK(call_graph->has_vertex(func_a_fallback));
-    BOOST_CHECK(call_graph->has_edge(func_a_fallback, func_a_f));
-    BOOST_CHECK(call_graph->label_of(func_a_fallback, func_a_f).empty());
+    auto data = builder.build(flat_model);
+    auto & call_graph = data->call_graph;
+    BOOST_CHECK_EQUAL(call_graph.vertices().size(), 2);
+    BOOST_CHECK(call_graph.has_vertex(func_a_f));
+    BOOST_CHECK(call_graph.has_vertex(func_a_fallback));
+    BOOST_CHECK(call_graph.has_edge(func_a_fallback, func_a_f));
+    BOOST_CHECK(call_graph.label_of(func_a_fallback, func_a_f).empty());
 }
 
 BOOST_AUTO_TEST_CASE(executable_code)
@@ -700,8 +705,9 @@ BOOST_AUTO_TEST_CASE(lib_calls)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
     CallGraphBuilder builder(r);
-    auto call_graph = builder.build(flat_model);
-    BOOST_CHECK_EQUAL(call_graph->vertices().size(), 2);
+    auto data = builder.build(flat_model);
+    auto & call_graph = data->call_graph;
+    BOOST_CHECK_EQUAL(call_graph.vertices().size(), 2);
 
     auto func_x_incr = ctrt_x->definedFunctions()[0];
     auto func_y_f = ctrt_y->definedFunctions()[0];
@@ -709,14 +715,14 @@ BOOST_AUTO_TEST_CASE(lib_calls)
     BOOST_CHECK_EQUAL(func_x_incr->name(), "incr");
     BOOST_CHECK_EQUAL(func_y_f->name(), "f");
 
-    auto neighbours = call_graph->neighbours(func_y_f);
+    auto neighbours = call_graph.neighbours(func_y_f);
     BOOST_CHECK_EQUAL(neighbours.size(), 1);
     if (!neighbours.empty())
     {
         BOOST_CHECK(neighbours.find(func_x_incr) != neighbours.end());
     }
 
-    auto labels = call_graph->label_of(func_y_f, func_x_incr);
+    auto labels = call_graph.label_of(func_y_f, func_x_incr);
     BOOST_CHECK_EQUAL(labels.size(), 1);
     BOOST_CHECK(labels.find(CallTypes::Library) != labels.end());
 }
@@ -841,9 +847,10 @@ BOOST_AUTO_TEST_CASE(can_downcast_rvs)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
 
     CallGraphBuilder builder(r);
-    auto call_graph = builder.build(flat_model);
-    BOOST_CHECK(!call_graph->has_edge(func_d_f, func_a_f));
-    BOOST_CHECK(call_graph->has_edge(func_d_f, func_b_f));
+    auto data = builder.build(flat_model);
+    auto & call_graph = data->call_graph;
+    BOOST_CHECK(!call_graph.has_edge(func_d_f, func_a_f));
+    BOOST_CHECK(call_graph.has_edge(func_d_f, func_b_f));
 }
 
 BOOST_AUTO_TEST_CASE(libs_are_not_internal)
@@ -975,6 +982,65 @@ BOOST_AUTO_TEST_CASE(diamond_inheritance_super)
     auto f = ctrt_e->definedFunctions()[0];
     CallGraph graph(r, flat_model);
     BOOST_CHECK_EQUAL(graph.super_calls(*c, *f).size(), 4);
+}
+
+BOOST_AUTO_TEST_CASE(modifier_case)
+{
+    char const* text = R"(
+        contract A {
+            function f(address a) internal pure returns (bool) {
+                return a != address(0);
+            }
+            modifier m(address a) { require(f(a)); _; }
+            function g(address a) m(a) public { }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const* ctrt = retrieveContractByName(unit, "A");
+
+    vector<ContractDefinition const*> model({ ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 1);
+
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph graph(r, flat_model);
+    BOOST_CHECK_EQUAL(graph.executed_code().size(), 2);
+}
+
+BOOST_AUTO_TEST_CASE(applied_modifiers_count)
+{
+    char const* text = R"(
+        contract A {
+            modifier m1() { _; }
+            modifier m2() { _; }
+            function f() m1() m1() m1() m1() m1() public { }
+        }
+        contract B {
+            modifier m3() { _; }
+            modifier m4() { _; }
+            modifier m5() { _; }
+            function g() m3() m5() m3() m5() public { }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const* ctrt_a = retrieveContractByName(unit, "A");
+    auto const* ctrt_b = retrieveContractByName(unit, "B");
+
+    vector<ContractDefinition const*> model({ ctrt_a, ctrt_b });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+
+    StructureStore store;
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    BOOST_CHECK_EQUAL(flat_model->view().size(), 2);
+
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph graph(r, flat_model);
+    BOOST_CHECK_EQUAL(graph.applied_modifiers().size(), 3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

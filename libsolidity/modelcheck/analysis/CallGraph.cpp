@@ -22,12 +22,12 @@ CallGraphBuilder::CallGraphBuilder(
     shared_ptr<ContractExpressionAnalyzer const> _expr_resolver
 ): m_expr_resolver(_expr_resolver) {}
 
-shared_ptr<CallGraphBuilder::Graph>
+shared_ptr<CallGraphBuilder::BuildData>
     CallGraphBuilder::build(shared_ptr<FlatModel const> _model)
 {
     ScopedSwap<shared_ptr<FlatModel const>> scope(m_model, _model);
 
-    m_graph = make_shared<CallGraphBuilder::Graph>();
+    m_data = make_shared<CallGraphBuilder::BuildData>();
     for (auto contract : _model->view())
     {
         m_locations.emplace_back(Location{ contract, contract });
@@ -59,7 +59,7 @@ shared_ptr<CallGraphBuilder::Graph>
 
         m_locations.pop_back();
     }
-    return std::move(m_graph);
+    return std::move(m_data);
 }
 
 bool CallGraphBuilder::visit(FunctionDefinition const& _node)
@@ -68,22 +68,43 @@ bool CallGraphBuilder::visit(FunctionDefinition const& _node)
     auto labels = m_labels;
 
     // Processes vertex if it is new.
-    if (!m_graph->has_vertex(&_node))
+    if (!m_data->call_graph.has_vertex(&_node))
     {
-        m_graph->add_vertex(&_node);
-
+        m_data->call_graph.add_vertex(&_node);
         m_stack.push_back(&_node);
+
         _node.body().accept(*this);
+        for (auto mod : _node.modifiers())
+        {
+            mod->accept(*this);
+        }
+
         m_stack.pop_back();
     }
 
     // Adds edge if this is not a root.
     if (!m_stack.empty())
     {
-        m_graph->add_edge(m_stack.back(), &_node);
+        m_data->call_graph.add_edge(m_stack.back(), &_node);
         for (auto label : labels)
         {
-            m_graph->label_edge(m_stack.back(), &_node, label);
+            m_data->call_graph.label_edge(m_stack.back(), &_node, label);
+        }
+    }
+
+    return false;
+}
+
+bool CallGraphBuilder::visit(ModifierInvocation const& _node)
+{
+    string const& target = _node.name()->name();
+
+    for (auto match : m_locations.back().entry->modifiers())
+    {
+        if (match->name() == target)
+        {
+            m_data->modifiers.insert(match);
+            match->body().accept(*this);
         }
     }
 
@@ -223,11 +244,16 @@ CallGraphBuilder::Location
 CallGraph::CallGraph(
     shared_ptr<ContractExpressionAnalyzer const> _expr_resolver,
     shared_ptr<FlatModel const> _model
-): m_graph(CallGraphBuilder(_expr_resolver).build(_model)) {}
+): m_data(CallGraphBuilder(_expr_resolver).build(_model)) {}
 
 CallGraph::CodeSet CallGraph::executed_code() const
 {
-    return m_graph->vertices();
+    return m_data->call_graph.vertices();
+}
+
+CallGraphBuilder::ModifierSet CallGraph::applied_modifiers() const
+{
+    return m_data->modifiers;
 }
 
 CallGraph::CodeSet CallGraph::internals(FlatContract const& _scope) const
@@ -253,9 +279,9 @@ CallGraph::CodeSet CallGraph::internals(FlatContract const& _scope) const
 
         if (!func->functionType(false)) methods.insert(func);
 
-        for (auto succ : m_graph->neighbours(func))
+        for (auto succ : m_data->call_graph.neighbours(func))
         {
-            auto labels = m_graph->label_of(func, succ);
+            auto labels = m_data->call_graph.label_of(func, succ);
             if (labels.find(CallTypes::External) == labels.end())
             {
                 if (labels.find(CallTypes::Library) == labels.end())
@@ -293,9 +319,9 @@ CallGraph::CodeSet CallGraph::super_calls(
 
         if (collid(_call, *func)) chain.insert(func);
 
-        for (auto succ : m_graph->neighbours(func))
+        for (auto succ : m_data->call_graph.neighbours(func))
         {
-            auto labels = m_graph->label_of(func, succ);
+            auto labels = m_data->call_graph.label_of(func, succ);
             if (labels.find(CallTypes::External) == labels.end())
             {
                 if (labels.find(CallTypes::Library) == labels.end())

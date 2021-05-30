@@ -143,6 +143,14 @@ class CallGraphBuilder : public ASTConstVisitor
 {
 public:
     using Graph = LabeledDigraph<FunctionDefinition const*, CallTypes>;
+    using ModifierSet = std::set<ModifierDefinition const*>;
+
+    // Couples together a call graph and the midifiers it uses.
+    struct BuildData
+    {
+        Graph call_graph;
+        ModifierSet modifiers;
+    };
 
     // The call graph will downcast all contract variables through the use of
     // _expression_lookup.
@@ -151,14 +159,16 @@ public:
     );
 
     // Computes a call graph for _model.
-    std::shared_ptr<Graph> build(std::shared_ptr<FlatModel const> _model);
+    std::shared_ptr<BuildData> build(std::shared_ptr<FlatModel const> _model);
 
 protected:
     bool visit(FunctionDefinition const& _node) override;
+    bool visit(ModifierInvocation const& _node) override;
 
     void endVisit(FunctionCall const& _node) override;
 
 private:
+    // Pairs a contract (`entry`) with the function it is executing (`scope`).
     struct Location
     {
         std::shared_ptr<FlatContract> entry;
@@ -172,7 +182,7 @@ private:
     std::shared_ptr<ContractExpressionAnalyzer const> m_expr_resolver;
     std::shared_ptr<FlatModel const> m_model;
 
-    std::shared_ptr<Graph> m_graph;
+    std::shared_ptr<BuildData> m_data;
 
     std::list<FunctionDefinition const*> m_stack;
     std::list<Location> m_locations;
@@ -200,6 +210,9 @@ public:
     // Returns all function vertices in the call graph.
     CodeSet executed_code() const;
 
+    // Returns all modifiers used within the call graph.
+    CallGraphBuilder::ModifierSet applied_modifiers() const;
+
     // Returns all internal methods used by _scope.
     CodeSet internals(FlatContract const& _scope) const;
 
@@ -210,7 +223,7 @@ public:
     ) const;
 
 private:
-    std::shared_ptr<CallGraphBuilder::Graph> m_graph;
+    std::shared_ptr<CallGraphBuilder::BuildData> m_data;
 };
 
 // -------------------------------------------------------------------------- //
