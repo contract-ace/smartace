@@ -104,11 +104,8 @@ TypeAnalyzer::TypeAnalyzer(
             returnParams->accept(*this);
         }
 
-        // TODO: is this still used?
-        auto const FUNC_RETURN_TYPE = get_type(*returnParams);
-        auto const FUNC_NAME = FunctionSpecialization(*fun).name(0);
-        m_name_lookup.insert({fun, FUNC_NAME});
-        m_type_lookup.insert({fun, FUNC_RETURN_TYPE});
+        //m_name_lookup.insert({fun, FunctionSpecialization(*fun).name(0)});
+        m_type_lookup.insert({fun, get_type(*returnParams)});
     }
     for (auto modifier : _calls.applied_modifiers())
     {
@@ -376,6 +373,10 @@ void TypeAnalyzer::endVisit(Identifier const& _node)
     else
     {
         Declaration const* ref = _node.annotation().referencedDeclaration;
+        if (ref->type()->category() == Type::Category::Function)
+        {
+            return;
+        }
 
         auto loc = VariableDeclaration::Location::Unspecified;
         if (auto var = dynamic_cast<VariableDeclaration const*>(ref))

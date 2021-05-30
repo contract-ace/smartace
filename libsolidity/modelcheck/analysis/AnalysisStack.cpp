@@ -24,20 +24,11 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-BaseAnalysis::BaseAnalysis()
- : m_structure_store(make_shared<StructureStore>()) {}
-
-// -------------------------------------------------------------------------- //
-
-AllocationAnalysis::AllocationAnalysis(
-	InheritanceModel const& _model, AnalysisSettings const&_settings
-)
+namespace
 {
-	(void) _settings;
-
-    m_allocation_graph = make_shared<AllocationGraph>(_model);
-
-	auto const& VIOLATIONS = m_allocation_graph->violations();
+static void check_allocation_graph_errs(shared_ptr<AllocationGraph> _graph)
+{
+	auto const& VIOLATIONS = _graph->violations();
 	if (!VIOLATIONS.empty())
 	{
 		// TODO: better error.
@@ -46,114 +37,59 @@ AllocationAnalysis::AllocationAnalysis(
     }
 }
 
-shared_ptr<AllocationGraph const> AllocationAnalysis::allocations() const
+static void check_address_errs(shared_ptr<MapIndexSummary> _summary)
 {
-    return m_allocation_graph;
+	auto const& VIOLATIONS = _summary->violations();
+	if (!VIOLATIONS.empty())
+	{
+		// TODO: better error.
+		auto const& count = std::to_string(VIOLATIONS.size());
+		throw runtime_error("FlatAddressAnalysis violations: " + count);
+	}
+}
 }
 
 // -------------------------------------------------------------------------- //
 
-InheritanceAnalysis::InheritanceAnalysis(
-	InheritanceModel const& _model, AnalysisSettings const&_settings
-): AllocationAnalysis(_model, _settings)
-{
-	m_flat_model
-		= make_shared<FlatModel>(_model, *allocations(), *m_structure_store);
-}
-
-shared_ptr<FlatModel const> InheritanceAnalysis::model() const
-{
-    return m_flat_model;
-}
-
-// -------------------------------------------------------------------------- //
-
-ContractExprAnalysis::ContractExprAnalysis(
-	InheritanceModel const& _model, AnalysisSettings const&_settings
-): InheritanceAnalysis(_model, _settings)
-{
-	m_contracts
-		= make_shared<ContractExpressionAnalyzer>(model(), allocations());
-}
-
-shared_ptr<ContractExpressionAnalyzer const>
-	ContractExprAnalysis::contracts() const
-{
-    return m_contracts;
-}
-
-// -------------------------------------------------------------------------- //
-
-FlatCallAnalysis::FlatCallAnalysis(
-	InheritanceModel const& _model, AnalysisSettings const&_settings
-): ContractExprAnalysis(_model, _settings)
-{
-	m_call_graph = make_shared<CallGraph>(contracts(), model());
-}
-
-shared_ptr<CallGraph const> FlatCallAnalysis::calls() const
-{
-    return m_call_graph;
-}
-
-// -------------------------------------------------------------------------- //
-
-LibraryAnalysis::LibraryAnalysis(
-	InheritanceModel const& _model, AnalysisSettings const&_settings
-): FlatCallAnalysis(_model, _settings)
-{
-	m_libraries = make_shared<LibrarySummary>(*calls(), *m_structure_store);
-}
-
-shared_ptr<LibrarySummary const> LibraryAnalysis::libraries() const
-{
-	return m_libraries;
-}
-
-// -------------------------------------------------------------------------- //
-
-EnvironmentAnalysis::EnvironmentAnalysis(
-	InheritanceModel const& _model, AnalysisSettings const&_settings
-): LibraryAnalysis(_model, _settings)
-{
-	m_environment = make_shared<CallState>(*calls(), _settings.escalate_reqs);
-}
-
-shared_ptr<CallState const> EnvironmentAnalysis::environment() const
-{
-	return m_environment;
-}
-
-// -------------------------------------------------------------------------- //
-
-TightBundleAnalysis::TightBundleAnalysis(
-	InheritanceModel const& _model, AnalysisSettings const&_settings
-): EnvironmentAnalysis(_model, _settings)
-{
-	m_tight_bundle = make_shared<TightBundleModel>(
-		*model(), *environment(), _settings.allow_fallbacks
-	);
-}
-
-shared_ptr<TightBundleModel const> TightBundleAnalysis::tight_bundle() const
-{
-	return m_tight_bundle;
-}
-
-// -------------------------------------------------------------------------- //
-
-FlatAddressAnalysis::FlatAddressAnalysis(
+AnalysisStack::AnalysisStack(
 	InheritanceModel const& _model,
 	std::vector<SourceUnit const*> _full,
 	AnalysisSettings const&_settings
-): TightBundleAnalysis(_model, _settings)
+)
 {
+	m_structure_store = make_shared<StructureStore>();
+
+    m_allocation_graph = make_shared<AllocationGraph>(_model);
+	check_allocation_graph_errs(m_allocation_graph);
+
+	m_flat_model = make_shared<FlatModel>(
+		_model, *m_allocation_graph, *m_structure_store
+	);
+
+	m_contracts = make_shared<ContractExpressionAnalyzer>(
+		m_flat_model, m_allocation_graph
+	);
+
+	m_call_graph = make_shared<CallGraph>(m_contracts, m_flat_model);
+
+	m_libraries = make_shared<LibrarySummary>(
+		*m_call_graph, *m_structure_store
+	);
+
+	m_environment = make_shared<CallState>(
+		*m_call_graph, _settings.escalate_reqs
+	);
+
+	m_tight_bundle = make_shared<TightBundleModel>(
+		*m_flat_model, *m_environment, _settings.allow_fallbacks
+	);
+
+	// TODO: deprecate the use of _full.
 	m_addresses = make_shared<MapIndexSummary>(
 		_settings.use_concrete_users,
 		_settings.persistent_user_count,
-		tight_bundle()->size()
+		m_tight_bundle->size()
 	);
-
 	for (auto const* ast : _full)
 	{
 		auto c = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
@@ -170,38 +106,61 @@ FlatAddressAnalysis::FlatAddressAnalysis(
 			m_addresses->compute_interference(*contract);
 		}
 	}
+	check_address_errs(m_addresses);
 
-	auto const& VIOLATIONS = m_addresses->violations();
-	if (!VIOLATIONS.empty())
-	{
-		// TODO: better error.
-		auto const& count = std::to_string(VIOLATIONS.size());
-		throw runtime_error("FlatAddressAnalysis violations: " + count);
-	}
+	// TODO: deprecate the use of _full.
+	m_types = make_shared<TypeAnalyzer>(_full, *m_call_graph);
 }
 
-shared_ptr<MapIndexSummary const> FlatAddressAnalysis::addresses() const
+shared_ptr<StructureStore const> AnalysisStack::structures() const
+{
+	return m_structure_store;
+}
+
+shared_ptr<AllocationGraph const> AnalysisStack::allocations() const
+{
+    return m_allocation_graph;
+}
+
+shared_ptr<FlatModel const> AnalysisStack::model() const
+{
+    return m_flat_model;
+}
+
+shared_ptr<ContractExpressionAnalyzer const> AnalysisStack::contracts() const
+{
+    return m_contracts;
+}
+
+shared_ptr<CallGraph const> AnalysisStack::calls() const
+{
+    return m_call_graph;
+}
+
+shared_ptr<LibrarySummary const> AnalysisStack::libraries() const
+{
+	return m_libraries;
+}
+
+shared_ptr<CallState const> AnalysisStack::environment() const
+{
+	return m_environment;
+}
+
+shared_ptr<TightBundleModel const> AnalysisStack::tight_bundle() const
+{
+	return m_tight_bundle;
+}
+
+shared_ptr<MapIndexSummary const> AnalysisStack::addresses() const
 {
 	return m_addresses;
-}
-
-// -------------------------------------------------------------------------- //
-
-AnalysisStack::AnalysisStack(
-	InheritanceModel const& _model,
-	std::vector<SourceUnit const*> _full,
-	AnalysisSettings const&_settings
-): FlatAddressAnalysis(_model, _full, _settings)
-{
-	// TODO: deprecate the use of _full.
-	m_types = make_shared<TypeAnalyzer>(_full, *calls());
 }
 
 shared_ptr<TypeAnalyzer const> AnalysisStack::types() const
 {
 	return m_types;
 }
-
 
 // -------------------------------------------------------------------------- //
 
