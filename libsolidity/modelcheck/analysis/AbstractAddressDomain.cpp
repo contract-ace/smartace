@@ -185,10 +185,7 @@ void MapIndexSummary::extract_literals(ContractDefinition const& _src)
     {
         if (!entry.address_only)
         {
-            m_violations.emplace_front();
-            m_violations.front().context = nullptr;
-            m_violations.front().site = entry.decl;
-            m_violations.front().type = ViolationType::KeyType;
+            record_violation(ViolationType::KeyType, entry.decl);
         }
 
         if (entry.decl->type()->category() == Type::Category::Address)
@@ -352,10 +349,7 @@ bool MapIndexSummary::visit(UnaryOperation const& _node)
     //                is worth adding to expression evaluations as well...
     if (m_is_address_cast)
     {
-        m_violations.emplace_front();
-        m_violations.front().type = ViolationType::Mutate;
-        m_violations.front().context = m_context;
-        m_violations.front().site = (&_node);
+        record_violation(ViolationType::Mutate, &_node);
         return false;
     }
     return true;
@@ -368,10 +362,7 @@ bool MapIndexSummary::visit(BinaryOperation const& _node)
 
     if (m_is_address_cast)
     {
-        m_violations.emplace_front();
-        m_violations.front().type = ViolationType::Mutate;
-        m_violations.front().context = m_context;
-        m_violations.front().site = (&_node);
+        record_violation(ViolationType::Mutate, &_node);
         return false;
     }
 
@@ -381,10 +372,7 @@ bool MapIndexSummary::visit(BinaryOperation const& _node)
         auto const TOK = _node.getOperator();
         if (TOK != Token::Equal && TOK != Token::NotEqual)
         {
-            m_violations.emplace_front();
-            m_violations.front().type = ViolationType::Compare;
-            m_violations.front().context = m_context;
-            m_violations.front().site = (&_node);
+            record_violation(ViolationType::Compare, &_node);
             return false;
         }
     }
@@ -399,10 +387,7 @@ bool MapIndexSummary::visit(FunctionCall const& _node)
     auto const CALLTYPE = _node.annotation().type->category();
     if (m_is_address_cast && CALLTYPE != Type::Category::Contract)
     {
-        m_violations.emplace_front();
-        m_violations.front().type = ViolationType::Mutate;
-        m_violations.front().context = m_context;
-        m_violations.front().site = (&_node);
+        record_violation(ViolationType::Mutate, &_node);
         return false;
     }
     else if (_node.annotation().kind == FunctionCallKind::TypeConversion)
@@ -423,10 +408,7 @@ bool MapIndexSummary::visit(FunctionCall const& _node)
         }
         else if (base_type == Type::Category::Address)
         {
-            m_violations.emplace_front();
-            m_violations.front().type = ViolationType::Cast;
-            m_violations.front().context = m_context;
-            m_violations.front().site = (&_node);
+            record_violation(ViolationType::Cast, &_node);
         }
         else
         {
@@ -446,10 +428,7 @@ bool MapIndexSummary::visit(MemberAccess const& _node)
 
     if (m_is_address_cast)
     {
-        m_violations.emplace_front();
-        m_violations.front().type = ViolationType::Mutate;
-        m_violations.front().context = m_context;
-        m_violations.front().site = (&_node);
+        record_violation(ViolationType::Mutate, &_node);
         return false;
     }
     return true;
@@ -467,10 +446,7 @@ bool MapIndexSummary::visit(Identifier const& _node)
         }
         else if (_node.annotation().type->category() != Type::Category::Contract)
         {
-            m_violations.emplace_front();
-            m_violations.front().type = ViolationType::Mutate;
-            m_violations.front().context = m_context;
-            m_violations.front().site = (&_node);
+            record_violation(ViolationType::Mutate, &_node);
             return false;
         }
     }
@@ -484,6 +460,13 @@ bool MapIndexSummary::visit(Literal const& _node)
         m_literals.insert(_node.annotation().type->literalValue(&_node));
     }
     return true;
+}
+
+// -------------------------------------------------------------------------- //
+
+void MapIndexSummary::record_violation(ViolationType _ty, ASTNode const* _site)
+{
+    m_violations.push_back(Violation{_ty, m_context, _site});
 }
 
 // -------------------------------------------------------------------------- //

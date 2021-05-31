@@ -150,6 +150,9 @@ protected:
     bool visit(Literal const& _node) override;
 
 private:
+    // Appennds _violation to m_violations.
+    void record_violation(ViolationType _ty, ASTNode const* _site);
+
     const bool IS_CONCRETE;
 
     uint64_t m_client_reps;
