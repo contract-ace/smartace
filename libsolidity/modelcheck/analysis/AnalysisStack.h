@@ -34,6 +34,7 @@ class ContractExpressionAnalyzer;
 class FlatModel;
 class LibrarySummary;
 class MapIndexSummary;
+class StringLookup;
 class StructureStore;
 class TightBundleModel;
 class TypeAnalyzer;
@@ -105,6 +106,9 @@ public:
     // Describes the address requirements of the bundle.
     std::shared_ptr<MapIndexSummary const> addresses() const;
 
+    // Returns a mapping from string literals to strings.
+    std::shared_ptr<StringLookup const> strings() const;
+
     // Returns the type analyzer.
     std::shared_ptr<TypeAnalyzer const> types() const;
 
@@ -117,8 +121,9 @@ private:
     std::shared_ptr<LibrarySummary> m_libraries;
     std::shared_ptr<CallState> m_environment;
     std::shared_ptr<TightBundleModel> m_tight_bundle;
-    std::shared_ptr<TypeAnalyzer> m_types;
     std::shared_ptr<MapIndexSummary> m_addresses;
+    std::shared_ptr<StringLookup> m_strings;
+    std::shared_ptr<TypeAnalyzer> m_types;
 };
 
 // -------------------------------------------------------------------------- //

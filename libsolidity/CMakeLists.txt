@@ -128,6 +128,8 @@ set(sources
 	modelcheck/analysis/Mapping.h
 	modelcheck/analysis/Primitives.cpp
 	modelcheck/analysis/Primitives.h
+	modelcheck/analysis/StringLookup.cpp
+	modelcheck/analysis/StringLookup.h
 	modelcheck/analysis/Structure.cpp
 	modelcheck/analysis/Structure.h
 	modelcheck/analysis/TightBundle.cpp

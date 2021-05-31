@@ -1402,10 +1402,10 @@ BOOST_AUTO_TEST_CASE(low_level_calls)
     expected << "{";
     expected << "sol_call(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(5),Init_sol_uint256_t("
-             << "6142509188972423790));";
+             << "0));";
     expected << "sol_call(&((self)->model_balance),Init_sol_address_t("
              << "(func_user_dst).v),Init_sol_uint256_t(0),Init_sol_uint256_t("
-             << "6142509188972423790));";
+             << "0));";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }
@@ -1449,6 +1449,42 @@ BOOST_AUTO_TEST_CASE(emit_with_args)
              << ",Init_sol_bool_t(0),origin,reqfail)).v;";
     expected << "sol_emit(\"EventTest(g(), g())\");";
     expected << "}";
+    expected << "}";
+    BOOST_CHECK_EQUAL(actual.str(), expected.str());
+}
+
+BOOST_AUTO_TEST_CASE(literals)
+{
+    char const* text = R"(
+		contract A {
+			function f() public {
+                "aaa";
+                "bbb";
+                "ccc";
+                "aaa";
+                "bbb";
+            }
+		}
+	)";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+    auto const& func = *ctrt->definedFunctions()[0];
+
+    vector<ContractDefinition const*> model({ ctrt });
+    vector<SourceUnit const*> full({ &unit });
+
+    AnalysisSettings settings;
+    settings.persistent_user_count = 0;
+    settings.use_concrete_users = false;
+    settings.use_global_contracts = false;
+    settings.escalate_reqs = true;
+    auto stack = make_shared<AnalysisStack>(model, full, settings);
+
+    ostringstream actual, expected;
+    actual << *FunctionBlockConverter(func, stack).convert();
+    expected << "{";
+    expected << "1;2;3;1;2;";
     expected << "}";
     BOOST_CHECK_EQUAL(actual.str(), expected.str());
 }

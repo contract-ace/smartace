@@ -5,6 +5,7 @@
 #include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/FunctionCall.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/analysis/StringLookup.h>
 #include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
@@ -338,7 +339,7 @@ bool ExpressionConverter::visit(Literal const& _node)
 		}
 		break;
 	case Token::StringLiteral:
-		m_subexpr = make_shared<CIntLiteral>(hash<string>()(_node.value()));
+		m_subexpr = make_shared<CIntLiteral>(m_stack->strings()->lookup(_node));
 		break;
 	default:
 		throw runtime_error("Literal type derived from unsupported token.");

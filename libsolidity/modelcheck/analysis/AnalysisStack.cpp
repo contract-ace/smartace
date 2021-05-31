@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/Library.h>
+#include <libsolidity/modelcheck/analysis/StringLookup.h>
 #include <libsolidity/modelcheck/analysis/Structure.h>
 #include <libsolidity/modelcheck/analysis/TightBundle.h>
 #include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
@@ -108,6 +109,8 @@ AnalysisStack::AnalysisStack(
 	}
 	check_address_errs(m_addresses);
 
+	m_strings = make_shared<StringLookup>(*m_flat_model, *m_call_graph);
+
 	// TODO: deprecate the use of _full.
 	m_types = make_shared<TypeAnalyzer>(_full, *m_call_graph);
 }
@@ -155,6 +158,11 @@ shared_ptr<TightBundleModel const> AnalysisStack::tight_bundle() const
 shared_ptr<MapIndexSummary const> AnalysisStack::addresses() const
 {
 	return m_addresses;
+}
+
+shared_ptr<StringLookup const> AnalysisStack::strings() const
+{
+	return m_strings;
 }
 
 shared_ptr<TypeAnalyzer const> AnalysisStack::types() const
