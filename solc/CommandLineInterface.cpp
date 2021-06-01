@@ -137,6 +137,8 @@ static string const g_strModelActor = "bundle";
 static string const g_strModelConcrete = "concrete";
 static string const g_strModelFailOnRequire = "fail-on-require";
 static string const g_strModelAllowFallbacks = "allow-fallbacks";
+static string const g_strModelInvarRule = "invar-rule";
+static string const g_strModelInvarType = "invar-type";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -197,6 +199,8 @@ static string const g_argModelActor = g_strModelActor;
 static string const g_argModelConcrete = g_strModelConcrete;
 static string const g_argModelFailOnRequire = g_strModelFailOnRequire;
 static string const g_argModelAllowFallbacks = g_strModelAllowFallbacks;
+static string const g_argModelInvarRule = g_strModelInvarRule;
+static string const g_argModelInvarType = g_strModelInvarType;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -832,6 +836,16 @@ Allowed options)",
 			g_argModelAllowFallbacks.c_str(),
 			po::value<bool>()->value_name("on")->default_value(false),
 			"Allows contracts to be escalated to the global scope, if the fallback of the contract is callable."
+		)
+		(
+			g_argModelInvarRule.c_str(),
+			po::value<string>()->value_name("rule")->default_value("none"),
+			"Select desired invariant layout. Either 'none' (non-determinic maps), 'unchecked', or 'checked'."
+		)
+		(
+			g_argModelInvarType.c_str(),
+			po::value<string>()->value_name("type")->default_value("universal"),
+			"Select desired invariant layout. Either 'universal' (applied to implict users), 'singleton', or 'rolebased'."
 		);
 	desc.add(smartaceOptions);
 
@@ -1283,6 +1297,83 @@ void CommandLineInterface::handleAst(string const& _argStr)
 
 void CommandLineInterface::handleCModel()
 {
+	using dev::solidity::modelcheck::AnalysisSettings;
+	using dev::solidity::modelcheck::AnalysisStack;
+	using dev::solidity::modelcheck::BundleExtractor;
+	using dev::solidity::modelcheck::MainFunctionGenerator;
+	using dev::solidity::modelcheck::NondetSourceRegistry;
+	using dev::solidity::modelcheck::PrimitiveTypeGenerator;
+
+	// Processes invariant rule choice.
+	MainFunctionGenerator::InvarRule invar_rule_choice;
+	if (m_args.count(g_argModelInvarRule))
+	{
+		string arg = m_args[g_argModelInvarRule].as<string>();
+		if (arg == "none")
+		{
+			invar_rule_choice = MainFunctionGenerator::InvarRule::None;
+		}
+		else if (arg == "unchecked")
+		{
+			invar_rule_choice = MainFunctionGenerator::InvarRule::Unchecked;
+			throw runtime_error("Unchecked is not yet implemented.");
+		}
+		else if (arg == "checked")
+		{
+			invar_rule_choice = MainFunctionGenerator::InvarRule::Checked;
+			throw runtime_error("Checked is not yet implemented.");
+		}
+		else
+		{
+			m_error = true;
+			serr() << "Invalid option for --" << g_argModelInvarRule << ": "
+			       << arg << endl;
+			return;
+		}
+	}
+	else
+	{
+		m_error = true;
+		serr() << "Missing value for --" << g_argModelInvarRule << "." << endl;
+		return;
+	}
+	(void) invar_rule_choice;
+
+	// Processes invariant structure choice.
+	MainFunctionGenerator::InvarType invar_type_choice;
+	if (m_args.count(g_argModelInvarType))
+	{
+		string arg = m_args[g_argModelInvarType].as<string>();
+		if (arg == "universal")
+		{
+			invar_type_choice = MainFunctionGenerator::InvarType::Universal;
+		}
+		else if (arg == "singleton")
+		{
+			invar_type_choice = MainFunctionGenerator::InvarType::Singleton;
+			throw runtime_error("Singleton is not yet implemented.");
+		}
+		else if (arg == "rolebased")
+		{
+			invar_type_choice = MainFunctionGenerator::InvarType::RoleBased;
+			throw runtime_error("RoleBased is not yet implemented.");
+		}
+		else
+		{
+			m_error = true;
+			serr() << "Invalid option for --" << g_argModelInvarType << ": "
+			       << arg << endl;
+			return;
+		}
+	}
+	else
+	{
+		m_error = true;
+		serr() << "Missing value for --" << g_argModelInvarType << "." << endl;
+		return;
+	}
+	(void) invar_type_choice;
+
 	// Generates an AST for each Solidity source unit.
 	vector<SourceUnit const*> asts;
 	for (auto const& sourceCode : m_sourceCodes)
@@ -1292,8 +1383,13 @@ void CommandLineInterface::handleCModel()
 	}
 
 	// Converts the bundle list into a model.
-	modelcheck::BundleExtractor
-		bundle(asts, m_args[g_argModelActor].as<vector<string>>());
+	if (!m_args.count(g_argModelActor))
+	{
+		m_error = true;
+		serr() << "Missing value for --" << g_argModelActor << "." << endl;
+		return;
+	}
+	BundleExtractor bundle(asts, m_args[g_argModelActor].as<vector<string>>());
 	if (!bundle.missing().empty())
 	{
 		m_error = true;
@@ -1311,26 +1407,25 @@ void CommandLineInterface::handleCModel()
 	}
 
 	// Runs full analysis stack.
-	struct modelcheck::AnalysisSettings settings;
+	struct AnalysisSettings settings;
 	settings.aux_user_count = m_args[g_argModelAuxUsers].as<size_t>();
 	settings.use_concrete_users = (m_args.count(g_argModelConcrete) > 0);
 	settings.use_global_contracts = (m_args.count(g_argModelFailOnRequire) > 0);
 	settings.escalate_reqs = (m_args.count(g_argModelFailOnRequire) > 0);
 	settings.allow_fallbacks = m_args[g_argModelAllowFallbacks].as<bool>();
-	auto analysis_stack
-		= make_shared<modelcheck::AnalysisStack>(bundle.get(), asts, settings);
+	auto astack = make_shared<AnalysisStack>(bundle.get(), asts, settings);
 
 	// Aggregates primitive types.
 	// TODO(scottwe): use flat model and move to model.
-	modelcheck::PrimitiveTypeGenerator primitive_set;
+	PrimitiveTypeGenerator primitive_set;
 	for (auto const* ast: asts)
 	{
 		primitive_set.record(*ast);
 	}
-	analysis_stack->environment()->register_primitives(primitive_set);
+	astack->environment()->register_primitives(primitive_set);
 
 	// Sets up the non-determinism registry.
-	auto nondet_reg = make_shared<modelcheck::NondetSourceRegistry>(analysis_stack);
+	auto nondet_reg = make_shared<NondetSourceRegistry>(astack);
 
 	// Outputs model.
 	if (m_args.count(g_argOutputDir))
@@ -1343,8 +1438,8 @@ void CommandLineInterface::handleCModel()
 
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data, harness_data;
 		handleCModelHarness(harness_data);
-		handleCModelHeaders(analysis_stack, nondet_reg, cmodel_h_data);
-		handleCModelBody(analysis_stack, nondet_reg, cmodel_cpp_data);
+		handleCModelHeaders(astack, nondet_reg, cmodel_h_data);
+		handleCModelBody(astack, nondet_reg, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, *nondet_reg, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1356,9 +1451,9 @@ void CommandLineInterface::handleCModel()
 		sout() << "======= harness.c(pp) =======" << endl;
 		handleCModelHarness(sout());
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
-		handleCModelHeaders(analysis_stack, nondet_reg, sout());
+		handleCModelHeaders(astack, nondet_reg, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(analysis_stack, nondet_reg, sout());
+		handleCModelBody(astack, nondet_reg, sout());
 		sout() << "====== primitive.h =====" << endl;
 		handleCModelPrimitives(primitive_set, *nondet_reg, sout());
 		sout() << endl;
@@ -1419,22 +1514,26 @@ void CommandLineInterface::handleCModelBody(
 	ostream& _os
 )
 {
+	using dev::solidity::modelcheck::AbstractAddressDomain;
 	using dev::solidity::modelcheck::ADTConverter;
+	using dev::solidity::modelcheck::CVarDecl;
 	using dev::solidity::modelcheck::EtherMethodGenerator;
 	using dev::solidity::modelcheck::FunctionConverter;
 	using dev::solidity::modelcheck::MainFunctionGenerator;
 
+	// Parses general arguments.
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 	size_t addr_ct = _stack->addresses()->size();
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 
+	// Includes header.
 	_os << "#include \"cmodel.h\"" << endl;
 
 	// Generates global constants for literal addresses.
 	for (auto lit : _stack->addresses()->literals())
 	{
-		auto const NAME = modelcheck::AbstractAddressDomain::literal_name(lit);
-		_os << modelcheck::CVarDecl("sol_raw_uint160_t", NAME);
+		auto const NAME = AbstractAddressDomain::literal_name(lit);
+		_os << CVarDecl("sol_raw_uint160_t", NAME);
 	}
 
 	// Generates structure definitions.

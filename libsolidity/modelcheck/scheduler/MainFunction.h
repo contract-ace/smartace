@@ -37,6 +37,18 @@ class NondetSourceRegistry;
 class MainFunctionGenerator
 {
 public:
+    // Specifies how invariants should be instrumented:
+    // - None: Invariants are unused. All mapping entries are non-deterministic.
+    // - Unchecked: Invariants are assumed but never assert.
+    // - Checked: Invariants assumed and asserted. Requires an extra 'client'.
+    enum class InvarRule { None, Unchecked, Checked };
+
+    // Specifies the specificity of invariants, if instrumented at all:
+    // - Universal: All users have a single invariant, including implicit users.
+    // - Singleton: All users, except implicit users, share a single invariant.
+    // - RoleBased: An invariant exists for each rule.
+    enum class InvarType { Universal, Singleton, RoleBased };
+
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
         bool _lockstep_time,
