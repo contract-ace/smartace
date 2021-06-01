@@ -1,6 +1,6 @@
 // RUN: %solc %s --c-model --lockstep-time=on --output-dir=%t
 // RUN: cd %t
-// RUN: cmake -DSEA_PATH=%seapath
+// RUN: cmake -DSEA_PATH=%seapath %buildargs
 // RUN: make icmodel
 // RUN: echo 2 1 1 2 | ./icmodel --return-0 --count-transactions 2>&1 | OutputCheck %s --comment=//
 // RUN: echo 2 1 1 3 1 | ./icmodel --return-0 --count-transactions 2>&1 | OutputCheck %s --comment=//

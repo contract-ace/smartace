@@ -1,6 +1,6 @@
 // RUN: %solc %s --c-model --lockstep-time=off --reps=1 --output-dir=%t
 // RUN: cd %t
-// RUN: cmake -DSEA_PATH=%seapath
+// RUN: cmake -DSEA_PATH=%seapath %buildargs
 // RUN: make icmodel
 
 /*

@@ -1,6 +1,6 @@
 // RUN: %solc %s --c-model --output-dir=%t
 // RUN: cd %t
-// RUN: cmake . -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DSEA_PATH=%seapath
+// RUN: cmake . -DCMAKE_CXX_COMPILER=%clangpp -DCMAKE_C_COMPILER=%clangc -DSEA_PATH=%seapath %buildargs
 // RUN: cmake --build . --target fuzz
 // XFAIL: true
 
@@ -13,6 +13,6 @@ contract Contract {
 	uint256 counter;
 	function incr() public {
 		counter = counter + 1;
-		assert(counter < 2);
+		assert(counter < 15);
 	}
 }

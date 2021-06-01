@@ -1,6 +1,6 @@
 // RUN: %solc %s --reps=1 --lockstep-time=off --c-model --output-dir=%t
 // RUN: cd %t
-// RUN: cmake -DSEA_PATH=%seapath
+// RUN: cmake -DSEA_PATH=%seapath %buildargs
 // RUN: make icmodel
 // RUN: echo 100 10 2 10 | ./icmodel --return-0 --count-transactions 2>&1 | OutputCheck %s --comment=//
 // CHECK: assert
@@ -15,4 +15,6 @@ contract FailByInitValue {
 	constructor() public payable {
 		assert(msg.value != 10);
 	}
+
+	function f() public {}
 }
