@@ -56,9 +56,8 @@ void AddressSpace::map_constants(CBlockList & _block) const
             for (auto otr : used_so_far)
             {
                 // TODO: bad for fuzzing, though used_so_far is often small.
-                _block.push_back(make_shared<CBinaryOp>(
-                    decl, "!=", otr
-                )->stmt());
+                auto check = make_shared<CBinaryOp>(decl, "!=", otr);
+                LibVerify::add_require(_block, check);
             }
 
             used_so_far.push_back(decl);
