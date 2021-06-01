@@ -1316,7 +1316,6 @@ void CommandLineInterface::handleCModel()
 		else if (arg == "unchecked")
 		{
 			invar_rule_choice = MainFunctionGenerator::InvarRule::Unchecked;
-			throw runtime_error("Unchecked is not yet implemented.");
 		}
 		else if (arg == "checked")
 		{
@@ -1535,11 +1534,14 @@ void CommandLineInterface::handleCModelBody(
 		_os << CVarDecl("sol_raw_uint160_t", NAME);
 	}
 
+	// Declares each invariant.
+	MainFunctionGenerator main(lockstep_time, _invar_type, _stack, _nd_reg);
+	main.print_invariants(_os);
+
 	// Generates structure definitions.
 	ADTConverter(_stack, sum_maps, addr_ct, false).print(_os);
 
 	// Lifts all global contracts.
-	MainFunctionGenerator main(lockstep_time, _invar_type, _stack, _nd_reg);
 	main.print_globals(_os);
 
 	// Generates send/transfer/etc calls using global contracts.

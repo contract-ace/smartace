@@ -44,6 +44,51 @@ MainFunctionGenerator::MainFunctionGenerator(
  , m_actors(_stack, _nd_reg)
  , m_invar_type(_invar_type)
 {
+    for (auto actor : m_actors.inspect())
+    {
+        auto const& contract = (*actor.contract);
+        for (auto decl : contract.state_variables())
+        {
+            identify_maps(actor.decl->id(), contract, contract.name(), decl);
+        }
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+void MainFunctionGenerator::print_invariants(std::ostream& _stream)
+{
+    if (m_invar_rule == InvarRule::None) return;
+
+    for (auto map : m_maps)
+    {
+        // Generates identifier.
+        auto id = make_shared<CVarDecl>("int", "Inv_" + to_string(map.id));
+
+        // Generates parameters.
+        CParams params;
+        auto value_type = map.entry->value_type->annotation().type;
+        if (auto struct_type = dynamic_cast<StructType const*>(value_type))
+        {
+            (void) struct_type;
+            // TODO: Add support for non-structure invariants.
+            throw runtime_error("Struct invariants are not yet supported.");
+        }
+        else
+        {
+            string type = m_stack->types()->get_simple_ctype(*value_type);
+            params.push_back(make_shared<CVarDecl>(move(type), "v", false));
+        }
+
+        // Generates default body.
+        CBlockList stmts;
+        stmts.push_back(make_shared<CReturn>(Literals::ONE));
+        auto body = make_shared<CBlock>(move(stmts));
+
+        // Outputs definition.
+        CFuncDef inv(id, move(params), move(body));
+        _stream << inv;
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -89,23 +134,6 @@ void MainFunctionGenerator::print_main(ostream& _stream)
     m_actors.assign_addresses(main);
     m_actors.initialize(main, m_stategen);
 
-    // Generates body for interference block.
-    CBlockList interference;
-    for (auto actor : m_actors.inspect())
-    {
-        auto const& contract = (*actor.contract);
-        for (auto decl : contract.state_variables())
-        {
-            expand_interference(
-                actor.contract->name(),
-                actor.decl->id(),
-                contract,
-                interference,
-                decl
-            );
-        }
-    }
-
     // Generates transactionals loop.
     CBlockList transactionals;
     transactionals.push_back(
@@ -113,7 +141,7 @@ void MainFunctionGenerator::print_main(ostream& _stream)
     );
     transactionals.push_back(make_shared<CIf>(
         make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
-        make_shared<CBlock>(move(interference))
+        make_shared<CBlock>(expand_interference())
     ));
     m_stategen.update_global(transactionals);
     transactionals.push_back(next_case);
@@ -137,11 +165,10 @@ void MainFunctionGenerator::print_main(ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::expand_interference(
-    string _display,
+void MainFunctionGenerator::identify_maps(
     CExprPtr _path,
     FlatContract const& _contract,
-    CBlockList & _block,
+    string _display,
     VariableDeclaration const* _decl
 )
 {
@@ -158,12 +185,23 @@ void MainFunctionGenerator::expand_interference(
         // If _decl is a struct, expand to all children.
         for (auto child : rec->fields())
         {
-            expand_interference(
-                _display, _path, _contract, _block, child.get()
-            );
+            identify_maps(_path, _contract, _display, child.get());
         }
     }
     else if (auto entry = m_stack->types()->map_db().resolve(*_decl))
+    {
+        // Registers map.
+        m_maps.push_back(MapData{m_maps.size(), _path, entry, _display});
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+CBlockList MainFunctionGenerator::expand_interference()
+{
+    CBlockList block;
+
+    for (auto map : m_maps)
     {
         // Determines initial index.
         size_t offset = 0;
@@ -174,7 +212,7 @@ void MainFunctionGenerator::expand_interference(
 
         // Non-deterministically initializes each field.
         auto const WIDTH = m_stack->addresses()->size();
-        auto const DEPTH = entry->key_types.size();
+        auto const DEPTH = map.entry->key_types.size();
         KeyIterator indices(WIDTH, DEPTH, offset);
         do
         {
@@ -182,16 +220,42 @@ void MainFunctionGenerator::expand_interference(
             {
                 // Determine field.
                 string const FIELD = "data" + indices.suffix();
-                auto const DATA = make_shared<CMemberAccess>(_path, FIELD);
+                auto const DATA = make_shared<CMemberAccess>(map.path, FIELD);
 
                 // Create non-deterministic value.
-                string const MSG = _display + "::" + indices.suffix();
-                auto const ND = m_nd_reg->val(*entry->value_type, MSG);
+                string const MSG = map.display + "::" + indices.suffix();
+                auto const ND = m_nd_reg->val(*map.entry->value_type, MSG);
 
                 // Initializes.
-                _block.push_back(DATA->assign(ND)->stmt());
+                block.push_back(DATA->assign(ND)->stmt());
+
+                // Applies the invariant, if applicable.
+                apply_invariant(block, false, DATA, map);
             }
         } while (indices.next());
+    }
+
+    return block;
+}
+
+// -------------------------------------------------------------------------- //
+
+void MainFunctionGenerator::apply_invariant(
+    CBlockList &_block, bool _assert, CExprPtr _data, MapData &_map
+)
+{
+    // Generates invariant call.
+    CFuncCallBuilder call_builder("Inv_" + to_string(_map.id));
+    call_builder.push(_data);
+
+    // Applies invariant.
+    if (_assert)
+    {
+        LibVerify::add_assert(_block, call_builder.merge_and_pop());
+    }
+    else
+    {
+        LibVerify::add_require(_block, call_builder.merge_and_pop());
     }
 }
 

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <libsolidity/ast/ASTVisitor.h>
+#include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/scheduler/ActorModel.h>
 #include <libsolidity/modelcheck/scheduler/AddressSpace.h>
@@ -57,6 +58,9 @@ public:
         std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
 
+    // Declares are invariants used by the bundle.
+    void print_invariants(std::ostream& _stream);
+
     // Prints global declarations.
     void print_globals(std::ostream& _stream);
 
@@ -64,8 +68,20 @@ public:
     void print_main(std::ostream& _stream);
 
 private:
+    // Records mapping data for invariant instrumentation.
+    struct MapData
+    {
+        size_t id;
+        CExprPtr path;
+        MapDeflate::Record entry;
+        std::string display;
+    };
+    std::vector<MapData> m_maps;
+
+    // Analysis results.
     std::shared_ptr<AnalysisStack const> m_stack;
 
+    // Used to non-deterministically initialize fields.
     std::shared_ptr<NondetSourceRegistry> m_nd_reg;
 
     // Stores data required to handle addresses.
@@ -77,19 +93,29 @@ private:
     // Stores data required to handle contract instances.
     ActorModel m_actors;
 
+    // The invariant placement used by the harness.
+    InvarRule m_invar_rule;
+
     // The invariant type used by the harness.
     InvarType m_invar_type;
 
-    // Expands and applies interference to all mappings in _decl. Assumes that
-    // _decl is a sub-structure in _contract, that _path is the path to _decls,
-    // and _block is the destination for the statements. The _display field is
-    // a human readable version of the map for playback.
-    void expand_interference(
-        std::string _display,
+    // Records all mappings within _maps. The list is computed recursively,
+    // interating over each declaration within _contract. This assumes that
+    // _decl is a substructure in _contract with path given by _path.
+    void identify_maps(
         CExprPtr _path,
         FlatContract const& _contract,
-        CBlockList & _block,
+        std::string _display,
         VariableDeclaration const* _decl
+    );
+
+    // Expands and applies interference to all mappings in _maps. Assumes that
+    // _block is the destination for the statements.
+    CBlockList expand_interference();
+
+    //
+    void apply_invariant(
+        CBlockList &_block, bool _assert, CExprPtr _data, MapData &_map
     );
 
     // For each method on each contract, this will generate a case for the
