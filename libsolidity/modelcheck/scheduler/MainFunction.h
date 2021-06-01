@@ -52,6 +52,7 @@ public:
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
         bool _lockstep_time,
+        InvarType _invar_type,
         std::shared_ptr<AnalysisStack const> _stack,
         std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
@@ -75,6 +76,9 @@ private:
 
     // Stores data required to handle contract instances.
     ActorModel m_actors;
+
+    // The invariant type used by the harness.
+    InvarType m_invar_type;
 
     // Expands and applies interference to all mappings in _decl. Assumes that
     // _decl is a sub-structure in _contract, that _path is the path to _decls,

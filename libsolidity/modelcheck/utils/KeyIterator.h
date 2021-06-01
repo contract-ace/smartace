@@ -26,6 +26,10 @@ class KeyIterator
 {
 public:
     // Creates an iterator over all length 1 to length _depth strings over
+    // the alphabet [_width_offset, 1, ..., _width-1].
+    KeyIterator(size_t _width, size_t _depth, size_t _width_offset);
+
+    // Creates an iterator over all length 1 to length _depth strings over
     // the alphabet [0, 1, ..., _width-1].
     KeyIterator(size_t _width, size_t _depth);
 
@@ -47,6 +51,7 @@ private:
     // The dimensions of the search space.
     size_t M_WIDTH;
     size_t M_DEPTH;
+    size_t M_WIDTH_OFFSET;
 
     // The current string.
     std::list<size_t> m_indices;

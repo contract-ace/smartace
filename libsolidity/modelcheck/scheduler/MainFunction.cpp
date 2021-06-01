@@ -34,6 +34,7 @@ namespace modelcheck
 
 MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
+    InvarType _invar_type,
     shared_ptr<AnalysisStack const> _stack,
     shared_ptr<NondetSourceRegistry> _nd_reg
 ): m_stack(_stack)
@@ -41,6 +42,7 @@ MainFunctionGenerator::MainFunctionGenerator(
  , m_addrspace(_stack->addresses(), _nd_reg)
  , m_stategen(_stack, _nd_reg, _lockstep_time)
  , m_actors(_stack, _nd_reg)
+ , m_invar_type(_invar_type)
 {
 }
 
@@ -163,10 +165,17 @@ void MainFunctionGenerator::expand_interference(
     }
     else if (auto entry = m_stack->types()->map_db().resolve(*_decl))
     {
+        // Determines initial index.
+        size_t offset = 0;
+        if (m_invar_type != InvarType::Universal)
+        {
+            offset = m_stack->addresses()->implicit_count();
+        }
+
         // Non-deterministically initializes each field.
         auto const WIDTH = m_stack->addresses()->size();
         auto const DEPTH = entry->key_types.size();
-        KeyIterator indices(WIDTH, DEPTH);
+        KeyIterator indices(WIDTH, DEPTH, offset);
         do
         {
             if (indices.is_full())

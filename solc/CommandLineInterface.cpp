@@ -1340,22 +1340,21 @@ void CommandLineInterface::handleCModel()
 	(void) invar_rule_choice;
 
 	// Processes invariant structure choice.
-	MainFunctionGenerator::InvarType invar_type_choice;
+	MainFunctionGenerator::InvarType invar_type;
 	if (m_args.count(g_argModelInvarType))
 	{
 		string arg = m_args[g_argModelInvarType].as<string>();
 		if (arg == "universal")
 		{
-			invar_type_choice = MainFunctionGenerator::InvarType::Universal;
+			invar_type = MainFunctionGenerator::InvarType::Universal;
 		}
 		else if (arg == "singleton")
 		{
-			invar_type_choice = MainFunctionGenerator::InvarType::Singleton;
-			throw runtime_error("Singleton is not yet implemented.");
+			invar_type = MainFunctionGenerator::InvarType::Singleton;
 		}
 		else if (arg == "rolebased")
 		{
-			invar_type_choice = MainFunctionGenerator::InvarType::RoleBased;
+			invar_type = MainFunctionGenerator::InvarType::RoleBased;
 			throw runtime_error("RoleBased is not yet implemented.");
 		}
 		else
@@ -1372,7 +1371,6 @@ void CommandLineInterface::handleCModel()
 		serr() << "Missing value for --" << g_argModelInvarType << "." << endl;
 		return;
 	}
-	(void) invar_type_choice;
 
 	// Generates an AST for each Solidity source unit.
 	vector<SourceUnit const*> asts;
@@ -1439,7 +1437,7 @@ void CommandLineInterface::handleCModel()
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data, harness_data;
 		handleCModelHarness(harness_data);
 		handleCModelHeaders(astack, nondet_reg, cmodel_h_data);
-		handleCModelBody(astack, nondet_reg, cmodel_cpp_data);
+		handleCModelBody(invar_type, astack, nondet_reg, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, *nondet_reg, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1453,7 +1451,7 @@ void CommandLineInterface::handleCModel()
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(astack, nondet_reg, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(astack, nondet_reg, sout());
+		handleCModelBody(invar_type, astack, nondet_reg, sout());
 		sout() << "====== primitive.h =====" << endl;
 		handleCModelPrimitives(primitive_set, *nondet_reg, sout());
 		sout() << endl;
@@ -1509,6 +1507,7 @@ void CommandLineInterface::handleCModelHeaders(
 }
 
 void CommandLineInterface::handleCModelBody(
+	modelcheck::MainFunctionGenerator::InvarType _invar_type,
 	shared_ptr<modelcheck::AnalysisStack> _stack,
 	shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,
 	ostream& _os
@@ -1540,7 +1539,7 @@ void CommandLineInterface::handleCModelBody(
 	ADTConverter(_stack, sum_maps, addr_ct, false).print(_os);
 
 	// Lifts all global contracts.
-	MainFunctionGenerator main(lockstep_time, _stack, _nd_reg);
+	MainFunctionGenerator main(lockstep_time, _invar_type, _stack, _nd_reg);
 	main.print_globals(_os);
 
 	// Generates send/transfer/etc calls using global contracts.

@@ -14,8 +14,14 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 KeyIterator::KeyIterator(
+    size_t _width, size_t _depth, size_t _width_offset
+): M_WIDTH(_width), M_DEPTH(_depth), M_WIDTH_OFFSET(_width_offset) { }
+
+// -------------------------------------------------------------------------- //
+
+KeyIterator::KeyIterator(
     size_t _width, size_t _depth
-): M_WIDTH(_width), M_DEPTH(_depth) { }
+): KeyIterator(_width, _depth, 0) { }
 
 // -------------------------------------------------------------------------- //
 
@@ -44,13 +50,13 @@ size_t KeyIterator::size() const
 
 bool KeyIterator::next()
 {
-    if (M_WIDTH == 0 || M_DEPTH == 0)
+    if (M_WIDTH == 0 || M_DEPTH == 0 || M_WIDTH <= M_WIDTH_OFFSET)
     {
         return false;
     }
     else if (!is_full())
     {
-        m_indices.push_back(0);
+        m_indices.push_back(M_WIDTH_OFFSET);
     }
     else
     {
