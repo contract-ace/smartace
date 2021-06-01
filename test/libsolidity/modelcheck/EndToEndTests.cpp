@@ -501,22 +501,22 @@ BOOST_AUTO_TEST_CASE(reproducible)
 {
     char const* text = R"(
         contract A {
-            struct S { address owner; uint val; }
+            struct S { bool x; uint val; }
             uint constant min_amt = 42;
             mapping (address => S) accs;
             function Open(address idx) public {
-                require(accs[idx].owner == address(0));
-                accs[idx] = S(msg.sender, 0);
+                require(!accs[idx].x);
+                accs[idx] = S(true, 0);
             }
-            function Deposit(address idx) public payable {
+            function Deposit(address idx, uint x) public payable {
                 require(msg.value > min_amt);
-                if (accs[idx].owner != msg.sender) { Open(idx); }
+                if (accs[idx].x) { Open(idx); }
                 accs[idx].val += msg.value;
             }
             function Withdraw(address idx) public payable {
-                require(accs[idx].owner == msg.sender);
+                require(accs[idx].x);
                 uint amt = accs[idx].val;
-                accs[idx] = S(msg.sender, 0);
+                accs[idx] = S(true, 0);
                 assert(accs[idx].val == 0);
                 msg.sender.transfer(amt);
             }

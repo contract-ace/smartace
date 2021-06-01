@@ -9,6 +9,12 @@
 #include <boost/test/unit_test.hpp>
 #include <test/libsolidity/AnalysisFramework.h>
 
+#include <libsolidity/modelcheck/analysis/AllocationSites.h>
+#include <libsolidity/modelcheck/analysis/CallGraph.h>
+#include <libsolidity/modelcheck/analysis/ContractRvAnalysis.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
+
 using namespace std;
 
 namespace dev
@@ -47,19 +53,27 @@ BOOST_AUTO_TEST_CASE(address_to_int)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 5, 5);
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
 
-    auto violations = summary.violations();
+    auto violations = ptg.violations();
     BOOST_CHECK_EQUAL(violations.size(), 1);
     if (violations.size() == 1)
     {
-        BOOST_CHECK_EQUAL(violations.front().context->name(), "g");
+        BOOST_CHECK_EQUAL(violations.front().context()->name(), "g");
         BOOST_CHECK(
-            violations.front().type == MapIndexSummary::ViolationType::Cast
+            violations.front().type() == AddressViolation::Type::Cast
         );
     }
+
+    LiteralExtractor lext(*flat_model, call_graph);
+    BOOST_CHECK_EQUAL(lext.violations().size(), 1);
 }
 
 BOOST_AUTO_TEST_CASE(int_to_address_valid)
@@ -75,10 +89,19 @@ BOOST_AUTO_TEST_CASE(int_to_address_valid)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 5, 5);
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
-    BOOST_CHECK(summary.violations().empty());
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+
+    BOOST_CHECK(ptg.violations().empty());
+
+    LiteralExtractor lext(*flat_model, call_graph);
+    BOOST_CHECK(lext.violations().empty());
 }
 
 BOOST_AUTO_TEST_CASE(int_to_address_invalid)
@@ -108,16 +131,24 @@ BOOST_AUTO_TEST_CASE(int_to_address_invalid)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 5, 5);
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
 
-    auto violations = summary.violations();
+    auto violations = ptg.violations();
     BOOST_CHECK_EQUAL(violations.size(), 4);
     for (auto itr : violations)
     {
-        BOOST_CHECK(itr.type == MapIndexSummary::ViolationType::Mutate);
+        BOOST_CHECK(itr.type() == AddressViolation::Type::Mutate);
     }
+
+    LiteralExtractor lext(*flat_model, call_graph);
+    BOOST_CHECK_EQUAL(lext.violations().size(), 4);
 }
 
 BOOST_AUTO_TEST_CASE(comparisons)
@@ -140,17 +171,25 @@ BOOST_AUTO_TEST_CASE(comparisons)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 5, 5);
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
 
-    auto violations = summary.violations();
+    auto violations = ptg.violations();
     BOOST_CHECK_EQUAL(violations.size(), 4);
     for (auto itr : violations)
     {
-        BOOST_CHECK_EQUAL(itr.context->name(), "g");
-        BOOST_CHECK(itr.type == MapIndexSummary::ViolationType::Compare);
+        BOOST_CHECK_EQUAL(itr.context()->name(), "g");
+        BOOST_CHECK(itr.type() == AddressViolation::Type::Compare);
     }
+
+    LiteralExtractor lext(*flat_model, call_graph);
+    BOOST_CHECK_EQUAL(lext.violations().size(), 4);
 }
 
 BOOST_AUTO_TEST_CASE(literals)
@@ -168,21 +207,39 @@ BOOST_AUTO_TEST_CASE(literals)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 5, 5);
-    BOOST_CHECK_EQUAL(summary.size(), 11);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
 
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
-
-    auto literals = summary.literals();
+    auto literals = ptg.literals();
     BOOST_CHECK_EQUAL(literals.size(), 3);
-    BOOST_CHECK_EQUAL(summary.size(), 14);
+    BOOST_CHECK_EQUAL(ptg.contract_count(), 5);
+    BOOST_CHECK_EQUAL(ptg.implicit_count(), 13);
+    BOOST_CHECK_EQUAL(ptg.interference_count(), 1);
+    BOOST_CHECK_EQUAL(ptg.size(), 14);
     if (literals.size() == 3)
     {
         BOOST_CHECK(literals.find(dev::u256(0)) != literals.end());
         BOOST_CHECK(literals.find(dev::u256(4)) != literals.end());
         BOOST_CHECK(literals.find(dev::u256(10)) != literals.end());
     }
+    BOOST_CHECK(ptg.violations().empty());
+
+    LiteralExtractor lext(*flat_model, call_graph);
+    BOOST_CHECK_EQUAL(lext.literals().size(), 3);
+    BOOST_CHECK(lext.violations().empty());
+
+    RoleExtractor rext(converter.map_db(), *flat_model->get(ctrt));
+    BOOST_CHECK_EQUAL(rext.count(), 0);
+    BOOST_CHECK(rext.violations().empty());
+
+    ClientExtractor cext(*flat_model);
+    BOOST_CHECK_EQUAL(cext.count(), 1);
 }
 
 BOOST_AUTO_TEST_CASE(mixed_summary)
@@ -210,17 +267,29 @@ BOOST_AUTO_TEST_CASE(mixed_summary)
     auto const& ctrt1 = *retrieveContractByName(unit, "X");
     auto const& ctrt2 = *retrieveContractByName(unit, "Y");
 
-    MapIndexSummary summary(false, 5, 5);
+    StructureStore store_1;
+    vector<ContractDefinition const*> model_1({ &ctrt1 });
+    auto alloc_graph_1 = make_shared<AllocationGraph>(model_1);
+    auto flat_model_1 = make_shared<FlatModel>(model_1, *alloc_graph_1, store_1);
+    auto r_1 = make_shared<ContractExpressionAnalyzer>(flat_model_1, alloc_graph_1);
+    CallGraph call_graph_1(r_1, flat_model_1);
+    TypeAnalyzer converter_1({ &unit }, call_graph_1);
+    PTGBuilder ptg_1(converter_1.map_db(), *flat_model_1, call_graph_1, false, 5, 5);
 
-    summary.extract_literals(ctrt1);
-    summary.compute_interference(ctrt1);
-    BOOST_CHECK_EQUAL(summary.violations().size(), 1);
-    BOOST_CHECK_EQUAL(summary.literals().size(), 1);
+    BOOST_CHECK_EQUAL(ptg_1.violations().size(), 1);
+    BOOST_CHECK_EQUAL(ptg_1.literals().size(), 1);
 
-    summary.extract_literals(ctrt2);
-    summary.compute_interference(ctrt2);
-    BOOST_CHECK_EQUAL(summary.violations().size(), 2);
-    BOOST_CHECK_EQUAL(summary.literals().size(), 2);
+    StructureStore store_2;
+    vector<ContractDefinition const*> model_2({ &ctrt1, &ctrt2 });
+    auto alloc_graph_2 = make_shared<AllocationGraph>(model_2);
+    auto flat_model_2 = make_shared<FlatModel>(model_2, *alloc_graph_2, store_2);
+    auto r_2 = make_shared<ContractExpressionAnalyzer>(flat_model_2, alloc_graph_2);
+    CallGraph call_graph_2(r_2, flat_model_2);
+    TypeAnalyzer converter_2({ &unit }, call_graph_2);
+    PTGBuilder ptg_2(converter_2.map_db(), *flat_model_2, call_graph_2, false, 5, 5);
+
+    BOOST_CHECK_EQUAL(ptg_2.violations().size(), 2);
+    BOOST_CHECK_EQUAL(ptg_2.literals().size(), 2);
 }
 
 BOOST_AUTO_TEST_CASE(basic_interference_count)
@@ -244,17 +313,27 @@ BOOST_AUTO_TEST_CASE(basic_interference_count)
     auto const& ctrt1 = *retrieveContractByName(unit, "X");
     auto const& ctrt2 = *retrieveContractByName(unit, "Y");
 
-    MapIndexSummary summary1(false, 5, 5);
-    summary1.extract_literals(ctrt1);
-    summary1.compute_interference(ctrt1);
-    BOOST_CHECK_EQUAL(summary1.max_interference(), 3);
+    StructureStore store_1;
+    vector<ContractDefinition const*> model_1({ &ctrt1 });
+    auto alloc_graph_1 = make_shared<AllocationGraph>(model_1);
+    auto flat_model_1 = make_shared<FlatModel>(model_1, *alloc_graph_1, store_1);
+    auto r_1 = make_shared<ContractExpressionAnalyzer>(flat_model_1, alloc_graph_1);
+    CallGraph call_graph_1(r_1, flat_model_1);
+    TypeAnalyzer converter_1({ &unit }, call_graph_1);
+    PTGBuilder ptg_1(converter_1.map_db(), *flat_model_1, call_graph_1, false, 5, 5);
 
-    MapIndexSummary summary2(false, 5, 5);
-    summary2.extract_literals(ctrt1);
-    summary2.extract_literals(ctrt2);
-    summary2.compute_interference(ctrt1);
-    summary2.compute_interference(ctrt2);
-    BOOST_CHECK_EQUAL(summary2.max_interference(), 5);
+    BOOST_CHECK_EQUAL(ptg_1.interference_count(), 3);
+
+    StructureStore store_2;
+    vector<ContractDefinition const*> model_2({ &ctrt1, &ctrt2 });
+    auto alloc_graph_2 = make_shared<AllocationGraph>(model_2);
+    auto flat_model_2 = make_shared<FlatModel>(model_2, *alloc_graph_2, store_2);
+    auto r_2 = make_shared<ContractExpressionAnalyzer>(flat_model_2, alloc_graph_2);
+    CallGraph call_graph_2(r_2, flat_model_2);
+    TypeAnalyzer converter_2({ &unit }, call_graph_2);
+    PTGBuilder ptg_2(converter_2.map_db(), *flat_model_2, call_graph_2, false, 5, 5);
+
+    BOOST_CHECK_EQUAL(ptg_2.interference_count(), 5);
 }
 
 BOOST_AUTO_TEST_CASE(compound_interference_count)
@@ -278,11 +357,21 @@ BOOST_AUTO_TEST_CASE(compound_interference_count)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 5, 5);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
 
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
-    BOOST_CHECK_EQUAL(summary.max_interference(), 6);
+    BOOST_CHECK_EQUAL(ptg.literals().size(), 1);
+    BOOST_CHECK_EQUAL(ptg.contract_count(), 5);
+    BOOST_CHECK_EQUAL(ptg.implicit_count(), 11);
+    BOOST_CHECK_EQUAL(ptg.interference_count(), 6);
+    BOOST_CHECK_EQUAL(ptg.size(), 17);
+    BOOST_CHECK(ptg.violations().empty());
 }
 
 BOOST_AUTO_TEST_CASE(basic_map_of_addrs_count)
@@ -297,11 +386,26 @@ BOOST_AUTO_TEST_CASE(basic_map_of_addrs_count)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 2, 0);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
 
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
-    BOOST_CHECK_EQUAL(summary.max_interference(), 10);
+    auto violations = ptg.violations();
+    BOOST_CHECK_EQUAL(violations.size(), 1);
+    if (violations.size() == 1)
+    {
+        BOOST_CHECK(
+            violations.front().type() == AddressViolation::Type::ValueType
+        );
+    }
+
+    RoleExtractor rext(converter.map_db(), *flat_model->get(ctrt));
+    BOOST_CHECK_EQUAL(rext.violations().size(), 1);
 }
 
 BOOST_AUTO_TEST_CASE(basic_map_of_structs_count)
@@ -320,12 +424,30 @@ BOOST_AUTO_TEST_CASE(basic_map_of_structs_count)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 2, 0);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
 
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
-    BOOST_CHECK_EQUAL(summary.max_interference(), 19);
+    auto violations = ptg.violations();
+    BOOST_CHECK_EQUAL(violations.size(), 1);
+    if (violations.size() == 1)
+    {
+        BOOST_CHECK(
+            violations.front().type() == AddressViolation::Type::ValueType
+        );
+    }
+
+    RoleExtractor rext(converter.map_db(), *flat_model->get(ctrt));
+    BOOST_CHECK_EQUAL(rext.violations().size(), 1);
 }
+
+
+
 
 BOOST_AUTO_TEST_CASE(inherited_addr_count)
 {
@@ -342,19 +464,29 @@ BOOST_AUTO_TEST_CASE(inherited_addr_count)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 5, 5);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
 
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
-    BOOST_CHECK_EQUAL(summary.max_interference(), 3);
+    BOOST_CHECK_EQUAL(ptg.literals().size(), 1);
+    BOOST_CHECK_EQUAL(ptg.contract_count(), 5);
+    BOOST_CHECK_EQUAL(ptg.implicit_count(), 11);
+    BOOST_CHECK_EQUAL(ptg.interference_count(), 3);
+    BOOST_CHECK_EQUAL(ptg.size(), 14);
+    BOOST_CHECK(ptg.violations().empty());
 }
 
-BOOST_AUTO_TEST_CASE(concrete_map_test)
+BOOST_AUTO_TEST_CASE(concrete_test)
 {
     char const* text = R"(
         contract X {
-            mapping(address => mapping(address => address)) m;
-            function f() public {
+            address x;
+            function f(address y) public {
                 address(1);
             }
         }
@@ -363,12 +495,21 @@ BOOST_AUTO_TEST_CASE(concrete_map_test)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(true, 2, 1);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, true, 2, 1);
 
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
-    BOOST_CHECK_EQUAL(summary.max_interference(), 0);
-    BOOST_CHECK_EQUAL(summary.size(), 4);
+    BOOST_CHECK_EQUAL(ptg.literals().size(), 2);
+    BOOST_CHECK_EQUAL(ptg.contract_count(), 2);
+    BOOST_CHECK_EQUAL(ptg.implicit_count(), 5);
+    BOOST_CHECK_EQUAL(ptg.interference_count(), 0);
+    BOOST_CHECK_EQUAL(ptg.size(), 5);
+    BOOST_CHECK(ptg.violations().empty());
 }
 
 BOOST_AUTO_TEST_CASE(noop_address_cast)
@@ -385,12 +526,119 @@ BOOST_AUTO_TEST_CASE(noop_address_cast)
     auto const& unit = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(unit, "X");
 
-    MapIndexSummary summary(false, 5, 5);
-    summary.extract_literals(ctrt);
-    summary.compute_interference(ctrt);
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 1);
 
-    auto violations = summary.violations();
-    BOOST_CHECK_EQUAL(violations.size(), 0);
+    BOOST_CHECK_EQUAL(ptg.literals().size(), 2);
+    BOOST_CHECK_EQUAL(ptg.contract_count(), 2);
+    BOOST_CHECK_EQUAL(ptg.implicit_count(), 5);
+    BOOST_CHECK_EQUAL(ptg.interference_count(), 2);
+    BOOST_CHECK_EQUAL(ptg.size(), 7);
+    BOOST_CHECK(ptg.violations().empty());
+}
+
+BOOST_AUTO_TEST_CASE(role_summary)
+{
+    char const* text = R"(
+        contract X {
+            struct A {
+                address x;
+                address y;
+            }
+            struct B {
+                A a;
+                address z;
+            }
+            A a;
+            B b;
+            address x;
+            function f() public pure { }
+        }
+        contract Y {
+            address k;
+            address l;
+            function f() public pure { }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt1 = *retrieveContractByName(unit, "X");
+    auto const& ctrt2 = *retrieveContractByName(unit, "Y");
+
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt1, &ctrt2 });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 1);
+
+    BOOST_CHECK_EQUAL(ptg.summarize(flat_model->get(ctrt1)).size(), 3);
+    BOOST_CHECK_EQUAL(ptg.summarize(flat_model->get(ctrt2)).size(), 2);
+}
+
+BOOST_AUTO_TEST_CASE(rv_contract_to_addr)
+{
+    char const* text = R"(
+        contract A {}
+        contract X {
+            A a;
+            constructor() public { a = new A(); }
+            function get() public view returns (A) { return a; }
+            function test() public view { address(get()); }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(unit, "X");
+
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 1);
+
+    BOOST_CHECK(ptg.violations().empty());
+}
+
+BOOST_AUTO_TEST_CASE(fallback)
+{
+    char const* text = R"(
+        contract X {
+            function () external payable {
+                address(5);
+            }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(unit, "X");
+
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 1);
+
+    BOOST_CHECK_EQUAL(ptg.literals().size(), 2);
+    BOOST_CHECK_EQUAL(ptg.contract_count(), 2);
+    BOOST_CHECK_EQUAL(ptg.implicit_count(), 5);
+    BOOST_CHECK_EQUAL(ptg.interference_count(), 1);
+    BOOST_CHECK_EQUAL(ptg.size(), 6);
+    BOOST_CHECK(ptg.violations().empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

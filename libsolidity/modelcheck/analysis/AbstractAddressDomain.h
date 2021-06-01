@@ -1,8 +1,6 @@
 /**
- * SmartACE makes use of sound, abstract address domains (relative to the bundle
- * under analysis). This domain is driven by the distinguishability of addresses
- * in the bundle, and also by the usage of mappings in the bundle. This file
- * provides utilities to construct the abstract address domain.
+ * SmartACE computes PTGs to identify distinguishible addresses. Precisely,
+ * each distinguishable address corresponds to an equivalence class of users.
  * 
  * @date 2020
  */
@@ -23,125 +21,67 @@ namespace solidity
 namespace modelcheck
 {
 
+class CallGraph;
+class FlatContract;
 class FlatModel;
+class MapDeflate;
 
 // -------------------------------------------------------------------------- //
 
 /**
- * Maintains a database from contract to address variables.
+ * Records a MiniSol address violation.
  */
-class AddressVariables
+class AddressViolation
 {
 public:
-    // Represents all address paths associated with a given variable.
-    struct AddressEntry
-    {
-        // The variable associated with this entry. It is a "root".
-        VariableDeclaration const* decl;
+    // Types of violations.
+    // - Cast:      a (non-literal) numeric value was cast to an address value.
+    // - Mutate:    an address value was mutated as if it were a numeric value.
+    // - Compare:   two addresses were compared outside of (dis)equality.
+    // - KeyType:   an unsupported key is used by a mapping.
+    // - ValueType: an unsupported value is used by a mapping.
+    enum class Type { Cast, Mutate, Compare, KeyType, ValueType };
 
-        // Either 0 and `decl` is not a mapping, or the depth of `decl`.
-        uint64_t depth;
+    //
+    AddressViolation(
+        Type _ty, CallableDeclaration const* _ctx, ASTNode const* _site
+    ): m_type(_ty), m_context(_ctx), m_site(_site) {}
 
-        // If false, this is a map and contains some invalid address.
-        bool address_only;
+    // Returns the violation type.
+    Type type() const { return m_type; }
 
-        // If decl is a variable, this expands to decl. If dec is a structure
-        // this is all paths to address variables in decl. If decl is a mapping,
-        // paths will recursively be defined in terms of decl's values.
-        std::list<std::list<std::string>> paths;
-    };
+    // Returns the call in which the violation occured. If the violation occurs
+    // at the contract level, then context() is nullptr.
+    CallableDeclaration const* context() const { return m_context; }
 
-    // Extracts all address paths within _src.
-    void record(ContractDefinition const& _src);
+    // Returns the expression/statement resulting in the violation.
+    ASTNode const* site() const { return m_site; }
 
-    // Produces all address entries recorded against _src.
-    std::list<AddressEntry> const& access(ContractDefinition const& _src) const;
-
-private:
-    // Helper utility to cast `T const*` to `R const*`.
-    template <class R, class T>
-    R const* unroll(T const* t)
-    {
-        return dynamic_cast<R const*>(t);
-    }
-
-    // Computes all paths to addresses within the struct.
-    std::list<std::list<std::string>> analyze_struct(
-        std::string _name, StructType const* _struct
-    );
-
-    // Computes the depth of the map, and if it maps to addresses, computes all
-    // paths from a value.
-    AddressEntry analyze_map(VariableDeclaration const& _decl);
-
-    std::map<ContractDefinition const*, std::list<AddressEntry>> m_cache;
+protected:
+    Type m_type;
+    CallableDeclaration const* m_context;
+    ASTNode const* m_site;
 };
 
 // -------------------------------------------------------------------------- //
 
 /**
- * An analyzer to detect proper index usage. If index usage is conformed to,
- * then the contract-specific address-space parameters will be extracted.
+ * Extracts all literals in use by the bundle.
  */
-class MapIndexSummary : public ASTConstVisitor
+class LiteralExtractor : public ASTConstVisitor
 {
 public:
-    // Types of violations.
-    // - Cast:    an abstract index was cast to a concrete value
-    // - Mutate:  an abstract index was mutated as a cardinal value
-    // - Compare: an abstract index was ordered
-    // - KeyType: an unsupported key type is in use
-    enum class ViolationType { Cast, Mutate, Compare, KeyType };
+    // Inspects all modifiers and functions within _calls, to extract all
+    // literal values.
+    LiteralExtractor(FlatModel const& _model, CallGraph const& _calls);
 
-    // Describes a detected violation.
-    struct Violation
-    {
-        ViolationType type;
-        CallableDeclaration const* context;
-        ASTNode const* site;
-    };
-    using ViolationGroup = std::list<Violation>;
+    // Returns all literals in use.
+    std::set<dev::u256> literals() const;
 
-    // Generates map indices for use by the number of _clients and _contracts.
-    // If _concrete, then interference values are omitted.
-    MapIndexSummary(bool _concrete, uint64_t _clients, uint64_t _contracts);
-    
-    // A first-pass analysis which inspects contract code and extracts literals.
-    // TODO: Use flat model.
-    void extract_literals(ContractDefinition const& _src);
-
-    // A second-pass which computes the minimal interference needed.
-    // TODO: Use flat model.
-    void compute_interference(ContractDefinition const& _src);
-
-    // Produces all address entries recorded against _src.
-    std::list<AddressVariables::AddressEntry> const& describe(
-        ContractDefinition const& _src
-    ) const;
-
-    // Returns all violates in the provided contract.
-    ViolationGroup const& violations() const;
-
-    // Returns all unique index literals encountered through the program.
-    std::set<dev::u256> const& literals() const;
-
-    // Returns the current number of representatives.
-    uint64_t representative_count() const;
-
-    // Returns the number of clients.
-    uint64_t client_count() const;
-
-    // Returns the number of contracts.
-    uint64_t contract_count() const;
-
-    // Returns the maximum interference variables used by any function.'
-    uint64_t max_interference() const;
-
-    // Returns the size of the address space.
-    uint64_t size() const;
+    // Returns all vioaltes with respect to address manipulations.
+    std::list<AddressViolation> violations() const;
 
 protected:
-    bool visit(VariableDeclaration const& _node) override;
     bool visit(UnaryOperation const& _node) override;
     bool visit(BinaryOperation const& _node) override;
     bool visit(FunctionCall const& _node) override;
@@ -150,24 +90,173 @@ protected:
     bool visit(Literal const& _node) override;
 
 private:
-    // Appennds _violation to m_violations.
-    void record_violation(ViolationType _ty, ASTNode const* _site);
+    // Inspects FunctionCalls that are casts of `_base` from `_from` to `_to`.
+    void handle_cast(
+        Expression const& _base, Type::Category _from, Type::Category _to
+    );
 
-    const bool IS_CONCRETE;
+    // Inspects FunctionCalls that are not casts.
+    void handle_call(FunctionCall const& _node);
 
-    uint64_t m_client_reps;
-    uint64_t m_contract_reps;
-    uint64_t m_max_interference = 0;
+    // Appennds AddressViolation(_ty, m_context, _site) to m_violations.
+    void record_violation(AddressViolation::Type _ty, ASTNode const* _site);
 
-    bool m_is_address_cast = false;
-    bool m_uses_contract_address = false;
-    
+    // Current function being analyzed.
     CallableDeclaration const* m_context = nullptr;
 
-    AddressVariables m_cache;
+    // If true, then the current expression is nested within `address(...)`.
+    bool m_is_address_cast = false;
 
-    ViolationGroup m_violations;
+    // The literal addresses detected so far.
     std::set<dev::u256> m_literals = { 0 };
+
+    // Records all literal violations.
+    std::list<AddressViolation> m_violations;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Computes the number of role used by a bundle. A role is an address state
+ * variable. A role is active if it is used in the method.
+ */
+class RoleExtractor
+{
+public:
+    using PathSet = std::list<std::list<std::string>>;
+
+    // Represents all address paths associated with a given variable.
+    struct Role
+    {
+        // The variable associated with this entry. It is a "root".
+        VariableDeclaration const* decl;
+
+        // If decl is a variable, this expands to decl. If dec is a structure
+        // this is all paths to address variables in decl.
+        PathSet paths;
+    };
+
+    // Computes the number of active roles in _contract.
+    RoleExtractor(MapDeflate const& _map_db, FlatContract const& _contract);
+
+    // Returns all roles in the contract, regardless of whether or not they are
+    // in use.
+    std::list<Role> roles() const;
+
+    // Returns an over-approximation for the number of active roles.
+    uint64_t count() const;
+
+    // Returns all illegal uses of roles and mapping indices.
+    std::list<AddressViolation> violations() const;
+
+private:
+    // Ensures that a mapping _decl does not make illegal usage of roles or
+    // index typing.
+    void check_map_conformance(VariableDeclaration const* _decl);
+
+    // Computes all partial paths to roles within _struct.
+    PathSet extract_from_struct(std::string _name, StructType const* _struct);
+
+    // Appennds AddressViolation(_ty, m_context, _site) to m_violations.
+    void record_violation(AddressViolation::Type _ty, ASTNode const* _site);
+
+    MapDeflate const& m_map_db;
+
+    // All roles in the contract, regardless of whether or not they are in use.
+    std::list<Role> m_roles;
+
+    // The number of active roles.
+    uint64_t m_role_ct = 0;
+
+    // Records all literal violations.
+    std::list<AddressViolation> m_violations;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Computes the number of clients used by a bundle. A client is an address
+ * variable (including msg.sender) that is passed to a method. A client is
+ * active if it is used in the method.
+ */
+class ClientExtractor
+{
+public:
+    // Comoutes the number of active clients in _model.
+    ClientExtractor(FlatModel const& _model);
+
+    // Returns an over-approximation for the number of active clients.
+    uint64_t count() const;
+
+private:
+    // Utility to compute clients for a method.
+    void compute_clients(FunctionDefinition const& _func);
+
+    // The maximum number of clients in any function.
+    uint64_t m_client_ct = 0;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * An analyzer to determine the literal addresses, contract addresses, roles,
+ * and clients. Conformance to MiniSol address usage is checked throughout the
+ * analysis.
+ */
+class PTGBuilder
+{
+public:
+    // Summarizes the PTGBuilder PTG for a MiniSol bundle with contracts in
+    // _model. It is assumed that _calls is the call graph that corresponds to
+    // _model. An additional _aux clients are added to support certain classes
+    // properties.
+    PTGBuilder(
+        MapDeflate const& _map_db,
+        FlatModel const& _model,
+        CallGraph const& _calls,
+        bool _concrete,
+        uint64_t _contract_ct,
+        uint64_t _aux_ct
+    );
+
+    // Returns all unique index literals encountered through the program.
+    std::set<dev::u256> const& literals() const;
+
+    // Returns the roles for the given contract.
+    std::list<RoleExtractor::Role>
+    summarize(std::shared_ptr<FlatContract const> _contract) const;
+
+    // Returns the number of contracts.
+    uint64_t contract_count() const;
+
+    // Returns the number of literals, contracts, and auxiliary users.
+    uint64_t implicit_count() const;
+
+    // Returns the number of roles and clients.
+    uint64_t interference_count() const;
+
+    // Returns the size of the address space.
+    uint64_t size() const;
+
+    // Returns all address violations.
+    std::list<AddressViolation> violations() const;
+
+private:
+    bool m_concrete;
+
+    uint64_t m_contract_ct = 0;
+    uint64_t m_aux_ct = 0;
+    uint64_t m_role_ct = 0;
+    uint64_t m_client_ct = 0;
+
+    // Records all literal violations.
+    std::list<AddressViolation> m_violations;
+
+    // Maps each contract to its role variables.
+    std::map<FlatContract const*, std::list<RoleExtractor::Role>> m_role_lookup;
+
+    // All literals in use.
+    std::set<dev::u256> m_literals;
 };
 
 // -------------------------------------------------------------------------- //

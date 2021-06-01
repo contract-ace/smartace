@@ -73,15 +73,10 @@ ActorModel::ActorModel(
     // Extracts the address variable for each contract.
     for (auto actor : m_actors)
     {
-        for (auto entry : m_stack->addresses()->describe(*actor.contract->raw()))
+        for (auto entry : m_stack->addresses()->summarize(actor.contract))
         {
             if (entry.paths.empty()) continue;
 
-            if (entry.depth > 0)
-            {
-                throw runtime_error("Map to address unsupported.");
-            }
-            
             for (auto path : entry.paths)
             {
                 CExprPtr addr = actor.decl->id();

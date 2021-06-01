@@ -19,8 +19,8 @@ namespace solidity
 namespace modelcheck
 {
 
-class MapIndexSummary;
 class NondetSourceRegistry;
+class PTGBuilder;
 
 // -------------------------------------------------------------------------- //
 
@@ -32,7 +32,7 @@ class AddressSpace
 {
 public:
     AddressSpace(
-        std::shared_ptr<MapIndexSummary const> _address_data,
+        std::shared_ptr<PTGBuilder const> _address_data,
         std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
 
@@ -47,15 +47,12 @@ private:
     const uint64_t MAX_ADDR;
 
     // Stores all parameters over the address space.
-    std::shared_ptr<MapIndexSummary const> m_address_data;
+    std::shared_ptr<PTGBuilder const> m_address_data;
 
     std::shared_ptr<NondetSourceRegistry> m_nd_reg;
 
     // The last allocated address.
     uint64_t m_next_addr;
-
-    // Computes the value for `MIN_ADDR` from the input `_address_data`.
-    static uint64_t compute_min_addr(MapIndexSummary const& _address_data);
 };
 
 // -------------------------------------------------------------------------- //

@@ -22,9 +22,9 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 AddressSpace::AddressSpace(
-    shared_ptr<MapIndexSummary const> _address_data,
+    shared_ptr<PTGBuilder const> _address_data,
     shared_ptr<NondetSourceRegistry> _nd_reg
-): MAX_ADDR(_address_data->representative_count())
+): MAX_ADDR(_address_data->implicit_count())
  , m_address_data(_address_data)
  , m_nd_reg(_nd_reg)
 {

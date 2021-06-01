@@ -1,11 +1,14 @@
 /**
- * Provides utilities for generating an abstract address space for map indices.
+ * Provides utilities for generating PTGs.
  * 
  * @date 2020
  */
 
 #include <libsolidity/modelcheck/analysis/AbstractAddressDomain.h>
 
+#include <libsolidity/modelcheck/analysis/CallGraph.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
+#include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/utils/General.h>
 
 using namespace std;
@@ -19,350 +22,60 @@ namespace modelcheck
 
 // -------------------------------------------------------------------------- //
 
-list<list<string>> AddressVariables::analyze_struct(
-    string _name, StructType const* _struct
+LiteralExtractor::LiteralExtractor(
+    FlatModel const& _model, CallGraph const& _calls
 )
 {
-    list<StructDefinition const*> frontier;
-    frontier.push_back(&_struct->structDefinition());
-
-    list<list<string>> partial_paths;
-    partial_paths.push_back(list<string>{_name});
-    
-    list<list<string>> paths;
-    while (!frontier.empty())
+    // Analyzes literals in state variable declarations.
+    for (auto contract : _model.view())
     {
-        auto structure = frontier.back();
-        frontier.pop_back();
-
-        auto partial = partial_paths.back();
-        partial_paths.pop_back();
-
-        for (auto subvar : structure->members())
+        for (auto var : contract->state_variables())
         {
-            auto subvarcat = subvar->type()->category();
-            if (subvarcat == Type::Category::Address)
-            {
-                auto path = partial;
-                path.push_back(subvar->name());
-                paths.emplace_back(move(path));
-            }
-            else if (subvarcat == Type::Category::Struct)
-            {
-                _struct = unroll<StructType>(subvar->type());
-
-                frontier.push_back(&_struct->structDefinition());
-                partial_paths.push_back(partial);
-            }
+            var->accept(*this);
         }
     }
 
-    return paths;
-}
-
-AddressVariables::AddressEntry AddressVariables::analyze_map(
-    VariableDeclaration const& _decl
-)
-{
-    size_t depth = 1;
-    bool uses_address_keys = true;
-
-    // Unrolls mapping.
-    auto mapping = unroll<MappingType>(_decl.type());
-    while (true)
+    // Analyzes functions.
+    for (auto func : _calls.executed_code())
     {
-        // Checks key type.
-        if (mapping->keyType()->category() != Type::Category::Address)
-        {
-            uses_address_keys = false;
-        }
-
-        // Checks value type.
-        if (mapping->valueType()->category() == Type::Category::Mapping)
-        {
-            mapping = unroll<MappingType>(mapping->valueType());
-            ++depth;
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    // Analyzes return type.
-    AddressEntry map;
-    map.decl = (&_decl);
-    map.depth = depth;
-    map.address_only = uses_address_keys;
-    if (mapping->valueType()->category() == Type::Category::Address)
-    {
-        map.paths.emplace_back(list<string>{_decl.name()});
-    }
-    else if (mapping->valueType()->category() == Type::Category::Struct)
-    {
-        auto structure = unroll<StructType>(mapping->valueType());
-        map.paths = analyze_struct(_decl.name(), structure);
-    }
-    return map;
-}
-
-void AddressVariables::record(ContractDefinition const& _src)
-{
-    // Skips interfaces which do not add functions or variables.
-    // Note that they are not skipped recursively.
-    if (_src.isInterface()) return;
-
-    m_cache[&_src] = {};
-
-    set<string> symbols;
-    for (auto CONTRACT : _src.annotation().linearizedBaseContracts)
-    {
-        for (auto VAR : CONTRACT->stateVariables())
-        {
-            // Ensures this is the first instance of the variable.
-            if (symbols.find(VAR->name()) != symbols.end()) continue;
-            symbols.insert(VAR->name());
-
-            // Classifies variable.
-            if (VAR->type()->category() == Type::Category::Address)
-            {
-                AddressEntry entry;
-                entry.address_only = true;
-                entry.decl = VAR;
-                entry.depth = 0;
-                entry.paths.emplace_back(list<string>{VAR->name()});
-                m_cache[&_src].emplace_back(move(entry));
-            }
-            else if (VAR->type()->category() == Type::Category::Mapping)
-            {
-                m_cache[&_src].push_back(analyze_map(*VAR));
-            }
-            else if (VAR->type()->category() == Type::Category::Struct)
-            {
-                auto structure = unroll<StructType>(VAR->type());
-
-                AddressEntry entry;
-                entry.address_only = true;
-                entry.decl = VAR;
-                entry.depth = 0;
-                entry.paths = analyze_struct(VAR->name(), structure);
-                m_cache[&_src].emplace_back(move(entry));
-            }
-        }
-    }
-}
-
-list<AddressVariables::AddressEntry> const& AddressVariables::access(
-    ContractDefinition const& _src
-) const
-{
-    auto res = m_cache.find(&_src);
-    if (res == m_cache.end())
-    {
-        throw runtime_error("AddressVariables queried for unknown contract");
-    }
-    return res->second;
-}
-
-// -------------------------------------------------------------------------- //
-
-MapIndexSummary::MapIndexSummary(
-    bool _concrete, uint64_t _clients, uint64_t _contracts
-): IS_CONCRETE(_concrete), m_client_reps(_clients), m_contract_reps(_contracts)
-{
-}
-
-void MapIndexSummary::extract_literals(ContractDefinition const& _src)
-{
-    // Skips interfaces which do not add functions or variables.
-    if (_src.isInterface()) return;
-
-    // Determines all addresses in contract.
-    m_cache.record(_src);
-
-    // Processes addresses relevant to literals.
-    for (auto entry : m_cache.access(_src))
-    {
-        if (!entry.address_only)
-        {
-            record_violation(ViolationType::KeyType, entry.decl);
-        }
-
-        if (entry.decl->type()->category() == Type::Category::Address)
-        {
-            entry.decl->accept(*this);
-        }
-        else if (entry.paths.size() > 0)
-        {
-            m_literals.insert(0);
-        }
-    }
-
-    // Summarizes functions.
-    for (auto const* func : _src.definedFunctions())
-    {
-        if (!func->isImplemented()) continue;
         ScopedSwap<CallableDeclaration const*> scope(m_context, func);
         func->body().accept(*this);
     }
-    for (auto const* mod : _src.functionModifiers())
+
+    // Analyzes modifiers.
+    for (auto mod : _calls.applied_modifiers())
     {
         ScopedSwap<CallableDeclaration const*> scope(m_context, mod);
         mod->body().accept(*this);
     }
 }
 
-void MapIndexSummary::compute_interference(ContractDefinition const& _src)
-{
-    // Skips interfaces which do not add functions or variables.
-    // Note that they are not skipped recursively.
-    // TODO: perhaps this should be factored out for reuse.
-    if (_src.isInterface()) return;
-
-    // Summarizes state address variables.
-    uint64_t address_var_count = 0;
-    for (auto entry : m_cache.access(_src))
-    {
-        if (entry.depth > 0)
-        {
-            if (entry.address_only)
-            {
-                uint64_t combs = fast_pow(representative_count(), entry.depth);
-                address_var_count += (combs * entry.paths.size());
-            }
-        }
-        else
-        {
-            address_var_count += entry.paths.size();
-        }
-    }
-
-    // Summarizes functions.
-    for (auto CONTRACT : _src.annotation().linearizedBaseContracts)
-    {
-        if (CONTRACT->isInterface()) break;
-
-        for (auto const* FUNC : CONTRACT->definedFunctions())
-        {
-            if (!FUNC->isImplemented()) continue;
-
-            // All state addresses, along with the sender may be interference.
-            if (FUNC->isPublic())
-            {
-                uint64_t potential_interference = address_var_count + 1;
-                for (auto var : FUNC->parameters())
-                {
-                    if (var->type()->category() == Type::Category::Address)
-                    {
-                        ++potential_interference;
-                    }
-                }
-
-                if (potential_interference > m_max_interference)
-                {
-                    m_max_interference = potential_interference;
-                }
-            }
-        }
-    }
-}
-
-list<AddressVariables::AddressEntry> const& MapIndexSummary::describe(
-    ContractDefinition const& _src
-) const
-{
-    return m_cache.access(_src);
-}
-
-MapIndexSummary::ViolationGroup const& MapIndexSummary::violations() const
-{
-    return m_violations;
-}
-
-set<dev::u256> const& MapIndexSummary::literals() const
+set<dev::u256> LiteralExtractor::literals() const
 {
     return m_literals;
 }
 
-uint64_t MapIndexSummary::representative_count() const
+list<AddressViolation> LiteralExtractor::violations() const
 {
-    return client_count() + m_contract_reps + m_literals.size();
+    return m_violations;
 }
 
-uint64_t MapIndexSummary::client_count() const
+bool LiteralExtractor::visit(UnaryOperation const& _node)
 {
-    return m_client_reps;
-}
-
-uint64_t MapIndexSummary::contract_count() const
-{
-    return m_contract_reps;
-}
-
-uint64_t MapIndexSummary::max_interference() const
-{
-    if (IS_CONCRETE)
-    {
-        return 0;
-    }
-    else
-    {
-        return m_max_interference;
-    }
-}
-
-uint64_t MapIndexSummary::size() const
-{
-    if (IS_CONCRETE)
-    {
-        uint64_t zero_fix = 1;
-        if (m_literals.find(0) == m_literals.end())
-        {
-            zero_fix = 0;
-        }
-        return representative_count() - m_literals.size() + zero_fix;
-    }
-    else
-    {
-        return representative_count() + max_interference();
-    }
-}
-
-// -------------------------------------------------------------------------- //
-
-bool MapIndexSummary::visit(VariableDeclaration const& _node)
-{
-    if (_node.value() == nullptr)
-    {
-        if (_node.type()->category() == Type::Category::Address)
-        {
-            m_literals.insert(dev::u256(0));
-        }
-    }
-    return true;
-}
-
-bool MapIndexSummary::visit(UnaryOperation const& _node)
-{
-    // TODO(scottwe): evaluate constant expression at analysis time. I think
-    //                the compiler already does this so we could copy that. This
-    //                is worth adding to expression evaluations as well...
     if (m_is_address_cast)
     {
-        record_violation(ViolationType::Mutate, &_node);
+        record_violation(AddressViolation::Type::Mutate, &_node);
         return false;
     }
     return true;
-    
 }
 
-bool MapIndexSummary::visit(BinaryOperation const& _node)
+bool LiteralExtractor::visit(BinaryOperation const& _node)
 {
-    // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
-
     if (m_is_address_cast)
     {
-        record_violation(ViolationType::Mutate, &_node);
+        // TODO: Support compile-time operations.
+        record_violation(AddressViolation::Type::Mutate, &_node);
         return false;
     }
 
@@ -372,7 +85,7 @@ bool MapIndexSummary::visit(BinaryOperation const& _node)
         auto const TOK = _node.getOperator();
         if (TOK != Token::Equal && TOK != Token::NotEqual)
         {
-            record_violation(ViolationType::Compare, &_node);
+            record_violation(AddressViolation::Type::Compare, &_node);
             return false;
         }
     }
@@ -380,80 +93,55 @@ bool MapIndexSummary::visit(BinaryOperation const& _node)
     return true;
 }
 
-bool MapIndexSummary::visit(FunctionCall const& _node)
+bool LiteralExtractor::visit(FunctionCall const& _node)
 {
-    // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
-
-    auto const CALLTYPE = _node.annotation().type->category();
-    if (m_is_address_cast && CALLTYPE != Type::Category::Contract)
+    auto to_type = _node.annotation().type->category();
+    if (m_is_address_cast
+        && (to_type != Type::Category::Contract)
+        && (to_type != Type::Category::Address))
     {
-        record_violation(ViolationType::Mutate, &_node);
-        return false;
+        record_violation(AddressViolation::Type::Mutate, &_node);
     }
     else if (_node.annotation().kind == FunctionCallKind::TypeConversion)
     {
         auto base = _node.arguments()[0];
-        auto base_type = base->annotation().type->category();
-        if (CALLTYPE == Type::Category::Address)
-        {
-            if (base_type != Type::Category::Address)
-            {
-                ScopedSwap<bool> scope(m_is_address_cast, true);
-                base->accept(*this);
-            }
-            else
-            {
-                base->accept(*this);
-            }
-        }
-        else if (base_type == Type::Category::Address)
-        {
-            record_violation(ViolationType::Cast, &_node);
-        }
-        else
-        {
-            base->accept(*this);
-        }
+        auto from_type = base->annotation().type->category();
+        handle_cast(*base, from_type, to_type);
     }
     else
     {
-        for (auto arg : _node.arguments()) arg->accept(*this);
+        ScopedSwap<bool> scope(m_is_address_cast, false);
+        handle_call(_node);
     }
     return false;
 }
 
-bool MapIndexSummary::visit(MemberAccess const& _node)
+bool LiteralExtractor::visit(MemberAccess const& _node)
 {
-    // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
-
     if (m_is_address_cast)
     {
-        record_violation(ViolationType::Mutate, &_node);
+        // TODO: This is "okay" if the member stores a compile-time constant.
+        record_violation(AddressViolation::Type::Mutate, &_node);
         return false;
     }
     return true;
 }
 
-bool MapIndexSummary::visit(Identifier const& _node)
+bool LiteralExtractor::visit(Identifier const& _node)
 {
-    // TODO(scottwe): see todo in `visit(UnaryOperation const&)`.
-
-    if (m_is_address_cast)
+    if (m_is_address_cast && _node.name() != "this")
     {
-        if (_node.name() == "this")
+        if (_node.annotation().type->category() != Type::Category::Contract)
         {
-            m_uses_contract_address = true;
-        }
-        else if (_node.annotation().type->category() != Type::Category::Contract)
-        {
-            record_violation(ViolationType::Mutate, &_node);
+            // TODO: This is "okay" if the var stores a compile-time constant.
+            record_violation(AddressViolation::Type::Mutate, &_node);
             return false;
         }
     }
     return true;
 }
 
-bool MapIndexSummary::visit(Literal const& _node)
+bool LiteralExtractor::visit(Literal const& _node)
 {
     if (m_is_address_cast)
     {
@@ -462,11 +150,302 @@ bool MapIndexSummary::visit(Literal const& _node)
     return true;
 }
 
+void LiteralExtractor::handle_cast(
+    Expression const& _base, Type::Category _from, Type::Category _to
+)
+{
+    if (_to == Type::Category::Address)
+    {
+        if (_from != Type::Category::Address)
+        {
+            ScopedSwap<bool> scope(m_is_address_cast, true);
+            _base.accept(*this);
+        }
+        else
+        {
+            _base.accept(*this);
+        }
+    }
+    else if (_from == Type::Category::Address)
+    {
+        record_violation(AddressViolation::Type::Cast, &_base);
+    }
+    else
+    {
+        _base.accept(*this);
+    }
+
+}
+
+void LiteralExtractor::handle_call(FunctionCall const& _node)
+{
+    // Checks for violations among the base expressions.
+    _node.expression().accept(*this);
+
+
+    // Checks for violations among the arguments.
+    for (auto arg : _node.arguments())
+    {
+        arg->accept(*this);
+    }
+}
+
+void LiteralExtractor::record_violation(
+    AddressViolation::Type _ty, ASTNode const* _site
+)
+{
+    m_violations.push_back(AddressViolation(_ty, m_context, _site));
+}
+
 // -------------------------------------------------------------------------- //
 
-void MapIndexSummary::record_violation(ViolationType _ty, ASTNode const* _site)
+RoleExtractor::RoleExtractor(
+    MapDeflate const& _map_db, FlatContract const& _contract
+): m_map_db(_map_db)
 {
-    m_violations.push_back(Violation{_ty, m_context, _site});
+    // TODO: Refine. This assumes every role is in use.
+    for (auto var : _contract.state_variables())
+    {
+        auto type = var->type();
+        if (type->category() == Type::Category::Address)
+        {
+            m_roles.emplace_back();
+            m_roles.back().decl = var;
+            m_roles.back().paths.emplace_back(list<string>{var->name()});
+            m_role_ct = m_role_ct + 1;
+        }
+        else if (type->category() == Type::Category::Mapping)
+        {
+            check_map_conformance(var);
+        }
+        else if (type->category() == Type::Category::Struct)
+        {
+            auto structure = dynamic_cast<StructType const*>(var->type());
+
+            m_roles.emplace_back();
+            m_roles.back().decl = var;
+            m_roles.back().paths = extract_from_struct(var->name(), structure);
+        }
+    }
+}
+
+void RoleExtractor::check_map_conformance(VariableDeclaration const* _decl)
+{
+    auto summary = m_map_db.try_resolve(*_decl);
+
+    // Checks that keys are always addresses.
+    for (auto key : summary->key_types)
+    {
+        auto key_type = key->annotation().type;
+        if (key_type->category() != Type::Category::Address)
+        {
+            record_violation(AddressViolation::Type::KeyType, _decl);
+            break;
+        }
+    }
+
+    // Ensures that values are never addresses.
+    auto value_type = summary->value_type->annotation().type;
+    if (value_type->category() == Type::Category::Address)
+    {
+        record_violation(AddressViolation::Type::ValueType, _decl);
+    }
+    else if (value_type->category() == Type::Category::Struct)
+    {
+        auto structure = dynamic_cast<StructType const*>(value_type);
+
+        if (!extract_from_struct("", structure).empty())
+        {
+            record_violation(AddressViolation::Type::ValueType, _decl);
+        }
+    }
+}
+
+RoleExtractor::PathSet
+RoleExtractor::extract_from_struct(string _name, StructType const* _struct)
+{
+    list<list<string>> partial_paths;
+    for (auto field : _struct->structDefinition().members())
+    {
+        auto category = field->type()->category();
+        if (category == Type::Category::Address)
+        {
+            // If the field is an address, create path: <struct>.<field>
+            partial_paths.push_back(list<string>{_name, field->name()});
+            m_role_ct = m_role_ct + 1;
+        }
+        else if (category == Type::Category::Mapping)
+        {
+            // Maps cannot have address variables when PTGBuilder is used.
+            check_map_conformance(field.get());
+        }
+        else if (category == Type::Category::Struct)
+        {
+            // For each path p in field, record: p.prepend(<struct>)
+            auto structure = dynamic_cast<StructType const*>(field->type());
+
+            auto rec_paths = extract_from_struct(field->name(), structure);
+            for (auto path : rec_paths)
+            {
+                list<string> new_path{_name};
+                new_path.splice(new_path.end(), path);
+                partial_paths.push_back(std::move(new_path));
+            }
+        }
+    }
+    return partial_paths;
+}
+
+list<RoleExtractor::Role> RoleExtractor::roles() const
+{
+    return m_roles;
+}
+
+uint64_t RoleExtractor::count() const
+{
+    return m_role_ct;
+}
+
+list<AddressViolation> RoleExtractor::violations() const
+{
+    return m_violations;
+}
+
+void RoleExtractor::record_violation(
+    AddressViolation::Type _ty, ASTNode const* _site
+)
+{
+    m_violations.push_back(AddressViolation(_ty, nullptr, _site));
+}
+
+// -------------------------------------------------------------------------- //
+
+ClientExtractor::ClientExtractor(FlatModel const& _model)
+{
+    // TODO: Refine. This assumes every client is in use.
+    for (auto contract : _model.view())
+    {
+        // If there is a fallback method, then the minimum is 1.
+        if (auto func = contract->fallback())
+        {
+            compute_clients(*func);
+        }
+
+        // Computes the number of client per method.
+        for (auto func : contract->interface())
+        {
+            compute_clients(*func);
+        }
+    }
+}
+
+uint64_t ClientExtractor::count() const
+{
+    return m_client_ct;
+}
+
+void ClientExtractor::compute_clients(FunctionDefinition const& _func)
+{
+    // There is a minimum of one client (the sender).
+    size_t potential_clients = 1;
+
+    // Computes the maximum number of clients (over-approximate).
+    for (auto param : _func.parameters())
+    {
+        if (param->type()->category() == Type::Category::Address)
+        {
+            potential_clients = potential_clients + 1;
+        }
+    }
+
+    // Updates the total so far.
+    if (potential_clients > m_client_ct)
+    {
+        m_client_ct = potential_clients;
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+PTGBuilder::PTGBuilder(
+    MapDeflate const& _map_db,
+    FlatModel const& _model,
+    CallGraph const& _calls,
+    bool _concrete,
+    uint64_t _contract_ct,
+    uint64_t _aux_ct
+): m_concrete(_concrete), m_contract_ct(_contract_ct), m_aux_ct(_aux_ct)
+{
+    // Processes literals.
+    {
+        LiteralExtractor lext(_model, _calls);
+        m_literals = lext.literals();
+
+        for (auto violation : lext.violations())
+        {
+            m_violations.push_back(violation);
+        }
+    }
+
+    // Processes roles.
+    for (auto contract : _model.view())
+    {
+        RoleExtractor rext(_map_db, *contract);
+        m_role_lookup[contract.get()] = rext.roles();
+        m_role_ct += rext.count();
+
+        for (auto violation : rext.violations())
+        {
+            m_violations.push_back(violation);
+        }
+    }
+
+    // Processes clients.
+    {
+        ClientExtractor cext(_model);
+        m_client_ct = cext.count();
+    }
+}
+
+set<dev::u256> const& PTGBuilder::literals() const
+{
+    return m_literals;
+}
+
+list<RoleExtractor::Role>
+PTGBuilder::summarize(shared_ptr<FlatContract const> _contract) const
+{
+    auto res = m_role_lookup.find(_contract.get());
+    if (res == m_role_lookup.end())
+    {
+        throw runtime_error("AddressVariables queried for unknown contract");
+    }
+    return res->second;
+}
+
+uint64_t PTGBuilder::contract_count() const
+{
+    return m_contract_ct;
+}
+
+uint64_t PTGBuilder::implicit_count() const
+{
+    return m_contract_ct + m_literals.size() + m_aux_ct;
+}
+
+uint64_t PTGBuilder::interference_count() const
+{
+    return (m_concrete ? 0 : m_role_ct + m_client_ct);
+}
+
+uint64_t PTGBuilder::size() const
+{
+    return implicit_count() + interference_count();
+}
+
+list<AddressViolation> PTGBuilder::violations() const
+{
+    return m_violations;
 }
 
 // -------------------------------------------------------------------------- //

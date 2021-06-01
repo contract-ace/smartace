@@ -38,7 +38,7 @@ static void check_allocation_graph_errs(shared_ptr<AllocationGraph> _graph)
     }
 }
 
-static void check_address_errs(shared_ptr<MapIndexSummary> _summary)
+static void check_address_errs(shared_ptr<PTGBuilder> _summary)
 {
 	auto const& VIOLATIONS = _summary->violations();
 	if (!VIOLATIONS.empty())
@@ -86,33 +86,19 @@ AnalysisStack::AnalysisStack(
 	);
 
 	// TODO: deprecate the use of _full.
-	m_addresses = make_shared<MapIndexSummary>(
+	m_types = make_shared<TypeAnalyzer>(_full, *m_call_graph);
+
+	m_addresses = make_shared<PTGBuilder>(
+		m_types->map_db(),
+		*m_flat_model,
+		*m_call_graph,
 		_settings.use_concrete_users,
-		_settings.persistent_user_count,
-		m_tight_bundle->size()
+		m_tight_bundle->size(),
+		_settings.persistent_user_count
 	);
-	for (auto const* ast : _full)
-	{
-		auto c = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-		for (auto contract : c)
-		{
-			m_addresses->extract_literals(*contract);
-		}
-	}
-	for (auto const* ast: _full)
-	{
-		auto c = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-		for (auto contract : c)
-		{
-			m_addresses->compute_interference(*contract);
-		}
-	}
 	check_address_errs(m_addresses);
 
 	m_strings = make_shared<StringLookup>(*m_flat_model, *m_call_graph);
-
-	// TODO: deprecate the use of _full.
-	m_types = make_shared<TypeAnalyzer>(_full, *m_call_graph);
 }
 
 shared_ptr<StructureStore const> AnalysisStack::structures() const
@@ -155,7 +141,7 @@ shared_ptr<TightBundleModel const> AnalysisStack::tight_bundle() const
 	return m_tight_bundle;
 }
 
-shared_ptr<MapIndexSummary const> AnalysisStack::addresses() const
+shared_ptr<PTGBuilder const> AnalysisStack::addresses() const
 {
 	return m_addresses;
 }

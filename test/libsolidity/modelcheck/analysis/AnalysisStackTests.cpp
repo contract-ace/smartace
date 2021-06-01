@@ -185,11 +185,11 @@ BOOST_AUTO_TEST_CASE(params)
     auto stack_wparam = make_shared<AnalysisStack>(model, full, wparam_set);
 
     BOOST_CHECK_EQUAL(stack_nparam->addresses()->size(), 3);
-    BOOST_CHECK_EQUAL(stack_nparam->addresses()->max_interference(), 1);
+    BOOST_CHECK_EQUAL(stack_nparam->addresses()->interference_count(), 1);
     BOOST_CHECK(!stack_nparam->environment()->escalate_requires());
 
     BOOST_CHECK_EQUAL(stack_wparam->addresses()->size(), 7);
-    BOOST_CHECK_EQUAL(stack_wparam->addresses()->max_interference(), 0);
+    BOOST_CHECK_EQUAL(stack_wparam->addresses()->interference_count(), 0);
     BOOST_CHECK(stack_wparam->environment()->escalate_requires());
 }
 
