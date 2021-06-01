@@ -123,7 +123,7 @@ void StateGenerator::update_local(CBlockList & _block) const
         {
             // This restricts senders to valid addresses: non-zero clients.
             size_t minaddr = m_stack->addresses()->contract_count();
-            size_t maxaddr = m_stack->addresses()->size();
+            size_t maxaddr = m_stack->addresses()->max_sender();
             if (m_stack->addresses()->literals().find(0)
                 != m_stack->addresses()->literals().end())
             {

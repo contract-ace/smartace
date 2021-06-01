@@ -63,7 +63,7 @@ CExprPtr NondetSourceRegistry::raw_val(Type const& _type, string const& _msg)
     }
     else if (CATEGORY == Type::Category::Address)
     {
-        size_t addr_count = m_stack->addresses()->size();
+        size_t addr_count = m_stack->addresses()->max_sender();
         return range(0, addr_count, _msg);
     }
     else if (auto enum_type = dynamic_cast<EnumType const*>(&_type))

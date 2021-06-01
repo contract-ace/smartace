@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(end_to_end)
     BOOST_CHECK_NE(stack->addresses().get(), nullptr);
     if (stack->addresses())
     {
-        BOOST_CHECK_EQUAL(stack->addresses()->size(), 11);
+        BOOST_CHECK_EQUAL(stack->addresses()->count(), 11);
     }
 
     BOOST_CHECK_NE(stack->types().get(), nullptr);
@@ -184,11 +184,11 @@ BOOST_AUTO_TEST_CASE(params)
     wparam_set.escalate_reqs = true;
     auto stack_wparam = make_shared<AnalysisStack>(model, full, wparam_set);
 
-    BOOST_CHECK_EQUAL(stack_nparam->addresses()->size(), 3);
+    BOOST_CHECK_EQUAL(stack_nparam->addresses()->count(), 3);
     BOOST_CHECK_EQUAL(stack_nparam->addresses()->interference_count(), 1);
     BOOST_CHECK(!stack_nparam->environment()->escalate_requires());
 
-    BOOST_CHECK_EQUAL(stack_wparam->addresses()->size(), 7);
+    BOOST_CHECK_EQUAL(stack_wparam->addresses()->count(), 7);
     BOOST_CHECK_EQUAL(stack_wparam->addresses()->interference_count(), 0);
     BOOST_CHECK(stack_wparam->environment()->escalate_requires());
 }

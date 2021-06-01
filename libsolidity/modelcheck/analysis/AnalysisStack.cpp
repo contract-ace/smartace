@@ -94,6 +94,7 @@ AnalysisStack::AnalysisStack(
 		*m_call_graph,
 		_settings.use_concrete_users,
 		m_tight_bundle->size(),
+		_settings.inf_user_count,
 		_settings.aux_user_count
 	);
 	check_address_errs(m_addresses);

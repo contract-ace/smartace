@@ -50,6 +50,8 @@ struct AnalysisSettings
 {
     // The number of additional, persistent users, required by the properties.
     size_t aux_user_count = 0;
+    // The number of additional users under interference, outsider of sending.
+    size_t inf_user_count = 0;
     // If true, each user is treated as if it were in a small model (rather than
     // an equivalence class).
     bool use_concrete_users = false;

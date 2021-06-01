@@ -1490,7 +1490,7 @@ void CommandLineInterface::handleCModelHeaders(
 	using dev::solidity::modelcheck::FunctionConverter;
 
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
-	size_t addr_ct = _stack->addresses()->size();
+	size_t addr_ct = _stack->addresses()->count();
 
 	_os << "#pragma once" << endl
 	    << "#include \"primitive.h\"" << endl;
@@ -1521,7 +1521,7 @@ void CommandLineInterface::handleCModelBody(
 
 	// Parses general arguments.
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
-	size_t addr_ct = _stack->addresses()->size();
+	size_t addr_ct = _stack->addresses()->count();
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 
 	// Includes header.

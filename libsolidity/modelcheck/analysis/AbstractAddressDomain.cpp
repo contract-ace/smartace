@@ -373,8 +373,12 @@ PTGBuilder::PTGBuilder(
     CallGraph const& _calls,
     bool _concrete,
     uint64_t _contract_ct,
+    uint64_t _inf_ct,
     uint64_t _aux_ct
-): m_concrete(_concrete), m_contract_ct(_contract_ct), m_aux_ct(_aux_ct)
+): m_concrete(_concrete)
+ , m_contract_ct(_contract_ct)
+ , m_inf_ct(_inf_ct)
+ , m_aux_ct(_aux_ct)
 {
     // Processes literals.
     {
@@ -438,9 +442,14 @@ uint64_t PTGBuilder::interference_count() const
     return (m_concrete ? 0 : m_role_ct + m_client_ct);
 }
 
-uint64_t PTGBuilder::size() const
+uint64_t PTGBuilder::max_sender() const
 {
     return implicit_count() + interference_count();
+}
+
+uint64_t PTGBuilder::count() const
+{
+    return max_sender() + m_inf_ct;
 }
 
 list<AddressViolation> PTGBuilder::violations() const

@@ -211,7 +211,7 @@ CBlockList MainFunctionGenerator::expand_interference()
         }
 
         // Non-deterministically initializes each field.
-        auto const WIDTH = m_stack->addresses()->size();
+        auto const WIDTH = m_stack->addresses()->count();
         auto const DEPTH = map.entry->key_types.size();
         KeyIterator indices(WIDTH, DEPTH, offset);
         do

@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(address_to_int)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     auto violations = ptg.violations();
     BOOST_CHECK_EQUAL(violations.size(), 1);
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(int_to_address_valid)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     BOOST_CHECK(ptg.violations().empty());
 
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(int_to_address_invalid)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     auto violations = ptg.violations();
     BOOST_CHECK_EQUAL(violations.size(), 4);
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(comparisons)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     auto violations = ptg.violations();
     BOOST_CHECK_EQUAL(violations.size(), 4);
@@ -214,14 +214,14 @@ BOOST_AUTO_TEST_CASE(literals)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     auto literals = ptg.literals();
     BOOST_CHECK_EQUAL(literals.size(), 3);
     BOOST_CHECK_EQUAL(ptg.contract_count(), 5);
     BOOST_CHECK_EQUAL(ptg.implicit_count(), 13);
     BOOST_CHECK_EQUAL(ptg.interference_count(), 1);
-    BOOST_CHECK_EQUAL(ptg.size(), 14);
+    BOOST_CHECK_EQUAL(ptg.count(), 14);
     if (literals.size() == 3)
     {
         BOOST_CHECK(literals.find(dev::u256(0)) != literals.end());
@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE(mixed_summary)
     auto r_1 = make_shared<ContractExpressionAnalyzer>(flat_model_1, alloc_graph_1);
     CallGraph call_graph_1(r_1, flat_model_1);
     TypeAnalyzer converter_1({ &unit }, call_graph_1);
-    PTGBuilder ptg_1(converter_1.map_db(), *flat_model_1, call_graph_1, false, 5, 5);
+    PTGBuilder ptg_1(converter_1.map_db(), *flat_model_1, call_graph_1, false, 5, 0, 5);
 
     BOOST_CHECK_EQUAL(ptg_1.violations().size(), 1);
     BOOST_CHECK_EQUAL(ptg_1.literals().size(), 1);
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(mixed_summary)
     auto r_2 = make_shared<ContractExpressionAnalyzer>(flat_model_2, alloc_graph_2);
     CallGraph call_graph_2(r_2, flat_model_2);
     TypeAnalyzer converter_2({ &unit }, call_graph_2);
-    PTGBuilder ptg_2(converter_2.map_db(), *flat_model_2, call_graph_2, false, 5, 5);
+    PTGBuilder ptg_2(converter_2.map_db(), *flat_model_2, call_graph_2, false, 5, 0, 5);
 
     BOOST_CHECK_EQUAL(ptg_2.violations().size(), 2);
     BOOST_CHECK_EQUAL(ptg_2.literals().size(), 2);
@@ -320,7 +320,7 @@ BOOST_AUTO_TEST_CASE(basic_interference_count)
     auto r_1 = make_shared<ContractExpressionAnalyzer>(flat_model_1, alloc_graph_1);
     CallGraph call_graph_1(r_1, flat_model_1);
     TypeAnalyzer converter_1({ &unit }, call_graph_1);
-    PTGBuilder ptg_1(converter_1.map_db(), *flat_model_1, call_graph_1, false, 5, 5);
+    PTGBuilder ptg_1(converter_1.map_db(), *flat_model_1, call_graph_1, false, 5, 0, 5);
 
     BOOST_CHECK_EQUAL(ptg_1.interference_count(), 3);
 
@@ -331,7 +331,7 @@ BOOST_AUTO_TEST_CASE(basic_interference_count)
     auto r_2 = make_shared<ContractExpressionAnalyzer>(flat_model_2, alloc_graph_2);
     CallGraph call_graph_2(r_2, flat_model_2);
     TypeAnalyzer converter_2({ &unit }, call_graph_2);
-    PTGBuilder ptg_2(converter_2.map_db(), *flat_model_2, call_graph_2, false, 5, 5);
+    PTGBuilder ptg_2(converter_2.map_db(), *flat_model_2, call_graph_2, false, 5, 0, 5);
 
     BOOST_CHECK_EQUAL(ptg_2.interference_count(), 5);
 }
@@ -364,13 +364,14 @@ BOOST_AUTO_TEST_CASE(compound_interference_count)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     BOOST_CHECK_EQUAL(ptg.literals().size(), 1);
     BOOST_CHECK_EQUAL(ptg.contract_count(), 5);
     BOOST_CHECK_EQUAL(ptg.implicit_count(), 11);
     BOOST_CHECK_EQUAL(ptg.interference_count(), 6);
-    BOOST_CHECK_EQUAL(ptg.size(), 17);
+    BOOST_CHECK_EQUAL(ptg.count(), 17);
+    BOOST_CHECK_EQUAL(ptg.max_sender(), 17);
     BOOST_CHECK(ptg.violations().empty());
 }
 
@@ -393,7 +394,7 @@ BOOST_AUTO_TEST_CASE(basic_map_of_addrs_count)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     auto violations = ptg.violations();
     BOOST_CHECK_EQUAL(violations.size(), 1);
@@ -431,7 +432,7 @@ BOOST_AUTO_TEST_CASE(basic_map_of_structs_count)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     auto violations = ptg.violations();
     BOOST_CHECK_EQUAL(violations.size(), 1);
@@ -471,13 +472,14 @@ BOOST_AUTO_TEST_CASE(inherited_addr_count)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 5);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 5, 0, 5);
 
     BOOST_CHECK_EQUAL(ptg.literals().size(), 1);
     BOOST_CHECK_EQUAL(ptg.contract_count(), 5);
     BOOST_CHECK_EQUAL(ptg.implicit_count(), 11);
     BOOST_CHECK_EQUAL(ptg.interference_count(), 3);
-    BOOST_CHECK_EQUAL(ptg.size(), 14);
+    BOOST_CHECK_EQUAL(ptg.count(), 14);
+    BOOST_CHECK_EQUAL(ptg.max_sender(), 14);
     BOOST_CHECK(ptg.violations().empty());
 }
 
@@ -502,13 +504,14 @@ BOOST_AUTO_TEST_CASE(concrete_test)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, true, 2, 1);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, true, 2, 0, 1);
 
     BOOST_CHECK_EQUAL(ptg.literals().size(), 2);
     BOOST_CHECK_EQUAL(ptg.contract_count(), 2);
     BOOST_CHECK_EQUAL(ptg.implicit_count(), 5);
     BOOST_CHECK_EQUAL(ptg.interference_count(), 0);
-    BOOST_CHECK_EQUAL(ptg.size(), 5);
+    BOOST_CHECK_EQUAL(ptg.count(), 5);
+    BOOST_CHECK_EQUAL(ptg.max_sender(), 5);
     BOOST_CHECK(ptg.violations().empty());
 }
 
@@ -533,13 +536,14 @@ BOOST_AUTO_TEST_CASE(noop_address_cast)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 1);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 0, 1);
 
     BOOST_CHECK_EQUAL(ptg.literals().size(), 2);
     BOOST_CHECK_EQUAL(ptg.contract_count(), 2);
     BOOST_CHECK_EQUAL(ptg.implicit_count(), 5);
     BOOST_CHECK_EQUAL(ptg.interference_count(), 2);
-    BOOST_CHECK_EQUAL(ptg.size(), 7);
+    BOOST_CHECK_EQUAL(ptg.count(), 7);
+    BOOST_CHECK_EQUAL(ptg.max_sender(), 7);
     BOOST_CHECK(ptg.violations().empty());
 }
 
@@ -578,7 +582,7 @@ BOOST_AUTO_TEST_CASE(role_summary)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 1);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 0, 1);
 
     BOOST_CHECK_EQUAL(ptg.summarize(flat_model->get(ctrt1)).size(), 3);
     BOOST_CHECK_EQUAL(ptg.summarize(flat_model->get(ctrt2)).size(), 2);
@@ -606,7 +610,7 @@ BOOST_AUTO_TEST_CASE(rv_contract_to_addr)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 1);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 0, 1);
 
     BOOST_CHECK(ptg.violations().empty());
 }
@@ -631,14 +635,50 @@ BOOST_AUTO_TEST_CASE(fallback)
     auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
     CallGraph call_graph(r, flat_model);
     TypeAnalyzer converter({ &unit }, call_graph);
-    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 1);
+    PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, 0, 1);
 
     BOOST_CHECK_EQUAL(ptg.literals().size(), 2);
     BOOST_CHECK_EQUAL(ptg.contract_count(), 2);
     BOOST_CHECK_EQUAL(ptg.implicit_count(), 5);
     BOOST_CHECK_EQUAL(ptg.interference_count(), 1);
-    BOOST_CHECK_EQUAL(ptg.size(), 6);
+    BOOST_CHECK_EQUAL(ptg.count(), 6);
+    BOOST_CHECK_EQUAL(ptg.max_sender(), 6);
     BOOST_CHECK(ptg.violations().empty());
+}
+
+BOOST_AUTO_TEST_CASE(inf_users)
+{
+    char const* text = R"(
+        contract X {
+            function () external payable {
+                address(5);
+            }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt = *retrieveContractByName(unit, "X");
+
+    StructureStore store;
+    vector<ContractDefinition const*> model({ &ctrt });
+    auto alloc_graph = make_shared<AllocationGraph>(model);
+    auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
+    auto r = make_shared<ContractExpressionAnalyzer>(flat_model, alloc_graph);
+    CallGraph call_graph(r, flat_model);
+    TypeAnalyzer converter({ &unit }, call_graph);
+
+    for (auto i = 0; i < 10; ++i)
+    {
+        PTGBuilder ptg(converter.map_db(), *flat_model, call_graph, false, 2, i, 1);
+
+        BOOST_CHECK_EQUAL(ptg.literals().size(), 2);
+        BOOST_CHECK_EQUAL(ptg.contract_count(), 2);
+        BOOST_CHECK_EQUAL(ptg.implicit_count(), 5);
+        BOOST_CHECK_EQUAL(ptg.interference_count(), 1);
+        BOOST_CHECK_EQUAL(ptg.count(), 6 + i);
+        BOOST_CHECK_EQUAL(ptg.max_sender(), 6);
+        BOOST_CHECK(ptg.violations().empty());
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

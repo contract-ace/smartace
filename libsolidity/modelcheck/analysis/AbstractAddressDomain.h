@@ -208,7 +208,8 @@ class PTGBuilder
 public:
     // Summarizes the PTGBuilder PTG for a MiniSol bundle with contracts in
     // _model. It is assumed that _calls is the call graph that corresponds to
-    // _model. An additional _aux clients are added to support certain classes
+    // _model. An additional _inf_ct clients are added to account for users
+    // under interference and _aux clients are added to support certain classes
     // properties.
     PTGBuilder(
         MapDeflate const& _map_db,
@@ -216,6 +217,7 @@ public:
         CallGraph const& _calls,
         bool _concrete,
         uint64_t _contract_ct,
+        uint64_t _inf_ct,
         uint64_t _aux_ct
     );
 
@@ -235,8 +237,13 @@ public:
     // Returns the number of roles and clients.
     uint64_t interference_count() const;
 
-    // Returns the size of the address space.
-    uint64_t size() const;
+    // Returns the maximum address that can take part in a transaction (e.g., if
+    // an invariant is being checked, then there must be one arbitrary user
+    // under interference).
+    uint64_t max_sender() const;
+
+    // Returns the number of addresses.
+    uint64_t count() const;
 
     // Returns all address violations.
     std::list<AddressViolation> violations() const;
@@ -245,6 +252,7 @@ private:
     bool m_concrete;
 
     uint64_t m_contract_ct = 0;
+    uint64_t m_inf_ct = 0;
     uint64_t m_aux_ct = 0;
     uint64_t m_role_ct = 0;
     uint64_t m_client_ct = 0;
