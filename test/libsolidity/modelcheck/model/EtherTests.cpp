@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     vector<SourceUnit const*> full({ ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 1;
+    settings.aux_user_count = 1;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(handles_contract_addresses)
     vector<ContractDefinition const*> model({ ctrt_a, ctrt_b, ctrt_c });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 1;
+    settings.aux_user_count = 1;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(handles_nested_contracts)
     vector<ContractDefinition const*> model({ ctrt });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 1;
+    settings.aux_user_count = 1;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;

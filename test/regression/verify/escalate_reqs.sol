@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --fail-on-require --output-dir=%t
+// RUN: %solc %s --c-model --fail-on-require --output-dir=%t --bundle EscalatesTest
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make cex

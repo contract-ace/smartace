@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(contract_internal_dependency_order)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(map_internal_repr)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     vector<SourceUnit const*> full({ &unit });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(member_inheritance)
     vector<SourceUnit const*> full({ &unit });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -231,7 +231,7 @@ BOOST_AUTO_TEST_CASE(constants)
     vector<SourceUnit const*> full({ &unit });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;

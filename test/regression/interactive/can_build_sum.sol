@@ -1,10 +1,10 @@
-// RUN: %solc %s --c-model --lockstep-time=off --reps=1 --output-dir=%t
+// RUN: %solc %s --c-model --lockstep-time=off --aux-users=1 --output-dir=%t --bundle Contract
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath %buildargs
 // RUN: make icmodel
 
 /*
- * A replication of basic.sol to ensure the --reps flag works.
+ * A replication of basic.sol to ensure the --aux-users flag works.
  */
 
 contract Contract {

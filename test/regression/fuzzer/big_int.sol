@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --output-dir=%t
+// RUN: %solc %s --c-model --output-dir=%t --bundle Contract
 // RUN: cd %t
 // RUN: cmake . -DINT_MODEL=USE_BOOST_MP -DCMAKE_CXX_COMPILER=%clangpp -DCMAKE_C_COMPILER=%clangc -DSEA_PATH=%seapath %buildargs
 // RUN: cmake --build . --target fuzz

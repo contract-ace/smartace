@@ -49,7 +49,7 @@ using InheritanceModel = std::vector<ContractDefinition const*>;
 struct AnalysisSettings
 {
     // The number of additional, persistent users, required by the properties.
-    size_t persistent_user_count = 0;
+    size_t aux_user_count = 0;
     // If true, each user is treated as if it were in a small model (rather than
     // an equivalence class).
     bool use_concrete_users = false;

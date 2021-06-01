@@ -45,6 +45,7 @@
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
 #include <libsolidity/modelcheck/analysis/Primitives.h>
+#include <libsolidity/modelcheck/cli/Bundle.h>
 #include <libsolidity/modelcheck/model/ADT.h>
 #include <libsolidity/modelcheck/model/Ether.h>
 #include <libsolidity/modelcheck/model/Function.h>
@@ -129,7 +130,7 @@ static string const g_strAstCompactJson = "ast-compact-json";
 static string const g_strBinary = "bin";
 static string const g_strBinaryRuntime = "bin-runtime";
 static string const g_strCModel = "c-model";
-static string const g_strModelMapLen = "reps";
+static string const g_strModelAuxUsers = "aux-users";
 static string const g_strModelMapSum = "map-sum";
 static string const g_strModelLockstepTime = "lockstep-time";
 static string const g_strModelActor = "bundle";
@@ -189,7 +190,7 @@ static string const g_argAstJson = g_strAstJson;
 static string const g_argBinary = g_strBinary;
 static string const g_argBinaryRuntime = g_strBinaryRuntime;
 static string const g_argCModel = g_strCModel;
-static string const g_argModelMapLen = g_strModelMapLen;
+static string const g_argModelAuxUsers = g_strModelAuxUsers;
 static string const g_argModelMapSum = g_strModelMapSum;
 static string const g_argModelLockstepTime = g_strModelLockstepTime;
 static string const g_argModelActor = g_strModelActor;
@@ -810,9 +811,9 @@ Allowed options)",
 	po::options_description smartaceOptions("SmartACE Configurations (requires --c-model)");
 	smartaceOptions.add_options()
 		(
-			g_argModelMapLen.c_str(),
+			g_argModelAuxUsers.c_str(),
 			po::value<size_t>()->value_name("k")->default_value(0),
-			"Sets the number of arbitrary clients represented in the model."
+			"Sets the number of additional implicit users in the model."
 		)
 		(
 			g_argModelLockstepTime.c_str(),
@@ -1291,62 +1292,33 @@ void CommandLineInterface::handleCModel()
 	}
 
 	// Converts the bundle list into a model.
-	// TODO(scottwe): factor out this analysis.
-	vector<ContractDefinition const*> major_actors;
-	if (!m_args[g_argModelActor].empty())
+	modelcheck::BundleExtractor
+		bundle(asts, m_args[g_argModelActor].as<vector<string>>());
+	if (!bundle.missing().empty())
 	{
-		// Maps names to contracts.
-		map<string, ContractDefinition const*> contract_names;
-		for (auto const* ast : asts)
+		m_error = true;
+		for (auto name : bundle.missing())
 		{
-			auto actors = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-			for (auto actor : actors)
-			{
-				if (actor->isLibrary()) continue;
-				if (actor->isInterface()) continue;
-				contract_names[actor->name()] = actor;
-			}
+			serr() << "Contract " << name << " does not exist." << endl;
 		}
-
-		// Resolves bundle names.
-		auto const& actor_names = m_args[g_argModelActor].as<vector<string>>();
-		major_actors.reserve(actor_names.size());
-		for (auto name : actor_names)
-		{
-			if (contract_names[name] == nullptr)
-			{
-				m_error = true;
-				serr() << "Contract " << name << " does not exist." << endl;
-				return;
-			}
-			major_actors.push_back(contract_names[name]);
-		}
+		return;
 	}
-	else
+	else if (bundle.get().empty())
 	{
-		// Aggregates all instantiable contracts.
-		for (auto const* ast : asts)
-		{
-			auto actors = ASTNode::filteredNodes<ContractDefinition>(ast->nodes());
-			major_actors.reserve(major_actors.size() + actors.size());
-			for (auto actor : actors)
-			{
-				if (actor->isLibrary()) continue;
-				if (actor->isInterface()) continue;
-				major_actors.push_back(actor);
-			}
-		}
+		m_error = true;
+		serr() << "Bundle is empty." << endl;
+		return;
 	}
 
 	// Runs full analysis stack.
 	struct modelcheck::AnalysisSettings settings;
-	settings.persistent_user_count = m_args[g_argModelMapLen].as<size_t>();
+	settings.aux_user_count = m_args[g_argModelAuxUsers].as<size_t>();
 	settings.use_concrete_users = (m_args.count(g_argModelConcrete) > 0);
 	settings.use_global_contracts = (m_args.count(g_argModelFailOnRequire) > 0);
 	settings.escalate_reqs = (m_args.count(g_argModelFailOnRequire) > 0);
 	settings.allow_fallbacks = m_args[g_argModelAllowFallbacks].as<bool>();
 	auto analysis_stack
-		= make_shared<modelcheck::AnalysisStack>(major_actors, asts, settings);
+		= make_shared<modelcheck::AnalysisStack>(bundle.get(), asts, settings);
 
 	// Aggregates primitive types.
 	// TODO(scottwe): use flat model and move to model.

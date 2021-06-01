@@ -1,12 +1,12 @@
-// RUN: %solc %s --c-model --output-dir=%t
+// RUN: %solc %s --c-model --output-dir=%t --bundle Caller
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make verify 2>&1 | OutputCheck %s --comment=//
 // CHECK: unsat
 
 /*
- * When testing with Melon, I hit a case where devirtualization of inherited
- * methods failed. This is a minimal example of the case.
+ * When testing with Melon, a case was hit in which the devirtualization of
+ * inherited methods failed. This is a minimal example of the case.
  */
 
 interface IBase {

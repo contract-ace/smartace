@@ -58,7 +58,7 @@ string _convert_assignment(Token tok)
     Assignment assign(SourceLocation(), id, tok, op);
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -84,7 +84,7 @@ string _convert_bin_op(Token tok)
     BinaryOperation op(SourceLocation(), id_a, tok, id_b);
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -101,7 +101,7 @@ string _convert_unary_op(Token tok, shared_ptr<Expression> expr, bool prefix)
     UnaryOperation op(SourceLocation(), tok, expr, prefix);
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -118,7 +118,7 @@ string _convert_literal(Token tok, string src, SubD subdom = SubD::None)
     Literal lit(SourceLocation(), tok, make_shared<string>(src), subdom);
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(conditional_expression)
     Conditional cond(SourceLocation(), var_a, var_b, var_c);
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(tuple_expression)
     // TODO(scottwe): n element array, large n
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -339,7 +339,7 @@ BOOST_AUTO_TEST_CASE(identifier_expression)
     id_b.annotation().type = new IntegerType(32);
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;

@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --output-dir=%t
+// RUN: %solc %s --c-model --output-dir=%t --bundle UsingLib
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make cex

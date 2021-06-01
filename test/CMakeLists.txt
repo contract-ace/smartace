@@ -12,6 +12,8 @@ file(GLOB libsolidity_util_headers "libsolidity/util/*.h")
 file(GLOB libsolidity_modelcheck_sources "libsolidity/modelcheck/*.cpp")
 file(GLOB libsolidity_modelcheck_analysis_sources
     "libsolidity/modelcheck/analysis/*.cpp")
+file(GLOB libsolidity_modelcheck_cli_sources
+    "libsolidity/modelcheck/cli/*.cpp")
 file(GLOB libsolidity_modelcheck_codegen_sources
     "libsolidity/modelcheck/codegen/*.cpp")
 file(GLOB libsolidity_modelcheck_model_sources
@@ -26,6 +28,7 @@ add_executable(soltest ${sources} ${headers}
     ${libsolidity_util_sources} ${libsolidity_util_headers}
     ${libsolidity_modelcheck_sources}
     ${libsolidity_modelcheck_analysis_sources}
+    ${libsolidity_modelcheck_cli_sources}
     ${libsolidity_modelcheck_codegen_sources}
     ${libsolidity_modelcheck_model_sources}
     ${libsolidity_modelcheck_utils_sources}

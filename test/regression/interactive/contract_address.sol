@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --lockstep-time=off --output-dir=%t
+// RUN: %solc %s --c-model --lockstep-time=off --output-dir=%t --bundle A
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath %buildargs
 // RUN: make icmodel

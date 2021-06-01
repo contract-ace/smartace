@@ -1,6 +1,6 @@
 // Copyright 2017-2019 ConsenSys AG
 //
-// RUN: %solc %s --reps=1 --lockstep-time=off --c-model --output-dir=%t
+// RUN: %solc %s --aux-users=1 --lockstep-time=off --c-model --output-dir=%t --bundle Foo
 // RUN: cd %t
 // RUN: cmake -DSEA_PATH=%seapath %buildargs
 // RUN: make icmodel

@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --output-dir=%t
+// RUN: %solc %s --c-model --output-dir=%t --bundle User
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make verify 2>&1 | OutputCheck %s --comment=//
@@ -17,7 +17,7 @@ contract BaseContract {
 
 contract DerivedContract is BaseContract {
 	constructor() public BaseContract(5) {}
-	function g() public view returns (int) { return a; }
+	function g() public view returns (int) { assert(a == 5); }
 }
 
 contract User {

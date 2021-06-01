@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(end_to_end)
     vector<SourceUnit const*> full({ &unit });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(libraries)
     vector<SourceUnit const*> full({ &unit });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -171,14 +171,14 @@ BOOST_AUTO_TEST_CASE(params)
     vector<SourceUnit const*> full({ &unit });
 
     AnalysisSettings nparam_set;
-    nparam_set.persistent_user_count = 0;
+    nparam_set.aux_user_count = 0;
     nparam_set.use_concrete_users = false;
     nparam_set.use_global_contracts = false;
     nparam_set.escalate_reqs = false;
     auto stack_nparam = make_shared<AnalysisStack>(model, full, nparam_set);
 
     AnalysisSettings wparam_set;
-    wparam_set.persistent_user_count = 5;
+    wparam_set.aux_user_count = 5;
     wparam_set.use_concrete_users = true;
     wparam_set.use_global_contracts = false;
     wparam_set.escalate_reqs = true;

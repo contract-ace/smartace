@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --concrete --output-dir=%t
+// RUN: %solc %s --c-model --concrete --output-dir=%t --bundle C
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make verify 2>&1 | OutputCheck %s --comment=//

@@ -138,6 +138,8 @@ set(sources
 	modelcheck/analysis/TypeAnalyzer.h
 	modelcheck/analysis/VariableScope.cpp
 	modelcheck/analysis/VariableScope.h
+	modelcheck/cli/Bundle.cpp
+	modelcheck/cli/Bundle.h
 	modelcheck/codegen/Core.cpp
 	modelcheck/codegen/Core.h
 	modelcheck/codegen/Details.cpp

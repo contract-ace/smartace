@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --concrete --reps=1 --output-dir=%t
+// RUN: %solc %s --c-model --concrete --aux-users=1 --output-dir=%t --bundle Victim
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make cex

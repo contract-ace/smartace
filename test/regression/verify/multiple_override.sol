@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --output-dir=%t
+// RUN: %solc %s --c-model --output-dir=%t --bundle E
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make verify 2>&1 | OutputCheck %s --comment=//
@@ -11,7 +11,7 @@
 contract A {
     uint _a;
     constructor(uint a) public { _a = a; }
-     function f() internal view returns (uint) { return _a; }
+    function f() internal view returns (uint) { return _a; }
 }
 
 contract B is A {

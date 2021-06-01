@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(return_without_cast_regression)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(payable_method)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(default_constructors)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(custom_constructors)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(struct_initialization)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE(can_hide_internals)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -424,7 +424,7 @@ BOOST_AUTO_TEST_CASE(can_hide_unused_externals)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
@@ -476,7 +476,7 @@ BOOST_AUTO_TEST_CASE(inherited_duplicates)
     vector<SourceUnit const*> full({ &ast });
 
     AnalysisSettings settings;
-    settings.persistent_user_count = 0;
+    settings.aux_user_count = 0;
     settings.use_concrete_users = false;
     settings.use_global_contracts = false;
     settings.escalate_reqs = false;
