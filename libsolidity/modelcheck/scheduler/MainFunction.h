@@ -53,6 +53,7 @@ public:
     // Constructs a printer for all function forward decl's required by the ast.
     MainFunctionGenerator(
         bool _lockstep_time,
+        InvarRule _invar_rule,
         InvarType _invar_type,
         std::shared_ptr<AnalysisStack const> _stack,
         std::shared_ptr<NondetSourceRegistry> _nd_reg
@@ -109,9 +110,11 @@ private:
         VariableDeclaration const* _decl
     );
 
-    // Expands and applies interference to all mappings in _maps. Assumes that
-    // _block is the destination for the statements.
+    // Expands and applies interference to all mappings.
     CBlockList expand_interference();
+
+    // Expands and checks that interference is closed for all mappings.
+    CBlockList expand_interference_checks();
 
     //
     void apply_invariant(

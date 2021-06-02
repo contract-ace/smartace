@@ -86,6 +86,7 @@ private:
 		std::ostream & _os
 	);
 	void handleCModelBody(
+		modelcheck::MainFunctionGenerator::InvarRule _invar_rule,
 		modelcheck::MainFunctionGenerator::InvarType _invar_type,
 		std::shared_ptr<modelcheck::AnalysisStack> _stack,
 		std::shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,

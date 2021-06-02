@@ -1305,22 +1305,21 @@ void CommandLineInterface::handleCModel()
 	using dev::solidity::modelcheck::PrimitiveTypeGenerator;
 
 	// Processes invariant rule choice.
-	MainFunctionGenerator::InvarRule invar_rule_choice;
+	MainFunctionGenerator::InvarRule invar_rule;
 	if (m_args.count(g_argModelInvarRule))
 	{
 		string arg = m_args[g_argModelInvarRule].as<string>();
 		if (arg == "none")
 		{
-			invar_rule_choice = MainFunctionGenerator::InvarRule::None;
+			invar_rule = MainFunctionGenerator::InvarRule::None;
 		}
 		else if (arg == "unchecked")
 		{
-			invar_rule_choice = MainFunctionGenerator::InvarRule::Unchecked;
+			invar_rule = MainFunctionGenerator::InvarRule::Unchecked;
 		}
 		else if (arg == "checked")
 		{
-			invar_rule_choice = MainFunctionGenerator::InvarRule::Checked;
-			throw runtime_error("Checked is not yet implemented.");
+			invar_rule = MainFunctionGenerator::InvarRule::Checked;
 		}
 		else
 		{
@@ -1336,7 +1335,6 @@ void CommandLineInterface::handleCModel()
 		serr() << "Missing value for --" << g_argModelInvarRule << "." << endl;
 		return;
 	}
-	(void) invar_rule_choice;
 
 	// Processes invariant structure choice.
 	MainFunctionGenerator::InvarType invar_type;
@@ -1406,6 +1404,11 @@ void CommandLineInterface::handleCModel()
 	// Runs full analysis stack.
 	struct AnalysisSettings settings;
 	settings.aux_user_count = m_args[g_argModelAuxUsers].as<size_t>();
+	settings.inf_user_count = 0;
+	if (invar_rule == MainFunctionGenerator::InvarRule::Checked)
+	{
+		settings.inf_user_count = 1;
+	}
 	settings.use_concrete_users = (m_args.count(g_argModelConcrete) > 0);
 	settings.use_global_contracts = (m_args.count(g_argModelFailOnRequire) > 0);
 	settings.escalate_reqs = (m_args.count(g_argModelFailOnRequire) > 0);
@@ -1436,7 +1439,7 @@ void CommandLineInterface::handleCModel()
 		stringstream cmodel_cpp_data, cmodel_h_data, primitive_data, harness_data;
 		handleCModelHarness(harness_data);
 		handleCModelHeaders(astack, nondet_reg, cmodel_h_data);
-		handleCModelBody(invar_type, astack, nondet_reg, cmodel_cpp_data);
+		handleCModelBody(invar_rule, invar_type, astack, nondet_reg, cmodel_cpp_data);
 		handleCModelPrimitives(primitive_set, *nondet_reg, primitive_data);
 		createFile("primitive.h", primitive_data.str());
 		createFile("cmodel.h", cmodel_h_data.str());
@@ -1450,7 +1453,7 @@ void CommandLineInterface::handleCModel()
 		sout() << endl << endl << "======= cmodel.h =======" << endl;
 		handleCModelHeaders(astack, nondet_reg, sout());
 		sout() << endl << endl << "======= cmodel.c(pp) =======" << endl;
-		handleCModelBody(invar_type, astack, nondet_reg, sout());
+		handleCModelBody(invar_rule, invar_type, astack, nondet_reg, sout());
 		sout() << "====== primitive.h =====" << endl;
 		handleCModelPrimitives(primitive_set, *nondet_reg, sout());
 		sout() << endl;
@@ -1506,6 +1509,7 @@ void CommandLineInterface::handleCModelHeaders(
 }
 
 void CommandLineInterface::handleCModelBody(
+	modelcheck::MainFunctionGenerator::InvarRule _invar_rule,
 	modelcheck::MainFunctionGenerator::InvarType _invar_type,
 	shared_ptr<modelcheck::AnalysisStack> _stack,
 	shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,
@@ -1535,7 +1539,8 @@ void CommandLineInterface::handleCModelBody(
 	}
 
 	// Declares each invariant.
-	MainFunctionGenerator main(lockstep_time, _invar_type, _stack, _nd_reg);
+	MainFunctionGenerator
+		main(lockstep_time, _invar_rule, _invar_type, _stack, _nd_reg);
 	main.print_invariants(_os);
 
 	// Generates structure definitions.

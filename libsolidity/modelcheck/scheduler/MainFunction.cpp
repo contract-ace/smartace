@@ -34,6 +34,7 @@ namespace modelcheck
 
 MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
+    InvarRule _invar_rule,
     InvarType _invar_type,
     shared_ptr<AnalysisStack const> _stack,
     shared_ptr<NondetSourceRegistry> _nd_reg
@@ -42,6 +43,7 @@ MainFunctionGenerator::MainFunctionGenerator(
  , m_addrspace(_stack->addresses(), _nd_reg)
  , m_stategen(_stack, _nd_reg, _lockstep_time)
  , m_actors(_stack, _nd_reg)
+ , m_invar_rule(_invar_rule)
  , m_invar_type(_invar_type)
 {
     for (auto actor : m_actors.inspect())
@@ -149,6 +151,10 @@ void MainFunctionGenerator::print_main(ostream& _stream)
         m_nd_reg->range(0, call_cases->size(), "next_call")
     )->stmt());
     transactionals.push_back(call_cases);
+    transactionals.push_back(make_shared<CIf>(
+        make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
+        make_shared<CBlock>(expand_interference_checks())
+    ));
 
     // Adds transactional loop to end of body.
     LibVerify::log(main, "[Entering transaction loop]");
@@ -230,11 +236,59 @@ CBlockList MainFunctionGenerator::expand_interference()
                 block.push_back(DATA->assign(ND)->stmt());
 
                 // Applies the invariant, if applicable.
-                apply_invariant(block, false, DATA, map);
+                if (m_invar_rule != InvarRule::None)
+                {
+                    apply_invariant(block, false, DATA, map);
+                }
             }
         } while (indices.next());
     }
 
+    return block;
+}
+
+// -------------------------------------------------------------------------- //
+
+CBlockList MainFunctionGenerator::expand_interference_checks()
+{
+
+    // Only generate assertions if the invariants are checked.
+    CBlockList block;
+    if (m_invar_rule != InvarRule::Checked)
+    {
+        return block;
+    }
+
+    // Generates each assertion.
+    for (auto map : m_maps)
+    {
+        // Determines initial index.
+        // TODO: Repeated.
+        size_t offset = 0;
+        if (m_invar_type != InvarType::Universal)
+        {
+            offset = m_stack->addresses()->implicit_count();
+        }
+
+        // Checks each field.
+        auto const WIDTH = m_stack->addresses()->count();
+        auto const DEPTH = map.entry->key_types.size();
+        KeyIterator indices(WIDTH, DEPTH, offset);
+        do
+        {
+            if (indices.is_full())
+            {
+                // Determine field.
+                string const FIELD = "data" + indices.suffix();
+                auto const DATA = make_shared<CMemberAccess>(map.path, FIELD);
+
+                // Applies the invariant, if applicable.
+                apply_invariant(block, true, DATA, map);
+            }
+        } while (indices.next());
+    }
+
+    // Returns all assertions.
     return block;
 }
 
