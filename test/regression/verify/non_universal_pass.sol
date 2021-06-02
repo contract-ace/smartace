@@ -11,14 +11,31 @@
  */
 
 contract A {
-    mapping(address => int) m;
+    mapping(address => int) m1;
+    mapping(address => mapping(address => int)) m2;
     function f() public {
         require(msg.sender != address(5));
-        m[msg.sender] = m[msg.sender] + 1;
+        m1[msg.sender] = m1[msg.sender] + 1;
     }
-    function g() public {
-        assert(m[address(0)] == 0);
-        assert(m[address(5)] == 0);
-        assert(m[address(this)] == 0);
+    function g(address a) public {
+        require(msg.sender != address(5));
+        require(a != address(0));
+        require(a != address(5));
+        require(a != address(this));
+        m2[msg.sender][a] = m2[msg.sender][a] + 1;
+    }
+    function h() public {
+        assert(m1[address(0)] == 0);
+        assert(m1[address(5)] == 0);
+        assert(m1[address(this)] == 0);
+        assert(m2[address(0)][address(0)] == 0);
+        assert(m2[address(0)][address(5)] == 0);
+        assert(m2[address(0)][address(this)] == 0);
+        assert(m2[address(5)][address(0)] == 0);
+        assert(m2[address(5)][address(5)] == 0);
+        assert(m2[address(5)][address(this)] == 0);
+        assert(m2[address(this)][address(0)] == 0);
+        assert(m2[address(this)][address(5)] == 0);
+        assert(m2[address(this)][address(this)] == 0);
     }
 }
