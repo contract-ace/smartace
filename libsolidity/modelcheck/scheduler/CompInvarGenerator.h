@@ -8,7 +8,6 @@
 #pragma once
 
 #include <libsolidity/ast/AST.h>
-#include <libsolidity/modelcheck/analysis/Mapping.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/scheduler/ActorModel.h>
 #include <libsolidity/modelcheck/utils/KeyIterator.h>
@@ -70,12 +69,22 @@ public:
     CBlockList check_interference();
 
 private:
+    // Represents a field in a mapping.
+    struct MapField
+    {
+        std::list<std::string> path;
+        Type const* type;
+    };
+    using MapFieldList = std::list<MapField>;
+
     // Records mapping data for invariant instrumentation.
     struct MapData
     {
         size_t id;
+        size_t depth;
         CExprPtr path;
-        MapDeflate::Record entry;
+        TypeName const* base_type;
+        MapFieldList fields;
         std::string display;
     };
     std::vector<MapData> m_maps;
@@ -106,15 +115,20 @@ private:
     // _block. If _assert is set, then the invariant is asserted, otherwise it
     // is assumed.
     void apply_invariant(
-        CBlockList &_block, bool _assert, CExprPtr _data, MapData &_map
+        CBlockList &_block, bool _assert, CExprPtr _data, MapData const& _map
     );
 
     // Generates the invariant parameters for a mapping with value type _vtype.
-    CParams generate_params(Type const* _vtype);
+    CParams generate_params(MapFieldList const& _fields);
 
     // Generates the invariant body for a mapping with parameters _params and
     // synthesis placeholder method _infer.
     CBlockList generate_body(std::string _infer, CParams &_params);
+
+    //
+    void extract_map_fields(
+        MapFieldList &_fields, std::list<std::string> &_path, Type const *_ty
+    );
 };
 
 // -------------------------------------------------------------------------- //

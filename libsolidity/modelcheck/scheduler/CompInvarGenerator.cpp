@@ -7,6 +7,7 @@
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+#include <libsolidity/modelcheck/utils/Primitives.h>
 
 using namespace std;
 
@@ -52,7 +53,7 @@ void CompInvarGenerator::print_invariants(ostream& _stream)
         auto infer_id = make_shared<CVarDecl>(ty, infer_name);
 
         // Generates body.
-        auto params = generate_params(map.entry->value_type->annotation().type);
+        auto params = generate_params(map.fields);
         auto body = make_shared<CBlock>(generate_body(infer_name, params));
 
         // Outputs definitions.
@@ -87,7 +88,7 @@ CBlockList CompInvarGenerator::apply_interference(NondetSourceRegistry &nd_reg)
 
         // Non-deterministically initializes each field.
         auto const WIDTH = m_stack->addresses()->count();
-        auto const DEPTH = map.entry->key_types.size();
+        auto const DEPTH = map.depth;
         KeyIterator indices(WIDTH, DEPTH, offset);
         do
         {
@@ -99,7 +100,7 @@ CBlockList CompInvarGenerator::apply_interference(NondetSourceRegistry &nd_reg)
 
                 // Create non-deterministic value.
                 string const MSG = map.display + "::" + indices.suffix();
-                auto const ND = nd_reg.val(*map.entry->value_type, MSG);
+                auto const ND = nd_reg.val(*map.base_type, MSG);
 
                 // Initializes.
                 block.push_back(DATA->assign(ND)->stmt());
@@ -141,7 +142,7 @@ CBlockList CompInvarGenerator::check_interference()
 
         // Checks each field.
         auto const WIDTH = m_stack->addresses()->count();
-        auto const DEPTH = map.entry->key_types.size();
+        auto const DEPTH = map.depth;
         KeyIterator indices(WIDTH, DEPTH, offset);
         do
         {
@@ -189,22 +190,39 @@ void CompInvarGenerator::identify_maps(
     else if (auto entry = m_stack->types()->map_db().resolve(*_decl))
     {
         // Registers map.
-        m_maps.push_back(MapData{m_maps.size(), _path, entry, _display});
+        m_maps.emplace_back();
+        m_maps.back().id = m_maps.size();
+        m_maps.back().depth = entry->key_types.size();
+        m_maps.back().path = _path;
+        m_maps.back().base_type = entry->value_type;
+        m_maps.back().display = _display;
+
+        // Populates fields.
+        list<string> path;
+        auto & fields = m_maps.back().fields;
+        extract_map_fields(fields, path, entry->value_type->annotation().type);
     }
 }
 
 // -------------------------------------------------------------------------- //
 
 void CompInvarGenerator::apply_invariant(
-    CBlockList &_block, bool _assert, CExprPtr _data, MapData &_map
+    CBlockList &_block, bool _assert, CExprPtr _data, MapData const& _map
 )
 {
-    // Extracts data.
-    auto raw_data = make_shared<CMemberAccess>(_data, "v");
-
     // Generates invariant call.
     CFuncCallBuilder inv_builder("Inv_" + to_string(_map.id));
-    inv_builder.push(raw_data);
+    for (auto field : _map.fields)
+    {
+        // Extracts data.
+        auto data = _data;
+        for (auto id : field.path)
+        {
+            data = make_shared<CMemberAccess>(data, id);
+        }
+        data = make_shared<CMemberAccess>(data, "v");
+        inv_builder.push(data);
+    }
     auto inv_call = inv_builder.merge_and_pop();
 
     // Applies invariant.
@@ -229,20 +247,30 @@ void CompInvarGenerator::apply_invariant(
 
 // -------------------------------------------------------------------------- //
 
-CParams CompInvarGenerator::generate_params(Type const* _vtype)
+CParams CompInvarGenerator::generate_params(MapFieldList const& _fields)
 {
     CParams params;
-    if (auto struct_type = dynamic_cast<StructType const*>(_vtype))
+    for (auto field : _fields)
     {
-        (void) struct_type;
-        // TODO: Add support for non-structure invariants.
-        throw runtime_error("Struct invariants are not yet supported.");
-    }
-    else
-    {
+        // Determines type.
+        string raw;
+        auto type = field.type;
+        if (type->category() == Type::Category::Bool)
+        {
+            raw = PrimitiveToRaw::boolean();
+        }
+        else if (auto itype = dynamic_cast<IntegerType const*>(type))
+        {
+            raw = PrimitiveToRaw::integer(itype->numBits(), itype->isSigned());
+        }
+        else
+        {
+            throw runtime_error("Unknown type: " + type->canonicalName());
+        }
+
         // TODO: extract bool, width, ect. (reuse primitive analysis).
-        string raw = "int";
-        params.push_back(make_shared<CVarDecl>(raw, "v", false));
+        string name = "v" + to_string(params.size());
+        params.push_back(make_shared<CVarDecl>(raw, name, false));
     }
     return params;
 }
@@ -282,6 +310,31 @@ CBlockList CompInvarGenerator::generate_body(string _infer, CParams &_params)
     }
 
     return stmts;
+}
+
+// -------------------------------------------------------------------------- //
+
+void CompInvarGenerator::extract_map_fields(
+    MapFieldList &_fields, list<string> &_path, Type const *_ty
+)
+{
+    if (auto struct_type = dynamic_cast<StructType const*>(_ty))
+    {
+        for (auto decl : struct_type->structDefinition().members())
+        {
+            auto name = VariableScopeResolver::rewrite(
+                decl->name(), false, VarContext::STRUCT
+            );
+
+            _path.push_back(name);
+            extract_map_fields(_fields, _path, decl->annotation().type);
+            _path.pop_back();
+        }
+    }
+    else
+    {
+        _fields.push_back(MapField{_path, _ty});
+    }
 }
 
 // -------------------------------------------------------------------------- //
