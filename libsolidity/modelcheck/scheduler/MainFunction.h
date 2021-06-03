@@ -43,6 +43,7 @@ public:
         bool _lockstep_time,
         CompInvarGenerator::InvarRule _invar_rule,
         CompInvarGenerator::InvarType _invar_type,
+        bool _stateful_invar,
         bool _infer_invar,
         std::shared_ptr<AnalysisStack const> _stack,
         std::shared_ptr<NondetSourceRegistry> _nd_reg

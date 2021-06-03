@@ -56,6 +56,7 @@ public:
         std::list<Actor> const& _actors,
         InvarRule _rule,
         InvarType _type,
+        bool _stateful,
         bool _infer
     );
 
@@ -89,6 +90,14 @@ private:
     };
     std::vector<MapData> m_maps;
 
+    // Records contract state that must be passed to an invariant.
+    struct SharedData
+    {
+        CExprPtr path;
+        Type const* type;
+    };
+    std::vector<SharedData> m_control_state;
+
     // Analysis results.
     std::shared_ptr<AnalysisStack const> m_stack;
 
@@ -104,7 +113,8 @@ private:
     // Records all mappings within _maps. The list is computed recursively,
     // interating over each declaration within _contract. This assumes that
     // _decl is a substructure in _contract with path given by _path.
-    void identify_maps(
+    void analyze_actor(
+        bool _stateful,
         CExprPtr _path,
         FlatContract const& _contract,
         std::string _display,

@@ -8,6 +8,7 @@
 #include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Primitives.h>
+#include <libsolidity/modelcheck/utils/Types.h>
 
 using namespace std;
 
@@ -25,15 +26,19 @@ CompInvarGenerator::CompInvarGenerator(
     list<Actor> const& _actors,
     InvarRule _rule,
     InvarType _type,
+    bool _stateful,
     bool _infer
 ): m_stack(_stack), m_rule(_rule), m_type(_type), m_infer(_infer)
 {
+    // Extracts mappings.
     for (auto actor : _actors)
     {
         auto const& contract = (*actor.contract);
         for (auto decl : contract.state_variables())
         {
-            identify_maps(actor.decl->id(), contract, contract.name(), decl);
+            analyze_actor(
+                _stateful, actor.decl->id(), contract, contract.name(), decl
+            );
         }
     }
 }
@@ -164,7 +169,8 @@ CBlockList CompInvarGenerator::check_interference()
 
 // -------------------------------------------------------------------------- //
 
-void CompInvarGenerator::identify_maps(
+void CompInvarGenerator::analyze_actor(
+    bool _stateful,
     CExprPtr _path,
     FlatContract const& _contract,
     string _display,
@@ -184,7 +190,9 @@ void CompInvarGenerator::identify_maps(
         // If _decl is a struct, expand to all children.
         for (auto child : rec->fields())
         {
-            identify_maps(_path, _contract, _display, child.get());
+            analyze_actor(
+                _stateful, _path, _contract, _display, child.get()
+            );
         }
     }
     else if (auto entry = m_stack->types()->map_db().resolve(*_decl))
@@ -202,6 +210,15 @@ void CompInvarGenerator::identify_maps(
         auto & fields = m_maps.back().fields;
         extract_map_fields(fields, path, entry->value_type->annotation().type);
     }
+    else if (_stateful && is_simple_type(*_decl->annotation().type))
+    {
+        if (_decl->annotation().type->category() != Type::Category::Address)
+        {
+            m_control_state.emplace_back();
+            m_control_state.back().path = _path;
+            m_control_state.back().type = _decl->annotation().type;
+        }
+    }
 }
 
 // -------------------------------------------------------------------------- //
@@ -212,6 +229,10 @@ void CompInvarGenerator::apply_invariant(
 {
     // Generates invariant call.
     CFuncCallBuilder inv_builder("Inv_" + to_string(_map.id));
+    for (auto state : m_control_state)
+    {
+        inv_builder.push(make_shared<CMemberAccess>(state.path, "v"));
+    }
     for (auto field : _map.fields)
     {
         // Extracts data.
@@ -250,11 +271,12 @@ void CompInvarGenerator::apply_invariant(
 CParams CompInvarGenerator::generate_params(MapFieldList const& _fields)
 {
     CParams params;
-    for (auto field : _fields)
+
+    // Helper function to add params.
+    auto add_param = [&](Type const* type)
     {
         // Determines type.
         string raw;
-        auto type = field.type;
         if (type->category() == Type::Category::Bool)
         {
             raw = PrimitiveToRaw::boolean();
@@ -268,10 +290,24 @@ CParams CompInvarGenerator::generate_params(MapFieldList const& _fields)
             throw runtime_error("Unknown type: " + type->canonicalName());
         }
 
-        // TODO: extract bool, width, ect. (reuse primitive analysis).
+        // Adds param to list.
         string name = "v" + to_string(params.size());
         params.push_back(make_shared<CVarDecl>(raw, name, false));
+    };
+
+    // Adds control state to invariant signature.
+    for (auto state : m_control_state)
+    {
+        add_param(state.type);
     }
+
+    // Adds mapping data to invariant signature.
+    for (auto field : _fields)
+    {
+        add_param(field.type);
+    }
+
+    // Returns parameter list.
     return params;
 }
 
@@ -318,20 +354,23 @@ void CompInvarGenerator::extract_map_fields(
     MapFieldList &_fields, list<string> &_path, Type const *_ty
 )
 {
+    // If this is a structure, every sub-field must be analyzed.
     if (auto struct_type = dynamic_cast<StructType const*>(_ty))
     {
         for (auto decl : struct_type->structDefinition().members())
         {
+            // Determines field name.
             auto name = VariableScopeResolver::rewrite(
                 decl->name(), false, VarContext::STRUCT
             );
 
+            // Recurses on field.
             _path.push_back(name);
             extract_map_fields(_fields, _path, decl->annotation().type);
             _path.pop_back();
         }
     }
-    else
+    else if (is_simple_type(*_ty))
     {
         _fields.push_back(MapField{_path, _ty});
     }

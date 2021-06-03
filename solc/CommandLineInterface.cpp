@@ -140,6 +140,7 @@ static string const g_strModelAllowFallbacks = "allow-fallbacks";
 static string const g_strModelInvarRule = "invar-rule";
 static string const g_strModelInvarType = "invar-type";
 static string const g_strModelInvarInfer = "invar-infer";
+static string const g_strModelInvarStateful = "invar-stateful";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -203,6 +204,7 @@ static string const g_argModelAllowFallbacks = g_strModelAllowFallbacks;
 static string const g_argModelInvarRule = g_strModelInvarRule;
 static string const g_argModelInvarType = g_strModelInvarType;
 static string const g_argModelInvarInfer = g_strModelInvarInfer;
+static string const g_argModelInvarStateful = g_strModelInvarStateful;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -853,6 +855,11 @@ Allowed options)",
 			g_argModelInvarInfer.c_str(),
 			po::value<bool>()->value_name("on")->default_value(false),
 			"Enables automatic discovery of compositional invariants."
+		)
+		(
+			g_argModelInvarStateful.c_str(),
+			po::value<bool>()->value_name("on")->default_value(false),
+			"Allows compositional invariants to depend on shared contract state."
 		);
 	desc.add(smartaceOptions);
 
@@ -1535,6 +1542,7 @@ void CommandLineInterface::handleCModelBody(
 	size_t addr_ct = _stack->addresses()->count();
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
 	bool infer_invar = m_args[g_argModelInvarInfer].as<bool>();
+	bool stateful_invar = m_args[g_argModelInvarStateful].as<bool>();
 
 	// Includes header.
 	_os << "#include \"cmodel.h\"" << endl;
@@ -1552,7 +1560,13 @@ void CommandLineInterface::handleCModelBody(
 
 	// Declares each invariant.
 	MainFunctionGenerator main(
-		lockstep_time, _invar_rule, _invar_type, infer_invar, _stack, _nd_reg
+		lockstep_time,
+		_invar_rule,
+		_invar_type,
+		stateful_invar,
+		infer_invar,
+		_stack,
+		_nd_reg
 	);
 	main.print_invariants(_os);
 

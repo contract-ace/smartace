@@ -9,12 +9,18 @@
  */
 
 contract A {
-    mapping(address => int) m1;
-    mapping(address => int) m2;
-    mapping(address => int) m3;
-    function f(address a1, address a2) public {
-        m1[a1] += 1;
-        m2[a2] += 1;
-        m3[msg.sender] += 1;
+    struct S {
+        int a;
+        int b;
+    }
+    mapping(address => S) m;
+    function f() public {
+        S memory s = m[msg.sender];
+        s.a += 1;
+        s.b += 1;
+        m[msg.sender] = s;
+    }
+    function g() public {
+        assert(m[msg.sender].a == m[msg.sender].b);
     }
 }
