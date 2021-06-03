@@ -139,6 +139,7 @@ static string const g_strModelFailOnRequire = "fail-on-require";
 static string const g_strModelAllowFallbacks = "allow-fallbacks";
 static string const g_strModelInvarRule = "invar-rule";
 static string const g_strModelInvarType = "invar-type";
+static string const g_strModelInvarInfer = "invar-infer";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -201,6 +202,7 @@ static string const g_argModelFailOnRequire = g_strModelFailOnRequire;
 static string const g_argModelAllowFallbacks = g_strModelAllowFallbacks;
 static string const g_argModelInvarRule = g_strModelInvarRule;
 static string const g_argModelInvarType = g_strModelInvarType;
+static string const g_argModelInvarInfer = g_strModelInvarInfer;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argGas = g_strGas;
@@ -846,6 +848,11 @@ Allowed options)",
 			g_argModelInvarType.c_str(),
 			po::value<string>()->value_name("type")->default_value("universal"),
 			"Select desired invariant layout. Either 'universal' (applied to implict users), 'singleton', or 'rolebased'."
+		)
+		(
+			g_argModelInvarInfer.c_str(),
+			po::value<bool>()->value_name("on")->default_value(false),
+			"Enables automatic discovery of compositional invariants."
 		);
 	desc.add(smartaceOptions);
 
@@ -1527,9 +1534,14 @@ void CommandLineInterface::handleCModelBody(
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 	size_t addr_ct = _stack->addresses()->count();
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
+	bool infer_invar = m_args[g_argModelInvarInfer].as<bool>();
 
 	// Includes header.
 	_os << "#include \"cmodel.h\"" << endl;
+	if (infer_invar)
+	{
+		_os << "#include \"seahorn/seahorn.h\"" << endl;
+	}
 
 	// Generates global constants for literal addresses.
 	for (auto lit : _stack->addresses()->literals())
@@ -1539,8 +1551,9 @@ void CommandLineInterface::handleCModelBody(
 	}
 
 	// Declares each invariant.
-	MainFunctionGenerator
-		main(lockstep_time, _invar_rule, _invar_type, _stack, _nd_reg);
+	MainFunctionGenerator main(
+		lockstep_time, _invar_rule, _invar_type, infer_invar, _stack, _nd_reg
+	);
 	main.print_invariants(_os);
 
 	// Generates structure definitions.

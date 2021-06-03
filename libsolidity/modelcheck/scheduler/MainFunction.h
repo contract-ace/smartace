@@ -55,6 +55,7 @@ public:
         bool _lockstep_time,
         InvarRule _invar_rule,
         InvarType _invar_type,
+        bool _infer_invar,
         std::shared_ptr<AnalysisStack const> _stack,
         std::shared_ptr<NondetSourceRegistry> _nd_reg
     );
@@ -99,6 +100,9 @@ private:
 
     // The invariant type used by the harness.
     InvarType m_invar_type;
+
+    // If true, then checked invariants are also inferred.
+    bool m_infer_invar;
 
     // Records all mappings within _maps. The list is computed recursively,
     // interating over each declaration within _contract. This assumes that

@@ -36,6 +36,7 @@ MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
     InvarRule _invar_rule,
     InvarType _invar_type,
+    bool _infer_invar,
     shared_ptr<AnalysisStack const> _stack,
     shared_ptr<NondetSourceRegistry> _nd_reg
 ): m_stack(_stack)
@@ -45,6 +46,7 @@ MainFunctionGenerator::MainFunctionGenerator(
  , m_actors(_stack, _nd_reg)
  , m_invar_rule(_invar_rule)
  , m_invar_type(_invar_type)
+ , m_infer_invar(_infer_invar)
 {
     for (auto actor : m_actors.inspect())
     {
@@ -64,8 +66,17 @@ void MainFunctionGenerator::print_invariants(std::ostream& _stream)
 
     for (auto map : m_maps)
     {
+        string infer_name = "Infer_" + to_string(map.id);
+
         // Generates identifier.
-        auto id = make_shared<CVarDecl>("int", "Inv_" + to_string(map.id));
+        string ty = "int";
+        if (m_infer_invar)
+        {
+            // TODO: import bool unconditionally.
+            ty = "bool";
+        }
+        auto inv_id = make_shared<CVarDecl>(ty, "Inv_" + to_string(map.id));
+        auto infer_id = make_shared<CVarDecl>(ty, infer_name);
 
         // Generates parameters.
         CParams params;
@@ -78,18 +89,48 @@ void MainFunctionGenerator::print_invariants(std::ostream& _stream)
         }
         else
         {
-            string type = m_stack->types()->get_simple_ctype(*value_type);
-            params.push_back(make_shared<CVarDecl>(move(type), "v", false));
+            // TODO: extract bool, width, ect. (reuse primitive analysis).
+            string raw = "int";
+            params.push_back(make_shared<CVarDecl>(raw, "v", false));
         }
 
         // Generates default body.
         CBlockList stmts;
-        stmts.push_back(make_shared<CReturn>(Literals::ONE));
+        auto ret = make_shared<CReturn>(Literals::ONE);
+        if (m_infer_invar)
+        {
+            CFuncCallBuilder call_builder(infer_name);
+            for (auto param : params)
+            {
+                auto arg = param->id();
+
+                // Generates base case.
+                auto check = make_shared<CBinaryOp>(arg, "==", Literals::ZERO);
+                stmts.push_back(make_shared<CIf>(check, ret));
+
+                // Generates synthesis fallback.
+                call_builder.push(arg);
+            }
+            stmts.push_back(make_shared<CReturn>(call_builder.merge_and_pop()));
+        }
+        else
+        {
+            stmts.push_back(ret);
+        }
         auto body = make_shared<CBlock>(move(stmts));
 
-        // Outputs definition.
-        CFuncDef inv(id, move(params), move(body));
-        _stream << inv;
+        // Outputs definitions.
+        CFuncDef inv(inv_id, params, move(body));
+        if (m_infer_invar)
+        {
+            CFuncDef inf(infer_id, params, nullptr, CFuncDef::Modifier::EXTERN);
+            _stream << inf;
+            _stream << "PARTIAL_FN " << inv;
+        }
+        else
+        {
+            _stream << inv;
+        }
     }
 }
 
@@ -298,18 +339,31 @@ void MainFunctionGenerator::apply_invariant(
     CBlockList &_block, bool _assert, CExprPtr _data, MapData &_map
 )
 {
+    // Extracts data.
+    auto raw_data = make_shared<CMemberAccess>(_data, "v");
+
     // Generates invariant call.
-    CFuncCallBuilder call_builder("Inv_" + to_string(_map.id));
-    call_builder.push(_data);
+    CFuncCallBuilder inv_builder("Inv_" + to_string(_map.id));
+    inv_builder.push(raw_data);
+    auto inv_call = inv_builder.merge_and_pop();
 
     // Applies invariant.
-    if (_assert)
+    if (m_infer_invar)
     {
-        LibVerify::add_assert(_block, call_builder.merge_and_pop());
+        CFuncCallBuilder chk_builder(_assert ? "__VERIFIER_assert" : "assume");
+        chk_builder.push(inv_call);
+        _block.push_back(chk_builder.merge_and_pop_stmt());
     }
     else
     {
-        LibVerify::add_require(_block, call_builder.merge_and_pop());
+        if (_assert)
+        {
+            LibVerify::add_assert(_block, inv_call);
+        }
+        else
+        {
+            LibVerify::add_require(_block, inv_call);
+        }
     }
 }
 
