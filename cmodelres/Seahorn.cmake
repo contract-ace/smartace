@@ -97,7 +97,7 @@ if(SEA_EXE)
         )
         add_custom_command(
             OUTPUT ${SEA_FINAL_LL}
-            COMMAND ${LLVM_DIS_EXE} "${SEA_INSPECT_TEMP_ABS}/${SEA_FINAL_BC}" -o "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
+            COMMAND ${LLVM_DIS_EXE} "${SEA_INSPECT_TEMP_ABS}/${SEA_FINAL_BC}" -o="${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
             DEPENDS "${SEA_INSPECT_TEMP_ABS}/${SEA_FINAL_BC}"
         )
         add_custom_target(
@@ -121,7 +121,7 @@ if(SEA_EXE)
     )
     add_custom_target(
         witness
-        COMMAND ${SEA_EXE} yama ${SEA_CEX_YAMA} exe-cex ${SEAHORN_DEPS} ${SEA_FULL_ARGS} -DMC_LOG_ALL -o witness
+        COMMAND ${SEA_EXE} yama ${SEA_CEX_YAMA} exe-cex ${SEAHORN_DEPS} ${SEA_FULL_ARGS} -DMC_LOG_ALL -o=witness
         COMMAND_EXPAND_LISTS
     )
 endif()
