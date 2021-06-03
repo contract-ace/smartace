@@ -166,6 +166,8 @@ set(sources
 	modelcheck/scheduler/ActorModel.h
 	modelcheck/scheduler/AddressSpace.cpp
 	modelcheck/scheduler/AddressSpace.h
+	modelcheck/scheduler/CompInvarGenerator.cpp
+	modelcheck/scheduler/CompInvarGenerator.h
 	modelcheck/scheduler/MainFunction.cpp
 	modelcheck/scheduler/MainFunction.h
 	modelcheck/scheduler/StateGenerator.cpp

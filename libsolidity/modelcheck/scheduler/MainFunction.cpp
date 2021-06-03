@@ -4,20 +4,14 @@
 #include <libsolidity/modelcheck/analysis/AnalysisStack.h>
 #include <libsolidity/modelcheck/analysis/AllocationSites.h>
 #include <libsolidity/modelcheck/analysis/CallState.h>
+#include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
-#include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
-#include <libsolidity/modelcheck/model/Mapping.h>
 #include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
-
-
-#include <libsolidity/modelcheck/analysis/Inheritance.h>
-#include <libsolidity/modelcheck/utils/KeyIterator.h>
-
 
 #include <set>
 
@@ -34,8 +28,8 @@ namespace modelcheck
 
 MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
-    InvarRule _invar_rule,
-    InvarType _invar_type,
+    CompInvarGenerator::InvarRule _invar_rule,
+    CompInvarGenerator::InvarType _invar_type,
     bool _infer_invar,
     shared_ptr<AnalysisStack const> _stack,
     shared_ptr<NondetSourceRegistry> _nd_reg
@@ -44,99 +38,20 @@ MainFunctionGenerator::MainFunctionGenerator(
  , m_addrspace(_stack->addresses(), _nd_reg)
  , m_stategen(_stack, _nd_reg, _lockstep_time)
  , m_actors(_stack, _nd_reg)
- , m_invar_rule(_invar_rule)
- , m_invar_type(_invar_type)
- , m_infer_invar(_infer_invar)
+ , m_invars(_stack, m_actors.inspect(), _invar_rule, _invar_type, _infer_invar)
 {
-    for (auto actor : m_actors.inspect())
-    {
-        auto const& contract = (*actor.contract);
-        for (auto decl : contract.state_variables())
-        {
-            identify_maps(actor.decl->id(), contract, contract.name(), decl);
-        }
-    }
 }
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::print_invariants(std::ostream& _stream)
+void MainFunctionGenerator::print_invariants(ostream& _stream)
 {
-    if (m_invar_rule == InvarRule::None) return;
-
-    for (auto map : m_maps)
-    {
-        string infer_name = "Infer_" + to_string(map.id);
-
-        // Generates identifier.
-        string ty = "int";
-        if (m_infer_invar)
-        {
-            // TODO: import bool unconditionally.
-            ty = "bool";
-        }
-        auto inv_id = make_shared<CVarDecl>(ty, "Inv_" + to_string(map.id));
-        auto infer_id = make_shared<CVarDecl>(ty, infer_name);
-
-        // Generates parameters.
-        CParams params;
-        auto value_type = map.entry->value_type->annotation().type;
-        if (auto struct_type = dynamic_cast<StructType const*>(value_type))
-        {
-            (void) struct_type;
-            // TODO: Add support for non-structure invariants.
-            throw runtime_error("Struct invariants are not yet supported.");
-        }
-        else
-        {
-            // TODO: extract bool, width, ect. (reuse primitive analysis).
-            string raw = "int";
-            params.push_back(make_shared<CVarDecl>(raw, "v", false));
-        }
-
-        // Generates default body.
-        CBlockList stmts;
-        auto ret = make_shared<CReturn>(Literals::ONE);
-        if (m_infer_invar)
-        {
-            CFuncCallBuilder call_builder(infer_name);
-            for (auto param : params)
-            {
-                auto arg = param->id();
-
-                // Generates base case.
-                auto check = make_shared<CBinaryOp>(arg, "==", Literals::ZERO);
-                stmts.push_back(make_shared<CIf>(check, ret));
-
-                // Generates synthesis fallback.
-                call_builder.push(arg);
-            }
-            stmts.push_back(make_shared<CReturn>(call_builder.merge_and_pop()));
-        }
-        else
-        {
-            stmts.push_back(ret);
-        }
-        auto body = make_shared<CBlock>(move(stmts));
-
-        // Outputs definitions.
-        CFuncDef inv(inv_id, params, move(body));
-        if (m_infer_invar)
-        {
-            CFuncDef inf(infer_id, params, nullptr, CFuncDef::Modifier::EXTERN);
-            _stream << inf;
-            _stream << "PARTIAL_FN " << inv;
-        }
-        else
-        {
-            _stream << inv;
-        }
-    }
+    m_invars.print_invariants(_stream);
 }
 
 // -------------------------------------------------------------------------- //
 
-void MainFunctionGenerator::print_globals(std::ostream& _stream)
+void MainFunctionGenerator::print_globals(ostream& _stream)
 {
     m_actors.declare_global(_stream);
 }
@@ -184,7 +99,7 @@ void MainFunctionGenerator::print_main(ostream& _stream)
     );
     transactionals.push_back(make_shared<CIf>(
         make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
-        make_shared<CBlock>(expand_interference())
+        make_shared<CBlock>(m_invars.apply_interference(*m_nd_reg))
     ));
     m_stategen.update_global(transactionals);
     transactionals.push_back(next_case);
@@ -194,7 +109,7 @@ void MainFunctionGenerator::print_main(ostream& _stream)
     transactionals.push_back(call_cases);
     transactionals.push_back(make_shared<CIf>(
         make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
-        make_shared<CBlock>(expand_interference_checks())
+        make_shared<CBlock>(m_invars.check_interference())
     ));
 
     // Adds transactional loop to end of body.
@@ -208,163 +123,6 @@ void MainFunctionGenerator::print_main(ostream& _stream)
     // Implements body as a run_model function.
     auto id = make_shared<CVarDecl>("void", "run_model");
     _stream << CFuncDef(id, CParams{}, make_shared<CBlock>(move(main)));
-}
-
-// -------------------------------------------------------------------------- //
-
-void MainFunctionGenerator::identify_maps(
-    CExprPtr _path,
-    FlatContract const& _contract,
-    string _display,
-    VariableDeclaration const* _decl
-)
-{
-    // Updates path.
-    auto const NAME = VariableScopeResolver::rewrite(
-        _decl->name(), false, VarContext::STRUCT
-    );
-    _path = make_shared<CMemberAccess>(_path, NAME);
-    _display += "::" + _decl->name();
-
-    // Determines if _decl is a map/struct.
-    if (auto rec = _contract.find_structure(_decl))
-    {
-        // If _decl is a struct, expand to all children.
-        for (auto child : rec->fields())
-        {
-            identify_maps(_path, _contract, _display, child.get());
-        }
-    }
-    else if (auto entry = m_stack->types()->map_db().resolve(*_decl))
-    {
-        // Registers map.
-        m_maps.push_back(MapData{m_maps.size(), _path, entry, _display});
-    }
-}
-
-// -------------------------------------------------------------------------- //
-
-CBlockList MainFunctionGenerator::expand_interference()
-{
-    CBlockList block;
-
-    for (auto map : m_maps)
-    {
-        // Determines initial index.
-        size_t offset = 0;
-        if (m_invar_type != InvarType::Universal)
-        {
-            offset = m_stack->addresses()->implicit_count();
-        }
-
-        // Non-deterministically initializes each field.
-        auto const WIDTH = m_stack->addresses()->count();
-        auto const DEPTH = map.entry->key_types.size();
-        KeyIterator indices(WIDTH, DEPTH, offset);
-        do
-        {
-            if (indices.is_full())
-            {
-                // Determine field.
-                string const FIELD = "data" + indices.suffix();
-                auto const DATA = make_shared<CMemberAccess>(map.path, FIELD);
-
-                // Create non-deterministic value.
-                string const MSG = map.display + "::" + indices.suffix();
-                auto const ND = m_nd_reg->val(*map.entry->value_type, MSG);
-
-                // Initializes.
-                block.push_back(DATA->assign(ND)->stmt());
-
-                // Applies the invariant, if applicable.
-                if (m_invar_rule != InvarRule::None)
-                {
-                    apply_invariant(block, false, DATA, map);
-                }
-            }
-        } while (indices.next());
-    }
-
-    return block;
-}
-
-// -------------------------------------------------------------------------- //
-
-CBlockList MainFunctionGenerator::expand_interference_checks()
-{
-
-    // Only generate assertions if the invariants are checked.
-    CBlockList block;
-    if (m_invar_rule != InvarRule::Checked)
-    {
-        return block;
-    }
-
-    // Generates each assertion.
-    for (auto map : m_maps)
-    {
-        // Determines initial index.
-        // TODO: Repeated.
-        size_t offset = 0;
-        if (m_invar_type != InvarType::Universal)
-        {
-            offset = m_stack->addresses()->implicit_count();
-        }
-
-        // Checks each field.
-        auto const WIDTH = m_stack->addresses()->count();
-        auto const DEPTH = map.entry->key_types.size();
-        KeyIterator indices(WIDTH, DEPTH, offset);
-        do
-        {
-            if (indices.is_full())
-            {
-                // Determine field.
-                string const FIELD = "data" + indices.suffix();
-                auto const DATA = make_shared<CMemberAccess>(map.path, FIELD);
-
-                // Applies the invariant, if applicable.
-                apply_invariant(block, true, DATA, map);
-            }
-        } while (indices.next());
-    }
-
-    // Returns all assertions.
-    return block;
-}
-
-// -------------------------------------------------------------------------- //
-
-void MainFunctionGenerator::apply_invariant(
-    CBlockList &_block, bool _assert, CExprPtr _data, MapData &_map
-)
-{
-    // Extracts data.
-    auto raw_data = make_shared<CMemberAccess>(_data, "v");
-
-    // Generates invariant call.
-    CFuncCallBuilder inv_builder("Inv_" + to_string(_map.id));
-    inv_builder.push(raw_data);
-    auto inv_call = inv_builder.merge_and_pop();
-
-    // Applies invariant.
-    if (m_infer_invar)
-    {
-        CFuncCallBuilder chk_builder(_assert ? "__VERIFIER_assert" : "assume");
-        chk_builder.push(inv_call);
-        _block.push_back(chk_builder.merge_and_pop_stmt());
-    }
-    else
-    {
-        if (_assert)
-        {
-            LibVerify::add_assert(_block, inv_call);
-        }
-        else
-        {
-            LibVerify::add_require(_block, inv_call);
-        }
-    }
 }
 
 // -------------------------------------------------------------------------- //

@@ -1307,26 +1307,26 @@ void CommandLineInterface::handleCModel()
 	using dev::solidity::modelcheck::AnalysisSettings;
 	using dev::solidity::modelcheck::AnalysisStack;
 	using dev::solidity::modelcheck::BundleExtractor;
-	using dev::solidity::modelcheck::MainFunctionGenerator;
+	using dev::solidity::modelcheck::CompInvarGenerator;
 	using dev::solidity::modelcheck::NondetSourceRegistry;
 	using dev::solidity::modelcheck::PrimitiveTypeGenerator;
 
 	// Processes invariant rule choice.
-	MainFunctionGenerator::InvarRule invar_rule;
+	CompInvarGenerator::InvarRule invar_rule;
 	if (m_args.count(g_argModelInvarRule))
 	{
 		string arg = m_args[g_argModelInvarRule].as<string>();
 		if (arg == "none")
 		{
-			invar_rule = MainFunctionGenerator::InvarRule::None;
+			invar_rule = CompInvarGenerator::InvarRule::None;
 		}
 		else if (arg == "unchecked")
 		{
-			invar_rule = MainFunctionGenerator::InvarRule::Unchecked;
+			invar_rule = CompInvarGenerator::InvarRule::Unchecked;
 		}
 		else if (arg == "checked")
 		{
-			invar_rule = MainFunctionGenerator::InvarRule::Checked;
+			invar_rule = CompInvarGenerator::InvarRule::Checked;
 		}
 		else
 		{
@@ -1344,21 +1344,21 @@ void CommandLineInterface::handleCModel()
 	}
 
 	// Processes invariant structure choice.
-	MainFunctionGenerator::InvarType invar_type;
+	CompInvarGenerator::InvarType invar_type;
 	if (m_args.count(g_argModelInvarType))
 	{
 		string arg = m_args[g_argModelInvarType].as<string>();
 		if (arg == "universal")
 		{
-			invar_type = MainFunctionGenerator::InvarType::Universal;
+			invar_type = CompInvarGenerator::InvarType::Universal;
 		}
 		else if (arg == "singleton")
 		{
-			invar_type = MainFunctionGenerator::InvarType::Singleton;
+			invar_type = CompInvarGenerator::InvarType::Singleton;
 		}
 		else if (arg == "rolebased")
 		{
-			invar_type = MainFunctionGenerator::InvarType::RoleBased;
+			invar_type = CompInvarGenerator::InvarType::RoleBased;
 			throw runtime_error("RoleBased is not yet implemented.");
 		}
 		else
@@ -1412,7 +1412,7 @@ void CommandLineInterface::handleCModel()
 	struct AnalysisSettings settings;
 	settings.aux_user_count = m_args[g_argModelAuxUsers].as<size_t>();
 	settings.inf_user_count = 0;
-	if (invar_rule == MainFunctionGenerator::InvarRule::Checked)
+	if (invar_rule == CompInvarGenerator::InvarRule::Checked)
 	{
 		settings.inf_user_count = 1;
 	}
@@ -1516,8 +1516,8 @@ void CommandLineInterface::handleCModelHeaders(
 }
 
 void CommandLineInterface::handleCModelBody(
-	modelcheck::MainFunctionGenerator::InvarRule _invar_rule,
-	modelcheck::MainFunctionGenerator::InvarType _invar_type,
+	modelcheck::CompInvarGenerator::InvarRule _invar_rule,
+	modelcheck::CompInvarGenerator::InvarType _invar_type,
 	shared_ptr<modelcheck::AnalysisStack> _stack,
 	shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,
 	ostream& _os

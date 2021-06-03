@@ -31,7 +31,7 @@
 
 #include <memory>
 
-#include <libsolidity/modelcheck/scheduler/MainFunction.h>
+#include <libsolidity/modelcheck/scheduler/CompInvarGenerator.h>
 
 namespace dev
 {
@@ -86,8 +86,8 @@ private:
 		std::ostream & _os
 	);
 	void handleCModelBody(
-		modelcheck::MainFunctionGenerator::InvarRule _invar_rule,
-		modelcheck::MainFunctionGenerator::InvarType _invar_type,
+		modelcheck::CompInvarGenerator::InvarRule _invar_rule,
+		modelcheck::CompInvarGenerator::InvarType _invar_type,
 		std::shared_ptr<modelcheck::AnalysisStack> _stack,
 		std::shared_ptr<modelcheck::NondetSourceRegistry> _nd_reg,
 		std::ostream & _os
