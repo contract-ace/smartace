@@ -1541,12 +1541,17 @@ void CommandLineInterface::handleCModelBody(
 	bool sum_maps = (m_args.count(g_argModelMapSum) > 0);
 	size_t addr_ct = _stack->addresses()->count();
 	bool lockstep_time = m_args[g_argModelLockstepTime].as<bool>();
-	bool infer_invar = m_args[g_argModelInvarInfer].as<bool>();
-	bool stateful_invar = m_args[g_argModelInvarStateful].as<bool>();
+
+	// Parses invariant arguments.
+	modelcheck::CompInvarGenerator::Settings invar_settings;
+	invar_settings.rule = _invar_rule;
+	invar_settings.type = _invar_type;
+	invar_settings.stateful = m_args[g_argModelInvarStateful].as<bool>();
+	invar_settings.inferred = m_args[g_argModelInvarInfer].as<bool>();
 
 	// Includes header.
 	_os << "#include \"cmodel.h\"" << endl;
-	if (infer_invar)
+	if (invar_settings.inferred)
 	{
 		_os << "#include \"seahorn/seahorn.h\"" << endl;
 	}
@@ -1559,15 +1564,7 @@ void CommandLineInterface::handleCModelBody(
 	}
 
 	// Declares each invariant.
-	MainFunctionGenerator main(
-		lockstep_time,
-		_invar_rule,
-		_invar_type,
-		stateful_invar,
-		infer_invar,
-		_stack,
-		_nd_reg
-	);
+	MainFunctionGenerator main(lockstep_time, invar_settings, _stack, _nd_reg);
 	main.print_invariants(_os);
 
 	// Generates structure definitions.

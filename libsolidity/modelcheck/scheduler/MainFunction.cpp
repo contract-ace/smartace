@@ -28,10 +28,7 @@ namespace modelcheck
 
 MainFunctionGenerator::MainFunctionGenerator(
     bool _lockstep_time,
-    CompInvarGenerator::InvarRule _invar_rule,
-    CompInvarGenerator::InvarType _invar_type,
-    bool _stateful_invar,
-    bool _infer_invar,
+    CompInvarGenerator::Settings _settings,
     shared_ptr<AnalysisStack const> _stack,
     shared_ptr<NondetSourceRegistry> _nd_reg
 ): m_stack(_stack)
@@ -39,14 +36,7 @@ MainFunctionGenerator::MainFunctionGenerator(
  , m_addrspace(_stack->addresses(), _nd_reg)
  , m_stategen(_stack, _nd_reg, _lockstep_time)
  , m_actors(_stack, _nd_reg)
- , m_invars(
-     _stack,
-     m_actors.inspect(),
-     _invar_rule,
-     _invar_type,
-     _stateful_invar,
-     _infer_invar
-   )
+ , m_invars(_stack, m_actors.inspect(), _settings)
 {
 }
 

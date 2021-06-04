@@ -75,8 +75,6 @@ ActorModel::ActorModel(
     {
         for (auto entry : m_stack->addresses()->summarize(actor.contract))
         {
-            if (entry.paths.empty()) continue;
-
             for (auto path : entry.paths)
             {
                 CExprPtr addr = actor.decl->id();

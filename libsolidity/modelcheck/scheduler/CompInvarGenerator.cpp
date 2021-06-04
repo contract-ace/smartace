@@ -24,11 +24,8 @@ namespace modelcheck
 CompInvarGenerator::CompInvarGenerator(
     shared_ptr<AnalysisStack const> _stack,
     list<Actor> const& _actors,
-    InvarRule _rule,
-    InvarType _type,
-    bool _stateful,
-    bool _infer
-): m_stack(_stack), m_rule(_rule), m_type(_type), m_infer(_infer)
+    Settings _settings
+): m_stack(_stack), m_settings(_settings)
 {
     // Extracts mappings.
     for (auto actor : _actors)
@@ -36,9 +33,7 @@ CompInvarGenerator::CompInvarGenerator(
         auto const& contract = (*actor.contract);
         for (auto decl : contract.state_variables())
         {
-            analyze_actor(
-                _stateful, actor.decl->id(), contract, contract.name(), decl
-            );
+            analyze_actor(actor.decl->id(), contract, contract.name(), decl);
         }
     }
 }
@@ -47,23 +42,23 @@ CompInvarGenerator::CompInvarGenerator(
 
 void CompInvarGenerator::print_invariants(ostream& _stream)
 {
-    if (m_rule == InvarRule::None) return;
+    if (m_settings.rule == InvarRule::None) return;
 
     for (auto map : m_maps)
     {
         // Generates identifier.
-        string ty = (m_infer ? "bool" : "int");
+        string ty = (m_settings.inferred ? "bool" : "int");
         string infer_name = "Infer_" + to_string(map.id);
         auto inv_id = make_shared<CVarDecl>(ty, "Inv_" + to_string(map.id));
         auto infer_id = make_shared<CVarDecl>(ty, infer_name);
 
         // Generates body.
-        auto params = generate_params(map.fields);
-        auto body = make_shared<CBlock>(generate_body(infer_name, params));
+        auto params = make_params(map.fields);
+        auto body = make_shared<CBlock>(make_body(infer_name, params));
 
         // Outputs definitions.
         CFuncDef inv(inv_id, params, move(body));
-        if (m_infer)
+        if (m_settings.inferred)
         {
             CFuncDef inf(infer_id, params, nullptr, CFuncDef::Modifier::EXTERN);
             _stream << inf;
@@ -78,47 +73,33 @@ void CompInvarGenerator::print_invariants(ostream& _stream)
 
 // -------------------------------------------------------------------------- //
 
-CBlockList CompInvarGenerator::apply_interference(NondetSourceRegistry &nd_reg)
+CBlockList CompInvarGenerator::apply_interference(NondetSourceRegistry &_nd_reg)
 {
+    // Wraps interference application in a lambda.
     CBlockList block;
-
-    for (auto map : m_maps)
+    auto apply = [&self=(*this),&_nd_reg,&block]
+                 (MapData const& _map, KeyIterator const& _indices)
     {
-        // Determines initial index.
-        size_t offset = 0;
-        if (m_type != InvarType::Universal)
+        // Determine field.
+        string const FIELD = "data" + _indices.suffix();
+        auto const DATA = make_shared<CMemberAccess>(_map.path, FIELD);
+
+        // Create non-deterministic value.
+        string const MSG = _map.display + "::" + _indices.suffix();
+        auto const ND = _nd_reg.val(*_map.base_type, MSG);
+
+        // Initializes.
+        block.push_back(DATA->assign(ND)->stmt());
+
+        // Applies the invariant, if applicable.
+        if (self.m_settings.rule != InvarRule::None)
         {
-            offset = m_stack->addresses()->implicit_count();
+            self.apply_invariant(block, false, DATA, _map);
         }
+    };
 
-        // Non-deterministically initializes each field.
-        auto const WIDTH = m_stack->addresses()->count();
-        auto const DEPTH = map.depth;
-        KeyIterator indices(WIDTH, DEPTH, offset);
-        do
-        {
-            if (indices.is_full())
-            {
-                // Determine field.
-                string const FIELD = "data" + indices.suffix();
-                auto const DATA = make_shared<CMemberAccess>(map.path, FIELD);
-
-                // Create non-deterministic value.
-                string const MSG = map.display + "::" + indices.suffix();
-                auto const ND = nd_reg.val(*map.base_type, MSG);
-
-                // Initializes.
-                block.push_back(DATA->assign(ND)->stmt());
-
-                // Applies the invariant, if applicable.
-                if (m_rule != InvarRule::None)
-                {
-                    apply_invariant(block, false, DATA, map);
-                }
-            }
-        } while (indices.next());
-    }
-
+    // Populates and returns block.
+    expand_map(apply);
     return block;
 }
 
@@ -126,51 +107,33 @@ CBlockList CompInvarGenerator::apply_interference(NondetSourceRegistry &nd_reg)
 
 CBlockList CompInvarGenerator::check_interference()
 {
-
     // Only generate assertions if the invariants are checked.
     CBlockList block;
-    if (m_rule != InvarRule::Checked)
+    if (m_settings.rule != InvarRule::Checked)
     {
         return block;
     }
 
-    // Generates each assertion.
-    for (auto map : m_maps)
+    // Wraps interference checking in a lambda.
+    auto check = [&self=(*this),&block]
+                 (MapData const& _map, KeyIterator const& _indices)
     {
-        // Determines initial index.
-        // TODO: Repeated.
-        size_t offset = 0;
-        if (m_type != InvarType::Universal)
-        {
-            offset = m_stack->addresses()->implicit_count();
-        }
+        // Determine field.
+        string const FIELD = "data" + _indices.suffix();
+        auto const DATA = make_shared<CMemberAccess>(_map.path, FIELD);
 
-        // Checks each field.
-        auto const WIDTH = m_stack->addresses()->count();
-        auto const DEPTH = map.depth;
-        KeyIterator indices(WIDTH, DEPTH, offset);
-        do
-        {
-            if (indices.is_full())
-            {
-                // Determine field.
-                string const FIELD = "data" + indices.suffix();
-                auto const DATA = make_shared<CMemberAccess>(map.path, FIELD);
+        // Applies the invariant, if applicable.
+        self.apply_invariant(block, true, DATA, _map);
+    };
 
-                // Applies the invariant, if applicable.
-                apply_invariant(block, true, DATA, map);
-            }
-        } while (indices.next());
-    }
-
-    // Returns all assertions.
+    // Populates and returns block.
+    expand_map(check);
     return block;
 }
 
 // -------------------------------------------------------------------------- //
 
 void CompInvarGenerator::analyze_actor(
-    bool _stateful,
     CExprPtr _path,
     FlatContract const& _contract,
     string _display,
@@ -190,9 +153,7 @@ void CompInvarGenerator::analyze_actor(
         // If _decl is a struct, expand to all children.
         for (auto child : rec->fields())
         {
-            analyze_actor(
-                _stateful, _path, _contract, _display, child.get()
-            );
+            analyze_actor(_path, _contract, _display, child.get());
         }
     }
     else if (auto entry = m_stack->types()->map_db().resolve(*_decl))
@@ -210,7 +171,7 @@ void CompInvarGenerator::analyze_actor(
         auto & fields = m_maps.back().fields;
         extract_map_fields(fields, path, entry->value_type->annotation().type);
     }
-    else if (_stateful && is_simple_type(*_decl->annotation().type))
+    else if (m_settings.stateful && is_simple_type(*_decl->annotation().type))
     {
         if (_decl->annotation().type->category() != Type::Category::Address)
         {
@@ -223,9 +184,36 @@ void CompInvarGenerator::analyze_actor(
 
 // -------------------------------------------------------------------------- //
 
+void CompInvarGenerator::expand_map(MapVisitor _f)
+{
+    for (auto map : m_maps)
+    {
+        // Determines initial index.
+        size_t offset = 0;
+        if (m_settings.type != InvarType::Universal)
+        {
+            offset = m_stack->addresses()->implicit_count();
+        }
+
+        // Checks each field.
+        auto const WIDTH = m_stack->addresses()->count();
+        auto const DEPTH = map.depth;
+        KeyIterator indices(WIDTH, DEPTH, offset);
+        do
+        {
+            if (indices.is_full())
+            {
+                _f(map, indices);
+            }
+        } while (indices.next());
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
 void CompInvarGenerator::apply_invariant(
     CBlockList &_block, bool _assert, CExprPtr _data, MapData const& _map
-)
+) const
 {
     // Generates invariant call.
     CFuncCallBuilder inv_builder("Inv_" + to_string(_map.id));
@@ -247,7 +235,7 @@ void CompInvarGenerator::apply_invariant(
     auto inv_call = inv_builder.merge_and_pop();
 
     // Applies invariant.
-    if (m_infer)
+    if (m_settings.inferred)
     {
         CFuncCallBuilder chk_builder(_assert ? "__VERIFIER_assert" : "assume");
         chk_builder.push(inv_call);
@@ -268,12 +256,11 @@ void CompInvarGenerator::apply_invariant(
 
 // -------------------------------------------------------------------------- //
 
-CParams CompInvarGenerator::generate_params(MapFieldList const& _fields)
+CParams CompInvarGenerator::make_params(MapFieldList const& _fields) const
 {
-    CParams params;
-
     // Helper function to add params.
-    auto add_param = [&](Type const* type)
+    CParams params;
+    auto add_param = [&params](Type const* type)
     {
         // Determines type.
         string raw;
@@ -313,12 +300,14 @@ CParams CompInvarGenerator::generate_params(MapFieldList const& _fields)
 
 // -------------------------------------------------------------------------- //
 
-CBlockList CompInvarGenerator::generate_body(string _infer, CParams &_params)
+CBlockList CompInvarGenerator::make_body(
+    string const& _infer, CParams const& _params
+) const
 {
     CBlockList stmts;
 
     auto default_ret = make_shared<CReturn>(Literals::ONE);
-    if (m_infer)
+    if (m_settings.inferred)
     {
         CFuncCallBuilder infer_builder(_infer);
 
