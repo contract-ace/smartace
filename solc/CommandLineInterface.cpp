@@ -1553,7 +1553,7 @@ void CommandLineInterface::handleCModelBody(
 	_os << "#include \"cmodel.h\"" << endl;
 	if (invar_settings.inferred)
 	{
-		_os << "#include \"seahorn/seahorn.h\"" << endl;
+		_os << "#include \"seahorn/seasynth.h\"" << endl;
 	}
 
 	// Generates global constants for literal addresses.
