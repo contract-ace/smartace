@@ -1,7 +1,7 @@
 // RUN: %solc %s --c-model --output-dir=%t --bundle A --invar-type singleton --invar-rule checked --invar-infer=on --invar-stateful=on
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
-// make verify 2>&1 | OutputCheck %s --comment=//
+// RUN: make verify 2>&1 | OutputCheck %s --comment=//
 // CHECK-NOT: unsat
 
 /*
