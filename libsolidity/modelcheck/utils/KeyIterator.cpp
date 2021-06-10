@@ -15,7 +15,11 @@ namespace modelcheck
 
 KeyIterator::KeyIterator(
     size_t _width, size_t _depth, size_t _include
-): M_WIDTH(_width), M_DEPTH(_depth), M_INCLUDE(_include) { }
+): M_WIDTH(_width), M_DEPTH(_depth), M_INCLUDE(_include)
+{
+    // The full vector is allocated once so that all pushes and pops are O(1).
+    m_indices.reserve(_depth);
+}
 
 // -------------------------------------------------------------------------- //
 
@@ -28,7 +32,10 @@ KeyIterator::KeyIterator(
 string KeyIterator::suffix() const
 {
     string suffix;
-    for (auto idx : m_indices) suffix += "_" + to_string(idx);
+    for (auto idx : m_indices)
+    {
+        suffix += "_" + to_string(idx);
+    }
     return suffix;
 }
 
@@ -54,6 +61,13 @@ bool KeyIterator::is_full() const
 size_t KeyIterator::size() const
 {
     return m_indices.size();
+}
+
+// -------------------------------------------------------------------------- //
+
+vector<size_t> const& KeyIterator::view() const
+{
+    return m_indices;
 }
 
 // -------------------------------------------------------------------------- //

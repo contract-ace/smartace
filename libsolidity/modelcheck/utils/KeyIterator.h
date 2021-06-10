@@ -7,8 +7,8 @@
 #pragma once
 
 #include <cstdint>
-#include <list>
 #include <string>
+#include <vector>
 
 namespace dev
 {
@@ -45,7 +45,10 @@ public:
     // Returns the current suffix length.
     size_t size() const;
 
-    // Updates all view fields. Returns true if there is a suffix left to iterate.
+    // Returns call indices.
+    std::vector<size_t> const& view() const;
+
+    // Advances indices. Returns true if one or more valid suffixes remain.
     bool next();
     
 private:
@@ -58,7 +61,9 @@ private:
     size_t M_INCLUDE;
 
     // The current string.
-    std::list<size_t> m_indices;
+    // - The stl vector does not deallocate memory so all operations are O(1).
+    // - This is more efficient than a list, as it does not require allocations.
+    std::vector<size_t> m_indices;
 };
 
 // -------------------------------------------------------------------------- //

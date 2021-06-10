@@ -107,48 +107,60 @@ BOOST_AUTO_TEST_CASE(dim_3X2_offset_2)
     BOOST_CHECK(itr.next()); // So far: 0
     BOOST_CHECK_EQUAL(itr.size(), 1);
     BOOST_CHECK(!itr.is_full());
+    BOOST_CHECK_EQUAL(itr.view().size(), 1);
     BOOST_CHECK(itr.next()); // So far: 0, 0
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(!itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_0_0");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(itr.next()); // So far: 0, 1
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(!itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_0_1");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(itr.next()); // So far: 0, 2
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_0_2");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(itr.next()); // So far: 1
     BOOST_CHECK_EQUAL(itr.size(), 1);
     BOOST_CHECK(!itr.is_full());
+    BOOST_CHECK_EQUAL(itr.view().size(), 1);
     BOOST_CHECK(itr.next()); // So far: 1, 0
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(!itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_1_0");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(itr.next()); // So far: 1, 1
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(!itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_1_1");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(itr.next()); // So far: 1, 2
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_1_2");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(itr.next()); // So far: 2
     BOOST_CHECK_EQUAL(itr.size(), 1);
     BOOST_CHECK(!itr.is_full());
+    BOOST_CHECK_EQUAL(itr.view().size(), 1);
     BOOST_CHECK(itr.next()); // So far: 2, 0
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_2_0");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(itr.next()); // So far: 2, 1
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_2_1");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(itr.next()); // So far: 2, 2
     BOOST_CHECK_EQUAL(itr.size(), 2);
     BOOST_CHECK(itr.is_full());
     BOOST_CHECK_EQUAL(itr.suffix(), "_2_2");
+    BOOST_CHECK_EQUAL(itr.view().size(), 2);
     BOOST_CHECK(!itr.next());
 }
 
