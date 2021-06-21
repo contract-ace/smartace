@@ -6,9 +6,12 @@
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
 #include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
+#include <libsolidity/modelcheck/scheduler/ActorModel.h>
 #include <libsolidity/modelcheck/utils/Function.h>
 #include <libsolidity/modelcheck/utils/Primitives.h>
 #include <libsolidity/modelcheck/utils/Types.h>
+
+#include <set>
 
 using namespace std;
 
@@ -23,12 +26,12 @@ namespace modelcheck
 
 CompInvarGenerator::CompInvarGenerator(
     shared_ptr<AnalysisStack const> _stack,
-    list<Actor> const& _actors,
+    ActorModel const& _actors,
     Settings _settings
-): m_stack(_stack), m_settings(_settings)
+): m_stack(_stack), m_settings(_settings), m_roles(_actors.vars())
 {
     // Extracts mappings.
-    for (auto actor : _actors)
+    for (auto actor : _actors.inspect())
     {
         auto const& contract = (*actor.contract);
         for (auto decl : contract.state_variables())
@@ -89,12 +92,17 @@ CBlockList CompInvarGenerator::apply_interference(NondetSourceRegistry &_nd_reg)
         auto const ND = _nd_reg.val(*_map.base_type, MSG);
 
         // Initializes.
-        block.push_back(DATA->assign(ND)->stmt());
+        CStmtPtr initializer = DATA->assign(ND)->stmt();
+        if (self.m_settings.type == InvarType::RoleBased)
+        {
+            initializer = self.guard(initializer, _indices.view());
+        }
+        block.push_back(initializer);
 
         // Applies the invariant, if applicable.
         if (self.m_settings.rule != InvarRule::None)
         {
-            self.apply_invariant(block, false, DATA, _map);
+            self.apply_invariant(block, false, DATA, _map, _indices.view());
         }
     };
 
@@ -123,7 +131,7 @@ CBlockList CompInvarGenerator::check_interference()
         auto const DATA = make_shared<CMemberAccess>(_map.path, FIELD);
 
         // Applies the invariant, if applicable.
-        self.apply_invariant(block, true, DATA, _map);
+        self.apply_invariant(block, true, DATA, _map, _indices.view());
     };
 
     // Populates and returns block.
@@ -211,8 +219,41 @@ void CompInvarGenerator::expand_map(MapVisitor _f)
 
 // -------------------------------------------------------------------------- //
 
+CStmtPtr CompInvarGenerator::guard(
+    CStmtPtr _inst, std::vector<size_t> const& _indices
+) const
+{
+    // Computes role guard.
+    CExprPtr guards = Literals::ZERO;
+    for (auto i : _indices)
+    {
+        size_t offset = m_stack->addresses()->implicit_count();
+        if (i >= offset)
+        {
+            // The mapping entry is abstract if at least one index is abstract.
+            auto key = make_shared<CIntLiteral>(i);
+            CExprPtr clause = Literals::ONE;
+            for (auto role : m_roles)
+            {
+                auto term = make_shared<CBinaryOp>(role, "!=", key);
+                clause = make_shared<CBinaryOp>(clause, "&&", term);
+            }
+            guards = make_shared<CBinaryOp>(guards, "||", clause);
+        }
+    }
+
+    // Applies role guard to instruction.
+    return make_shared<CIf>(guards, _inst);
+}
+
+// -------------------------------------------------------------------------- //
+
 void CompInvarGenerator::apply_invariant(
-    CBlockList &_block, bool _assert, CExprPtr _data, MapData const& _map
+    CBlockList &_block,
+    bool _assert,
+    CExprPtr _data,
+    MapData const& _map,
+    vector<size_t> const& _indices
 ) const
 {
     // Generates invariant call.
@@ -234,24 +275,34 @@ void CompInvarGenerator::apply_invariant(
     }
     auto inv_call = inv_builder.merge_and_pop();
 
-    // Applies invariant.
+    // Generates invariant application.
+    CStmtPtr inv_chk;
     if (m_settings.inferred)
     {
         CFuncCallBuilder chk_builder(_assert ? "__VERIFIER_assert" : "assume");
         chk_builder.push(inv_call);
-        _block.push_back(chk_builder.merge_and_pop_stmt());
+        inv_chk = chk_builder.merge_and_pop_stmt();
     }
     else
     {
         if (_assert)
         {
-            LibVerify::add_assert(_block, inv_call);
+            inv_chk = make_shared<CExprStmt>(LibVerify::make_assert(inv_call));
         }
         else
         {
-            LibVerify::add_require(_block, inv_call);
+            inv_chk = make_shared<CExprStmt>(LibVerify::make_require(inv_call));
         }
     }
+
+    // Generates role guards.
+    if (m_settings.type == InvarType::RoleBased)
+    {
+        inv_chk = guard(inv_chk, _indices);
+    }
+
+    // Applies invariant.
+    _block.push_back(inv_chk);
 }
 
 // -------------------------------------------------------------------------- //

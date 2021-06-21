@@ -9,7 +9,6 @@
 
 #include <libsolidity/ast/AST.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
-#include <libsolidity/modelcheck/scheduler/ActorModel.h>
 #include <libsolidity/modelcheck/utils/KeyIterator.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 
@@ -26,6 +25,8 @@ namespace solidity
 namespace modelcheck
 {
 
+class ActorModel;
+class FlatContract;
 class NondetSourceRegistry;
 
 // -------------------------------------------------------------------------- //
@@ -68,7 +69,7 @@ public:
     // choice of _settings.
     CompInvarGenerator(
         std::shared_ptr<AnalysisStack const> _stack,
-        std::list<Actor> const& _actors,
+        ActorModel const& _actors,
         Settings _settings
     );
 
@@ -116,6 +117,9 @@ private:
     // Invariant settings.
     Settings m_settings;
 
+    // Role list.
+    std::list<std::shared_ptr<CMemberAccess>> m_roles;
+
     // Records all mappings within _maps. The list is computed recursively,
     // interating over each declaration within _contract. This assumes that
     // _decl is a substructure in _contract with path given by _path.
@@ -132,11 +136,20 @@ private:
     using MapVisitor = std::function<void(MapData const&, KeyIterator const&)>;
     void expand_map(MapVisitor _f);
 
+    // Helper method to guard a statement with a role check. The statement is
+    // applied if at least one index does not belong to an implict user, and
+    // does not equate with any role.
+    CStmtPtr guard(CStmtPtr _inst, std::vector<size_t> const& _indices) const;
+
     // Applies the invariants of _map to _data. The application is appended to
     // _block. If _assert is set, then the invariant is asserted, otherwise it
     // is assumed.
     void apply_invariant(
-        CBlockList &_block, bool _assert, CExprPtr _data, MapData const& _map
+        CBlockList &_block,
+        bool _assert,
+        CExprPtr _data,
+        MapData const& _map,
+        std::vector<size_t> const& _indices
     ) const;
 
     // Generates the invariant parameters for a mapping with value type _vtype.

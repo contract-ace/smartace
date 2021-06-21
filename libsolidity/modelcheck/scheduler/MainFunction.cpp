@@ -36,7 +36,7 @@ MainFunctionGenerator::MainFunctionGenerator(
  , m_addrspace(_stack->addresses(), _nd_reg)
  , m_stategen(_stack, _nd_reg, _lockstep_time)
  , m_actors(_stack, _nd_reg)
- , m_invars(_stack, m_actors.inspect(), _settings)
+ , m_invars(_stack, m_actors, _settings)
 {
 }
 

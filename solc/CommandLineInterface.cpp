@@ -1366,7 +1366,6 @@ void CommandLineInterface::handleCModel()
 		else if (arg == "rolebased")
 		{
 			invar_type = CompInvarGenerator::InvarType::RoleBased;
-			throw runtime_error("RoleBased is not yet implemented.");
 		}
 		else
 		{
