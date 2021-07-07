@@ -60,6 +60,13 @@ shared_ptr<CBlock> GeneralBlockConverter::convert()
 
 // -------------------------------------------------------------------------- //
 
+void GeneralBlockConverter::set_for(FunctionSpecialization const& _for)
+{
+	m_decls.assign_spec(&_for);
+}
+
+// -------------------------------------------------------------------------- //
+
 CExprPtr GeneralBlockConverter::expand(Expression const& _expr, bool _ref)
 {
 	bool const INITS = block_type() == BlockType::Initializer;

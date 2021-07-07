@@ -57,6 +57,8 @@ public:
 	// Generates a SimpleCGenerator representation of the Solidity function.
 	std::shared_ptr<CBlock> convert();
 
+	void set_for(FunctionSpecialization const& _for);
+
 protected:
 	std::shared_ptr<AnalysisStack const> const m_stack;
 
@@ -164,8 +166,6 @@ public:
 
 	~FunctionBlockConverter() override = default;
 
-	void set_for(FunctionSpecialization const& _for);
-
 protected:
 	void enter(CBlockList & _stmts, VariableScopeResolver & _decls) override;
 	void exit(CBlockList & _stmts, VariableScopeResolver &) override;
@@ -173,8 +173,6 @@ protected:
 	bool visit(Return const& _node) override;
 
 private:
-	FunctionSpecialization const* m_spec;
-
 	std::vector<ASTPointer<VariableDeclaration>> m_rvs;
 	std::vector<ASTPointer<CVarDecl>> m_rv_decls;
 };

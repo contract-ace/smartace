@@ -74,7 +74,6 @@ protected:
     bool visit(Mapping const& _node) override;
 	bool visit(ArrayTypeName const&) override;
     bool visit(IndexAccess const& _node) override;
-    bool visit(EmitStatement const&) override;
     bool visit(EventDefinition const&) override;
 
     void endVisit(ParameterList const& _node) override;

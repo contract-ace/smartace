@@ -511,7 +511,9 @@ string FunctionConverter::handle_function(
         shared_ptr<CBlock> body;
         if (!M_FWD_DCL)
         {
-            body = mods.generate(IDX, m_stack).convert();
+            auto cov = mods.generate(IDX, m_stack);
+            cov.set_for(_spec);
+            body = cov.convert();
         }
 
         auto id = make_shared<CVarDecl>(_rv_type, _spec.name(IDX), _rv_is_ptr);

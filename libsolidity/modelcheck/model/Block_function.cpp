@@ -34,18 +34,10 @@ FunctionBlockConverter::FunctionBlockConverter(
 
 // -------------------------------------------------------------------------- //
 
-void FunctionBlockConverter::set_for(FunctionSpecialization const& _for)
-{
-	m_spec = &_for;
-}
-
-// -------------------------------------------------------------------------- //
-
 void FunctionBlockConverter::enter(
     CBlockList & _stmts, VariableScopeResolver & _decls
 )
 {
-	_decls.assign_spec(m_spec);
 	for (size_t i = 0; i < m_rvs.size(); ++i)
 	{
 		auto rv = m_rvs[i];

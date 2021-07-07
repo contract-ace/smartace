@@ -313,8 +313,6 @@ bool TypeAnalyzer::visit(IndexAccess const& _node)
     return false;
 }
 
-bool TypeAnalyzer::visit(EmitStatement const&) { return false; }
-
 bool TypeAnalyzer::visit(EventDefinition const&) { return false; }
 
 // -------------------------------------------------------------------------- //
