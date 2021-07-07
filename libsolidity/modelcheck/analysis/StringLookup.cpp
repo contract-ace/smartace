@@ -31,12 +31,12 @@ StringLookup::StringLookup(FlatModel const& _model, CallGraph const& _graph)
 
     for (auto function : _graph.executed_code())
     {
-        function->body().accept(*this);
+        function->accept(*this);
     }
 
     for (auto modifier : _graph.applied_modifiers())
     {
-        modifier->body().accept(*this);
+        modifier->accept(*this);
     }
 }
 
