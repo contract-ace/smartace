@@ -140,7 +140,7 @@ bool InheritanceTree::is_abstract() const
 // -------------------------------------------------------------------------- //
 
 FlatContract::FlatContract(
-    ContractDefinition const& _contract, StructureStore & _store
+    ContractDefinition const& _contract, shared_ptr<StructureStore> _store
 ): StructureContainer(_contract, _store), m_tree(_contract)
 {
     MappingExtractor extractor;
@@ -329,7 +329,7 @@ bool FlatContract::is_payable() const
 FlatModel::FlatModel(
     FlatModel::ContractList const _model,
     AllocationGraph const& _allocation_graph,
-    StructureStore & _store
+    shared_ptr<StructureStore> _store
 )
 {
     // Iterates through all children.

@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(contract)
     auto ctrt_d = retrieveContractByName(unit, "D");
     auto ctrt_e = retrieveContractByName(unit, "E");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt_d, ctrt_e });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(full)
     auto ctrt_d = retrieveContractByName(unit, "D");
     auto ctrt_e = retrieveContractByName(unit, "E");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt_d, ctrt_e });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(fallbacks)
     auto ctrt_a = retrieveContractByName(unit, "A");
     auto ctrt_b = retrieveContractByName(unit, "B");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt_a, ctrt_b });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);

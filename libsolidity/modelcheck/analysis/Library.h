@@ -33,7 +33,7 @@ public:
     Library(
         ContractDefinition const& _library,
         std::list<FunctionDefinition const*> _calls,
-        StructureStore & _store
+        std::shared_ptr<StructureStore> _store
     );
 
     // Returns the used methods of the library.
@@ -50,7 +50,9 @@ class LibrarySummary
 {
 public:
     // Summarizes all libraries used in _calls.
-    LibrarySummary(CallGraph const& _calls, StructureStore & _store);
+    LibrarySummary(
+        CallGraph const& _calls, std::shared_ptr<StructureStore> _store
+    );
 
     // Gives view of all accessible libraries.
     std::list<std::shared_ptr<Library const>> view() const;

@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(interface)
     const auto& ctrt_b = *retrieveContractByName(unit, "B");
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     BOOST_CHECK_EQUAL(FlatContract(ctrt_a, store).interface().size(), 2);
     BOOST_CHECK_EQUAL(FlatContract(ctrt_b, store).interface().size(), 4);
     BOOST_CHECK_EQUAL(FlatContract(ctrt_c, store).interface().size(), 4);
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(variables)
     const auto& ctrt_d = *retrieveContractByName(unit, "D");
     const auto& ctrt_e = *retrieveContractByName(unit, "E");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     BOOST_CHECK_EQUAL(FlatContract(ctrt_a, store).state_variables().size(), 3);
     BOOST_CHECK_EQUAL(FlatContract(ctrt_b, store).state_variables().size(), 5);
     BOOST_CHECK_EQUAL(FlatContract(ctrt_c, store).state_variables().size(), 6);
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(constructors)
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
     const auto& ctrt_e = *retrieveContractByName(unit, "E");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     BOOST_CHECK_EQUAL(FlatContract(ctrt_a, store).constructors().size(), 0);
     BOOST_CHECK_EQUAL(FlatContract(ctrt_b, store).constructors().size(), 1);
     BOOST_CHECK_EQUAL(FlatContract(ctrt_c, store).constructors().size(), 2);
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(fallback)
     const auto& ctrt_b = *retrieveContractByName(unit, "B");
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     BOOST_CHECK(FlatContract(ctrt_a, store).fallback() == nullptr);
     BOOST_CHECK(FlatContract(ctrt_b, store).fallback() != nullptr);
     BOOST_CHECK(FlatContract(ctrt_c, store).fallback() != nullptr);
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(modifier_order)
         }
     )";
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
     FlatContract flat(ctrt_c, store);
@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE(enums)
         }
     )";
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     const auto& unit = *parseAndAnalyse(text);
     const auto& ctrt_c = *retrieveContractByName(unit, "C");
     FlatContract flat(ctrt_c, store);
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE(model)
     auto ctrt_d = retrieveContractByName(unit, "D");
     auto ctrt_e = retrieveContractByName(unit, "E");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt_d, ctrt_e });
     AllocationGraph graph(model);
     FlatModel flat_model(model, graph, store);
@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE(super_classes_in_model)
     auto ctrt_a = retrieveContractByName(unit, "A");
     auto ctrt_b = retrieveContractByName(unit, "B");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt_b });
     AllocationGraph graph(model);
     FlatModel flat_model(model, graph, store);
@@ -306,7 +306,7 @@ BOOST_AUTO_TEST_CASE(child_entries_are_added)
     auto ctrt_a = retrieveContractByName(unit, "A");
     auto ctrt_b = retrieveContractByName(unit, "B");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt_b });
     AllocationGraph graph(model);
     FlatModel flat_model(model, graph, store);
@@ -346,7 +346,7 @@ BOOST_AUTO_TEST_CASE(model_works)
     });
     AllocationGraph graph(model);
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     FlatModel flat_model(model, graph, store);
     BOOST_CHECK_EQUAL(flat_model.view().size(), 3);
     BOOST_CHECK_EQUAL(flat_model.bundle().size(), 6);
@@ -373,7 +373,7 @@ BOOST_AUTO_TEST_CASE(structs_work)
     vector<ContractDefinition const*> model({ ctrt_a });
     AllocationGraph graph(model);
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     FlatModel flat_model(model, graph, store);
     BOOST_CHECK_EQUAL(flat_model.view().size(), 1);
     
@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE(mappings_work)
     vector<ContractDefinition const*> model({ ctrt_a });
     AllocationGraph graph(model);
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     FlatModel flat_model(model, graph, store);
     BOOST_CHECK_EQUAL(flat_model.view().size(), 1);
     
@@ -429,7 +429,7 @@ BOOST_AUTO_TEST_CASE(payable)
     vector<ContractDefinition const*> model({ ctrt_a, ctrt_b, ctrt_c });
     AllocationGraph graph(model);
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     FlatModel flat_model(model, graph, store);
     BOOST_CHECK_EQUAL(flat_model.view().size(), 3);
     

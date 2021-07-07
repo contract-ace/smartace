@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(library)
     const auto& unit = *parseAndAnalyse(text);
     auto ctrt = retrieveContractByName(unit, "A");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);

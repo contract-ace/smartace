@@ -107,7 +107,8 @@ public:
 
     // Flattens the inheritance tree of _contract.
     explicit FlatContract(
-        ContractDefinition const& _contract, StructureStore & _store
+        ContractDefinition const& _contract,
+        std::shared_ptr<StructureStore> _store
     );
 
     // Returns all exposed methods of the contract.
@@ -187,7 +188,7 @@ public:
     FlatModel(
         ContractList const _model,
         AllocationGraph const& _allocation_graph,
-        StructureStore & _store
+        std::shared_ptr<StructureStore> _store
     );
 
     // Gives access to the bundle.

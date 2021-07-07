@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(add_to_primitives)
     auto const& ast = *parseAndAnalyse(text);
     auto ctrt = retrieveContractByName(ast, "A");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(detects_payments)
     auto ctrt_b = retrieveContractByName(ast, "B");
     auto ctrt_c = retrieveContractByName(ast, "C");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
 
     vector<ContractDefinition const*> model_a({ ctrt_a });
     auto alloc_graph_a = make_shared<AllocationGraph>(model_a);
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(escalate_reqs)
     auto const& ast = *parseAndAnalyse(text);
     auto ctrt_x = retrieveContractByName(ast, "X");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt_x });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);

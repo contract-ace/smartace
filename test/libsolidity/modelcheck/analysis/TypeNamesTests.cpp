@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(contract_and_structs)
     auto const& ctrt_a = *retrieveContractByName(ast, "A");
     auto const& ctrt_b = *retrieveContractByName(ast, "B");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt_a, &ctrt_b });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(simple_types)
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -129,8 +129,7 @@ BOOST_AUTO_TEST_CASE(contract_state_variable)
     auto const& ast = *parseAndAnalyse(text);
     auto const& ctrt = *retrieveContractByName(ast, "A");
 
-
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -159,7 +158,7 @@ BOOST_AUTO_TEST_CASE(struct_member_variable)
     auto const& ctrt = *retrieveContractByName(ast, "A");
     auto const& structs = *ctrt.definedStructs()[0];
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -189,7 +188,7 @@ BOOST_AUTO_TEST_CASE(map_variable)
 
     const auto& map_var = *ctrt.stateVariables()[0];
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -215,7 +214,7 @@ BOOST_AUTO_TEST_CASE(function)
     auto const& ctrt = *retrieveContractByName(ast, "A");
     auto const& funcs = ctrt.definedFunctions();
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -253,7 +252,7 @@ BOOST_AUTO_TEST_CASE(regular_id)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& iden = *dynamic_cast<IdenExprPtr>(&expr);
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -289,7 +288,7 @@ BOOST_AUTO_TEST_CASE(contract_access)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& mmbr = *dynamic_cast<MmbrExprPtr>(&expr);
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -325,7 +324,7 @@ BOOST_AUTO_TEST_CASE(struct_access)
     auto const& expr = dynamic_cast<ExprStmtPtr>(&stmt)->expression();
     auto const& mmbr = *dynamic_cast<MmbrExprPtr>(&expr);
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -368,7 +367,7 @@ BOOST_AUTO_TEST_CASE(identifiers_as_pointers)
     auto const& expr_4 = dynamic_cast<ExprStmtPtr>(&stmt_4)->expression();
     auto const& idx2 = *dynamic_cast<IndnExprPtr>(&expr_4);
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);
@@ -396,7 +395,7 @@ BOOST_AUTO_TEST_CASE(name_escape)
     auto const& strt = *ctrt.definedStructs()[0];
     auto const& mapv = *ctrt.stateVariables()[0];
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ &ctrt });
     auto alloc_graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *alloc_graph, store);

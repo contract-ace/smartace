@@ -31,7 +31,7 @@ StructDefinition const* Structure::raw() const { return m_raw; }
 
 // -------------------------------------------------------------------------- //
 
-shared_ptr<Structure const> StructureStore::get(StructDefinition const *_struct)
+shared_ptr<Structure const> StructureStore::add(StructDefinition const *_struct)
 {
     auto result = m_structure_lookup.find(_struct);
     if (result != m_structure_lookup.end())
@@ -48,9 +48,24 @@ shared_ptr<Structure const> StructureStore::get(StructDefinition const *_struct)
 
 // -------------------------------------------------------------------------- //
 
+shared_ptr<Structure const> StructureStore::get(StructDefinition const *_struct)
+{
+    auto result = m_structure_lookup.find(_struct);
+    if (result != m_structure_lookup.end())
+    {
+        return result->second;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
 StructureContainer::StructureContainer(
-    ContractDefinition const& _contract, StructureStore & _store
-): Named(_contract), m_raw(&_contract)
+    ContractDefinition const& _contract, shared_ptr<StructureStore> _store
+): Named(_contract), m_raw(&_contract), m_store(_store)
 {
     auto const& contracts = _contract.annotation().linearizedBaseContracts;
     for (auto itr = contracts.crbegin(); itr != contracts.crend(); ++itr)
@@ -58,8 +73,7 @@ StructureContainer::StructureContainer(
         // Records declarations.
         for (auto structure : (*itr)->definedStructs())
         {
-            m_structures.push_back(_store.get(structure));
-            m_structure_lookup[structure] = m_structures.back();
+            m_structures.push_back(m_store->add(structure));
         }
 
         // Records library uses.
@@ -80,11 +94,8 @@ shared_ptr<Structure const>
 {
     if (auto type = dynamic_cast<StructType const*>(_decl->type()))
     {
-        auto result = m_structure_lookup.find(&type->structDefinition());
-        if (result != m_structure_lookup.end())
-        {
-            return result->second;
-        }
+        auto const& STRUCT = type->structDefinition();
+        return m_store->get(&STRUCT);
     }
     return nullptr;
 }
@@ -93,18 +104,16 @@ ContractDefinition const* StructureContainer::raw() const { return m_raw; }
 
 void StructureContainer::record(VariableDeclaration const& _decl)
 {
-    
     if (auto type = dynamic_cast<StructType const*>(_decl.type()))
     {
+        // Records structure.
         auto const& STRUCT = type->structDefinition();
-        auto result = m_structure_lookup.find(&STRUCT);
-        if (result == m_structure_lookup.end())
+        m_store->add(&STRUCT);
+
+        // Continues search.
+        for (auto decl : STRUCT.members())
         {
-            m_structure_lookup[&STRUCT] = make_shared<Structure>(STRUCT);
-            for (auto decl : STRUCT.members())
-            {
-                record(*decl);
-            }
+            record(*decl);
         }
     }
 }

@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(basic_rv_analysis)
     BOOST_CHECK_EQUAL(func_g->name(), "g");
     BOOST_CHECK_EQUAL(func_h->name(), "h");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *graph, store);
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(library_call)
     BOOST_CHECK_EQUAL(func_f->name(), "f");
     BOOST_CHECK_EQUAL(libcall->name(), "f");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *graph, store);
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(supercall)
     BOOST_CHECK_EQUAL(func_f->name(), "f");
     BOOST_CHECK_EQUAL(super->name(), "f");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *graph, store);
@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE(external_call)
     BOOST_CHECK_EQUAL(func_f->name(), "f");
     BOOST_CHECK_EQUAL(extcall->name(), "f");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *graph, store);
@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE(unsupported)
     BOOST_CHECK_EQUAL(func_f->name(), "f");
     BOOST_CHECK_EQUAL(func_g->name(), "g");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *graph, store);
@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(resolve_id)
     auto assignment = dynamic_cast<Assignment const*>(&expr_stmt->expression());
     auto id = (&assignment->leftHandSide());
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *graph, store);
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE(resolve_fn)
     auto expr_stmt = dynamic_cast<ExpressionStatement const*>(stmt.get());
     auto expr = (&expr_stmt->expression());
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt });
     auto graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *graph, store);
@@ -429,7 +429,7 @@ BOOST_AUTO_TEST_CASE(coverage)
     BOOST_CHECK_EQUAL(func_h->name(), "h");
     BOOST_CHECK_EQUAL(lib_f->name(), "f");
 
-    StructureStore store;
+    auto store = make_shared<StructureStore>();
     vector<ContractDefinition const*> model({ ctrt_1, ctrt_2 });
     auto graph = make_shared<AllocationGraph>(model);
     auto flat_model = make_shared<FlatModel>(model, *graph, store);

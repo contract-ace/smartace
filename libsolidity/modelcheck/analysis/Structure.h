@@ -61,6 +61,10 @@ class StructureStore
 public:
     // Returns the SmartACE representation of _struct. If _struct has already
     // been queried, then a cached version is returned.
+    std::shared_ptr<Structure const> add(StructDefinition const *_struct);
+
+    // Returns the SmartACE representation of _struct, if cached, else returns
+    // a nullptr.
     std::shared_ptr<Structure const> get(StructDefinition const *_struct);
 
 private:
@@ -79,7 +83,8 @@ class StructureContainer : public Named
 public:
     // Creates a container which wraps the structures found on _contract.
     explicit StructureContainer(
-        ContractDefinition const& _contract, StructureStore & _store
+        ContractDefinition const& _contract,
+        std::shared_ptr<StructureStore> _store
     );
 
     virtual ~StructureContainer() = default;
@@ -97,14 +102,13 @@ public:
 private:
     std::list<std::shared_ptr<Structure const>> m_structures;
 
-    std::map<StructDefinition const *, std::shared_ptr<Structure const>>
-        m_structure_lookup;
-
     // TODO(scottwe): temporary solution to simplify transition.
     ContractDefinition const* m_raw;
 
     // Helper method to extract structures from variable declarations.
     void record(VariableDeclaration const& _decl);
+
+   std::shared_ptr<StructureStore> m_store;
 };
 
 // -------------------------------------------------------------------------- //

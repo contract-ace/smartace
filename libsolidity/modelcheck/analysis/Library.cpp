@@ -20,7 +20,7 @@ class CallGraph;
 Library::Library(
     ContractDefinition const& _library,
     list<FunctionDefinition const*> _calls,
-    StructureStore & _store
+    shared_ptr<StructureStore> _store
 ): StructureContainer(_library, _store), m_functions(_calls)
 {
 }
@@ -33,7 +33,7 @@ list<FunctionDefinition const*> Library::functions() const
 // -------------------------------------------------------------------------- //
 
 LibrarySummary::LibrarySummary(
-    CallGraph const& _calls, StructureStore & _store
+    CallGraph const& _calls, shared_ptr<StructureStore> _store
 ) {
     // Computes library usage across all code.
     map<ContractDefinition const*, list<FunctionDefinition const*>> libraries;

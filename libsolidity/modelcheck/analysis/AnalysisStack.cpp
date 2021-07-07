@@ -64,7 +64,7 @@ AnalysisStack::AnalysisStack(
 	check_allocation_graph_errs(m_allocation_graph);
 
 	m_flat_model = make_shared<FlatModel>(
-		_model, *m_allocation_graph, *m_structure_store
+		_model, *m_allocation_graph, m_structure_store
 	);
 
 	m_contracts = make_shared<ContractExpressionAnalyzer>(
@@ -74,7 +74,7 @@ AnalysisStack::AnalysisStack(
 	m_call_graph = make_shared<CallGraph>(m_contracts, m_flat_model);
 
 	m_libraries = make_shared<LibrarySummary>(
-		*m_call_graph, *m_structure_store
+		*m_call_graph, m_structure_store
 	);
 
 	m_environment = make_shared<CallState>(
