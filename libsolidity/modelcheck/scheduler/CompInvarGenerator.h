@@ -80,7 +80,7 @@ public:
     CBlockList apply_interference(NondetSourceRegistry &_nd_reg);
 
     // Expands and checks that interference is closed for all mappings.
-    CBlockList check_interference();
+    CBlockList check_interference(NondetSourceRegistry &_nd_reg);
 
 private:
     // Represents a field in a mapping.
@@ -89,7 +89,7 @@ private:
         std::list<std::string> path;
         Type const* type;
     };
-    using MapFieldList = std::list<MapField>;
+    using MapFieldList = std::vector<MapField>;
 
     // Records mapping data for invariant instrumentation.
     struct MapData
@@ -134,7 +134,8 @@ private:
     // entry, the provided function is applied to the mapping entry and the
     // index summary. Note that literal users are filtered out.
     using MapVisitor = std::function<void(MapData const&, KeyIterator const&)>;
-    void expand_map(MapVisitor _f);
+    void expand_maps(MapVisitor _f);
+    void expand_map(MapData const&_map, MapVisitor _f);
 
     // Helper method to guard a statement with a role check. The statement is
     // applied if at least one index does not belong to an implict user, and
@@ -147,8 +148,8 @@ private:
     void apply_invariant(
         CBlockList &_block,
         bool _assert,
-        CExprPtr _data,
         MapData const& _map,
+        std::vector<CExprPtr> const& _values,
         std::vector<size_t> const& _indices
     ) const;
 

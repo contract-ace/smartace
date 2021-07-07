@@ -22,6 +22,41 @@ namespace solidity
 namespace modelcheck
 {
 
+namespace
+{
+shared_ptr<CVarDecl> make_param(size_t i, Type const* type)
+{
+    // Determines type.
+    Type const& raw_type = unwrap(*type);
+    string raw;
+    if (raw_type.category() == Type::Category::Bool)
+    {
+        raw = PrimitiveToRaw::boolean();
+    }
+    else if (auto itype = dynamic_cast<IntegerType const*>(&raw_type))
+    {
+        raw = PrimitiveToRaw::integer(itype->numBits(), itype->isSigned());
+    }
+    else if (auto array_ptr = dynamic_cast<ArrayType const*>(&raw_type))
+    {
+        if (array_ptr->isString())
+        {
+            raw = PrimitiveToRaw::integer(256, false);
+        }
+    }
+
+    // Checks type was found
+    if (raw.empty())
+    {
+        throw runtime_error("Unknown type: " + type->canonicalName());
+    }
+
+    // Adds param to list.
+    string name = "v" + to_string(i);
+    return make_shared<CVarDecl>(raw, name, false);
+}
+}
+
 // -------------------------------------------------------------------------- //
 
 CompInvarGenerator::CompInvarGenerator(
@@ -93,27 +128,34 @@ CBlockList CompInvarGenerator::apply_interference(NondetSourceRegistry &_nd_reg)
 
         // Initializes.
         CStmtPtr initializer = DATA->assign(ND)->stmt();
-        if (self.m_settings.type == InvarType::RoleBased)
-        {
-            initializer = self.guard(initializer, _indices.view());
-        }
+        initializer = self.guard(initializer, _indices.view());
         block.push_back(initializer);
-
-        // Applies the invariant, if applicable.
-        if (self.m_settings.rule != InvarRule::None)
+        
+        // Collects values.
+        // * Factor into call
+        vector<CExprPtr> values;
+        for (auto field : _map.fields)
         {
-            self.apply_invariant(block, false, DATA, _map, _indices.view());
+            // Extracts data.
+            auto data = DATA;
+            for (auto id : field.path)
+            {
+                data = make_shared<CMemberAccess>(data, id);
+            }
+            data = make_shared<CMemberAccess>(data, "v");
+            values.push_back(data);
         }
+        self.apply_invariant(block, false, _map, values, _indices.view());
     };
 
     // Populates and returns block.
-    expand_map(apply);
+    expand_maps(apply);
     return block;
 }
 
 // -------------------------------------------------------------------------- //
 
-CBlockList CompInvarGenerator::check_interference()
+CBlockList CompInvarGenerator::check_interference(NondetSourceRegistry &_nd_reg)
 {
     // Only generate assertions if the invariants are checked.
     CBlockList block;
@@ -122,20 +164,92 @@ CBlockList CompInvarGenerator::check_interference()
         return block;
     }
 
-    // Wraps interference checking in a lambda.
-    auto check = [&self=(*this),&block]
-                 (MapData const& _map, KeyIterator const& _indices)
-    {
-        // Determine field.
-        string const FIELD = "data" + _indices.suffix();
-        auto const DATA = make_shared<CMemberAccess>(_map.path, FIELD);
+    // [...]
+    CBlockList default_case;
+    string default_err("Model failure, entry_id out of bounds.");
+    LibVerify::add_require(default_case, Literals::ZERO, default_err);
 
-        // Applies the invariant, if applicable.
-        self.apply_invariant(block, true, DATA, _map, _indices.view());
-    };
+    // Selects mapping and field.
+    auto map_id = make_shared<CVarDecl>("uint64_t", "map_id");
+    auto mcases = make_shared<CSwitch>(map_id->id(), CBlockList{});
+    for (auto map : m_maps)
+    {
+        CBlockList map_block;
+
+        // [...]
+        std::vector<shared_ptr<CVarDecl>> vars;
+        std::vector<CExprPtr> values;
+        for (auto field : map.fields)
+        {
+            vars.push_back(make_param(vars.size(), field.type));
+            map_block.push_back(vars.back());
+            values.push_back(vars.back()->id());
+        }
+
+        // [...]
+        auto entry_id = make_shared<CVarDecl>("uint64_t", "entry_id");
+        auto ecases = make_shared<CSwitch>(entry_id->id(), default_case);
+
+        // [...]
+        auto check = [&self=(*this),&ecases,&vars]
+                     (MapData const& _map, KeyIterator const& _indices)
+        {
+            CBlockList entry_block;
+
+            // [...]
+            auto gv = make_shared<CVarDecl>("uint8_t", "guard");
+            entry_block.push_back(gv);
+            entry_block.push_back(gv->assign(Literals::ZERO)->stmt());
+            entry_block.push_back(self.guard(
+                gv->assign(Literals::ONE)->stmt(), _indices.view()
+            ));
+            LibVerify::add_require(entry_block, gv->id(), "Guard");
+
+            // [...]
+            // * Factor into call.
+            string const FIELD = "data" + _indices.suffix();
+            auto const DATA = make_shared<CMemberAccess>(_map.path, FIELD);
+            for (size_t i = 0; i < _map.fields.size(); ++i)
+            {
+                auto const& field = _map.fields[i];
+                auto const& var = vars[i];
+
+                // Extracts data.
+                auto data = DATA;
+                for (auto id : field.path)
+                {
+                    data = make_shared<CMemberAccess>(data, id);
+                }
+                data = make_shared<CMemberAccess>(data, "v");
+                entry_block.push_back(var->assign(data)->stmt());
+            }
+
+            // [...]
+            entry_block.push_back(make_shared<CBreak>());
+            ecases->add_case(ecases->size(), move(entry_block));
+        };
+        expand_map(map, check);
+
+        // [...]
+        vector<size_t> tmp;
+        map_block.push_back(entry_id);
+        map_block.push_back(entry_id->assign(
+            _nd_reg.range(0, ecases->size(), "entry")
+        )->stmt());
+        map_block.push_back(ecases);
+        apply_invariant(map_block, true, map, values, tmp);
+        map_block.push_back(make_shared<CBreak>());
+        mcases->add_case(mcases->size(), move(map_block));
+    }
+
+    // [...]
+    block.push_back(map_id);
+    block.push_back(map_id->assign(
+        _nd_reg.range(0, mcases->size() + 1, "map")
+    )->stmt());
+    block.push_back(mcases);
 
     // Populates and returns block.
-    expand_map(check);
     return block;
 }
 
@@ -183,38 +297,46 @@ void CompInvarGenerator::analyze_actor(
     {
         if (_decl->annotation().type->category() != Type::Category::Address)
         {
-            m_control_state.emplace_back();
-            m_control_state.back().path = _path;
-            m_control_state.back().type = _decl->annotation().type;
+            if (!_decl->isConstant())
+            {
+                m_control_state.emplace_back();
+                m_control_state.back().path = _path;
+                m_control_state.back().type = _decl->annotation().type;
+            }
         }
     }
 }
 
 // -------------------------------------------------------------------------- //
 
-void CompInvarGenerator::expand_map(MapVisitor _f)
+void CompInvarGenerator::expand_maps(MapVisitor _f)
 {
     for (auto map : m_maps)
     {
-        // Determines initial index.
-        size_t offset = 0;
-        if (m_settings.type != InvarType::Universal)
-        {
-            offset = m_stack->addresses()->implicit_count();
-        }
-
-        // Checks each field.
-        auto const WIDTH = m_stack->addresses()->count();
-        auto const DEPTH = map.depth;
-        KeyIterator indices(WIDTH, DEPTH, offset);
-        do
-        {
-            if (indices.is_full())
-            {
-                _f(map, indices);
-            }
-        } while (indices.next());
+        expand_map(map, _f);
     }
+}
+
+void CompInvarGenerator::expand_map(MapData const& _map, MapVisitor _f)
+{
+    // Determines initial index.
+    size_t offset = 0;
+    if (m_settings.type != InvarType::Universal)
+    {
+        offset = m_stack->addresses()->implicit_count();
+    }
+
+    // Checks each field.
+    auto const WIDTH = m_stack->addresses()->count();
+    auto const DEPTH = _map.depth;
+    KeyIterator indices(WIDTH, DEPTH, offset);
+    do
+    {
+        if (indices.is_full())
+        {
+            _f(_map, indices);
+        }
+    } while (indices.next());
 }
 
 // -------------------------------------------------------------------------- //
@@ -223,6 +345,12 @@ CStmtPtr CompInvarGenerator::guard(
     CStmtPtr _inst, std::vector<size_t> const& _indices
 ) const
 {
+    // If role guards are disabled, bypass.
+    if (m_settings.type != InvarType::RoleBased)
+    {
+        return _inst;
+    }
+
     // Computes role guard.
     CExprPtr guards = Literals::ZERO;
     for (auto i : _indices)
@@ -251,27 +379,26 @@ CStmtPtr CompInvarGenerator::guard(
 void CompInvarGenerator::apply_invariant(
     CBlockList &_block,
     bool _assert,
-    CExprPtr _data,
     MapData const& _map,
+    vector<CExprPtr> const& _values,
     vector<size_t> const& _indices
 ) const
 {
+    // Ensures invariants are enabled.
+    if (m_settings.rule == InvarRule::None)
+    {
+        return;
+    }
+
     // Generates invariant call.
     CFuncCallBuilder inv_builder("Inv_" + to_string(_map.id));
     for (auto state : m_control_state)
     {
         inv_builder.push(make_shared<CMemberAccess>(state.path, "v"));
     }
-    for (auto field : _map.fields)
+    for (auto v : _values)
     {
-        // Extracts data.
-        auto data = _data;
-        for (auto id : field.path)
-        {
-            data = make_shared<CMemberAccess>(data, id);
-        }
-        data = make_shared<CMemberAccess>(data, "v");
-        inv_builder.push(data);
+        inv_builder.push(v);
     }
     auto inv_call = inv_builder.merge_and_pop();
 
@@ -279,7 +406,7 @@ void CompInvarGenerator::apply_invariant(
     CStmtPtr inv_chk;
     if (m_settings.inferred)
     {
-        CFuncCallBuilder chk_builder(_assert ? "__VERIFIER_assert" : "assume");
+        CFuncCallBuilder chk_builder(_assert ? "sassert" : "assume");
         chk_builder.push(inv_call);
         inv_chk = chk_builder.merge_and_pop_stmt();
     }
@@ -295,8 +422,8 @@ void CompInvarGenerator::apply_invariant(
         }
     }
 
-    // Generates role guards.
-    if (m_settings.type == InvarType::RoleBased)
+    // If there are no indices, the guard is already checked.
+    if (!_indices.empty())
     {
         inv_chk = guard(inv_chk, _indices);
     }
@@ -309,40 +436,18 @@ void CompInvarGenerator::apply_invariant(
 
 CParams CompInvarGenerator::make_params(MapFieldList const& _fields) const
 {
-    // Helper function to add params.
     CParams params;
-    auto add_param = [&params](Type const* type)
-    {
-        // Determines type.
-        string raw;
-        if (type->category() == Type::Category::Bool)
-        {
-            raw = PrimitiveToRaw::boolean();
-        }
-        else if (auto itype = dynamic_cast<IntegerType const*>(type))
-        {
-            raw = PrimitiveToRaw::integer(itype->numBits(), itype->isSigned());
-        }
-        else
-        {
-            throw runtime_error("Unknown type: " + type->canonicalName());
-        }
-
-        // Adds param to list.
-        string name = "v" + to_string(params.size());
-        params.push_back(make_shared<CVarDecl>(raw, name, false));
-    };
 
     // Adds control state to invariant signature.
     for (auto state : m_control_state)
     {
-        add_param(state.type);
+        params.push_back(make_param(params.size(), state.type));
     }
 
     // Adds mapping data to invariant signature.
     for (auto field : _fields)
     {
-        add_param(field.type);
+        params.push_back(make_param(params.size(), field.type));
     }
 
     // Returns parameter list.

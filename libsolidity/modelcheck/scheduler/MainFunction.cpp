@@ -97,6 +97,10 @@ void MainFunctionGenerator::print_main(ostream& _stream)
     );
     transactionals.push_back(make_shared<CIf>(
         make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
+        make_shared<CBlock>(m_invars.check_interference(*m_nd_reg))
+    ));
+    transactionals.push_back(make_shared<CIf>(
+        make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
         make_shared<CBlock>(m_invars.apply_interference(*m_nd_reg))
     ));
     m_stategen.update_global(transactionals);
@@ -105,10 +109,6 @@ void MainFunctionGenerator::print_main(ostream& _stream)
         m_nd_reg->range(0, call_cases->size(), "next_call")
     )->stmt());
     transactionals.push_back(call_cases);
-    transactionals.push_back(make_shared<CIf>(
-        make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
-        make_shared<CBlock>(m_invars.check_interference())
-    ));
 
     // Adds transactional loop to end of body.
     LibVerify::log(main, "[Entering transaction loop]");
