@@ -132,6 +132,8 @@ set(sources
 	modelcheck/analysis/StringLookup.h
 	modelcheck/analysis/Structure.cpp
 	modelcheck/analysis/Structure.h
+	modelcheck/analysis/TaintAnalysis.cpp
+	modelcheck/analysis/TaintAnalysis.h
 	modelcheck/analysis/TightBundle.cpp
 	modelcheck/analysis/TightBundle.h
 	modelcheck/analysis/TypeAnalyzer.cpp
