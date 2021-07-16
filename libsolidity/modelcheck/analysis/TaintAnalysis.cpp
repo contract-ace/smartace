@@ -31,6 +31,12 @@ VariableDeclaration const& TaintDestination::extract()
     }
 }
 
+bool TaintDestination::visit(IndexAccess const& _node)
+{
+    _node.baseExpression().accept(*this);
+    return false;
+}
+
 bool TaintDestination::visit(MemberAccess const& _node)
 {
     if (auto const* ref = _node.annotation().referencedDeclaration)
@@ -213,7 +219,11 @@ bool TaintAnalysis::visit(MemberAccess const& _node)
     }
     else
     {
-        throw runtime_error("TaintAnalysis: Expected member declaration.");
+        auto category = _node.expression().annotation().type->category();
+        if (category != Type::Category::Magic)
+        {
+            throw runtime_error("TaintAnalysis: Expected member declaration.");
+        }
     }
     return false;
 }
@@ -255,6 +265,160 @@ void TaintAnalysis::propogate_unknown()
         for (size_t i = 0; i < m_sources; ++i)
         {
             taint(*m_taintee, i);
+        }
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+ClientTaintPass::ClientTaintPass(FunctionDefinition const& _func)
+{
+    // Computes number of potentia clients.
+    size_t potential_clients = 0;
+    for (auto param : _func.parameters())
+    {
+        if (param->type()->category() == Type::Category::Address)
+        {
+            potential_clients += 1;
+        }
+    }
+
+    // Aborts now if there are no clients to analyze.
+    if (potential_clients == 0)
+    {
+        return;
+    }
+
+    // Generates tainted sources.
+    m_reached_sinks.resize(potential_clients, false);
+    m_taint_data = make_shared<TaintAnalysis>(potential_clients);
+    size_t taint_id = 0;
+    for (auto param : _func.parameters())
+    {
+        if (param->type()->category() == Type::Category::Address)
+        {
+            m_taint_data->taint(*param.get(), taint_id);
+            taint_id += 1;
+        }
+    }
+
+    // Computes taint results.
+    m_taint_data->run(_func);
+
+    // Since the analysis is intraprocedural modifier calls are also sinks.
+    for (auto modifier : _func.modifiers())
+    {
+        if (auto const* arguments = modifier->arguments())
+        {
+            for (auto const& arg : (*arguments))
+            {
+                ScopedSwap<bool> scope(m_in_sink, true);
+                arg->accept(*this);
+            }
+        }
+    }
+
+    // Computes analysis results for index accesses and expression comparisons.
+    _func.accept(*this);
+}
+
+vector<bool> const& ClientTaintPass::extract() const
+{
+    return m_reached_sinks;
+}
+
+bool ClientTaintPass::visit(Return const& _node)
+{
+    ScopedSwap<bool> scope(m_in_sink, true);
+    if (auto const* expr = _node.expression())
+    {
+        expr->accept(*this);
+    }
+    return false;
+}
+
+bool ClientTaintPass::visit(FunctionCall const& _node)
+{
+    {
+        ScopedSwap<bool> scope(m_in_sink, true);
+        for (auto arg : _node.arguments())
+        {
+            arg->accept(*this);
+        }
+    }
+    _node.expression().accept(*this);
+    return false;
+}
+
+bool ClientTaintPass::visit(UnaryOperation const& _node)
+{
+    ScopedSwap<bool> scope(m_in_sink, true);
+    _node.subExpression().accept(*this);
+    return false;
+}
+
+bool ClientTaintPass::visit(BinaryOperation const& _node)
+{
+    ScopedSwap<bool> scope(m_in_sink, true);
+    _node.leftExpression().accept(*this);
+    _node.rightExpression().accept(*this);
+    return false;
+}
+
+bool ClientTaintPass::visit(IndexAccess const& _node)
+{
+    if (auto const* expr = _node.indexExpression())
+    {
+        ScopedSwap<bool> scope(m_in_sink, true);
+        expr->accept(*this);
+    }
+    _node.baseExpression().accept(*this);
+    return false;
+}
+
+bool ClientTaintPass::visit(MemberAccess const& _node)
+{
+    // Processes declaration.
+    if (auto const* ref = _node.annotation().referencedDeclaration)
+    {
+        process_declaration(ref);
+    }
+
+    // Resets using flag, and continues down access chain (eg. for fn calls).
+    {
+        ScopedSwap<bool> scope(m_in_sink, false);
+        _node.expression().accept(*this);
+    }
+
+    return false;
+}
+
+bool ClientTaintPass::visit(Identifier const& _node)
+{
+    if (auto const* ref = _node.annotation().referencedDeclaration)
+    {
+        process_declaration(ref);
+    }
+    return false;
+}
+
+void ClientTaintPass::process_declaration(Declaration const* _ref)
+{
+    if (auto decl = dynamic_cast<VariableDeclaration const*>(_ref))
+    {
+        // If this is a sink, extract taint.
+        // Recall that state variables are sinks.
+        auto const& taint = m_taint_data->taint_for(*decl);
+        bool is_state = (!decl->isLocalVariable() || decl->isReturnParameter());
+        if (m_in_sink || is_state)
+        {
+            for (size_t i = 0; i < taint.size(); ++i)
+            {
+                if (taint[i])
+                {
+                    m_reached_sinks[i] = true;
+                }
+            }
         }
     }
 }

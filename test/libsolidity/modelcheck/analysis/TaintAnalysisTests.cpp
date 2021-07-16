@@ -298,6 +298,10 @@ BOOST_AUTO_TEST_CASE(multiple_passes)
             {
                 taint_check(analysis, *decl, xyz_tag, sources);
             }
+            else
+            {
+                BOOST_CHECK(false);
+            }
             visited += 1;
         }
     }
@@ -381,6 +385,10 @@ BOOST_AUTO_TEST_CASE(fn_call)
             {
                 taint_check(analysis, *decl, fn_tag, sources);
             }
+            else
+            {
+                BOOST_CHECK(false);
+            }
             visited += 1;
         }
     }
@@ -445,15 +453,15 @@ BOOST_AUTO_TEST_CASE(structs)
             auto const *decl = dstmt->declarations()[0].get();
             if (decl->name() == "a")
             {
-                    auto const& taint = analysis.taint_for(*decl);
-                    BOOST_CHECK_EQUAL(taint.size(), sources);
-                    BOOST_CHECK(taint[tag_1]);
+                auto const& taint = analysis.taint_for(*decl);
+                BOOST_CHECK_EQUAL(taint.size(), sources);
+                BOOST_CHECK(taint[tag_1]);
             }
             else if (decl->name() == "b")
             {
-                    auto const& taint = analysis.taint_for(*decl);
-                    BOOST_CHECK_EQUAL(taint.size(), sources);
-                    BOOST_CHECK(taint[tag_2]);
+                auto const& taint = analysis.taint_for(*decl);
+                BOOST_CHECK_EQUAL(taint.size(), sources);
+                BOOST_CHECK(taint[tag_2]);
             }
             visited += 1;
         }
@@ -541,9 +549,9 @@ BOOST_AUTO_TEST_CASE(tuple_to_tuple)
             {
                 taint_check(analysis, *decl, yzw_tag, sources);
             }
-            else if (decl->name() == "ret")
+            else
             {
-                taint_check(analysis, *decl, yzw_tag, sources);
+                BOOST_CHECK(false);
             }
             visited += 1;
         }
@@ -624,10 +632,435 @@ BOOST_AUTO_TEST_CASE(fn_to_tuple)
             {
                 taint_check(analysis, *decl, fn_tag, sources);
             }
+            else
+            {
+                BOOST_CHECK(false);
+            }
             visited += 1;
         }
     }
     BOOST_CHECK_EQUAL(visited, 4);
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_no_clients)
+{
+    char const* text = R"(
+        contract A {
+            function f(int x, address a, int y, address b) public {
+                int z = x + y;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 2);
+    if (outcome.size() == 2)
+    {
+        BOOST_CHECK(!outcome[0]);
+        BOOST_CHECK(!outcome[1]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_basic_uses)
+{
+    char const* text = R"(
+        contract A {
+            mapping(address => int) map;
+            function f(address a, address b, address c, address d) public {
+                int x = 0;
+                int y = 0;
+                while (x < 100) {
+                    if (a != b)
+                    {
+                        y += 1;
+                    }
+                    x += 1;
+                }
+                address e = c;
+                address f = address(0);
+                f = d;
+                map[e];
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 4);
+    if (outcome.size() == 4)
+    {
+        BOOST_CHECK(outcome[0]);
+        BOOST_CHECK(outcome[1]);
+        BOOST_CHECK(outcome[2]);
+        BOOST_CHECK(!outcome[3]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_function_call)
+{
+    char const* text = R"(
+        contract A {
+            mapping(address => int) map;
+            function g(address a, address b) public {
+
+            }
+            function f(address a, address b, address, address) public {
+                g(a, b);
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[1];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 4);
+    if (outcome.size() == 4)
+    {
+        BOOST_CHECK(outcome[0]);
+        BOOST_CHECK(outcome[1]);
+        BOOST_CHECK(!outcome[2]);
+        BOOST_CHECK(!outcome[3]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_nested_calls)
+{
+    char const* text = R"(
+        contract X {
+            function f(address) public {}
+        }
+        contract A {
+            X x;
+            function g(address) public returns (X) {
+                return x;
+            }
+            function f(address a, address b, address, address) public {
+                (g(a)).f(b);
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[1];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 4);
+    if (outcome.size() == 4)
+    {
+        BOOST_CHECK(outcome[0]);
+        BOOST_CHECK(outcome[1]);
+        BOOST_CHECK(!outcome[2]);
+        BOOST_CHECK(!outcome[3]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_state_variables)
+{
+    char const* text = R"(
+        contract A {
+            address s1;
+            address s2;
+            address s3;
+            address s4;
+            address s5;
+            function f(address, address b, address, address d) public {
+                s1 = b;
+                s2 = s1;
+                s3 = d;
+                s4 = s5;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 4);
+    if (outcome.size() == 4)
+    {
+        BOOST_CHECK(!outcome[0]);
+        BOOST_CHECK(outcome[1]);
+        BOOST_CHECK(!outcome[2]);
+        BOOST_CHECK(outcome[3]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_state_struct)
+{
+    char const* text = R"(
+        contract A {
+            struct S {
+                address a;
+                address b;
+            }
+            struct T {
+                S s1;
+                S s2;
+            }
+            struct U {
+                T t1;
+                int x;
+                int y;
+            }
+            U u;
+            function f(address, address b, address, address d, address) public {
+                u.t1.s1.a = d;
+                u.t1.s2.b = b;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 5);
+    if (outcome.size() == 5)
+    {
+        BOOST_CHECK(!outcome[0]);
+        BOOST_CHECK(outcome[1]);
+        BOOST_CHECK(!outcome[2]);
+        BOOST_CHECK(outcome[3]);
+        BOOST_CHECK(!outcome[4]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_nested_array)
+{
+    char const* text = R"(
+        contract A {
+            mapping(address => mapping(address => mapping(address => int))) m;
+            function f(address, address b, address, address d) public {
+                m[b][d][b] = 5;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 4);
+    if (outcome.size() == 4)
+    {
+        BOOST_CHECK(!outcome[0]);
+        BOOST_CHECK(outcome[1]);
+        BOOST_CHECK(!outcome[2]);
+        BOOST_CHECK(outcome[3]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_globals)
+{
+    char const* text = R"(
+        contract A {
+            mapping(address => mapping(address => mapping(address => uint))) m;
+            function f(address, address b, address c, address d) public {
+                m[b][msg.sender][b] = block.timestamp;
+                m[d][msg.sender][b] = now;
+                c = msg.sender;
+                c = address(this);
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 4);
+    if (outcome.size() == 4)
+    {
+        BOOST_CHECK(!outcome[0]);
+        BOOST_CHECK(outcome[1]);
+        BOOST_CHECK(!outcome[2]);
+        BOOST_CHECK(outcome[3]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_abi)
+{
+    char const* text = R"(
+        contract A {
+            function f(address, address, address, address) public {
+                abi.encodePacked(uint16(0x12));
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 4);
+    if (outcome.size() == 4)
+    {
+        BOOST_CHECK(!outcome[0]);
+        BOOST_CHECK(!outcome[1]);
+        BOOST_CHECK(!outcome[2]);
+        BOOST_CHECK(!outcome[3]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_requires)
+{
+    char const* text = R"(
+        contract A {
+            function f(address a, address) public {
+                require(a != msg.sender);
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 2);
+    if (outcome.size() == 2)
+    {
+        BOOST_CHECK(outcome[0]);
+        BOOST_CHECK(!outcome[1]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_modifiers)
+{
+    char const* text = R"(
+        contract A {
+            modifier modA(address a, address b) {
+                require(a != b);
+                _;
+            }
+            function f(address a, address) modA(a, msg.sender) public {
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 2);
+    if (outcome.size() == 2)
+    {
+        BOOST_CHECK(outcome[0]);
+        BOOST_CHECK(!outcome[1]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(client_pass_rv_is_sink)
+{
+    // Returning an address is a use, so writing to a return variable is a use.
+    char const* text = R"(
+        contract A {
+            function f(address a, address) public returns (address b) {
+                b = a;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 2);
+    if (outcome.size() == 2)
+    {
+        BOOST_CHECK(outcome[0]);
+        BOOST_CHECK(!outcome[1]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

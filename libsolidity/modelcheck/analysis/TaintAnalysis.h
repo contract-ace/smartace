@@ -10,6 +10,7 @@
 
 #include <list>
 #include <map>
+#include <memory>
 
 namespace dev
 {
@@ -33,6 +34,7 @@ public:
     VariableDeclaration const& extract();
 
 protected:
+    bool visit(IndexAccess const& _node) override;
 	bool visit(MemberAccess const& _node) override;
 	bool visit(Identifier const& _node) override;
 
@@ -102,6 +104,48 @@ private:
 
     // Current variable being tainted.
     VariableDeclaration const *m_taintee;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Performs client taint analysis for PTGBuilder.
+ */
+class ClientTaintPass : public ASTConstVisitor
+{
+public:
+    // Performs PTG analysis for _func.
+    ClientTaintPass(FunctionDefinition const& _func);
+
+    // Returns the result.
+    std::vector<bool> const& extract() const;
+
+protected:
+    // Interprocedural (sinks).
+    bool visit(Return const& _node) override;
+	bool visit(FunctionCall const& _node) override;
+
+    // Intraprocedural (sinks).
+	bool visit(UnaryOperation const& _node) override;
+	bool visit(BinaryOperation const& _node) override;
+	bool visit(IndexAccess const& _node) override;
+
+    // Program state (sinks); Inputs (sources);
+	bool visit(MemberAccess const& _node) override;
+	bool visit(Identifier const& _node) override;
+
+private:
+    // Processes a declaration.
+    void process_declaration(Declaration const* _ref);
+
+    // The taint data propogated to the sinks.
+    std::shared_ptr<TaintAnalysis> m_taint_data;
+
+    // If true, the program is in a location that can use tainted sources.
+    bool m_in_sink = false;
+
+    // Tainted sources that reach sinks.
+    std::vector<bool> m_reached_sinks;
 };
 
 // -------------------------------------------------------------------------- //
