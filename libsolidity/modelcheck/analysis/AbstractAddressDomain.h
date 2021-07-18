@@ -42,7 +42,6 @@ public:
     // - ValueType: an unsupported value is used by a mapping.
     enum class Type { Cast, Mutate, Compare, KeyType, ValueType };
 
-    //
     AddressViolation(
         Type _ty, CallableDeclaration const* _ctx, ASTNode const* _site
     ): m_type(_ty), m_context(_ctx), m_site(_site) {}

@@ -297,15 +297,31 @@ BOOST_AUTO_TEST_CASE(basic_interference_count)
     char const* text = R"(
         contract X {
             function f() public pure { }
-            function f(address i, address j) public pure { }
-            function f(address j) public pure { }
+            function f(address i, address j) public pure {
+                if (i == j) {
+                    return;
+                }
+            }
+            function f(address j) public pure {
+                if (j == address(0)) {
+                    return;
+                }
+            }
         }
         contract Y {
             address k;
             address l;
             function f() public pure { }
-            function f(address i, address j) public pure { }
-            function f(address j) public pure { }
+            function f(address i, address j) public pure {
+                if (i == j) {
+                    return;
+                }
+            }
+            function f(address j) public pure {
+                if (j == address(0)) {
+                    return;
+                }
+            }
         }
     )";
 
@@ -679,6 +695,35 @@ BOOST_AUTO_TEST_CASE(inf_users)
         BOOST_CHECK_EQUAL(ptg.max_sender(), 6);
         BOOST_CHECK(ptg.violations().empty());
     }
+}
+
+BOOST_AUTO_TEST_CASE(client_taint_test)
+{
+    char const* text = R"(
+        contract X {
+            mapping(address => mapping(address => mapping(address => uint))) m;
+            function f(address, address b, address c, address d) public {
+                m[b][msg.sender][b] = block.timestamp;
+                m[d][msg.sender][b] = now;
+                c = msg.sender;
+                c = address(this);
+            }
+        }
+    )";
+
+    auto const& unit = *parseAndAnalyse(text);
+    auto const& ctrt1 = *retrieveContractByName(unit, "X");
+
+    auto store_1 = make_shared<StructureStore>();
+    vector<ContractDefinition const*> model_1({ &ctrt1 });
+    auto alloc_graph_1 = make_shared<AllocationGraph>(model_1);
+    auto flat_model_1 = make_shared<FlatModel>(model_1, *alloc_graph_1, store_1);
+    auto r_1 = make_shared<ContractExpressionAnalyzer>(flat_model_1, alloc_graph_1);
+    CallGraph call_graph_1(r_1, flat_model_1);
+    TypeAnalyzer converter_1({ &unit }, call_graph_1);
+    PTGBuilder ptg_1(converter_1.map_db(), *flat_model_1, call_graph_1, false, 5, 0, 5);
+
+    BOOST_CHECK_EQUAL(ptg_1.interference_count(), 3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

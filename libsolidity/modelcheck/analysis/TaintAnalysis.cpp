@@ -219,9 +219,10 @@ bool TaintAnalysis::visit(MemberAccess const& _node)
     }
     else
     {
-        auto category = _node.expression().annotation().type->category();
-        if (category != Type::Category::Magic)
+        auto cat = _node.expression().annotation().type->category();
+        if (cat != Type::Category::Magic && cat != Type::Category::TypeType)
         {
+            cout << get_ast_string(&_node) << endl;
             throw runtime_error("TaintAnalysis: Expected member declaration.");
         }
     }

@@ -33,9 +33,9 @@ contract A {
     }
 
     function check() public {
-        assert(m1[msg.sender] >= -150);
+        assert(m1[msg.sender] >= -20);
         assert(m1[msg.sender] <= 150);
         assert(m2[msg.sender] >= -200);
-        assert(m2[msg.sender] <= 20);
+        assert(m2[msg.sender] <= 200);
     }
 }

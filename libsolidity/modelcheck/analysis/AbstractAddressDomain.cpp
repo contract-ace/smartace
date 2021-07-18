@@ -9,6 +9,7 @@
 #include <libsolidity/modelcheck/analysis/CallGraph.h>
 #include <libsolidity/modelcheck/analysis/Inheritance.h>
 #include <libsolidity/modelcheck/analysis/Mapping.h>
+#include <libsolidity/modelcheck/analysis/TaintAnalysis.h>
 #include <libsolidity/modelcheck/utils/General.h>
 
 using namespace std;
@@ -203,7 +204,9 @@ RoleExtractor::RoleExtractor(
     MapDeflate const& _map_db, FlatContract const& _contract
 ): m_map_db(_map_db)
 {
-    // TODO: Refine. This assumes every role is in use.
+    // TODO: This analysis is over-approximate due to the lack of a spec lang.
+    //       Without a spec lang, the PTGBuilder must assume that every role
+    //       appears in a property. Otherwise, the analysis is unsound.
     for (auto var : _contract.state_variables())
     {
         auto type = var->type();
@@ -346,15 +349,17 @@ uint64_t ClientExtractor::count() const
 
 void ClientExtractor::compute_clients(FunctionDefinition const& _func)
 {
-    // There is a minimum of one client (the sender).
+    // Without a sender, behaviours are lost, so there is at least one client.
     size_t potential_clients = 1;
 
-    // Computes the maximum number of clients (over-approximate).
-    for (auto param : _func.parameters())
+    // Taint analysis to over-approximate the number of clients.
+    ClientTaintPass analysis(_func);
+    auto const& taint = analysis.extract();
+    for (auto v : taint)
     {
-        if (param->type()->category() == Type::Category::Address)
+        if (v)
         {
-            potential_clients = potential_clients + 1;
+            potential_clients += 1;
         }
     }
 

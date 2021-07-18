@@ -1063,6 +1063,38 @@ BOOST_AUTO_TEST_CASE(client_pass_rv_is_sink)
     }
 }
 
+BOOST_AUTO_TEST_CASE(client_pass_supports_enums)
+{
+    char const* text = R"(
+        contract A {
+            enum State { S1, S2, S3 }
+            State s;
+            function f(address a, address) public returns (address b) {
+                b = a;
+                s = State.S2;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 2);
+    if (outcome.size() == 2)
+    {
+        BOOST_CHECK(outcome[0]);
+        BOOST_CHECK(!outcome[1]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

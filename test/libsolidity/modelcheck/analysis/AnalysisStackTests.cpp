@@ -51,7 +51,11 @@ BOOST_AUTO_TEST_CASE(end_to_end)
                 x = new X();
                 y = new Y();
             }
-            function f(address _i) public { _i; }
+            function f(address _i) public {
+                if (_i != address(0)) {
+                    return;
+                }
+            }
         }
     )";
 

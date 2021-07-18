@@ -1,4 +1,4 @@
-// RUN: %solc %s --c-model --output-dir=%t --bundle A --invar-type singleton --invar-rule checked --invar-infer on
+// RUN: %solc %s --c-model --output-dir=%t --bundle Token --invar-type singleton --invar-rule checked --invar-infer on
 // RUN: cd %t
 // RUN: %cmake -DSEA_PATH=%seapath -DSEA_ARGS="--verify" %buildargs
 // RUN: make verify 2>&1 | OutputCheck %s --comment=//
