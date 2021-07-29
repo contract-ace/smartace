@@ -25,7 +25,7 @@ list<ASTPointer<VariableDeclaration>> Structure::fields() const
     return m_members;
 }
 
-list<Mapping const*> Structure::mappings() const { return m_mappings; }
+vector<Mapping const*> Structure::mappings() const { return m_mappings; }
 
 StructDefinition const* Structure::raw() const { return m_raw; }
 
@@ -84,7 +84,7 @@ StructureContainer::StructureContainer(
     }
 }
 
-list<shared_ptr<Structure const>> StructureContainer::structures() const
+vector<shared_ptr<Structure const>> StructureContainer::structures() const
 {
     return m_structures;
 }

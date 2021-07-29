@@ -29,6 +29,7 @@ InheritanceTree::InheritanceTree(ContractDefinition const& _contract)
         linear[relative->name()]
             = LinearRecord{ relative, (relative == &_contract) };
     }
+    m_calls.reserve(linear.size());
 
     // Calls initializer.
     initialize(linear, &_contract);
@@ -44,7 +45,7 @@ vector<VariableDeclaration const*> const& InheritanceTree::decls() const
     return m_decls;
 }
 
-list<InheritanceTree::InheritedCall> const&
+vector<InheritanceTree::InheritedCall> const&
 InheritanceTree::baseContracts() const
 {
     return m_calls;
@@ -154,6 +155,8 @@ FlatContract::FlatContract(
         if (c->isInterface()) continue;
 
         // Checks for functions with new signatures.
+        m_public.reserve(m_public.size() + c->definedFunctions().size());
+        m_private.reserve(m_private.size() + c->definedFunctions().size());
         for (auto f : c->definedFunctions())
         {
             // Searchs for a fallback.
@@ -193,6 +196,7 @@ FlatContract::FlatContract(
         }
 
         // Checks for new modifiers.
+        m_modifiers.reserve(m_modifiers.size() + c->functionModifiers().size());
         for (auto m : c->functionModifiers())
         {
             if (modifier_names.insert(m->name()).second)
@@ -202,6 +206,7 @@ FlatContract::FlatContract(
         }
 
         // Checks for new variables.
+        m_vars.reserve(m_vars.size() + c->stateVariables().size());
         for (auto v : c->stateVariables())
         {
             if (variable_names.insert(v->name()).second)
@@ -219,6 +224,7 @@ FlatContract::FlatContract(
         }
 
         // Records enum definitions.
+        m_enums.reserve(m_enums.size() + c->definedEnums().size());
         for (auto e : c->definedEnums())
         {
             m_enums.push_back(e);
@@ -309,12 +315,12 @@ FunctionDefinition const&
     }
 }
 
-list<Mapping const*> const& FlatContract::mappings() const
+vector<Mapping const*> const& FlatContract::mappings() const
 {
     return m_mappings;
 }
 
-list<EnumDefinition const*> const& FlatContract::enums() const
+vector<EnumDefinition const*> const& FlatContract::enums() const
 {
     return m_enums;
 }

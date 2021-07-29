@@ -6,6 +6,8 @@
 #include <libsolidity/modelcheck/utils/General.h>
 #include <libsolidity/modelcheck/utils/AST.h>
 
+#include <vector>
+
 using namespace std;
 
 namespace dev
@@ -245,11 +247,12 @@ ContractRvLookup::ContractRvLookup(
             }
         }
     }
-    list<Key> pending(seen.begin(), seen.end());
+    vector<Key> pending(seen.begin(), seen.end());
 
     // Next, the required libraries and nested supercalls are analyzed and added.
-    for (auto key : pending)
+    for (size_t i = 0; i < pending.size(); ++i)
     {
+        auto const& key = pending[i];
         auto record = registry[key];
         for (auto dep : record->dependencies())
         {
@@ -303,15 +306,16 @@ ContractExpressionAnalyzer::ContractExpressionAnalyzer(
         auto const& src = (*entry.second);
         auto const& src_deps = src.dependencies();
 
-        list<ContractRvLookup::Key> pending(src_deps.begin(), src_deps.end());
+        vector<ContractRvLookup::Key> pending(src_deps.begin(), src_deps.end());
         set<ContractRvLookup::Key> seen;
         seen.insert(entry.first);
 
         // Aggregates all internals and externals across all dependencies.
         set<shared_ptr<FlatContract>> internal = src.internals();
         set<shared_ptr<FlatContract>> external = src.externals();
-        for (auto key : pending)
+        for (size_t i = 0; i < pending.size(); ++i)
         {
+            auto const& key = pending[i];
             if (seen.insert(key).second)
             {
                 auto record = (*lookup.registry[key]);

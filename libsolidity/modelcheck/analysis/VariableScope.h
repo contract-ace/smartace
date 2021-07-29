@@ -9,9 +9,9 @@
 
 #include <libsolidity/ast/AST.h>
 
-#include <list>
 #include <set>
 #include <string>
+#include <vector>
 
 namespace dev
 {
@@ -68,7 +68,7 @@ private:
 
     FunctionSpecialization const* m_spec;
 
-    std::list<std::set<std::string>> m_scopes;
+    std::vector<std::set<std::string>> m_scopes;
 
     // Consumes the string representation of an identifier, _sym, and maps it to
     // a SmartACE identifier.

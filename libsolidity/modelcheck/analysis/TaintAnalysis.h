@@ -8,7 +8,6 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 
-#include <list>
 #include <map>
 #include <memory>
 

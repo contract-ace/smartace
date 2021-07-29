@@ -56,7 +56,7 @@ set<dev::u256> LiteralExtractor::literals() const
     return m_literals;
 }
 
-list<AddressViolation> LiteralExtractor::violations() const
+vector<AddressViolation> LiteralExtractor::violations() const
 {
     return m_violations;
 }
@@ -214,7 +214,7 @@ RoleExtractor::RoleExtractor(
         {
             m_roles.emplace_back();
             m_roles.back().decl = var;
-            m_roles.back().paths.emplace_back(list<string>{var->name()});
+            m_roles.back().paths.emplace_back(Path{var->name()});
             m_role_ct = m_role_ct + 1;
         }
         else if (type->category() == Type::Category::Mapping)
@@ -264,17 +264,17 @@ void RoleExtractor::check_map_conformance(VariableDeclaration const* _decl)
     }
 }
 
-RoleExtractor::PathSet
+RoleExtractor::PathGroup
 RoleExtractor::extract_from_struct(string _name, StructType const* _struct)
 {
-    list<list<string>> partial_paths;
+    PathGroup partial_paths;
     for (auto field : _struct->structDefinition().members())
     {
         auto category = field->type()->category();
         if (category == Type::Category::Address)
         {
             // If the field is an address, create path: <struct>.<field>
-            partial_paths.push_back(list<string>{_name, field->name()});
+            partial_paths.push_back(Path{_name, field->name()});
             m_role_ct = m_role_ct + 1;
         }
         else if (category == Type::Category::Mapping)
@@ -290,7 +290,7 @@ RoleExtractor::extract_from_struct(string _name, StructType const* _struct)
             auto rec_paths = extract_from_struct(field->name(), structure);
             for (auto path : rec_paths)
             {
-                list<string> new_path{_name};
+                Path new_path{_name};
                 new_path.splice(new_path.end(), path);
                 partial_paths.push_back(std::move(new_path));
             }
@@ -299,7 +299,7 @@ RoleExtractor::extract_from_struct(string _name, StructType const* _struct)
     return partial_paths;
 }
 
-list<RoleExtractor::Role> RoleExtractor::roles() const
+vector<RoleExtractor::Role> RoleExtractor::roles() const
 {
     return m_roles;
 }
@@ -309,7 +309,7 @@ uint64_t RoleExtractor::count() const
     return m_role_ct;
 }
 
-list<AddressViolation> RoleExtractor::violations() const
+vector<AddressViolation> RoleExtractor::violations() const
 {
     return m_violations;
 }
@@ -389,24 +389,16 @@ PTGBuilder::PTGBuilder(
     {
         LiteralExtractor lext(_model, _calls);
         m_literals = lext.literals();
-
-        for (auto violation : lext.violations())
-        {
-            m_violations.push_back(violation);
-        }
+        add_violations(lext.violations());
     }
 
     // Processes roles.
     for (auto contract : _model.view())
     {
         RoleExtractor rext(_map_db, *contract);
-        m_role_lookup[contract.get()] = rext.roles();
+        m_role_lkup[contract.get()] = rext.roles();
         m_role_ct += rext.count();
-
-        for (auto violation : rext.violations())
-        {
-            m_violations.push_back(violation);
-        }
+        add_violations(rext.violations());
     }
 
     // Processes clients.
@@ -421,11 +413,11 @@ set<dev::u256> const& PTGBuilder::literals() const
     return m_literals;
 }
 
-list<RoleExtractor::Role>
+vector<RoleExtractor::Role>
 PTGBuilder::summarize(shared_ptr<FlatContract const> _contract) const
 {
-    auto res = m_role_lookup.find(_contract.get());
-    if (res == m_role_lookup.end())
+    auto res = m_role_lkup.find(_contract.get());
+    if (res == m_role_lkup.end())
     {
         throw runtime_error("AddressVariables queried for unknown contract");
     }
@@ -457,9 +449,18 @@ uint64_t PTGBuilder::count() const
     return max_sender() + m_inf_ct;
 }
 
-list<AddressViolation> PTGBuilder::violations() const
+vector<AddressViolation> PTGBuilder::violations() const
 {
     return m_violations;
+}
+
+void PTGBuilder::add_violations(vector<AddressViolation> const& _violations)
+{
+    m_violations.reserve(m_violations.size() + _violations.size());
+    for (auto violation : _violations)
+    {
+        m_violations.push_back(violation);
+    }
 }
 
 // -------------------------------------------------------------------------- //

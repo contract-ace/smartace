@@ -289,7 +289,7 @@ void CompInvarGenerator::analyze_actor(
         m_maps.back().display = _display;
 
         // Populates fields.
-        list<string> path;
+        vector<string> path;
         auto & fields = m_maps.back().fields;
         extract_map_fields(fields, path, entry->value_type->annotation().type);
     }
@@ -496,7 +496,7 @@ CBlockList CompInvarGenerator::make_body(
 // -------------------------------------------------------------------------- //
 
 void CompInvarGenerator::extract_map_fields(
-    MapFieldList &_fields, list<string> &_path, Type const *_ty
+    MapFieldList &_fields, vector<string> &_path, Type const *_ty
 )
 {
     // If this is a structure, every sub-field must be analyzed.

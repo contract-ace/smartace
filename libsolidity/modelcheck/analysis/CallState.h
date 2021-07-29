@@ -14,9 +14,9 @@
 #include <libsolidity/modelcheck/codegen/Details.h>
 #include <libsolidity/modelcheck/utils/CallState.h>
 
-#include <list>
 #include <set>
 #include <string>
+#include <vector>
 
 namespace dev
 {
@@ -57,7 +57,7 @@ public:
     void register_primitives(PrimitiveTypeGenerator& _gen) const;
 
     // Returns the order of fields in use.
-    std::list<FieldData> const& order() const;
+    std::vector<FieldData> const& order() const;
 
     // Appends all argument ID's to an argument list, in order.
     void push_state_to(CFuncCallBuilder & _builder) const;
@@ -98,7 +98,7 @@ private:
     bool m_escalates_reqs = false;
 
     std::set<CallStateUtilities::Field> m_recorded_fields;
-    std::list<FieldData> m_field_order;
+    std::vector<FieldData> m_field_order;
 };
 
 // -------------------------------------------------------------------------- //

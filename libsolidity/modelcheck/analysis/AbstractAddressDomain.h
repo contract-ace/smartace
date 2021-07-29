@@ -13,6 +13,7 @@
 #include <list>
 #include <memory>
 #include <set>
+#include <vector>
 
 namespace dev
 {
@@ -78,7 +79,7 @@ public:
     std::set<dev::u256> literals() const;
 
     // Returns all vioaltes with respect to address manipulations.
-    std::list<AddressViolation> violations() const;
+    std::vector<AddressViolation> violations() const;
 
 protected:
     bool visit(UnaryOperation const& _node) override;
@@ -110,7 +111,7 @@ private:
     std::set<dev::u256> m_literals = { 0 };
 
     // Records all literal violations.
-    std::list<AddressViolation> m_violations;
+    std::vector<AddressViolation> m_violations;
 };
 
 // -------------------------------------------------------------------------- //
@@ -122,7 +123,9 @@ private:
 class RoleExtractor
 {
 public:
-    using PathSet = std::list<std::list<std::string>>;
+    // Using list to allow splices.
+    using Path = std::list<std::string>;
+    using PathGroup = std::list<Path>;
 
     // Represents all address paths associated with a given variable.
     struct Role
@@ -132,7 +135,7 @@ public:
 
         // If decl is a variable, this expands to decl. If dec is a structure
         // this is all paths to address variables in decl.
-        PathSet paths;
+        PathGroup paths;
     };
 
     // Computes the number of active roles in _contract.
@@ -140,13 +143,13 @@ public:
 
     // Returns all roles in the contract, regardless of whether or not they are
     // in use.
-    std::list<Role> roles() const;
+    std::vector<Role> roles() const;
 
     // Returns an over-approximation for the number of active roles.
     uint64_t count() const;
 
     // Returns all illegal uses of roles and mapping indices.
-    std::list<AddressViolation> violations() const;
+    std::vector<AddressViolation> violations() const;
 
 private:
     // Ensures that a mapping _decl does not make illegal usage of roles or
@@ -154,7 +157,7 @@ private:
     void check_map_conformance(VariableDeclaration const* _decl);
 
     // Computes all partial paths to roles within _struct.
-    PathSet extract_from_struct(std::string _name, StructType const* _struct);
+    PathGroup extract_from_struct(std::string _name, StructType const* _struct);
 
     // Appennds AddressViolation(_ty, m_context, _site) to m_violations.
     void record_violation(AddressViolation::Type _ty, ASTNode const* _site);
@@ -162,13 +165,13 @@ private:
     MapDeflate const& m_map_db;
 
     // All roles in the contract, regardless of whether or not they are in use.
-    std::list<Role> m_roles;
+    std::vector<Role> m_roles;
 
     // The number of active roles.
     uint64_t m_role_ct = 0;
 
     // Records all literal violations.
-    std::list<AddressViolation> m_violations;
+    std::vector<AddressViolation> m_violations;
 };
 
 // -------------------------------------------------------------------------- //
@@ -224,7 +227,7 @@ public:
     std::set<dev::u256> const& literals() const;
 
     // Returns the roles for the given contract.
-    std::list<RoleExtractor::Role>
+    std::vector<RoleExtractor::Role>
     summarize(std::shared_ptr<FlatContract const> _contract) const;
 
     // Returns the number of contracts.
@@ -245,9 +248,12 @@ public:
     uint64_t count() const;
 
     // Returns all address violations.
-    std::list<AddressViolation> violations() const;
+    std::vector<AddressViolation> violations() const;
 
 private:
+    // Helper method to copy violations.
+    void add_violations(std::vector<AddressViolation> const& _violations);
+
     bool m_concrete;
 
     uint64_t m_contract_ct = 0;
@@ -257,10 +263,10 @@ private:
     uint64_t m_client_ct = 0;
 
     // Records all literal violations.
-    std::list<AddressViolation> m_violations;
+    std::vector<AddressViolation> m_violations;
 
     // Maps each contract to its role variables.
-    std::map<FlatContract const*, std::list<RoleExtractor::Role>> m_role_lookup;
+    std::map<FlatContract const*, std::vector<RoleExtractor::Role>> m_role_lkup;
 
     // All literals in use.
     std::set<dev::u256> m_literals;

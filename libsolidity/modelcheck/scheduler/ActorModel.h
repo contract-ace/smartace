@@ -9,9 +9,9 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/codegen/Details.h>
 
-#include <list>
 #include <map>
 #include <memory>
+#include <vector>
 
 namespace dev
 {
@@ -52,7 +52,7 @@ struct Actor
     std::shared_ptr<CVarDecl> decl;
 
     // Specializations of all member funtions
-    std::list<FunctionSpecialization> specs;
+    std::vector<FunctionSpecialization> specs;
 
     // Maintains an access path, from parent contract to child contract.
     CExprPtr path;
@@ -101,10 +101,10 @@ public:
     void assign_addresses(CBlockList & _block) const;
 
     // Returns a list of contract address declarations.
-    std::list<std::shared_ptr<CMemberAccess>> const& vars() const;
+    std::vector<std::shared_ptr<CMemberAccess>> const& vars() const;
 
     // Allow read-only access to this contract's actors
-    std::list<Actor> const& inspect() const;
+    std::vector<Actor> const& inspect() const;
 
 private:
 	std::shared_ptr<AnalysisStack const> m_stack;
@@ -112,17 +112,14 @@ private:
     std::shared_ptr<NondetSourceRegistry> m_nd_reg;
 
     // The list of actors, which is populated after setup.
-    std::list<Actor> m_actors;
+    std::vector<Actor> m_actors;
 
     // An anonymous list of contract address member variables.
-    std::list<std::shared_ptr<CMemberAccess>> m_addrvar;
+    std::vector<std::shared_ptr<CMemberAccess>> m_addrvar;
 
-    // Extends setup to children. _path will accumulate the path to the current
-    // parent, starting from a top level contract. _allocs is used to find all
-    // children while _dependance is used to populate interface methods.
-    void recursive_setup(
-        std::shared_ptr<BundleContract const> _src, Actor & _parent
-    );
+    // Extends setup to children. It is assumed that the last element of
+    // m_actors corresponds to _src upon entry.
+    void recursive_setup(std::shared_ptr<BundleContract const> _src);
 };
 
 // -------------------------------------------------------------------------- //

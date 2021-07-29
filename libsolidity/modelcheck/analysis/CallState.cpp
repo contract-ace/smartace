@@ -59,7 +59,7 @@ void CallState::register_primitives(PrimitiveTypeGenerator& _gen) const
     }
 }
 
-list<CallState::FieldData> const& CallState::order() const
+vector<CallState::FieldData> const& CallState::order() const
 {
     return m_field_order;
 }

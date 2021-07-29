@@ -184,8 +184,8 @@ private:
 
     std::shared_ptr<BuildData> m_data;
 
-    std::list<FunctionDefinition const*> m_stack;
-    std::list<Location> m_locations;
+    std::vector<FunctionDefinition const*> m_stack;
+    std::vector<Location> m_locations;
     std::set<CallTypes> m_labels;
 };
 
@@ -199,7 +199,7 @@ class CallGraph
 {
 public:
     using CodeSet = std::set<CallGraphBuilder::Graph::Vertex>;
-    using CodeList = std::list<CallGraphBuilder::Graph::Vertex>;
+    using CodeList = std::vector<CallGraphBuilder::Graph::Vertex>;
 
     // Corresponds to running CallGraphBuilder with _expr_resolver and _model.
     CallGraph(
@@ -217,7 +217,7 @@ public:
     CodeSet internals(FlatContract const& _scope) const;
 
     // Returns all function definitions inherited by _scope, through _call. Note
-    // that _call is included in this list.
+    // that _call is included in this collection.
     CodeSet super_calls(
         FlatContract const& _scope, FunctionDefinition const& _call
     ) const;

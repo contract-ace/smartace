@@ -273,8 +273,10 @@ CallGraph::CodeSet CallGraph::internals(FlatContract const& _scope) const
 
     // TODO: precompute.
     set<FunctionDefinition const*> visited;
-    for (auto func : functions)
+    for (size_t i = 0; i < functions.size(); ++i)
     {
+        auto const& func = functions[i];
+
         if (!visited.insert(func).second) continue;
 
         if (!func->functionType(false)) methods.insert(func);
@@ -313,8 +315,10 @@ CallGraph::CodeSet CallGraph::super_calls(
 
     // TODO: precompute.
     set<FunctionDefinition const*> visited;
-    for (auto func : functions)
+    for (size_t i = 0; i < functions.size(); ++i)
     {
+        auto const& func = functions[i];
+
         if (!visited.insert(func).second) continue;
 
         if (collid(_call, *func)) chain.insert(func);

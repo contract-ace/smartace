@@ -13,7 +13,6 @@
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 
 #include <functional>
-#include <list>
 #include <memory>
 #include <ostream>
 #include <vector>
@@ -86,7 +85,7 @@ private:
     // Represents a field in a mapping.
     struct MapField
     {
-        std::list<std::string> path;
+        std::vector<std::string> path;
         Type const* type;
     };
     using MapFieldList = std::vector<MapField>;
@@ -118,7 +117,7 @@ private:
     Settings m_settings;
 
     // Role list.
-    std::list<std::shared_ptr<CMemberAccess>> m_roles;
+    std::vector<std::shared_ptr<CMemberAccess>> m_roles;
 
     // Records all mappings within _maps. The list is computed recursively,
     // interating over each declaration within _contract. This assumes that
@@ -166,7 +165,7 @@ private:
     // It is assumed that _path is the path from the base type of a mapping, to
     // a substructure of type _ty.
     void extract_map_fields(
-        MapFieldList &_fields, std::list<std::string> &_path, Type const *_ty
+        MapFieldList &_fields, std::vector<std::string> &_path, Type const *_ty
     );
 };
 

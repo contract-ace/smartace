@@ -44,7 +44,9 @@ Actor::Actor(
     );
 
     // Analyzes all children and function calls.
-    for (auto method : contract->interface())
+    auto const& interfaces = contract->interface();
+    specs.reserve(interfaces.size() + 1);
+    for (auto method : interfaces)
     {
         specs.emplace_back(*method, *contract->raw());
     }
@@ -64,10 +66,13 @@ ActorModel::ActorModel(
 ): m_stack(_stack), m_nd_reg(_nd_reg)
 {
     // Generates an actor for each client.
-    for (auto contract : m_stack->tight_bundle()->view())
     {
-        m_actors.emplace_back(m_stack, contract, nullptr);
-        recursive_setup(contract, m_actors.back());
+        auto const& view = m_stack->tight_bundle()->view();
+        for (auto contract : view)
+        {
+            m_actors.emplace_back(m_stack, contract, nullptr);
+            recursive_setup(contract);
+        }
     }
 
     // Extracts the address variable for each contract.
@@ -197,35 +202,36 @@ void ActorModel::assign_addresses(CBlockList & _block) const
 
 // -------------------------------------------------------------------------- //
 
-list<shared_ptr<CMemberAccess>> const& ActorModel::vars() const
+vector<shared_ptr<CMemberAccess>> const& ActorModel::vars() const
 {
     return m_addrvar;
 }
 
 // -------------------------------------------------------------------------- //
 
-list<Actor> const& ActorModel::inspect() const
+vector<Actor> const& ActorModel::inspect() const
 {
     return m_actors;
 }
 
 // -------------------------------------------------------------------------- //
 
-void ActorModel::recursive_setup(
-    shared_ptr<BundleContract const> _src, Actor & _parent
-)
+void ActorModel::recursive_setup(shared_ptr<BundleContract const> _src)
 {
+    // Caches information about the parent, since the vector may resize in loop.
+    auto parent_id = m_actors.back().decl->id();
+    m_actors.back().has_children = (!_src->children().empty());
+
+    // Recursively initializes each child.
     for (auto record : _src->children())
     {
-        _parent.has_children = true;
-
         auto const NAME = VariableScopeResolver::rewrite(
             record->var(), false, VarContext::STRUCT
         );
-        auto const PATH = make_shared<CMemberAccess>(_parent.decl->id(), NAME);
+        auto const PATH = make_shared<CMemberAccess>(parent_id, NAME);
 
         m_actors.emplace_back(m_stack, record, PATH);
-        recursive_setup(record, m_actors.back());
+        recursive_setup(record);
     }
 }
 

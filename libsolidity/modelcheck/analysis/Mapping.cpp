@@ -27,7 +27,7 @@ void MappingExtractor::record(VariableDeclaration const* _var)
     _var->accept(*this);
 }
 
-list<Mapping const*> MappingExtractor::get() const { return m_mappings; }
+vector<Mapping const*> MappingExtractor::get() const { return m_mappings; }
 
 bool MappingExtractor::visit(Mapping const& _node)
 {

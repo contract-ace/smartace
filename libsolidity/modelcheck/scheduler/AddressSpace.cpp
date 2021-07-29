@@ -7,7 +7,7 @@
 #include <libsolidity/modelcheck/utils/Contract.h>
 #include <libsolidity/modelcheck/utils/LibVerify.h>
 
-#include <list>
+#include <vector>
 #include <memory>
 
 using namespace std;
@@ -34,11 +34,17 @@ AddressSpace::AddressSpace(
 
 void AddressSpace::map_constants(CBlockList & _block) const
 {
-    list<shared_ptr<CIdentifier>> used_so_far;
+    // Reserves space for each address.
+    vector<shared_ptr<CIdentifier>> used_so_far;
+    used_so_far.reserve(m_address_data->literals().size());
+
+    // Logs section if there will be any comparisons.
     if (m_address_data->literals().size() > 1)
     {
         LibVerify::log(_block, "[Handling constants]");
     }
+
+    // Assigns each address, and handles equality.
     for (auto lit : m_address_data->literals())
     {
         auto const NAME = AbstractAddressDomain::literal_name(lit);

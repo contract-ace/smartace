@@ -9,11 +9,11 @@
 #include <libsolidity/ast/AST.h>
 #include <libsolidity/modelcheck/utils/Named.h>
 
-#include <list>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
 namespace dev
 {
@@ -33,8 +33,8 @@ public:
     // Creates a summary of _structure.
     explicit Structure(StructDefinition const& _struct);
 
-    // Returns the list of mappings required by the structure.
-    std::list<Mapping const*> mappings() const;
+    // Returns the mappings required by the structure.
+    std::vector<Mapping const*> mappings() const;
 
     // Returns the fields of the structure.
     std::list<ASTPointer<VariableDeclaration>> fields() const;
@@ -43,7 +43,9 @@ public:
     StructDefinition const* raw() const;
 
 private:
-    std::list<Mapping const*> m_mappings;
+    std::vector<Mapping const*> m_mappings;
+
+    // The corresponding field defined by StructDefinition is a list.
     std::list<ASTPointer<VariableDeclaration>> m_members;
 
     // TODO(scottwe): temporary solution to simplify transition.
@@ -90,7 +92,7 @@ public:
     virtual ~StructureContainer() = default;
 
     // Returns the structures defined by this contract.
-    std::list<std::shared_ptr<Structure const>> structures() const;
+    std::vector<std::shared_ptr<Structure const>> structures() const;
 
     // Searches for a structure that mathces the declaration.
     std::shared_ptr<Structure const>
@@ -100,7 +102,7 @@ public:
     ContractDefinition const* raw() const;
 
 private:
-    std::list<std::shared_ptr<Structure const>> m_structures;
+    std::vector<std::shared_ptr<Structure const>> m_structures;
 
     // TODO(scottwe): temporary solution to simplify transition.
     ContractDefinition const* m_raw;

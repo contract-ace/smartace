@@ -9,10 +9,10 @@
 #include <libsolidity/ast/ASTVisitor.h>
 #include <libsolidity/modelcheck/analysis/Structure.h>
 
-#include <list>
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace dev
 {
@@ -51,7 +51,7 @@ public:
 
     // Returns all ancestors initialized from this level, in order from least
     // derived to most derived.
-    std::list<InheritedCall> const& baseContracts() const;
+    std::vector<InheritedCall> const& baseContracts() const;
 
     // TODO: Deprecate.
     ContractDefinition const* raw() const;
@@ -86,7 +86,7 @@ private:
 
     std::vector<VariableDeclaration const*> m_decls;
 
-    std::list<InheritedCall> m_calls;
+    std::vector<InheritedCall> m_calls;
 
     ContractDefinition const* m_raw;
 
@@ -101,9 +101,9 @@ private:
 class FlatContract : public StructureContainer
 {
 public:
-    using FunctionList = std::list<FunctionDefinition const*>;
-    using ModifierList = std::list<ModifierDefinition const*>;
-    using VariableList = std::list<VariableDeclaration const*>;
+    using FunctionList = std::vector<FunctionDefinition const*>;
+    using ModifierList = std::vector<ModifierDefinition const*>;
+    using VariableList = std::vector<VariableDeclaration const*>;
 
     // Flattens the inheritance tree of _contract.
     explicit FlatContract(
@@ -141,10 +141,10 @@ public:
         resolve(FunctionDefinition const& _func) const;
 
     // Returns the mappings defiend (directly) by this contract.
-    std::list<Mapping const*> const& mappings() const;
+    std::vector<Mapping const*> const& mappings() const;
 
     // Returns the enums used by this contract.
-    std::list<EnumDefinition const*> const& enums() const;
+    std::vector<EnumDefinition const*> const& enums() const;
 
     // Returns true if the contract is payable.
     bool is_payable() const;
@@ -161,9 +161,9 @@ private:
 
     InheritanceTree m_tree;
 
-    std::list<Mapping const*> m_mappings;
+    std::vector<Mapping const*> m_mappings;
 
-    std::list<EnumDefinition const*> m_enums;
+    std::vector<EnumDefinition const*> m_enums;
 };
 
 // -------------------------------------------------------------------------- //

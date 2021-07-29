@@ -17,7 +17,10 @@ namespace modelcheck
 // -------------------------------------------------------------------------- //
 
 VariableScopeResolver::VariableScopeResolver(CodeType _code_type)
- : M_CODE_TYPE(_code_type) {}
+ : M_CODE_TYPE(_code_type)
+{
+    m_scopes.reserve(8);
+}
 
 // -------------------------------------------------------------------------- //
 

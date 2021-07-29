@@ -9,7 +9,6 @@
 
 #include <libsolidity/ast/ASTVisitor.h>
 
-#include <list>
 #include <map>
 #include <string>
 #include <vector>
@@ -40,21 +39,21 @@ public:
     void record(VariableDeclaration const* _var);
 
     // Returns the extracted mappings.
-    std::list<Mapping const*> get() const;
+    std::vector<Mapping const*> get() const;
 
 protected:
 	bool visit(Mapping const& _node) override;
 
 private:
-    std::list<Mapping const*> m_mappings;
+    std::vector<Mapping const*> m_mappings;
 };
 
 // -------------------------------------------------------------------------- //
 
 /**
  * Not quite MapReduce... This class consumes the AST for `mapping` typenames,
- * and constructs a database mapping said typenames to (1) an ordered list of
- * keys in the map and (2) the type of the map within the encoding.
+ * and constructs a database mapping said typenames to (1) an ordered collection
+ * of keys in the map and (2) the type of the map within the encoding.
  */
 class MapDeflate
 {
@@ -92,8 +91,8 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * Analyzers an IndexAccess, flattens all keys into a list, and extracts the
- * base map to access.
+ * Analyzers an IndexAccess, flattens all keys into a collection, and extracts
+ * the base map to access.
  */
 class FlatIndex: public ASTConstVisitor
 {
@@ -101,7 +100,7 @@ public:
     // Extracts all access information wrt _root.
     FlatIndex(IndexAccess const& _root);
 
-    // Returns a flattened list of indices to the map.
+    // Returns a flattened collection of indices to the map.
     std::list<Expression const*> const& indices() const;
 
     // Returns the expression which designates the map.
@@ -120,6 +119,7 @@ private:
     Expression const* m_base = nullptr;
     VariableDeclaration const* m_decl = nullptr;
 
+    // This is a list so that push_front is O(1) time (plus allocations).
     std::list<Expression const*> m_indices;
 };
 
