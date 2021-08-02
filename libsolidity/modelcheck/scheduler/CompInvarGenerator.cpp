@@ -132,7 +132,6 @@ CBlockList CompInvarGenerator::apply_interference(NondetSourceRegistry &_nd_reg)
         block.push_back(initializer);
         
         // Collects values.
-        // * Factor into call
         vector<CExprPtr> values;
         for (auto field : _map.fields)
         {
@@ -164,7 +163,7 @@ CBlockList CompInvarGenerator::check_interference(NondetSourceRegistry &_nd_reg)
         return block;
     }
 
-    // [...]
+    // Default, unreachable case.
     CBlockList default_case;
     string default_err("Model failure, entry_id out of bounds.");
     LibVerify::add_require(default_case, Literals::ZERO, default_err);
@@ -176,7 +175,7 @@ CBlockList CompInvarGenerator::check_interference(NondetSourceRegistry &_nd_reg)
     {
         CBlockList map_block;
 
-        // [...]
+        // Expands fields and default values (this is needed by addr -> struct).
         std::vector<shared_ptr<CVarDecl>> vars;
         std::vector<CExprPtr> values;
         for (auto field : map.fields)
@@ -186,17 +185,17 @@ CBlockList CompInvarGenerator::check_interference(NondetSourceRegistry &_nd_reg)
             values.push_back(vars.back()->id());
         }
 
-        // [...]
+        // Declares switch statement and switch variable.
         auto entry_id = make_shared<CVarDecl>("uint64_t", "entry_id");
         auto ecases = make_shared<CSwitch>(entry_id->id(), default_case);
 
-        // [...]
+        // Generates callback to populate each switch case.
         auto check = [&self=(*this),&ecases,&vars]
                      (MapData const& _map, KeyIterator const& _indices)
         {
             CBlockList entry_block;
 
-            // [...]
+            // Applies role guards (concretization).
             auto gv = make_shared<CVarDecl>("uint8_t", "guard");
             entry_block.push_back(gv);
             entry_block.push_back(gv->assign(Literals::ZERO)->stmt());
@@ -205,8 +204,7 @@ CBlockList CompInvarGenerator::check_interference(NondetSourceRegistry &_nd_reg)
             ));
             LibVerify::add_require(entry_block, gv->id(), "Guard");
 
-            // [...]
-            // * Factor into call.
+            // Visits each field and default value (see above).
             string const FIELD = "data" + _indices.suffix();
             auto const DATA = make_shared<CMemberAccess>(_map.path, FIELD);
             for (size_t i = 0; i < _map.fields.size(); ++i)
@@ -224,13 +222,13 @@ CBlockList CompInvarGenerator::check_interference(NondetSourceRegistry &_nd_reg)
                 entry_block.push_back(var->assign(data)->stmt());
             }
 
-            // [...]
+            // Registers case.
             entry_block.push_back(make_shared<CBreak>());
             ecases->add_case(ecases->size(), move(entry_block));
         };
         expand_map(map, check);
 
-        // [...]
+        // Generates switch statement over current mapping's entries.
         vector<size_t> tmp;
         map_block.push_back(entry_id);
         map_block.push_back(entry_id->assign(
@@ -242,7 +240,7 @@ CBlockList CompInvarGenerator::check_interference(NondetSourceRegistry &_nd_reg)
         mcases->add_case(mcases->size(), move(map_block));
     }
 
-    // [...]
+    // Generates switch statement over mappings.
     block.push_back(map_id);
     block.push_back(map_id->assign(
         _nd_reg.range(0, mcases->size() + 1, "map")
