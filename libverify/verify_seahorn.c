@@ -36,7 +36,7 @@ void sol_on_transaction(void) {}
 
 // -------------------------------------------------------------------------- //
 
-uint8_t sol_is_using_reps(void)
+uint8_t sol_can_infer(void)
 {
     return 1;
 }

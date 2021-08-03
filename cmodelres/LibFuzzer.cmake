@@ -13,7 +13,7 @@ add_custom_command(
 )
 
 # Parameters to configure libfuzzer.
-set(FUZZ_MAX_LEN "20000" CACHE STRING "Maximum length of a test input (forwarded).")
+set(FUZZ_MAX_LEN "0" CACHE STRING "Maximum length of a test input (forwarded).")
 set(FUZZ_RUNS "1000000" CACHE STRING "Number of individual test runs (forwarded).")
 set(FUZZ_TIMEOUT "15" CACHE STRING "Timeout in seconds (forwarded).")
 

@@ -180,7 +180,7 @@ uint8_t sol_continue(void);
 void sol_on_transaction(void);
 
 // Returns true if representatives are used in place of users.
-uint8_t sol_is_using_reps(void);
+uint8_t sol_can_infer(void);
 
 // Placeholder calls for require() and assert() in solidity.
 void sol_require(sol_raw_uint8_t _cond, const char* _msg);

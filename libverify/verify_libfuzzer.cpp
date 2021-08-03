@@ -79,7 +79,7 @@ void sol_on_transaction(void) {}
 
 // -------------------------------------------------------------------------- //
 
-uint8_t sol_is_using_reps(void)
+uint8_t sol_can_infer(void)
 {
     return 0;
 }
@@ -247,7 +247,7 @@ sol_raw_int8_t nd_int8_t(sol_raw_int8_t, const char* _msg)
 	return retval;
 }
 
-sol_raw_uint8_t nd_uint8_t(sol_raw_uint8_t, const char* _msg)
+sol_raw_uint8_t nd_uint8_t(sol_raw_int8_t, const char* _msg)
 {
 	on_entry("uint8", _msg);
 	sol_raw_uint8_t retval = 0;
