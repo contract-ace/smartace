@@ -272,36 +272,24 @@ void TaintAnalysis::propogate_unknown()
 
 // -------------------------------------------------------------------------- //
 
-ClientTaintPass::ClientTaintPass(FunctionDefinition const& _func)
+vector<bool> const& AbstractTaintPass::extract() const
 {
-    // Computes number of potentia clients.
-    size_t potential_clients = 0;
-    for (auto param : _func.parameters())
-    {
-        if (param->type()->category() == Type::Category::Address)
-        {
-            potential_clients += 1;
-        }
-    }
+    return m_reached_sinks;
+}
 
-    // Aborts now if there are no clients to analyze.
-    if (potential_clients == 0)
+void AbstractTaintPass::setup(FunctionDefinition const& _func)
+{
+    // Computes number of sources and aborts if there are no sources to analyze.
+    size_t source_ct = compute_source_ct(_func);
+    if (source_ct == 0)
     {
         return;
     }
 
     // Generates tainted sources.
-    m_reached_sinks.resize(potential_clients, false);
-    m_taint_data = make_shared<TaintAnalysis>(potential_clients);
-    size_t taint_id = 0;
-    for (auto param : _func.parameters())
-    {
-        if (param->type()->category() == Type::Category::Address)
-        {
-            m_taint_data->taint(*param.get(), taint_id);
-            taint_id += 1;
-        }
-    }
+    m_reached_sinks.resize(source_ct, false);
+    m_taint_data = make_shared<TaintAnalysis>(source_ct);
+    populate(_func, m_taint_data);
 
     // Computes taint results.
     m_taint_data->run(_func);
@@ -323,12 +311,7 @@ ClientTaintPass::ClientTaintPass(FunctionDefinition const& _func)
     _func.accept(*this);
 }
 
-vector<bool> const& ClientTaintPass::extract() const
-{
-    return m_reached_sinks;
-}
-
-bool ClientTaintPass::visit(Return const& _node)
+bool AbstractTaintPass::visit(Return const& _node)
 {
     ScopedSwap<bool> scope(m_in_sink, true);
     if (auto const* expr = _node.expression())
@@ -338,7 +321,7 @@ bool ClientTaintPass::visit(Return const& _node)
     return false;
 }
 
-bool ClientTaintPass::visit(FunctionCall const& _node)
+bool AbstractTaintPass::visit(FunctionCall const& _node)
 {
     {
         ScopedSwap<bool> scope(m_in_sink, true);
@@ -351,14 +334,14 @@ bool ClientTaintPass::visit(FunctionCall const& _node)
     return false;
 }
 
-bool ClientTaintPass::visit(UnaryOperation const& _node)
+bool AbstractTaintPass::visit(UnaryOperation const& _node)
 {
     ScopedSwap<bool> scope(m_in_sink, true);
     _node.subExpression().accept(*this);
     return false;
 }
 
-bool ClientTaintPass::visit(BinaryOperation const& _node)
+bool AbstractTaintPass::visit(BinaryOperation const& _node)
 {
     ScopedSwap<bool> scope(m_in_sink, true);
     _node.leftExpression().accept(*this);
@@ -366,7 +349,7 @@ bool ClientTaintPass::visit(BinaryOperation const& _node)
     return false;
 }
 
-bool ClientTaintPass::visit(IndexAccess const& _node)
+bool AbstractTaintPass::visit(IndexAccess const& _node)
 {
     if (auto const* expr = _node.indexExpression())
     {
@@ -377,7 +360,7 @@ bool ClientTaintPass::visit(IndexAccess const& _node)
     return false;
 }
 
-bool ClientTaintPass::visit(MemberAccess const& _node)
+bool AbstractTaintPass::visit(MemberAccess const& _node)
 {
     // Processes declaration.
     if (auto const* ref = _node.annotation().referencedDeclaration)
@@ -394,7 +377,7 @@ bool ClientTaintPass::visit(MemberAccess const& _node)
     return false;
 }
 
-bool ClientTaintPass::visit(Identifier const& _node)
+bool AbstractTaintPass::visit(Identifier const& _node)
 {
     if (auto const* ref = _node.annotation().referencedDeclaration)
     {
@@ -403,7 +386,7 @@ bool ClientTaintPass::visit(Identifier const& _node)
     return false;
 }
 
-void ClientTaintPass::process_declaration(Declaration const* _ref)
+void AbstractTaintPass::process_declaration(Declaration const* _ref)
 {
     if (auto decl = dynamic_cast<VariableDeclaration const*>(_ref))
     {
@@ -421,6 +404,64 @@ void ClientTaintPass::process_declaration(Declaration const* _ref)
                 }
             }
         }
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+ClientTaintPass::ClientTaintPass(FunctionDefinition const& _func)
+{
+    setup(_func);
+}
+
+size_t ClientTaintPass::compute_source_ct(FunctionDefinition const& _func) const
+{
+    size_t potential_clients = 0;
+    for (auto param : _func.parameters())
+    {
+        if (param->type()->category() == Type::Category::Address)
+        {
+            potential_clients += 1;
+        }
+    }
+    return potential_clients;
+}
+
+void ClientTaintPass::populate(
+    FunctionDefinition const& _func, shared_ptr<TaintAnalysis> _data
+) const
+{
+    size_t taint_id = 0;
+    for (auto param : _func.parameters())
+    {
+        if (param->type()->category() == Type::Category::Address)
+        {
+            _data->taint(*param.get(), taint_id);
+            taint_id += 1;
+        }
+    }
+}
+
+// -------------------------------------------------------------------------- //
+
+RoleTaintPass::RoleTaintPass(FunctionDefinition const& _func, Roles _roles)
+ : m_roles(std::move(_roles))
+{
+    setup(_func);
+}
+
+size_t RoleTaintPass::compute_source_ct(FunctionDefinition const&) const
+{
+    return m_roles.size();
+}
+
+void RoleTaintPass::populate(
+    FunctionDefinition const&, shared_ptr<TaintAnalysis> _data
+) const
+{
+    for (size_t i = 0; i < m_roles.size(); ++i)
+    {
+        _data->taint(*m_roles[i], i);
     }
 }
 

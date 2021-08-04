@@ -1095,6 +1095,71 @@ BOOST_AUTO_TEST_CASE(client_pass_supports_enums)
     }
 }
 
+BOOST_AUTO_TEST_CASE(role_pass_no_roles)
+{
+    // Remark: features already tested for clients; they are shared.
+    char const* text = R"(
+        contract A {
+            function f(int x, address a, int y, address b) public {
+                int z = x + y;
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    RoleTaintPass analysis(func, {});
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK(outcome.empty());
+}
+
+BOOST_AUTO_TEST_CASE(role_pass_many_roles)
+{
+    char const* text = R"(
+        contract A {
+            address s1;
+            address s2;
+            address s3;
+            address s4;
+            address s5;
+            function g(address) public {}
+            function f(address, address b, address, address d) public {
+                if (s1 == address(0)) {
+                    b = s1;
+                    g(b);
+                } else {
+                    s2 = s3;
+                }
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[1];
+    RoleTaintPass analysis(func, ctrt->stateVariables());
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 5);
+    if (outcome.size() == 5)
+    {
+        BOOST_CHECK(outcome[0]);
+        BOOST_CHECK(outcome[1]);
+        BOOST_CHECK(outcome[2]);
+        BOOST_CHECK(!outcome[3]);
+        BOOST_CHECK(!outcome[4]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // -------------------------------------------------------------------------- //

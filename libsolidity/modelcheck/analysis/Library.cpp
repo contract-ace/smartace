@@ -35,8 +35,25 @@ vector<FunctionDefinition const*> Library::functions() const
 LibrarySummary::LibrarySummary(
     CallGraph const& _calls, shared_ptr<StructureStore> _store
 ) {
-    // Computes library usage across all code.
     map<ContractDefinition const*, vector<FunctionDefinition const*>> libraries;
+
+    // Computes libraries with structures in use.
+    for (auto itr = _store->begin(); itr != _store->end(); ++itr)
+    {
+        auto scope = itr->first->scope();
+        if (auto contract = dynamic_cast<ContractDefinition const*>(scope))
+        {
+            if (contract->isLibrary())
+            {
+                if (libraries.count(contract) == 0)
+                {
+                    libraries[contract] = {};
+                }
+            }
+        }
+    }
+
+    // Computes library usage across all contract methods.
     for (auto func : _calls.executed_code())
     {
         auto contract = dynamic_cast<ContractDefinition const*>(func->scope());

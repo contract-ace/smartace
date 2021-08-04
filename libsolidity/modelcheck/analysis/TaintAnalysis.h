@@ -108,18 +108,24 @@ private:
 // -------------------------------------------------------------------------- //
 
 /**
- * Performs client taint analysis for PTGBuilder.
+ * Performs taint analysis for PTGBuilder.
  */
-class ClientTaintPass : public ASTConstVisitor
+class AbstractTaintPass : public ASTConstVisitor
 {
 public:
-    // Performs PTG analysis for _func.
-    ClientTaintPass(FunctionDefinition const& _func);
-
     // Returns the result.
     std::vector<bool> const& extract() const;
 
 protected:
+    // Perform analysis after setup.
+    void setup(FunctionDefinition const& _func);
+
+    // Intergration Interfaces.
+    virtual size_t compute_source_ct(FunctionDefinition const& _func) const = 0;
+    virtual void populate(
+        FunctionDefinition const& _func, std::shared_ptr<TaintAnalysis> _data
+    ) const = 0;
+
     // Interprocedural (sinks).
     bool visit(Return const& _node) override;
 	bool visit(FunctionCall const& _node) override;
@@ -145,6 +151,50 @@ private:
 
     // Tainted sources that reach sinks.
     std::vector<bool> m_reached_sinks;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Performs client taint analysis for PTGBuilder.
+ */
+class ClientTaintPass : public AbstractTaintPass
+{
+public:
+    // Performs PTG analysis for _func.
+    ClientTaintPass(FunctionDefinition const& _func);
+
+protected:
+    // Overrides.
+    size_t compute_source_ct(FunctionDefinition const& _func) const override;
+    void populate(
+        FunctionDefinition const& _func, std::shared_ptr<TaintAnalysis> _data
+    ) const override;
+};
+
+// -------------------------------------------------------------------------- //
+
+/**
+ * Performs role taint analysis for PTGBuilder.
+ */
+class RoleTaintPass : public AbstractTaintPass
+{
+public:
+    using Roles = std::vector<VariableDeclaration const*>;
+
+    // Performs PTG analysis for _func.
+    RoleTaintPass(FunctionDefinition const& _func, Roles _roles);
+
+protected:
+    // Overrides.
+    size_t compute_source_ct(FunctionDefinition const&) const override;
+    void populate(
+        FunctionDefinition const&, std::shared_ptr<TaintAnalysis> _data
+    ) const override;
+
+protected:
+    // Stores copy of roles.
+    Roles m_roles;
 };
 
 // -------------------------------------------------------------------------- //
