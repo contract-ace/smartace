@@ -103,7 +103,7 @@ if(SEA_EXE)
         add_custom_target(
             sea_inspect
             COMMAND ${SEA_EXE} inspect --cfg-dot "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
-            SOURCES "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
+            DEPENDS "${CMAKE_BINARY_DIR}/${SEA_FINAL_LL}"
         )
     endif()
 
