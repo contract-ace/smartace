@@ -45,6 +45,12 @@ if ("${CMAKE_C_COMPILER_VERSION}" MATCHES "^10\.")
         NAMES "llvm-link-10" "llvm-link-mp-10" "llvm-link"
         DOC "The linker for llvm(-10)."
     )
+elseif("${CMAKE_C_COMPILER_VERSION}" MATCHES "^9\.")
+    find_program(
+        LLVM_LINK_EXE
+        NAMES "llvm-link-9" "llvm-link-mp-9" "llvm-link"
+        DOC "The linker for llvm(-9)."
+    )
 elseif("${CMAKE_C_COMPILER_VERSION}" MATCHES "^6\.")
     find_program(
         LLVM_LINK_EXE
@@ -71,6 +77,9 @@ foreach(fn ${KLEE_DEPS})
     get_filename_component(raw_fn "${fn}" NAME_WE)
     list(APPEND KLEE_BCS "${CMAKE_BINARY_DIR}/${raw_fn}.bc")
 endforeach()
+
+# Parameters to configure klee.
+set(KLEE_MAX_TIME "60min" CACHE STRING "Maximum time for a test.")
 
 if(KLEE_EXE)
     # Target for Klee driver.
@@ -109,7 +118,7 @@ if(KLEE_EXE)
         list(APPEND KLEE_ARGS "--external-calls=all")
         list(APPEND KLEE_ARGS "--only-output-states-covering-new")
         list(APPEND KLEE_ARGS "--max-sym-array-size=4096")
-        list(APPEND KLEE_ARGS "--max-time=60min")
+        list(APPEND KLEE_ARGS "--max-time=${KLEE_MAX_TIME}")
         list(APPEND KLEE_ARGS "--watchdog")
         list(APPEND KLEE_ARGS "--max-memory-inhibit=false")
         list(APPEND KLEE_ARGS "--max-static-fork-pct=1")
