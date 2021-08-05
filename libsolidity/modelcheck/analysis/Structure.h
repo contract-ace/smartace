@@ -61,17 +61,22 @@ private:
 class StructureStore
 {
 public:
+    using Entry = std::shared_ptr<Structure const>;
+    using Store = std::map<StructDefinition const *, Entry>;
+
     // Returns the SmartACE representation of _struct. If _struct has already
     // been queried, then a cached version is returned.
-    std::shared_ptr<Structure const> add(StructDefinition const *_struct);
+    Entry add(StructDefinition const *_struct);
 
     // Returns the SmartACE representation of _struct, if cached, else returns
     // a nullptr.
-    std::shared_ptr<Structure const> get(StructDefinition const *_struct);
+    Entry get(StructDefinition const *_struct);
+
+    Store::const_iterator begin() const;
+    Store::const_iterator end() const;
 
 private:
-    std::map<StructDefinition const *, std::shared_ptr<Structure const>>
-        m_structure_lookup;
+    Store m_structure_lookup;
 };
 
 // -------------------------------------------------------------------------- //
@@ -92,17 +97,16 @@ public:
     virtual ~StructureContainer() = default;
 
     // Returns the structures defined by this contract.
-    std::vector<std::shared_ptr<Structure const>> structures() const;
+    std::vector<StructureStore::Entry> structures() const;
 
     // Searches for a structure that mathces the declaration.
-    std::shared_ptr<Structure const>
-        find_structure(VariableDeclaration const* _decl) const;
+    StructureStore::Entry find_structure(VariableDeclaration const* _decl) const;
 
     // TODO(scottwe): temporary solution to simplify transition.
     ContractDefinition const* raw() const;
 
 private:
-    std::vector<std::shared_ptr<Structure const>> m_structures;
+    std::vector<StructureStore::Entry> m_structures;
 
     // TODO(scottwe): temporary solution to simplify transition.
     ContractDefinition const* m_raw;

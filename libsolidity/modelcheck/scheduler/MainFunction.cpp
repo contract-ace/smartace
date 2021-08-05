@@ -96,11 +96,11 @@ void MainFunctionGenerator::print_main(ostream& _stream)
         make_shared<CFuncCall>("sol_on_transaction", CArgList{})->stmt()
     );
     transactionals.push_back(make_shared<CIf>(
-        make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
+        make_shared<CFuncCall>("sol_can_infer", CArgList{}),
         make_shared<CBlock>(m_invars.check_interference(*m_nd_reg))
     ));
     transactionals.push_back(make_shared<CIf>(
-        make_shared<CFuncCall>("sol_is_using_reps", CArgList{}),
+        make_shared<CFuncCall>("sol_can_infer", CArgList{}),
         make_shared<CBlock>(m_invars.apply_interference(*m_nd_reg))
     ));
     m_stategen.update_global(transactionals);

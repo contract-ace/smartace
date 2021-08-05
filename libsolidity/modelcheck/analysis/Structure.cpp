@@ -31,7 +31,7 @@ StructDefinition const* Structure::raw() const { return m_raw; }
 
 // -------------------------------------------------------------------------- //
 
-shared_ptr<Structure const> StructureStore::add(StructDefinition const *_struct)
+StructureStore::Entry StructureStore::add(StructDefinition const *_struct)
 {
     auto result = m_structure_lookup.find(_struct);
     if (result != m_structure_lookup.end())
@@ -46,9 +46,7 @@ shared_ptr<Structure const> StructureStore::add(StructDefinition const *_struct)
     }
 }
 
-// -------------------------------------------------------------------------- //
-
-shared_ptr<Structure const> StructureStore::get(StructDefinition const *_struct)
+StructureStore::Entry StructureStore::get(StructDefinition const *_struct)
 {
     auto result = m_structure_lookup.find(_struct);
     if (result != m_structure_lookup.end())
@@ -59,6 +57,16 @@ shared_ptr<Structure const> StructureStore::get(StructDefinition const *_struct)
     {
         return nullptr;
     }
+}
+
+StructureStore::Store::const_iterator StructureStore::begin() const
+{
+    return m_structure_lookup.begin();
+}
+
+StructureStore::Store::const_iterator StructureStore::end() const
+{
+    return m_structure_lookup.end();
 }
 
 // -------------------------------------------------------------------------- //
@@ -84,12 +92,12 @@ StructureContainer::StructureContainer(
     }
 }
 
-vector<shared_ptr<Structure const>> StructureContainer::structures() const
+vector<StructureStore::Entry> StructureContainer::structures() const
 {
     return m_structures;
 }
 
-shared_ptr<Structure const>
+StructureStore::Entry
     StructureContainer::find_structure(VariableDeclaration const* _decl) const
 {
     if (auto type = dynamic_cast<StructType const*>(_decl->type()))
