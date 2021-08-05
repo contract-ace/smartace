@@ -224,6 +224,11 @@ public:
 
 private:
     std::shared_ptr<CallGraphBuilder::BuildData> m_data;
+
+    using ContractKey = FlatContract const*;
+    using SuperCallKey = std::pair<ContractKey, FunctionDefinition const*>;
+    mutable std::map<ContractKey, CodeSet> m_internals_cache;
+    mutable std::map<SuperCallKey, CodeSet> m_super_calls_cache;
 };
 
 // -------------------------------------------------------------------------- //

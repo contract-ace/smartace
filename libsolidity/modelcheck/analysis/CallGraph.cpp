@@ -258,85 +258,91 @@ CallGraphBuilder::ModifierSet CallGraph::applied_modifiers() const
 
 CallGraph::CodeSet CallGraph::internals(FlatContract const& _scope) const
 {
-    CodeSet methods;
-
-    // Computes list of all interfaces, including "special" methods.
-    CodeList functions = _scope.interface();
-    if (auto fallback = _scope.fallback())
+    if (m_internals_cache.count(&_scope) == 0)
     {
-        functions.push_back(fallback);
-    }
-    for (auto ctor : _scope.constructors())
-    {
-        functions.push_back(ctor);
-    }
-
-    // TODO: precompute.
-    set<FunctionDefinition const*> visited;
-    for (size_t i = 0; i < functions.size(); ++i)
-    {
-        auto const& func = functions[i];
-
-        if (!visited.insert(func).second) continue;
-
-        if (!func->functionType(false)) methods.insert(func);
-
-        for (auto succ : m_data->call_graph.neighbours(func))
+        // Computes list of all interfaces, including "special" methods.
+        CodeList functions = _scope.interface();
+        if (auto fallback = _scope.fallback())
         {
-            auto labels = m_data->call_graph.label_of(func, succ);
-            if (labels.find(CallTypes::External) == labels.end())
+            functions.push_back(fallback);
+        }
+        for (auto ctor : _scope.constructors())
+        {
+            functions.push_back(ctor);
+        }
+
+        // Caches internals.
+        set<FunctionDefinition const*> visited;
+        auto & methods = m_internals_cache[&_scope];
+        for (size_t i = 0; i < functions.size(); ++i)
+        {
+            auto const& func = functions[i];
+
+            if (!visited.insert(func).second) continue;
+
+            if (!func->functionType(false)) methods.insert(func);
+
+            for (auto succ : m_data->call_graph.neighbours(func))
             {
-                if (labels.find(CallTypes::Library) == labels.end())
+                auto labels = m_data->call_graph.label_of(func, succ);
+                if (labels.find(CallTypes::External) == labels.end())
                 {
-                    functions.push_back(succ);
+                    if (labels.find(CallTypes::Library) == labels.end())
+                    {
+                        functions.push_back(succ);
+                    }
                 }
             }
         }
+        return methods;
     }
-
-    return methods;
+    return m_internals_cache[&_scope];
 }
 
 CallGraph::CodeSet CallGraph::super_calls(
     FlatContract const& _scope, FunctionDefinition const& _call
 ) const
 {
-    CodeSet chain;
-
-    CodeList functions;
-    if (_call.functionType(false))
+    SuperCallKey key(&_scope, &_call);
+    if (m_super_calls_cache.count(key) == 0)
     {
-        functions = _scope.interface();
-    }
-    else
-    {
-        functions = _scope.internals();
-    }
-
-    // TODO: precompute.
-    set<FunctionDefinition const*> visited;
-    for (size_t i = 0; i < functions.size(); ++i)
-    {
-        auto const& func = functions[i];
-
-        if (!visited.insert(func).second) continue;
-
-        if (collid(_call, *func)) chain.insert(func);
-
-        for (auto succ : m_data->call_graph.neighbours(func))
+        // Extracts methods of correct type.
+        CodeList functions;
+        if (_call.functionType(false))
         {
-            auto labels = m_data->call_graph.label_of(func, succ);
-            if (labels.find(CallTypes::External) == labels.end())
+            functions = _scope.interface();
+        }
+        else
+        {
+            functions = _scope.internals();
+        }
+
+        // Caches super calls.
+        set<FunctionDefinition const*> visited;
+        auto & chain = m_super_calls_cache[key];
+        for (size_t i = 0; i < functions.size(); ++i)
+        {
+            auto const& func = functions[i];
+
+            if (!visited.insert(func).second) continue;
+
+            if (collid(_call, *func)) chain.insert(func);
+
+            for (auto succ : m_data->call_graph.neighbours(func))
             {
-                if (labels.find(CallTypes::Library) == labels.end())
+                auto labels = m_data->call_graph.label_of(func, succ);
+                if (labels.find(CallTypes::External) == labels.end())
                 {
-                    functions.push_back(succ);
+                    if (labels.find(CallTypes::Library) == labels.end())
+                    {
+                        functions.push_back(succ);
+                    }
                 }
             }
         }
+        return chain;
     }
-
-    return chain;
+    return m_super_calls_cache[key];
 }
 
 // -------------------------------------------------------------------------- //
