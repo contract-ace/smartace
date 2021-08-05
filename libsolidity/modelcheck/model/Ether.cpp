@@ -221,8 +221,9 @@ void EtherMethodGenerator::generate_fallbacks(
                     id = make_shared<CReference>(id);
                 }
 
-                auto fallback = contract->details()->fallback();
-                FunctionSpecialization call(*fallback);
+                auto details = contract->details();
+                auto fallback = details->fallback();
+                FunctionSpecialization call(*fallback, *details->raw());
 
                 CFuncCallBuilder builder(call.name(0));
                 builder.push(id);
