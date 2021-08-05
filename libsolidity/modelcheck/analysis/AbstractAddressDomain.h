@@ -139,7 +139,11 @@ public:
     };
 
     // Computes the number of active roles in _contract.
-    RoleExtractor(MapDeflate const& _map_db, FlatContract const& _contract);
+    RoleExtractor(
+        CallGraph const& _calls,
+        MapDeflate const& _map_db,
+        FlatContract const& _contract
+    );
 
     // Returns all roles in the contract, regardless of whether or not they are
     // in use.
@@ -157,7 +161,11 @@ private:
     void check_map_conformance(VariableDeclaration const* _decl);
 
     // Computes all partial paths to roles within _struct.
-    PathGroup extract_from_struct(std::string _name, StructType const* _struct);
+    PathGroup extract_from_struct(
+        std::string _name,
+        std::vector<VariableDeclaration const*> & _role_vars,
+        StructType const* _struct
+    );
 
     // Appennds AddressViolation(_ty, m_context, _site) to m_violations.
     void record_violation(AddressViolation::Type _ty, ASTNode const* _site);

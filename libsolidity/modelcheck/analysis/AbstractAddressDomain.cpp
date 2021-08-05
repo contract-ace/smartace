@@ -201,21 +201,24 @@ void LiteralExtractor::record_violation(
 // -------------------------------------------------------------------------- //
 
 RoleExtractor::RoleExtractor(
-    MapDeflate const& _map_db, FlatContract const& _contract
+    CallGraph const& _calls,
+    MapDeflate const& _map_db,
+    FlatContract const& _contract
 ): m_map_db(_map_db)
 {
-    // TODO: This analysis is over-approximate due to the lack of a spec lang.
-    //       Without a spec lang, the PTGBuilder must assume that every role
-    //       appears in a property. Otherwise, the analysis is unsound.
+    // Collects the roles.
+    std::vector<VariableDeclaration const*> pub_role_vars;
+    std::vector<VariableDeclaration const*> pri_role_vars;
     for (auto var : _contract.state_variables())
     {
         auto type = var->type();
+        auto & role_vars = (var->isPublic() ? pub_role_vars : pri_role_vars);
         if (type->category() == Type::Category::Address)
         {
             m_roles.emplace_back();
             m_roles.back().decl = var;
             m_roles.back().paths.emplace_back(Path{var->name()});
-            m_role_ct = m_role_ct + 1;
+            role_vars.push_back(var);
         }
         else if (type->category() == Type::Category::Mapping)
         {
@@ -227,7 +230,44 @@ RoleExtractor::RoleExtractor(
 
             m_roles.emplace_back();
             m_roles.back().decl = var;
-            m_roles.back().paths = extract_from_struct(var->name(), structure);
+            m_roles.back().paths
+                = extract_from_struct(var->name(), role_vars, structure);
+        }
+    }
+
+    // Describes taint analysis.
+    vector<bool> tainted(pri_role_vars.size(), false);
+    auto analyze = [&tainted,&pri_role_vars]
+                   (set<FunctionDefinition const*> _funcs)
+    {
+        for (auto func : _funcs)
+        {
+            RoleTaintPass analysis(*func, pri_role_vars);
+            auto const& result = analysis.extract();
+            for (size_t i = 0; i < result.size(); ++i)
+            {
+                if (result[i])
+                {
+                    tainted[i] = true;
+                }
+            }
+        }
+    };
+
+    // Performs taint analysis.
+    analyze(_calls.internals(_contract));
+    for (auto func : _contract.interface())
+    {
+        analyze(_calls.super_calls(_contract, *func));
+    }
+
+    // Computes number of roles.
+    m_role_ct = pub_role_vars.size();
+    for (auto v : tainted)
+    {
+        if (v)
+        {
+            m_role_ct += 1;
         }
     }
 }
@@ -256,16 +296,20 @@ void RoleExtractor::check_map_conformance(VariableDeclaration const* _decl)
     else if (value_type->category() == Type::Category::Struct)
     {
         auto structure = dynamic_cast<StructType const*>(value_type);
+        vector<VariableDeclaration const*> tmp;
 
-        if (!extract_from_struct("", structure).empty())
+        if (!extract_from_struct("", tmp, structure).empty())
         {
             record_violation(AddressViolation::Type::ValueType, _decl);
         }
     }
 }
 
-RoleExtractor::PathGroup
-RoleExtractor::extract_from_struct(string _name, StructType const* _struct)
+RoleExtractor::PathGroup RoleExtractor::extract_from_struct(
+    string _name,
+    vector<VariableDeclaration const*> & _role_vars,
+    StructType const* _struct
+)
 {
     PathGroup partial_paths;
     for (auto field : _struct->structDefinition().members())
@@ -275,7 +319,7 @@ RoleExtractor::extract_from_struct(string _name, StructType const* _struct)
         {
             // If the field is an address, create path: <struct>.<field>
             partial_paths.push_back(Path{_name, field->name()});
-            m_role_ct = m_role_ct + 1;
+            _role_vars.push_back(field.get());
         }
         else if (category == Type::Category::Mapping)
         {
@@ -287,7 +331,8 @@ RoleExtractor::extract_from_struct(string _name, StructType const* _struct)
             // For each path p in field, record: p.prepend(<struct>)
             auto structure = dynamic_cast<StructType const*>(field->type());
 
-            auto rec_paths = extract_from_struct(field->name(), structure);
+            auto rec_paths
+                = extract_from_struct(field->name(), _role_vars, structure);
             for (auto path : rec_paths)
             {
                 Path new_path{_name};
@@ -395,7 +440,7 @@ PTGBuilder::PTGBuilder(
     // Processes roles.
     for (auto contract : _model.view())
     {
-        RoleExtractor rext(_map_db, *contract);
+        RoleExtractor rext(_calls, _map_db, *contract);
         m_role_lkup[contract.get()] = rext.roles();
         m_role_ct += rext.count();
         add_violations(rext.violations());

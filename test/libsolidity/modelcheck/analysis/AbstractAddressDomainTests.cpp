@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE(literals)
     BOOST_CHECK_EQUAL(lext.literals().size(), 3);
     BOOST_CHECK(lext.violations().empty());
 
-    RoleExtractor rext(converter.map_db(), *flat_model->get(ctrt));
+    RoleExtractor rext(call_graph, converter.map_db(), *flat_model->get(ctrt));
     BOOST_CHECK_EQUAL(rext.count(), 0);
     BOOST_CHECK(rext.violations().empty());
 
@@ -309,8 +309,8 @@ BOOST_AUTO_TEST_CASE(basic_interference_count)
             }
         }
         contract Y {
-            address k;
-            address l;
+            address public k;
+            address public l;
             function f() public pure { }
             function f(address i, address j) public pure {
                 if (i == j) {
@@ -366,7 +366,10 @@ BOOST_AUTO_TEST_CASE(compound_interference_count)
                 address z;
             }
             B b;
-            function f() public pure { }
+            function f() public view {
+                if (b.a1.x == b.a1.y) return;
+                if (b.z == b.z) return;
+            }
         }
     )";
 
@@ -421,7 +424,7 @@ BOOST_AUTO_TEST_CASE(basic_map_of_addrs_count)
         );
     }
 
-    RoleExtractor rext(converter.map_db(), *flat_model->get(ctrt));
+    RoleExtractor rext(call_graph, converter.map_db(), *flat_model->get(ctrt));
     BOOST_CHECK_EQUAL(rext.violations().size(), 1);
 }
 
@@ -459,21 +462,18 @@ BOOST_AUTO_TEST_CASE(basic_map_of_structs_count)
         );
     }
 
-    RoleExtractor rext(converter.map_db(), *flat_model->get(ctrt));
+    RoleExtractor rext(call_graph, converter.map_db(), *flat_model->get(ctrt));
     BOOST_CHECK_EQUAL(rext.violations().size(), 1);
 }
-
-
-
 
 BOOST_AUTO_TEST_CASE(inherited_addr_count)
 {
     char const* text = R"(
         contract Y {
-            address y;
+            address public y;
         }
         contract X is Y {
-            address x;
+            address public x;
             function f() public pure { }
         }
     )";
