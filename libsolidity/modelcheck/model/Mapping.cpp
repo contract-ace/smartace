@@ -3,10 +3,11 @@
 #include <libsolidity/modelcheck/analysis/TypeAnalyzer.h>
 #include <libsolidity/modelcheck/analysis/VariableScope.h>
 #include <libsolidity/modelcheck/codegen/Literals.h>
-#include <libsolidity/modelcheck/utils/KeyIterator.h>
-#include <libsolidity/modelcheck/utils/LibVerify.h>
 #include <libsolidity/modelcheck/model/NondetSourceRegistry.h>
+#include <libsolidity/modelcheck/utils/KeyIterator.h>
 #include <libsolidity/modelcheck/utils/Function.h>
+#include <libsolidity/modelcheck/utils/LibVerify.h>
+#include <libsolidity/modelcheck/utils/Types.h>
 
 #include <sstream>
 
@@ -27,7 +28,7 @@ MapGenerator::MapGenerator(
     size_t _ct,
     TypeAnalyzer const& _converter
 ): M_LEN(_ct)
- , M_KEEP_SUM(_keep_sum)
+ , M_KEEP_SUM(_keep_sum && has_simple_type(*M_MAP_RECORD->value_type))
  , M_TYPE(_converter.get_type(_src))
  , M_CONVERTER(_converter)
  , M_MAP_RECORD(_converter.map_db().try_resolve(_src))
