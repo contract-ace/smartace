@@ -1095,6 +1095,38 @@ BOOST_AUTO_TEST_CASE(client_pass_supports_enums)
     }
 }
 
+BOOST_AUTO_TEST_CASE(client_pass_fn)
+{
+    char const* text = R"(
+        contract A {
+            function f(address a, address b, address payable c, address d) public {
+                a; b; d;
+                c.transfer(1);
+            }
+        }
+    )";
+
+    const auto& unit = *parseAndAnalyse(text);
+    auto ctrt = retrieveContractByName(unit, "A");
+
+    auto const& func = *ctrt->definedFunctions()[0];
+    ClientTaintPass analysis(func);
+    auto const& outcome = analysis.extract();
+
+    BOOST_CHECK_EQUAL(outcome.size(), 4);
+    if (outcome.size() == 4)
+    {
+        BOOST_CHECK(!outcome[0]);
+        BOOST_CHECK(!outcome[1]);
+        BOOST_CHECK(outcome[2]);
+        BOOST_CHECK(!outcome[3]);
+    }
+    else
+    {
+        BOOST_CHECK(false);
+    }
+}
+
 BOOST_AUTO_TEST_CASE(role_pass_no_roles)
 {
     // Remark: features already tested for clients; they are shared.

@@ -323,14 +323,20 @@ bool AbstractTaintPass::visit(Return const& _node)
 
 bool AbstractTaintPass::visit(FunctionCall const& _node)
 {
+    ScopedSwap<bool> scope(m_in_sink, true);
+
+    // Arguments are sinks as analysis is intraprocedural.
+    for (auto arg : _node.arguments())
     {
-        ScopedSwap<bool> scope(m_in_sink, true);
-        for (auto arg : _node.arguments())
-        {
-            arg->accept(*this);
-        }
+        arg->accept(*this);
     }
-    _node.expression().accept(*this);
+
+    // Calls made against variables are sinks, as they determine call outcome.
+    if (auto fn = dynamic_cast<MemberAccess const*>(&_node.expression()))
+    {
+        fn->expression().accept(*this);
+    }
+
     return false;
 }
 
