@@ -38,7 +38,11 @@ void sol_on_transaction(void) {}
 
 uint8_t sol_can_infer(void)
 {
+#ifdef MC_SMC_CONCRETE_USERS
+	return 0;
+#else
     return 1;
+#endif
 }
 
 // -------------------------------------------------------------------------- //

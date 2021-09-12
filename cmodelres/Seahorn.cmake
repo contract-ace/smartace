@@ -56,6 +56,10 @@ set(HORN_SOLVER_MSG "Theories available to spacer (lia/nlia/bv).")
 set(SEA_HORN_SOLVER ${HORN_SOLVER_LIA} CACHE STRING ${HORN_SOLVER_MSG})
 set_property(CACHE SEA_HORN_SOLVER PROPERTY STRINGS ${HORN_SOLVER_MODES})
 
+# BMC configurations
+set(SEA_BMC_BOUND_MSG "A bound on loop and transaction unrolling.")
+set(CACHE SEA_BMC_BOUND "5" CACHE STRING SEA_BMC_BOUND_MSG)
+
 # Configures YAML files.
 set(SEA_YAML "${CMAKE_CURRENT_SOURCE_DIR}/yaml/sea.common.yaml")
 set(CEX_YAML "${CMAKE_CURRENT_SOURCE_DIR}/yaml/sea.cex.yaml")
@@ -83,6 +87,17 @@ if(SEA_EXE)
     list(APPEND SEA_FULL_ARGS ${CMODEL_COMPILE_DEFS})
     list(APPEND SEA_FULL_ARGS ${SEA_ARGS})
 
+    # Generates extra arguments for concrete analysis
+    set(SEA_CONCRETE_ARGS "")
+    list(APPEND SEA_CONCRETE_ARGS ${CMODEL_COMPILE_DEFS})
+    list(APPEND SEA_CONCRETE_ARGS "-DMC_SMC_CONCRETE_USERS")
+    list(APPEND SEA_CONCRETE_ARGS ${SEA_ARGS})
+
+    # Generates extra arguments for bounded model checking.
+    set(SEA_BMC_ARGS "")
+    list(APPEND SEA_BMC_ARGS SEA_CONCRETE_ARGS)
+    list(APPEND SEA_BMC_ARGS "--bound=${SEA_BMC_BOUND}")
+
     # Adds pipeline to produce optimized LLVM bytecode and dot diagram.
     if(LLVM_DIS_EXE)
         set(SEA_INSPECT_TEMP_REL "sea_temps")
@@ -107,12 +122,7 @@ if(SEA_EXE)
         )
     endif()
 
-    add_custom_target(
-        verify
-        COMMAND ${SEA_EXE} yama ${SEA_COMMON_YAMA} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --show-invars
-        SOURCES ${SEAHORN_DEPS}
-        COMMAND_EXPAND_LISTS
-    )
+    # Verification under interference (e.g., PCMC).
     add_custom_target(
         cex
         COMMAND ${SEA_EXE} yama ${SEA_CEX_YAMA} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --cex=cex.ll
@@ -120,8 +130,33 @@ if(SEA_EXE)
         COMMAND_EXPAND_LISTS
     )
     add_custom_target(
+        verify
+        COMMAND ${SEA_EXE} yama ${SEA_COMMON_YAMA} pf ${SEAHORN_DEPS} ${SEA_FULL_ARGS} --show-invars
+        SOURCES ${SEAHORN_DEPS}
+        COMMAND_EXPAND_LISTS
+    )
+    add_custom_target(
         witness
-        COMMAND ${SEA_EXE} yama ${SEA_CEX_YAMA} exe-cex ${SEAHORN_DEPS} ${SEA_FULL_ARGS} -DMC_LOG_ALL -o=witness
+        COMMAND ${SEA_EXE} yama ${SEA_CEX_YAMA} exe-cex ${SEAHORN_DEPS} ${SEA_FULL_ARGS} -DMC_LOG_ALL -owitness
+        COMMAND_EXPAND_LISTS
+    )
+    # Verification without interference (i.e., bounded number of users).
+    add_custom_target(
+        verify_concrete
+        COMMAND ${SEA_EXE} yama ${SEA_COMMON_YAMA} pf ${SEAHORN_DEPS} ${SEA_CONCRETE_ARGS} --show-invars
+        SOURCES ${SEAHORN_DEPS}
+        COMMAND_EXPAND_LISTS
+    )
+    add_custom_target(
+        witness_concrete
+        COMMAND ${SEA_EXE} yama ${SEA_CEX_YAMA} exe-cex ${SEAHORN_DEPS} ${SEA_CONCRETE_ARGS} -DMC_LOG_ALL -ocwitness
+        COMMAND_EXPAND_LISTS
+    )
+    # Verification without interference and bounded transactions (e.g., standard software BMC).
+    add_custom_target(
+        bmc
+        COMMAND ${SEA_EXE} yama ${SEA_COMMON_YAMA} bpf ${SEAHORN_DEPS} ${SEA_BMC_ARGS} --show-invars
+        SOURCES ${SEAHORN_DEPS}
         COMMAND_EXPAND_LISTS
     )
 endif()
