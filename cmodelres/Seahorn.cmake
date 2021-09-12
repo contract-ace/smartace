@@ -58,7 +58,7 @@ set_property(CACHE SEA_HORN_SOLVER PROPERTY STRINGS ${HORN_SOLVER_MODES})
 
 # BMC configurations
 set(SEA_BMC_BOUND_MSG "A bound on loop and transaction unrolling.")
-set(CACHE SEA_BMC_BOUND "5" CACHE STRING SEA_BMC_BOUND_MSG)
+set(SEA_BMC_BOUND "5" CACHE STRING SEA_BMC_BOUND_MSG)
 
 # Configures YAML files.
 set(SEA_YAML "${CMAKE_CURRENT_SOURCE_DIR}/yaml/sea.common.yaml")
@@ -95,7 +95,7 @@ if(SEA_EXE)
 
     # Generates extra arguments for bounded model checking.
     set(SEA_BMC_ARGS "")
-    list(APPEND SEA_BMC_ARGS SEA_CONCRETE_ARGS)
+    list(APPEND SEA_BMC_ARGS ${SEA_CONCRETE_ARGS})
     list(APPEND SEA_BMC_ARGS "--bound=${SEA_BMC_BOUND}")
 
     # Adds pipeline to produce optimized LLVM bytecode and dot diagram.
