@@ -216,17 +216,32 @@ bool TaintAnalysis::visit(MemberAccess const& _node)
     if (auto const* ref = _node.annotation().referencedDeclaration)
     {
         propogate(ref);
+        return false;
     }
     else
     {
         auto cat = _node.expression().annotation().type->category();
-        if (cat != Type::Category::Magic && cat != Type::Category::TypeType)
+        if (cat == Type::Category::Magic || cat == Type::Category::TypeType)
         {
-            cout << get_ast_string(&_node) << endl;
-            throw runtime_error("TaintAnalysis: Expected member declaration.");
+            return false;
         }
+        else if (cat == Type::Category::Address)
+        {
+            if (_node.memberName() == "balance")
+            {
+                return false;
+            }
+        }
+        else if (cat == Type::Category::FixedBytes)
+        {
+            if (_node.memberName() == "length")
+            {
+                return false;
+            }
+        }
+        cout << get_ast_string(&_node) << endl;
+        throw runtime_error("TaintAnalysis: Expected member declaration.");
     }
-    return false;
 }
 
 bool TaintAnalysis::visit(Identifier const& _node)
