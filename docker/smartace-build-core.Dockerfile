@@ -16,7 +16,7 @@ RUN apt-get update && \
     update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.gold" 20 && \
     update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.bfd" 10 && \
     apt-get install -yqq libboost-all-dev && \
-    git clone https://github.com/ScottWe/solidity-to-cmodel.git /smartace
+    git clone https://github.com/contract-ace/smartace.git /smartace
 
 WORKDIR /smartace/build
 RUN cmake ../ \
