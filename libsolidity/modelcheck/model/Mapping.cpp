@@ -28,10 +28,10 @@ MapGenerator::MapGenerator(
     size_t _ct,
     TypeAnalyzer const& _converter
 ): M_LEN(_ct)
- , M_KEEP_SUM(_keep_sum && has_simple_type(*M_MAP_RECORD->value_type))
  , M_TYPE(_converter.get_type(_src))
  , M_CONVERTER(_converter)
  , M_MAP_RECORD(_converter.map_db().try_resolve(_src))
+ , M_KEEP_SUM(_keep_sum && has_simple_type(*M_MAP_RECORD->value_type))
  , M_VAL_T(_converter.get_type(*M_MAP_RECORD->value_type))
  , M_TMP(make_shared<CVarDecl>(M_TYPE, "tmp", false))
  , M_ARR(make_shared<CVarDecl>(M_TYPE, "arr", true))
