@@ -34,8 +34,8 @@ class MapGenerator
 public:
     // Constructs a new map. The map models AST node _src. The map will model
     // _ct entries. Its key and value types are converted using _converter,
-    // along with the map itself. Is _keep_sum is set, the sum aggregator is
-    // instrumented by default.
+    // along with the map itself. If _keep_sum is set and if the map's values
+    // have a simple type, the sum aggregator is instrumented by default.
     MapGenerator(
         Mapping const& _src,
         bool _keep_sum,
@@ -52,12 +52,14 @@ public:
 private:
     // The number of elements modeling the map.
     size_t const M_LEN;
-    bool const M_KEEP_SUM;
     std::string const M_TYPE;
 
     // Allows types to be resolved.
     TypeAnalyzer const& M_CONVERTER;
     std::shared_ptr<MapDeflate::FlatMap const> const M_MAP_RECORD;
+
+    // Maintain sum of values in maps of simple types.
+    bool const M_KEEP_SUM;
 
     // Const type names to simplify generation.
     std::string const M_VAL_T;
