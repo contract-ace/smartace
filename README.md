@@ -1,6 +1,13 @@
-# Model Checking in Solidity
+# SmartACE: Parameterized Model Checking for Solidity
 
-Extension of the solidity compiler to support smart contract verification.
+SmartACE extends the Solidity compiler to support bounded and parameterized smart contract verification.
+An introduction to parameterized smart contract verification can be found in our SAS2021 paper:
+- [Read the paper.](https://arxiv.org/pdf/2107.08583.pdf)
+- [Watch the talk.](https://www.youtube.com/watch?v=2ECQoq30RoU)
+
+A detailed overview of the SmartACE architecture can be found in our VMCAI2022 paper:
+- Paper to appear.
+- [All evaluations are available on GitHub.](https://github.com/contract-ace/verify-openzeppelin)
 
 ## Repository Overview
 
