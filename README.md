@@ -6,7 +6,7 @@ An introduction to parameterized smart contract verification can be found in our
 - [Watch the talk.](https://www.youtube.com/watch?v=2ECQoq30RoU)
 
 A detailed overview of the SmartACE architecture can be found in our VMCAI2022 paper:
-- Paper to appear.
+- [Read the paper.](https://mariachris.github.io/Pubs/VMCAI-2022.pdf)
 - [All evaluations are available on GitHub.](https://github.com/contract-ace/verify-openzeppelin)
 
 ## Repository Overview
